@@ -24,8 +24,8 @@ pub enum AstNode {
         block: Box<AstNode>,
     },
     Block(Vec<AstNode>),
-    DyadicOp {
-        verb: DyadicVerb,
+    BinaryOp {
+        verb: BinaryVerb,
         lhs: Box<AstNode>,
         rhs: Box<AstNode>,
     },
@@ -39,7 +39,7 @@ pub enum AstNode {
 }
 
 #[derive(Debug)]
-pub enum DyadicVerb {
+pub enum BinaryVerb {
     GreaterThan,
     LessThan,
     Equal,
@@ -53,23 +53,23 @@ fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
     }
 }
 
-fn build_ast_from_dyadic_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
-    assert_eq!(pair.as_rule(), Rule::dyadicExpr);
+fn build_ast_from_binary_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    assert_eq!(pair.as_rule(), Rule::binaryExpr);
 
     let mut inner = pair.into_inner();
 
     let lhs = build_ast_from_term(inner.next().unwrap());
 
     let verb = match inner.next().unwrap().as_str() {
-        ">" => DyadicVerb::GreaterThan,
-        "<" => DyadicVerb::LessThan,
-        "==" => DyadicVerb::Equal,
-        verb => panic!("Unexpected dyadic verb '{}'", verb),
+        ">" => BinaryVerb::GreaterThan,
+        "<" => BinaryVerb::LessThan,
+        "==" => BinaryVerb::Equal,
+        verb => panic!("Unexpected binary verb '{}'", verb),
     };
 
     let rhs = build_ast_from_term(inner.next().unwrap());
 
-    AstNode::DyadicOp {
+    AstNode::BinaryOp {
         lhs: Box::new(lhs),
         rhs: Box::new(rhs),
         verb,
@@ -102,7 +102,7 @@ fn build_ast_from_fn_call(pair: pest::iterators::Pair<Rule>) -> AstNode {
 
 fn build_ast_from_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
     match pair.as_rule() {
-        Rule::dyadicExpr => build_ast_from_dyadic_expression(pair),
+        Rule::binaryExpr => build_ast_from_binary_expression(pair),
         Rule::fnCall => build_ast_from_fn_call(pair),
         _ => panic!("Invalid expression '{:?}'", pair.as_str()),
     }
