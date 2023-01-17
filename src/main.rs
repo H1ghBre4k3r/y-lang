@@ -90,7 +90,7 @@ fn build_ast_from_fn_call(pair: pest::iterators::Pair<Rule>) -> AstNode {
             Rule::integer => params.push(AstNode::Integer(param.as_str().parse::<i64>().unwrap())),
             Rule::ident => params.push(AstNode::Ident(param.as_str().to_owned())),
             Rule::string => params.push(AstNode::Str(param.as_str().to_owned())),
-            _ => panic!("Unsupported paramenter: {:#?}", param),
+            _ => panic!("Unsupported paramenter '{:?}'", param.as_str()),
         }
     }
 
@@ -104,7 +104,7 @@ fn build_ast_from_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
     match pair.as_rule() {
         Rule::dyadicExpr => build_ast_from_dyadic_expression(pair),
         Rule::fnCall => build_ast_from_fn_call(pair),
-        _ => panic!("Invalid expression '{:?}'", pair),
+        _ => panic!("Invalid expression '{:?}'", pair.as_str()),
     }
 }
 
@@ -131,7 +131,7 @@ fn build_ast_from_statement(pair: pest::iterators::Pair<Rule>) -> AstNode {
     match pair.as_rule() {
         Rule::ifStmt => build_ast_from_if(pair),
         Rule::fnCall => build_ast_from_fn_call(pair),
-        _ => panic!("not supported statement: '{:?}'", pair),
+        _ => panic!("not supported statement '{:?}'", pair.as_str()),
     }
 }
 
