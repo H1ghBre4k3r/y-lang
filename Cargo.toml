@@ -9,4 +9,5 @@ description = "A very simple (and rather experimental) language with no real wor
 
 [dependencies]
 clap = { version = "4.1.1", features = ["derive"]}
-nom = "7.1.3"
+pest = "2.0"
+pest_derive = "2.0"

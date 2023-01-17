@@ -1,66 +1,155 @@
-use clap::Parser;
-use nom::{
-    bytes::complete::{tag, take_until},
-    sequence::delimited,
-    IResult,
-};
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 
-#[derive(Parser, Debug)]
+use clap::Parser as CParser;
+
+#[derive(CParser, Debug)]
 #[command(author, version, about)]
 struct Cli {
     #[arg(short, long)]
     file: std::path::PathBuf,
 }
 
-fn main() {
-    let args = Cli::parse();
+use pest::Parser;
 
-    let Ok(file_content) = std::fs::read_to_string(&args.file) else {
-        println!("Could not read file: '{}'", args.file.to_string_lossy());
-        std::process::exit(-1);
-    };
+#[derive(Parser)]
+#[grammar = "pesca.pest"]
+pub struct PescaParser;
 
-    println!("{:?}", parse_progam(&file_content));
+#[derive(Debug)]
+pub enum AstNode {
+    If {
+        condition: Box<AstNode>,
+        block: Box<AstNode>,
+    },
+    Block(Vec<AstNode>),
+    DyadicOp {
+        verb: DyadicVerb,
+        lhs: Box<AstNode>,
+        rhs: Box<AstNode>,
+    },
+    Integer(i64),
+    Ident(String),
+    FnCall {
+        ident: Box<AstNode>,
+        params: Vec<AstNode>,
+    },
 }
 
 #[derive(Debug)]
-enum Intrinsics {
-    If(String, String),
+pub enum DyadicVerb {
+    GreaterThan,
+    LessThan,
+    Equal,
 }
 
-fn parse_if(input: &str) -> IResult<&str, Intrinsics> {
-    let Ok((rest, _)) = tag::<&str, &str, nom::error::Error<&str>>("if ")(input) else {
-        println!("expected 'if' at start of if expression");
-        std::process::exit(-1);
-    };
-
-    let Ok((block, condition)) = take_until::<&str, &str, nom::error::Error<&str>>(" {")(rest) else {
-        println!("Unable to parse if condition!");
-        std::process::exit(-1);
-    };
-
-    let block = block.trim();
-    let condition = condition.trim();
-
-    let Ok((rest, parsed)) = delimited(
-        tag::<&str, &str, nom::error::Error<&str>>("{"),
-        take_until("}"),
-        tag("}"),
-    )(block) else {
-        println!("Unable to parse block of condition!");
-        std::process::exit(-1);
-    };
-
-    let block = parsed.trim();
-
-    Ok((rest, Intrinsics::If(condition.to_owned(), block.to_owned())))
+fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    match pair.as_rule() {
+        Rule::integer => AstNode::Integer(pair.as_str().parse::<i64>().unwrap()),
+        Rule::ident => AstNode::Ident(pair.as_str().to_owned()),
+        _ => panic!("invalid term '{:?}'", pair),
+    }
 }
 
-fn parse_progam(input: &str) -> IResult<&str, &str> {
-    let a = parse_if(input);
-    println!("{:?}", a);
+fn build_ast_from_dyadic_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    assert_eq!(pair.as_rule(), Rule::dyadicExpr);
 
-    let t: IResult<&str, &str> = tag("if")(input);
+    let mut inner = pair.into_inner();
 
-    t
+    let lhs = build_ast_from_term(inner.next().unwrap());
+
+    let verb = match inner.next().unwrap().as_str() {
+        ">" => DyadicVerb::GreaterThan,
+        "<" => DyadicVerb::LessThan,
+        "==" => DyadicVerb::Equal,
+        verb => panic!("Unexpected dyadic verb '{}'", verb),
+    };
+
+    let rhs = build_ast_from_term(inner.next().unwrap());
+
+    AstNode::DyadicOp {
+        lhs: Box::new(lhs),
+        rhs: Box::new(rhs),
+        verb,
+    }
+}
+
+fn build_ast_from_fn_call(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    assert_eq!(pair.as_rule(), Rule::fnCall);
+
+    let mut inner = pair.into_inner();
+
+    let ident = inner.next().unwrap().as_str();
+
+    let mut params = vec![];
+
+    for param in inner {
+        match param.as_rule() {
+            Rule::integer => params.push(AstNode::Integer(param.as_str().parse::<i64>().unwrap())),
+            Rule::ident => params.push(AstNode::Ident(param.as_str().to_owned())),
+            _ => panic!("Unsupported paramenter: {:#?}", param),
+        }
+    }
+
+    AstNode::FnCall {
+        ident: Box::new(AstNode::Ident(ident.to_owned())),
+        params,
+    }
+}
+
+fn build_ast_from_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    match pair.as_rule() {
+        Rule::dyadicExpr => build_ast_from_dyadic_expression(pair),
+        Rule::fnCall => build_ast_from_fn_call(pair),
+        _ => panic!("Invalid expression '{:?}'", pair),
+    }
+}
+
+fn build_ast_from_if(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    assert_eq!(pair.as_rule(), Rule::ifStmt);
+
+    let mut inner = pair.into_inner();
+    let condition = build_ast_from_expression(inner.next().unwrap());
+    let block = inner.next().unwrap().into_inner();
+
+    let mut block_ast = vec![];
+
+    for statement in block {
+        block_ast.push(build_ast_from_statement(statement));
+    }
+
+    AstNode::If {
+        condition: Box::new(condition),
+        block: Box::new(AstNode::Block(block_ast)),
+    }
+}
+
+fn build_ast_from_statement(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    match pair.as_rule() {
+        Rule::ifStmt => build_ast_from_if(pair),
+        Rule::fnCall => build_ast_from_fn_call(pair),
+        _ => panic!("not supported statement: '{:?}'", pair),
+    }
+}
+
+fn main() {
+    let args = Cli::parse();
+
+    let file_content = std::fs::read_to_string(&args.file).expect(&format!(
+        "Could not read file: '{}'",
+        args.file.to_string_lossy()
+    ));
+
+    let pairs = PescaParser::parse(Rule::program, &file_content).expect("failed to parse file");
+
+    let mut ast = vec![];
+
+    for pair in pairs {
+        if pair.as_rule() != Rule::EOI {
+            ast.push(build_ast_from_statement(pair));
+        }
+    }
+
+    println!("{:#?}", ast);
 }

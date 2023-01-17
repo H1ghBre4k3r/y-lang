@@ -1,0 +1,33 @@
+program = _{ SOI ~ (stmt)* ~ EOI }
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+stmt = _{ 
+    ifStmt
+}
+
+ifStmt = { "if" ~ expr ~ block}
+
+fnCall = { ident ~ "(" ~ term? ~ ("," ~ term)* ~ ")" }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+expr = _{
+    dyadicExpr | fnCall
+}
+
+term = _{
+    integer | ident
+}
+
+verb = {
+    ">" | "<" | "=="
+}
+
+dyadicExpr = {
+    term ~ verb ~ term
+}
+
+block = { "{" ~ (stmt | expr)* ~ "}"}
+
+integer = @{ "_"? ~ ASCII_DIGIT+ }
