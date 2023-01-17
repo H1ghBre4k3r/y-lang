@@ -30,6 +30,7 @@ pub enum AstNode {
         rhs: Box<AstNode>,
     },
     Integer(i64),
+    Str(String),
     Ident(String),
     FnCall {
         ident: Box<AstNode>,
@@ -88,6 +89,7 @@ fn build_ast_from_fn_call(pair: pest::iterators::Pair<Rule>) -> AstNode {
         match param.as_rule() {
             Rule::integer => params.push(AstNode::Integer(param.as_str().parse::<i64>().unwrap())),
             Rule::ident => params.push(AstNode::Ident(param.as_str().to_owned())),
+            Rule::string => params.push(AstNode::Str(param.as_str().to_owned())),
             _ => panic!("Unsupported paramenter: {:#?}", param),
         }
     }

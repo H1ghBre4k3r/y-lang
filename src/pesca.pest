@@ -17,8 +17,10 @@ expr = _{
 }
 
 term = _{
-    integer | ident
+    integer | ident | string
 }
+
+string = @{ "\"" ~ (ASCII_ALPHANUMERIC | " ")* ~ "\""}
 
 verb = {
     ">" | "<" | "=="
