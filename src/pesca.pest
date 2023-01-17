@@ -16,20 +16,26 @@ fnCall = { ident ~ "(" ~ expr? ~ ("," ~ expr)* ~ ")" }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
-expr = _{ atomExpr | binaryExpr }
+expr = _{ binaryExpr | atomExpr | "(" ~ expr ~ ")" }
 
-binaryExpr = { atomExpr ~ verb ~ expr }
+binaryExpr = { atomExpr ~ binaryVerb ~ atomExpr }
 
 atomExpr = _{
     fnCall | integer | ident | string
 }
 
-string = @{ "\"" ~ (ASCII_ALPHANUMERIC | " ")* ~ "\""}
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
 
-verb = {
+binaryVerb = {
     ">" | "<" | "=="
 }
 
 block = { "{" ~ (stmt | expr)* ~ "}"}
 
-integer = @{ "_"? ~ ASCII_DIGIT+ }
+integer = @{ ASCII_DIGIT+ }

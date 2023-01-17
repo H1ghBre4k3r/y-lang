@@ -49,11 +49,29 @@ pub enum BinaryVerb {
     Equal,
 }
 
-fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
+fn build_ast_from_string(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    assert_eq!(pair.as_rule(), Rule::string);
+    AstNode::Str(pair.as_str().to_owned())
+}
+
+fn build_ast_from_integer(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    assert_eq!(pair.as_rule(), Rule::integer);
+    AstNode::Integer(pair.as_str().parse::<i64>().unwrap())
+}
+
+fn build_ast_from_ident(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    assert_eq!(pair.as_rule(), Rule::ident);
+    AstNode::Ident(pair.as_str().to_owned())
+}
+
+fn build_ast_from_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
     match pair.as_rule() {
-        Rule::integer => AstNode::Integer(pair.as_str().parse::<i64>().unwrap()),
-        Rule::ident => AstNode::Ident(pair.as_str().to_owned()),
-        _ => panic!("invalid term '{:?}'", pair),
+        Rule::integer => build_ast_from_integer(pair),
+        Rule::ident => build_ast_from_ident(pair),
+        Rule::fnCall => build_ast_from_fn_call(pair),
+        Rule::string => build_ast_from_string(pair),
+        Rule::binaryExpr => build_ast_from_binary_expression(pair),
+        _ => unreachable!("invalid term '{:?}'", pair),
     }
 }
 
@@ -62,16 +80,16 @@ fn build_ast_from_binary_expression(pair: pest::iterators::Pair<Rule>) -> AstNod
 
     let mut inner = pair.into_inner();
 
-    let lhs = build_ast_from_term(inner.next().unwrap());
+    let lhs = build_ast_from_expression(inner.next().unwrap());
 
     let verb = match inner.next().unwrap().as_str() {
         ">" => BinaryVerb::GreaterThan,
         "<" => BinaryVerb::LessThan,
         "==" => BinaryVerb::Equal,
-        verb => panic!("Unexpected binary verb '{}'", verb),
+        verb => unreachable!("Unexpected binary verb '{}'", verb),
     };
 
-    let rhs = build_ast_from_term(inner.next().unwrap());
+    let rhs = build_ast_from_expression(inner.next().unwrap());
 
     AstNode::BinaryOp {
         lhs: Box::new(lhs),
@@ -85,49 +103,37 @@ fn build_ast_from_fn_call(pair: pest::iterators::Pair<Rule>) -> AstNode {
 
     let mut inner = pair.into_inner();
 
-    let ident = inner.next().unwrap().as_str();
+    let ident = inner.next().unwrap();
 
     let mut params = vec![];
 
     for param in inner {
         match param.as_rule() {
-            Rule::integer => params.push(AstNode::Integer(param.as_str().parse::<i64>().unwrap())),
-            Rule::ident => params.push(AstNode::Ident(param.as_str().to_owned())),
-            Rule::string => params.push(AstNode::Str(param.as_str().to_owned())),
-            _ => panic!("Unsupported paramenter '{:?}'", param.as_str()),
+            Rule::integer => params.push(build_ast_from_integer(param)),
+            Rule::ident => params.push(build_ast_from_ident(param)),
+            Rule::string => params.push(build_ast_from_string(param)),
+            _ => unreachable!("Unsupported paramenter '{:?}'", param.as_str()),
         }
     }
 
     AstNode::FnCall {
-        ident: Box::new(AstNode::Ident(ident.to_owned())),
+        ident: Box::new(build_ast_from_ident(ident)),
         params,
     }
 }
 
-fn build_ast_from_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
-    match pair.as_rule() {
-        Rule::binaryExpr => build_ast_from_binary_expression(pair),
-        Rule::fnCall => build_ast_from_fn_call(pair),
-        _ => panic!("Invalid expression '{:?}'", pair.as_str()),
-    }
-}
-
 fn build_ast_from_assignment(pair: pest::iterators::Pair<Rule>) -> AstNode {
-    println!("{:#?}", pair);
-
     let mut inner = pair.into_inner();
 
-    let ident = AstNode::Ident(
-        inner
-            .next()
-            .expect("No valid identifier given!")
-            .as_str()
-            .to_owned(),
-    );
+    let ident = build_ast_from_ident(inner.next().expect("No valid identifier given!"));
 
     let value = inner.next().expect("No valid rvalue given!");
+    let value = build_ast_from_expression(value);
 
-    todo!()
+    AstNode::Assignment {
+        ident: Box::new(ident),
+        value: Box::new(value),
+    }
 }
 
 fn build_ast_from_if(pair: pest::iterators::Pair<Rule>) -> AstNode {
@@ -154,7 +160,7 @@ fn build_ast_from_statement(pair: pest::iterators::Pair<Rule>) -> AstNode {
         Rule::ifStmt => build_ast_from_if(pair),
         Rule::fnCall => build_ast_from_fn_call(pair),
         Rule::assignment => build_ast_from_assignment(pair),
-        _ => panic!("not supported statement '{:?}'", pair.as_str()),
+        _ => unreachable!("not supported statement '{:?}'", pair.as_str()),
     }
 }
 
