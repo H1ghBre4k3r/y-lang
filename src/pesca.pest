@@ -3,31 +3,31 @@ program = _{ SOI ~ (stmt)* ~ EOI }
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
 stmt = _{ 
-    ifStmt
+    intrinsics | expr
 }
+
+intrinsics = _{ ifStmt | assignment }
 
 ifStmt = { "if" ~ expr ~ block}
 
-fnCall = { ident ~ "(" ~ term? ~ ("," ~ term)* ~ ")" }
+assignment = { ident ~ ":=" ~ expr }
+
+fnCall = { ident ~ "(" ~ expr? ~ ("," ~ expr)* ~ ")" }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
-expr = _{
-    binaryExpr | fnCall
-}
+expr = _{ atomExpr | binaryExpr }
 
-term = _{
-    integer | ident | string
+binaryExpr = { atomExpr ~ verb ~ expr }
+
+atomExpr = _{
+    fnCall | integer | ident | string
 }
 
 string = @{ "\"" ~ (ASCII_ALPHANUMERIC | " ")* ~ "\""}
 
 verb = {
     ">" | "<" | "=="
-}
-
-binaryExpr = {
-    term ~ verb ~ term
 }
 
 block = { "{" ~ (stmt | expr)* ~ "}"}

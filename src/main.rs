@@ -23,6 +23,10 @@ pub enum AstNode {
         condition: Box<AstNode>,
         block: Box<AstNode>,
     },
+    Assignment {
+        ident: Box<AstNode>,
+        value: Box<AstNode>,
+    },
     Block(Vec<AstNode>),
     BinaryOp {
         verb: BinaryVerb,
@@ -108,6 +112,24 @@ fn build_ast_from_expression(pair: pest::iterators::Pair<Rule>) -> AstNode {
     }
 }
 
+fn build_ast_from_assignment(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    println!("{:#?}", pair);
+
+    let mut inner = pair.into_inner();
+
+    let ident = AstNode::Ident(
+        inner
+            .next()
+            .expect("No valid identifier given!")
+            .as_str()
+            .to_owned(),
+    );
+
+    let value = inner.next().expect("No valid rvalue given!");
+
+    todo!()
+}
+
 fn build_ast_from_if(pair: pest::iterators::Pair<Rule>) -> AstNode {
     assert_eq!(pair.as_rule(), Rule::ifStmt);
 
@@ -131,6 +153,7 @@ fn build_ast_from_statement(pair: pest::iterators::Pair<Rule>) -> AstNode {
     match pair.as_rule() {
         Rule::ifStmt => build_ast_from_if(pair),
         Rule::fnCall => build_ast_from_fn_call(pair),
+        Rule::assignment => build_ast_from_assignment(pair),
         _ => panic!("not supported statement '{:?}'", pair.as_str()),
     }
 }
