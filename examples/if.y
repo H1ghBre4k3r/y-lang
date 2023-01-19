@@ -1,6 +1,6 @@
 foo := "bar"
 
-if bar() > 5 {
+if bar(bar(), "test") > 5 {
     print(7)
 
     if 4 < 8 {

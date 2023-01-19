@@ -1,9 +1,9 @@
 [package]
-name = "pesca-lang"
+name = "y-lang"
 version = "0.1.0"
 edition = "2021"
 authors = ["Louis Meyer (H1ghBre4k3r) <h1ghbe4k3r@dev.bre4k3r.de>"]
-description = "A very simple (and rather experimental) language with no real world use case."
+description = "Y would anyone build a new (and rather experimental) language with no real world use case."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

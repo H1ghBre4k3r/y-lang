@@ -14,8 +14,8 @@ struct Cli {
 use pest::Parser;
 
 #[derive(Parser)]
-#[grammar = "pesca.pest"]
-pub struct PescaParser;
+#[grammar = "y-lang.pest"]
+pub struct YParser;
 
 #[derive(Debug)]
 pub enum AstNode {
@@ -112,6 +112,7 @@ fn build_ast_from_fn_call(pair: pest::iterators::Pair<Rule>) -> AstNode {
             Rule::integer => params.push(build_ast_from_integer(param)),
             Rule::ident => params.push(build_ast_from_ident(param)),
             Rule::string => params.push(build_ast_from_string(param)),
+            Rule::fnCall => params.push(build_ast_from_fn_call(param)),
             _ => unreachable!("Unsupported paramenter '{:?}'", param.as_str()),
         }
     }
@@ -172,7 +173,7 @@ fn main() {
         args.file.to_string_lossy()
     ));
 
-    let pairs = PescaParser::parse(Rule::program, &file_content).expect("failed to parse file");
+    let pairs = YParser::parse(Rule::program, &file_content).expect("failed to parse file");
 
     let mut ast = vec![];
 
