@@ -18,7 +18,7 @@ ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 expr = _{ binaryExpr | atomExpr | "(" ~ expr ~ ")" }
 
-binaryExpr = { atomExpr ~ binaryVerb ~ atomExpr }
+binaryExpr = { atomExpr ~ binaryVerb ~ expr }
 
 atomExpr = _{
     fnCall | integer | ident | string
