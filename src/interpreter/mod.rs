@@ -178,6 +178,24 @@ impl Interpreter {
             BinaryVerb::Equal => VariableType::Bool(lhs == rhs),
             BinaryVerb::GreaterThan => VariableType::Bool(lhs > rhs),
             BinaryVerb::LessThan => VariableType::Bool(lhs < rhs),
+            BinaryVerb::Plus => {
+                let (VariableType::Int(lhs), VariableType::Int(rhs)) = (lhs, rhs) else {
+                    unreachable!();
+                };
+                VariableType::Int(lhs + rhs)
+            }
+            BinaryVerb::Minus => {
+                let (VariableType::Int(lhs), VariableType::Int(rhs)) = (lhs, rhs) else {
+                    unreachable!();
+                };
+                VariableType::Int(lhs - rhs)
+            }
+            BinaryVerb::Times => {
+                let (VariableType::Int(lhs), VariableType::Int(rhs)) = (lhs, rhs) else {
+                    unreachable!();
+                };
+                VariableType::Int(lhs * rhs)
+            }
         }
     }
 

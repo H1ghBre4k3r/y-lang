@@ -31,6 +31,9 @@ pub enum BinaryVerb {
     GreaterThan,
     LessThan,
     Equal,
+    Plus,
+    Minus,
+    Times,
 }
 
 impl AstNode {
@@ -78,6 +81,9 @@ impl AstNode {
             ">" => BinaryVerb::GreaterThan,
             "<" => BinaryVerb::LessThan,
             "==" => BinaryVerb::Equal,
+            "+" => BinaryVerb::Plus,
+            "-" => BinaryVerb::Minus,
+            "*" => BinaryVerb::Times,
             verb => unreachable!("Unexpected binary verb '{}'", verb),
         };
 

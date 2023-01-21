@@ -139,11 +139,11 @@ fn check_binary_operation(binary_operation: &AstNode, scope: &mut Scope) -> Assi
         unreachable!("Invalid binary operation: '{:?}'", binary_operation);
     };
 
+    let l_type = check_expression(lhs.as_ref(), scope);
+    let r_type = check_expression(rhs.as_ref(), scope);
+
     match verb {
         BinaryVerb::Equal | BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
-            let l_type = check_expression(lhs.as_ref(), scope);
-            let r_type = check_expression(rhs.as_ref(), scope);
-
             if l_type != r_type {
                 panic!(
                     "Left and right value of binary operation do not match! ('{:?}' and '{:?}')",
@@ -151,6 +151,21 @@ fn check_binary_operation(binary_operation: &AstNode, scope: &mut Scope) -> Assi
                 );
             }
             return AssignmentType::Bool;
+        }
+        BinaryVerb::Plus | BinaryVerb::Minus | BinaryVerb::Times => {
+            if l_type != AssignmentType::Int {
+                panic!(
+                    "Left value of numeric binary operation has to be of type Int. Found '{:?}'",
+                    l_type
+                );
+            } else if r_type != AssignmentType::Int {
+                panic!(
+                    "Right value of numeric binary operation has to be of type Int. Found '{:?}'",
+                    r_type
+                );
+            }
+
+            return AssignmentType::Int;
         }
     }
 }

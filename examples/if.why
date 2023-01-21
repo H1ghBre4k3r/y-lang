@@ -1,5 +1,9 @@
 let foo := "42" 
 
+let bar := 23 * 3
+
 if 4 < 8 {
     print(foo)
+    print(" ")
+    print(bar)
 }
