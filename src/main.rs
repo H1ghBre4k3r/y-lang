@@ -1,11 +1,13 @@
 mod ast;
 mod checker;
+mod interpreter;
 
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
 use clap::Parser as CParser;
+use interpreter::Interpreter;
 
 use crate::{
     ast::{Ast, YParser},
@@ -17,6 +19,9 @@ use crate::{
 struct Cli {
     #[arg(short, long)]
     file: std::path::PathBuf,
+
+    #[arg(short, long)]
+    run: bool,
 }
 
 fn main() {
@@ -29,8 +34,13 @@ fn main() {
 
     let pairs = YParser::parse_program(&file_content);
 
-    println!("{:#?}", pairs);
     let ast = Ast::from_program(pairs);
 
     check_ast(&ast);
+
+    if args.run {
+        let interpreter = Interpreter::from_ast(ast);
+
+        interpreter.run();
+    }
 }
