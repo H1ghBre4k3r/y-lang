@@ -1,4 +1,5 @@
 mod ast;
+mod checker;
 
 extern crate pest;
 #[macro_use]
@@ -6,7 +7,10 @@ extern crate pest_derive;
 
 use clap::Parser as CParser;
 
-use crate::ast::{Ast, YParser};
+use crate::{
+    ast::{Ast, YParser},
+    checker::check_ast,
+};
 
 #[derive(CParser, Debug)]
 #[command(author, version, about)]
@@ -25,7 +29,8 @@ fn main() {
 
     let pairs = YParser::parse_program(&file_content);
 
+    println!("{:#?}", pairs);
     let ast = Ast::from_program(pairs);
 
-    println!("{:#?}", ast);
+    check_ast(&ast);
 }

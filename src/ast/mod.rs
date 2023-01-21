@@ -3,13 +3,14 @@ mod parser;
 
 use pest::iterators::Pairs;
 
-use self::{node::AstNode, parser::Rule};
+use self::parser::Rule;
 
+pub use self::node::*;
 pub use self::parser::*;
 
 #[derive(Debug)]
 pub struct Ast {
-    inner: Vec<AstNode>,
+    nodes: Vec<AstNode>,
 }
 
 impl Ast {
@@ -21,10 +22,10 @@ impl Ast {
                 ast.push(AstNode::from_statement(statement));
             }
         }
-        Self { inner: ast }
+        Self { nodes: ast }
     }
 
-    pub fn inner(&self) -> Vec<AstNode> {
-        self.inner.clone()
+    pub fn nodes(&self) -> Vec<AstNode> {
+        self.nodes.clone()
     }
 }

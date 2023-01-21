@@ -10,7 +10,7 @@ intrinsics = _{ ifStmt | assignment }
 
 ifStmt = { "if" ~ expr ~ block}
 
-assignment = { ident ~ ":=" ~ expr }
+assignment = { "let " ~ ident ~ ":=" ~ expr }
 
 fnCall = { ident ~ "(" ~ expr? ~ ("," ~ expr)* ~ ")" }
 

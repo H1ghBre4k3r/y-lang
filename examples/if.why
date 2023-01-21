@@ -1,8 +1,5 @@
-foo := "bar"
+let foo := "bar"
 
-if bar(bar(), "test") > 5 {
-
-    if 4 < 8 {
-        foo("bar")
-    }
-} 
+if 4 < 8 {
+    print(foo)
+}
