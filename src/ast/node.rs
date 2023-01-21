@@ -5,7 +5,8 @@ use pest::iterators::Pair;
 pub enum AstNode {
     If {
         condition: Box<AstNode>,
-        block: Box<AstNode>,
+        if_block: Box<AstNode>,
+        else_block: Option<Box<AstNode>>,
     },
     Assignment {
         ident: Box<AstNode>,
@@ -140,11 +141,13 @@ impl AstNode {
 
         let mut inner = pair.into_inner();
         let condition = Self::from_expression(inner.next().unwrap());
-        let block = inner.next().unwrap();
+        let if_block = inner.next().unwrap();
+        let else_block = inner.next().map(|block| Box::new(Self::from_block(block)));
 
         AstNode::If {
             condition: Box::new(condition),
-            block: Box::new(Self::from_block(block)),
+            if_block: Box::new(Self::from_block(if_block)),
+            else_block,
         }
     }
 

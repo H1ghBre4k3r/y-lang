@@ -112,7 +112,7 @@ impl Interpreter {
     }
 
     fn run_if(if_statement: &AstNode, scope: &mut Scope) {
-        let AstNode::If { condition, block } = if_statement else {
+        let AstNode::If { condition, if_block, else_block } = if_statement else {
             unreachable!()
         };
 
@@ -121,7 +121,11 @@ impl Interpreter {
         };
 
         if condition {
-            Self::run_block(block.as_ref(), scope);
+            Self::run_block(if_block.as_ref(), scope);
+        } else {
+            if let Some(else_block) = else_block {
+                Self::run_block(else_block.as_ref(), scope);
+            }
         }
     }
 

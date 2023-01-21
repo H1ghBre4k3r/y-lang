@@ -52,7 +52,7 @@ fn check_statement(statement: &AstNode, scope: &mut Scope) {
 }
 
 fn check_if(if_statement: &AstNode, scope: &mut Scope) {
-    let AstNode::If { condition, block } = if_statement else {
+    let AstNode::If { condition, if_block, else_block } = if_statement else {
         unreachable!("Invalid if statement: '{:?}'", if_statement);
     };
 
@@ -62,7 +62,11 @@ fn check_if(if_statement: &AstNode, scope: &mut Scope) {
         panic!("Invalid type of condition: '{:?}'", condition_type);
     }
 
-    check_block(block.as_ref(), scope);
+    check_block(if_block.as_ref(), scope);
+
+    if let Some(else_block) = else_block {
+        check_block(else_block.as_ref(), scope);
+    }
 }
 
 fn check_block(block: &AstNode, scope: &mut Scope) {
