@@ -36,7 +36,14 @@ pub enum BinaryVerb {
 impl AstNode {
     fn from_string(pair: Pair<Rule>) -> AstNode {
         assert_eq!(pair.as_rule(), Rule::string);
-        AstNode::Str(pair.as_str().to_owned())
+        AstNode::Str(
+            pair.clone()
+                .into_inner()
+                .next()
+                .unwrap()
+                .as_str()
+                .to_owned(),
+        )
     }
 
     fn from_integer(pair: Pair<Rule>) -> AstNode {
