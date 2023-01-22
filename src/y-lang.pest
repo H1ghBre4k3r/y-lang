@@ -16,6 +16,16 @@ assignment = { ident ~ "=" ~ expr }
 
 fnCall = { ident ~ "(" ~ expr? ~ ("," ~ expr)* ~ ")" }
 
+typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+typeAnnotation = { ":" ~ typeName  }
+
+parameter = { ident ~ typeAnnotation }
+
+paramList = { ( "(" ~ ")" | "(" ~ parameter ~ ("," ~ parameter )* ~ ")" ) } 
+
+fnDef = {  paramList ~ typeAnnotation ~ "=>" ~ block }
+
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 expr = _{ binaryExpr | atomExpr | "(" ~ expr ~ ")" }
@@ -23,7 +33,7 @@ expr = _{ binaryExpr | atomExpr | "(" ~ expr ~ ")" }
 binaryExpr = { atomExpr ~ binaryVerb ~ expr }
 
 atomExpr = _{
-    fnCall | integer | ident | string
+    fnCall | integer | ident | string | fnDef
 }
 
 string = ${ "\"" ~ inner ~ "\"" }

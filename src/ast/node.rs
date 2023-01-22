@@ -51,6 +51,21 @@ pub enum AstNode {
         params: Vec<AstNode>,
         position: Position,
     },
+    FnDef {
+        params: Vec<AstNode>,
+        type_annotation: Box<AstNode>,
+        block: Box<AstNode>,
+        position: Position,
+    },
+    Param {
+        ident: Box<AstNode>,
+        type_annotation: Box<AstNode>,
+        position: Position,
+    },
+    TypeAnnotation {
+        value: String,
+        position: Position,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -75,7 +90,10 @@ impl AstNode {
             | Integer { position, .. }
             | Str { position, .. }
             | Ident { position, .. }
-            | FnCall { position, .. } => position.clone(),
+            | FnCall { position, .. }
+            | FnDef { position, .. }
+            | Param { position, .. }
+            | TypeAnnotation { position, .. } => position.clone(),
         }
     }
 
@@ -116,9 +134,10 @@ impl AstNode {
             Rule::fnCall => Self::from_fn_call(pair),
             Rule::string => Self::from_string(pair),
             Rule::binaryExpr => Self::from_binary_expression(pair),
+            Rule::fnDef => Self::from_fn_def(pair),
             _ => {
                 error!(
-                    "Unexpected term '{}' at {}:{}",
+                    "Unexpected expression '{}' at {}:{}",
                     pair.as_str(),
                     pair.line_col().0,
                     pair.line_col().1
@@ -167,6 +186,91 @@ impl AstNode {
             rhs: Box::new(rhs),
             verb,
             position: pair.line_col(),
+        }
+    }
+
+    fn from_fn_def(pair: Pair<Rule>) -> AstNode {
+        assert_eq!(pair.as_rule(), Rule::fnDef);
+
+        let position = pair.line_col();
+
+        let mut inner = pair.into_inner();
+
+        let Some(param_list) = inner.next() else {
+            error!("Expected param list in function definition at {}:{}", position.0, position.1);
+            std::process::exit(-1);
+        };
+        let param_list = Self::from_param_list(param_list);
+
+        let Some(type_annotation) = inner.next() else {
+            error!("Expected return type annotation in function definition at {}:{}", position.0, position.1);
+            std::process::exit(-1);
+        };
+        let type_annotation = Self::from_type_annotation(type_annotation);
+
+        let Some(block) = inner.next() else {
+            error!("Expected block in function definition at {}:{}", position.0, position.1);
+            std::process::exit(-1);
+        };
+        let block = Self::from_block(block);
+
+        AstNode::FnDef {
+            params: param_list,
+            type_annotation: Box::new(type_annotation),
+            block: Box::new(block),
+            position,
+        }
+    }
+
+    fn from_param_list(pair: Pair<Rule>) -> Vec<AstNode> {
+        assert_eq!(pair.as_rule(), Rule::paramList);
+
+        let param_pairs = pair.into_inner();
+
+        let mut params = vec![];
+
+        for param in param_pairs {
+            params.push(Self::from_param(param));
+        }
+
+        params
+    }
+
+    fn from_param(pair: Pair<Rule>) -> AstNode {
+        assert_eq!(pair.as_rule(), Rule::parameter);
+
+        let position = pair.line_col();
+
+        let mut inner = pair.into_inner();
+
+        let ident = inner.next().unwrap();
+        let ident = Self::from_ident(ident);
+
+        let type_annotation = inner.next().unwrap();
+        let type_annotation = Self::from_type_annotation(type_annotation);
+
+        AstNode::Param {
+            ident: Box::new(ident),
+            type_annotation: Box::new(type_annotation),
+            position,
+        }
+    }
+
+    fn from_type_annotation(pair: Pair<Rule>) -> AstNode {
+        assert_eq!(pair.as_rule(), Rule::typeAnnotation);
+
+        let position = pair.line_col();
+
+        let mut inner = pair.into_inner();
+
+        let type_pair = inner.next().unwrap();
+        assert_eq!(type_pair.as_rule(), Rule::typeName);
+
+        let type_name = type_pair.as_str();
+
+        AstNode::TypeAnnotation {
+            value: type_name.to_owned(),
+            position,
         }
     }
 

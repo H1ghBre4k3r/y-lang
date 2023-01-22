@@ -220,6 +220,7 @@ fn check_expression(expression: &AstNode, scope: &mut Scope) -> VariableType {
         AstNode::Str { .. } => VariableType::Str,
         AstNode::Ident { .. } => check_identifier(expression, scope),
         AstNode::FnCall { .. } => check_fn_call(expression, scope),
+        AstNode::FnDef { .. } => check_fn_def(expression, scope),
         _ => {
             error!(
                 "Invalid expression '{:?}' at {}:{}",
@@ -247,6 +248,10 @@ fn check_identifier(identifier: &AstNode, scope: &mut Scope) -> VariableType {
             std::process::exit(-1);
         }
     }
+}
+
+fn check_fn_def(fn_def: &AstNode, scope: &mut Scope) -> VariableType {
+    todo!();
 }
 
 fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> VariableType {
