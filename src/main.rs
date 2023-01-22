@@ -1,6 +1,6 @@
 mod ast;
-mod checker;
 mod interpreter;
+mod typechecker;
 
 extern crate pest;
 #[macro_use]
@@ -11,7 +11,7 @@ use interpreter::Interpreter;
 
 use crate::{
     ast::{Ast, YParser},
-    checker::check_ast,
+    typechecker::check_ast,
 };
 
 #[derive(CParser, Debug)]
