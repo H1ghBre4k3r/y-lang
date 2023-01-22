@@ -103,6 +103,7 @@ impl Interpreter {
 
     fn run_statement(statement: &AstNode, scope: &mut Scope) {
         match &statement {
+            AstNode::Declaration { .. } => Self::run_declaration(&statement, scope),
             AstNode::Assignment { .. } => Self::run_assignment(&statement, scope),
             AstNode::If { .. } => Self::run_if(statement, scope),
             _ => {
@@ -130,6 +131,8 @@ impl Interpreter {
     }
 
     fn run_block(block: &AstNode, scope: &mut Scope) {
+        scope.push();
+
         let AstNode::Block(nodes) = block else {
             unreachable!()
         };
@@ -137,6 +140,22 @@ impl Interpreter {
         for node in nodes {
             Self::run_statement(&node, scope);
         }
+
+        scope.pop();
+    }
+
+    fn run_declaration(declaration: &AstNode, scope: &mut Scope) {
+        let AstNode::Declaration { ident, value } = declaration else {
+            unreachable!()
+        };
+
+        let AstNode::Ident(ident) = ident.as_ref() else {
+            unreachable!()
+        };
+
+        let value = Self::run_expression(value.as_ref(), scope);
+
+        scope.set(ident, value);
     }
 
     fn run_assignment(assignment: &AstNode, scope: &mut Scope) {
@@ -150,7 +169,7 @@ impl Interpreter {
 
         let value = Self::run_expression(value.as_ref(), scope);
 
-        scope.set(ident, value);
+        scope.update(ident, value);
     }
 
     fn run_expression(expression: &AstNode, scope: &mut Scope) -> VariableType {

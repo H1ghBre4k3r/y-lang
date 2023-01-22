@@ -8,6 +8,10 @@ pub enum AstNode {
         if_block: Box<AstNode>,
         else_block: Option<Box<AstNode>>,
     },
+    Declaration {
+        ident: Box<AstNode>,
+        value: Box<AstNode>,
+    },
     Assignment {
         ident: Box<AstNode>,
         value: Box<AstNode>,
@@ -122,6 +126,20 @@ impl AstNode {
         }
     }
 
+    fn from_declaration(pair: Pair<Rule>) -> AstNode {
+        let mut inner = pair.into_inner();
+
+        let ident = Self::from_ident(inner.next().expect("No valid identifier given!"));
+
+        let value = inner.next().expect("No valid rvalue given!");
+        let value = Self::from_expression(value);
+
+        AstNode::Declaration {
+            ident: Box::new(ident),
+            value: Box::new(value),
+        }
+    }
+
     fn from_assignment(pair: Pair<Rule>) -> AstNode {
         let mut inner = pair.into_inner();
 
@@ -169,6 +187,7 @@ impl AstNode {
         match pair.as_rule() {
             Rule::ifStmt => Self::from_if(pair),
             Rule::fnCall => Self::from_fn_call(pair),
+            Rule::declaration => Self::from_declaration(pair),
             Rule::assignment => Self::from_assignment(pair),
             _ => unreachable!("not supported statement '{:?}'", pair.as_str()),
         }

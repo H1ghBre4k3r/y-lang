@@ -6,11 +6,13 @@ stmt = _{
     intrinsics | expr
 }
 
-intrinsics = _{ ifStmt | assignment }
+intrinsics = _{ ifStmt | declaration | assignment }
 
 ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
 
-assignment = { "let " ~ ident ~ ":=" ~ expr }
+declaration = { "let " ~ ident ~ ":=" ~ expr }
+
+assignment = { ident ~ "=" ~ expr }
 
 fnCall = { ident ~ "(" ~ expr? ~ ("," ~ expr)* ~ ")" }
 
