@@ -66,17 +66,18 @@ impl Scope {
     }
 
     /// Update a value of an already present variable.
-    pub fn update(&mut self, name: &str, value: VariableType) {
+    pub fn update(&mut self, name: &str, value: VariableType, position: &(usize, usize)) {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
 
         for scope in &mut scopes {
             if let Some(old_type) = scope.get(name) {
                 if *old_type != value {
-                    panic!(
-                        "Could not assign variable '{}' with type '{:?}' a value of type '{:?}'",
-                        name, old_type, value
+                    error!(
+                        "Could not assign variable '{}' with type '{:?}' a value of type '{:?}' at {}:{}",
+                        name, old_type, value, position.0, position.1
                     );
+                    std::process::exit(-1);
                 }
                 scope.insert(name.to_owned(), value);
 
@@ -185,7 +186,7 @@ fn check_declaration(declaration: &AstNode, scope: &mut Scope) {
 }
 
 fn check_assignment(assignment: &AstNode, scope: &mut Scope) {
-    let AstNode::Assignment { ident, value, .. } = assignment else {
+    let AstNode::Assignment { ident, value, position: assignment_position } = assignment else {
         let position = assignment.position();
         error!("Invalid assignment '{:?}' at {}:{}", assignment, position.0, position.1);
         std::process::exit(-1);
@@ -207,7 +208,7 @@ fn check_assignment(assignment: &AstNode, scope: &mut Scope) {
 
     let assignment_type = check_expression(value.as_ref(), scope);
 
-    scope.update(ident, assignment_type);
+    scope.update(ident, assignment_type, assignment_position);
 }
 
 fn check_expression(expression: &AstNode, scope: &mut Scope) -> VariableType {
@@ -238,10 +239,13 @@ fn check_identifier(identifier: &AstNode, scope: &mut Scope) -> VariableType {
 
     match scope.find(ident) {
         Some(identifier_type) => identifier_type.clone(),
-        None => panic!(
-            "Undefined identifier '{}' at {}:{}",
-            ident, position.0, position.1
-        ),
+        None => {
+            error!(
+                "Undefined identifier '{}' at {}:{}",
+                ident, position.0, position.1
+            );
+            std::process::exit(-1);
+        }
     }
 }
 
@@ -263,10 +267,11 @@ fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> VariableType {
 
     if !scope.contains(ident) {
         // TODO: Should this just overwrite the value?
-        panic!(
+        error!(
             "Call to undefined function '{}' at {}:{}",
             ident, fn_call_position.0, fn_call_position.1
         );
+        std::process::exit(-1);
     }
 
     scope.pop();
