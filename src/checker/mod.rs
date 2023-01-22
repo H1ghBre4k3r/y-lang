@@ -125,7 +125,7 @@ fn check_statement(statement: &AstNode, scope: &mut Scope) {
 }
 
 fn check_if(if_statement: &AstNode, scope: &mut Scope) {
-    let AstNode::If { condition, if_block, else_block } = if_statement else {
+    let AstNode::If { condition, if_block, else_block, position } = if_statement else {
         unreachable!("Invalid if statement: '{:?}'", if_statement);
     };
 
@@ -145,7 +145,7 @@ fn check_if(if_statement: &AstNode, scope: &mut Scope) {
 fn check_block(block: &AstNode, scope: &mut Scope) {
     scope.push();
 
-    let AstNode::Block(nodes) = block else {
+    let AstNode::Block { block: nodes, position } = block else {
         unreachable!("Invalid block statement: '{:?}", block);
     };
 
@@ -157,11 +157,11 @@ fn check_block(block: &AstNode, scope: &mut Scope) {
 }
 
 fn check_declaration(declaration: &AstNode, scope: &mut Scope) {
-    let AstNode::Declaration { ident, value } = declaration else {
+    let AstNode::Declaration { ident, value, position: declaration_position } = declaration else {
         unreachable!("Invalid declaration: '{:?}'", declaration);
     };
 
-    let AstNode::Ident(ident) = ident.as_ref() else {
+    let AstNode::Ident { value: ident, position: ident_position } = ident.as_ref() else {
         unreachable!("Invalid identifier: '{:?}'", ident);
     };
 
@@ -171,11 +171,11 @@ fn check_declaration(declaration: &AstNode, scope: &mut Scope) {
 }
 
 fn check_assignment(assignment: &AstNode, scope: &mut Scope) {
-    let AstNode::Assignment { ident, value } = assignment else {
+    let AstNode::Assignment { ident, value, position: assignment_position } = assignment else {
         unreachable!("Invalid assignment: '{:?}'", assignment);
     };
 
-    let AstNode::Ident(ident) = ident.as_ref() else {
+    let AstNode::Ident { value: ident, position: ident_position} = ident.as_ref() else {
         unreachable!("Invalid identifier: '{:?}'", ident);
     };
 
@@ -191,16 +191,16 @@ fn check_assignment(assignment: &AstNode, scope: &mut Scope) {
 fn check_expression(expression: &AstNode, scope: &mut Scope) -> VariableType {
     match expression {
         AstNode::BinaryOp { .. } => check_binary_operation(expression, scope),
-        AstNode::Integer(..) => VariableType::Int,
-        AstNode::Str(..) => VariableType::Str,
-        AstNode::Ident(..) => check_identifier(expression, scope),
+        AstNode::Integer { .. } => VariableType::Int,
+        AstNode::Str { .. } => VariableType::Str,
+        AstNode::Ident { .. } => check_identifier(expression, scope),
         AstNode::FnCall { .. } => check_fn_call(expression, scope),
         _ => unreachable!("Invalid expression: '{:?}'", expression),
     }
 }
 
 fn check_identifier(identifier: &AstNode, scope: &mut Scope) -> VariableType {
-    let AstNode::Ident(ident) = identifier else {
+    let AstNode::Ident {value: ident, position } = identifier else {
         unreachable!("Invalid identifier: '{:?}'", identifier);
     };
 
@@ -214,11 +214,11 @@ fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> VariableType {
     scope.push();
 
     // TODO: actually type check function call
-    let AstNode::FnCall { ident, params } = fn_call else {
+    let AstNode::FnCall { ident, params, position: fn_call_position } = fn_call else {
         unreachable!("Invalid function call: '{:?}'", fn_call);
     };
 
-    let AstNode::Ident(ident) = ident.as_ref() else {
+    let AstNode::Ident { value: ident, position: ident_position } = ident.as_ref() else {
         unreachable!("Invalid identifier: '{:?}'", ident);
     };
 
@@ -233,7 +233,7 @@ fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> VariableType {
 }
 
 fn check_binary_operation(binary_operation: &AstNode, scope: &mut Scope) -> VariableType {
-    let AstNode::BinaryOp { verb, lhs, rhs } = binary_operation else {
+    let AstNode::BinaryOp { verb, lhs, rhs, position } = binary_operation else {
         unreachable!("Invalid binary operation: '{:?}'", binary_operation);
     };
 

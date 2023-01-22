@@ -113,7 +113,7 @@ impl Interpreter {
     }
 
     fn run_if(if_statement: &AstNode, scope: &mut Scope) {
-        let AstNode::If { condition, if_block, else_block } = if_statement else {
+        let AstNode::If { condition, if_block, else_block, position} = if_statement else {
             unreachable!()
         };
 
@@ -133,7 +133,7 @@ impl Interpreter {
     fn run_block(block: &AstNode, scope: &mut Scope) {
         scope.push();
 
-        let AstNode::Block(nodes) = block else {
+        let AstNode::Block {block: nodes, position } = block else {
             unreachable!()
         };
 
@@ -145,11 +145,11 @@ impl Interpreter {
     }
 
     fn run_declaration(declaration: &AstNode, scope: &mut Scope) {
-        let AstNode::Declaration { ident, value } = declaration else {
+        let AstNode::Declaration { ident, value, position: decl_position } = declaration else {
             unreachable!()
         };
 
-        let AstNode::Ident(ident) = ident.as_ref() else {
+        let AstNode::Ident { value: ident, position: ident_position}  = ident.as_ref() else {
             unreachable!()
         };
 
@@ -159,11 +159,11 @@ impl Interpreter {
     }
 
     fn run_assignment(assignment: &AstNode, scope: &mut Scope) {
-        let AstNode::Assignment { ident, value } = assignment else {
+        let AstNode::Assignment { ident, value , position: assignment_position} = assignment else {
             unreachable!()
         };
 
-        let AstNode::Ident(ident) = ident.as_ref() else {
+        let AstNode::Ident {value: ident, position: ident_position} = ident.as_ref() else {
             unreachable!()
         };
 
@@ -174,9 +174,9 @@ impl Interpreter {
 
     fn run_expression(expression: &AstNode, scope: &mut Scope) -> VariableType {
         match expression {
-            AstNode::Integer(value) => VariableType::Int(*value),
-            AstNode::Str(value) => VariableType::Str(value.clone()),
-            AstNode::Ident(value) => {
+            AstNode::Integer { value, .. } => VariableType::Int(*value),
+            AstNode::Str { value, .. } => VariableType::Str(value.clone()),
+            AstNode::Ident { value, .. } => {
                 let Some(value) = scope.find(value) else {
                     unreachable!()
                 };
@@ -190,7 +190,7 @@ impl Interpreter {
     }
 
     fn run_binary_operation(expression: &AstNode, scope: &mut Scope) -> VariableType {
-        let AstNode::BinaryOp { verb, lhs, rhs } = expression else {
+        let AstNode::BinaryOp { verb, lhs, rhs, position } = expression else {
             unreachable!()
         };
 
@@ -223,11 +223,11 @@ impl Interpreter {
     }
 
     fn run_fn_call(fn_call: &AstNode, scope: &mut Scope) -> VariableType {
-        let AstNode::FnCall { ident, params } = fn_call else{
+        let AstNode::FnCall { ident, params, position: fn_call_position } = fn_call else{
             unreachable!()
         };
 
-        let AstNode::Ident(ident) = ident.as_ref() else {
+        let AstNode::Ident {value: ident, position: ident_position} = ident.as_ref() else {
             unreachable!()
         };
 
@@ -237,17 +237,26 @@ impl Interpreter {
             "print" => {
                 for param in params {
                     match param {
-                        AstNode::Ident(name) => {
+                        AstNode::Ident {
+                            value: name,
+                            position: param_position,
+                        } => {
                             let Some(value) = scope.find(name) else {
                                 unreachable!();
                             };
                             print!("{}", value.as_str());
                         }
-                        AstNode::Str(value) => print!("{}", value),
+                        AstNode::Str {
+                            value,
+                            position: param_position,
+                        } => print!("{}", value),
                         AstNode::BinaryOp { .. } => {
                             print!("{}", Self::run_binary_operation(param, scope).as_str())
                         }
-                        AstNode::Integer(value) => print!("{}", value),
+                        AstNode::Integer {
+                            value,
+                            position: param_position,
+                        } => print!("{}", value),
                         _ => unreachable!(),
                     }
                 }
