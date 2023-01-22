@@ -9,5 +9,7 @@ description = "Y would anyone build a new (and rather experimental) language wit
 
 [dependencies]
 clap = { version = "4.1.1", features = ["derive"]}
+log = "0.4.17"
 pest = "2.0"
 pest_derive = "2.0"
+simple_logger = { version = "4.0.0", default-features = false, features = ["colored", "colors"]}

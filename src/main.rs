@@ -25,6 +25,7 @@ struct Cli {
 }
 
 fn main() {
+    simple_logger::init_with_level(log::Level::Warn).unwrap();
     let args = Cli::parse();
 
     let file_content = std::fs::read_to_string(&args.file).expect(&format!(

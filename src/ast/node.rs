@@ -1,4 +1,5 @@
 use super::Rule;
+use log::error;
 use pest::iterators::Pair;
 
 // TODO: Give each AstNode a position
@@ -63,6 +64,21 @@ pub enum BinaryVerb {
 }
 
 impl AstNode {
+    pub fn position(&self) -> Position {
+        use AstNode::*;
+        match self {
+            If { position, .. }
+            | Declaration { position, .. }
+            | Assignment { position, .. }
+            | Block { position, .. }
+            | BinaryOp { position, .. }
+            | Integer { position, .. }
+            | Str { position, .. }
+            | Ident { position, .. }
+            | FnCall { position, .. } => position.clone(),
+        }
+    }
+
     fn from_string(pair: Pair<Rule>) -> AstNode {
         assert_eq!(pair.as_rule(), Rule::string);
         AstNode::Str {
@@ -100,12 +116,15 @@ impl AstNode {
             Rule::fnCall => Self::from_fn_call(pair),
             Rule::string => Self::from_string(pair),
             Rule::binaryExpr => Self::from_binary_expression(pair),
-            _ => unreachable!(
-                "Unexpected term '{}' at {}:{}",
-                pair.as_str(),
-                pair.line_col().0,
-                pair.line_col().1
-            ),
+            _ => {
+                error!(
+                    "Unexpected term '{}' at {}:{}",
+                    pair.as_str(),
+                    pair.line_col().0,
+                    pair.line_col().1
+                );
+                std::process::exit(-1)
+            }
         }
     }
 
@@ -130,12 +149,15 @@ impl AstNode {
             "+" => BinaryVerb::Plus,
             "-" => BinaryVerb::Minus,
             "*" => BinaryVerb::Times,
-            _ => unreachable!(
-                "Unexpected binary verb '{}' at {}:{}",
-                verb.as_str(),
-                verb.line_col().0,
-                verb.line_col().1
-            ),
+            _ => {
+                error!(
+                    "Unexpected binary verb '{}' at {}:{}",
+                    verb.as_str(),
+                    verb.line_col().0,
+                    verb.line_col().1
+                );
+                std::process::exit(-1);
+            }
         };
 
         let rhs = Self::from_expression(inner.next().unwrap());
@@ -166,12 +188,15 @@ impl AstNode {
                 Rule::ident => params.push(Self::from_ident(param)),
                 Rule::string => params.push(Self::from_string(param)),
                 Rule::fnCall => params.push(Self::from_fn_call(param)),
-                _ => unreachable!(
-                    "Unexpected paramenter '{:?}' at {}:{}",
-                    param.as_str(),
-                    position.0,
-                    position.1
-                ),
+                _ => {
+                    error!(
+                        "Unexpected paramenter '{:?}' at {}:{}",
+                        param.as_str(),
+                        position.0,
+                        position.1
+                    );
+                    std::process::exit(-1);
+                }
             }
         }
 
@@ -275,12 +300,15 @@ impl AstNode {
             Rule::fnCall => Self::from_fn_call(pair),
             Rule::declaration => Self::from_declaration(pair),
             Rule::assignment => Self::from_assignment(pair),
-            _ => unreachable!(
-                "Unexpected statement '{}' at {}:{}",
-                pair.as_str(),
-                pair.line_col().0,
-                pair.line_col().1
-            ),
+            _ => {
+                error!(
+                    "Unexpected statement '{}' at {}:{}",
+                    pair.as_str(),
+                    pair.line_col().0,
+                    pair.line_col().1
+                );
+                std::process::exit(-1);
+            }
         }
     }
 }

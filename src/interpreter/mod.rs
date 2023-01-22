@@ -113,12 +113,17 @@ impl Interpreter {
     }
 
     fn run_if(if_statement: &AstNode, scope: &mut Scope) {
-        let AstNode::If { condition, if_block, else_block, position} = if_statement else {
-            unreachable!()
+        let AstNode::If { condition, if_block, else_block, .. } = if_statement else {
+            let position = if_statement.position();
+            unreachable!("Invalid if statement '{:?}' at {}:{}", if_statement, position.0, position.1);
         };
 
         let VariableType::Bool(condition) = Self::run_expression(condition.as_ref(), scope) else {
-            unreachable!();
+            let position = condition.position();
+            unreachable!(
+                "Invalid type of condition '{:?}' at {}:{}",
+                condition, position.0, position.1
+            );
         };
 
         if condition {
@@ -133,8 +138,9 @@ impl Interpreter {
     fn run_block(block: &AstNode, scope: &mut Scope) {
         scope.push();
 
-        let AstNode::Block {block: nodes, position } = block else {
-            unreachable!()
+        let AstNode::Block { block: nodes, .. } = block else {
+            let position = block.position();
+            unreachable!("Invalid block statement '{:?}' at {}:{}", block, position.0, position.1);
         };
 
         for node in nodes {
@@ -145,12 +151,14 @@ impl Interpreter {
     }
 
     fn run_declaration(declaration: &AstNode, scope: &mut Scope) {
-        let AstNode::Declaration { ident, value, position: decl_position } = declaration else {
-            unreachable!()
+        let AstNode::Declaration { ident, value,..} = declaration else {
+            let position = declaration.position();
+            unreachable!("Invalid declaration '{:?}' at {}:{}", declaration, position.0, position.1);
         };
 
-        let AstNode::Ident { value: ident, position: ident_position}  = ident.as_ref() else {
-            unreachable!()
+        let AstNode::Ident { value: ident, ..} = ident.as_ref() else {
+            let position = ident.position();
+            unreachable!("Invalid identifier '{:?}' at {}:{}", ident, position.0, position.1);
         };
 
         let value = Self::run_expression(value.as_ref(), scope);
@@ -159,12 +167,14 @@ impl Interpreter {
     }
 
     fn run_assignment(assignment: &AstNode, scope: &mut Scope) {
-        let AstNode::Assignment { ident, value , position: assignment_position} = assignment else {
-            unreachable!()
+        let AstNode::Assignment { ident, value, .. } = assignment else {
+            let position = assignment.position();
+            unreachable!("Invalid assignment '{:?}' at {}:{}", assignment, position.0, position.1);
         };
 
-        let AstNode::Ident {value: ident, position: ident_position} = ident.as_ref() else {
-            unreachable!()
+        let AstNode::Ident { value: ident, .. } = ident.as_ref() else {
+            let position = ident.position();
+            unreachable!("Invalid identifier '{:?}' at {}:{}", ident, position.0, position.1);
         };
 
         let value = Self::run_expression(value.as_ref(), scope);
@@ -189,9 +199,10 @@ impl Interpreter {
         }
     }
 
-    fn run_binary_operation(expression: &AstNode, scope: &mut Scope) -> VariableType {
-        let AstNode::BinaryOp { verb, lhs, rhs, position } = expression else {
-            unreachable!()
+    fn run_binary_operation(binary_operation: &AstNode, scope: &mut Scope) -> VariableType {
+        let AstNode::BinaryOp { verb, lhs, rhs, .. } = binary_operation else {
+            let position = binary_operation.position();
+            unreachable!("Invalid binary operation: '{:?}' at {}:{}", binary_operation,  position.0, position.1);
         };
 
         let lhs = Self::run_expression(lhs.as_ref(), scope);
@@ -224,11 +235,13 @@ impl Interpreter {
 
     fn run_fn_call(fn_call: &AstNode, scope: &mut Scope) -> VariableType {
         let AstNode::FnCall { ident, params, position: fn_call_position } = fn_call else{
-            unreachable!()
+            let position = fn_call.position();
+            unreachable!("Invalid function call '{:?}' at {}:{}", fn_call, position.0, position.1);
         };
 
-        let AstNode::Ident {value: ident, position: ident_position} = ident.as_ref() else {
-            unreachable!()
+        let AstNode::Ident { value: ident,.. } = ident.as_ref() else {
+            let position = ident.position();
+            unreachable!("Invalid identifier '{:?}' at {}:{}", ident, position.0, position.1);
         };
 
         scope.push();
@@ -237,31 +250,25 @@ impl Interpreter {
             "print" => {
                 for param in params {
                     match param {
-                        AstNode::Ident {
-                            value: name,
-                            position: param_position,
-                        } => {
+                        AstNode::Ident { value: name, .. } => {
                             let Some(value) = scope.find(name) else {
                                 unreachable!();
                             };
                             print!("{}", value.as_str());
                         }
-                        AstNode::Str {
-                            value,
-                            position: param_position,
-                        } => print!("{}", value),
+                        AstNode::Str { value, .. } => print!("{}", value),
                         AstNode::BinaryOp { .. } => {
                             print!("{}", Self::run_binary_operation(param, scope).as_str())
                         }
-                        AstNode::Integer {
-                            value,
-                            position: param_position,
-                        } => print!("{}", value),
+                        AstNode::Integer { value, .. } => print!("{}", value),
                         _ => unreachable!(),
                     }
                 }
             }
-            _ => unreachable!("Function '{}' not defined!", ident),
+            _ => unreachable!(
+                "Call to undefined function '{}' at {}:{}",
+                ident, fn_call_position.0, fn_call_position.1
+            ),
         }
 
         scope.pop();
