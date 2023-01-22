@@ -8,6 +8,7 @@ extern crate pest_derive;
 
 use clap::Parser as CParser;
 use interpreter::Interpreter;
+use log::error;
 
 use crate::{
     ast::{Ast, YParser},
@@ -37,7 +38,13 @@ fn main() {
 
     let ast = Ast::from_program(pairs);
 
-    check_ast(&ast);
+    if let Err(type_error) = check_ast(&ast) {
+        error!(
+            "{} ({}:{})",
+            type_error.message, type_error.position.0, type_error.position.1
+        );
+        std::process::exit(-1);
+    }
 
     if args.run {
         let interpreter = Interpreter::from_ast(ast);

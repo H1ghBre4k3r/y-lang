@@ -1,8 +1,12 @@
-use std::collections::HashMap;
+mod error;
 
-use log::error;
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use crate::ast::{Ast, AstNode, BinaryVerb};
+
+use self::error::TypeError;
+
+type TypecheckResult = Result<VariableType, TypeError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum VariableType {
@@ -14,6 +18,36 @@ enum VariableType {
         params: Vec<VariableType>,
         return_value: Box<VariableType>,
     },
+}
+
+struct VariableParseError(String);
+
+impl FromStr for VariableType {
+    type Err = VariableParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "void" => Ok(Self::Void),
+            "bool" => Ok(Self::Bool),
+            "str" => Ok(Self::Str),
+            "int" => Ok(Self::Int),
+            _ => Err(VariableParseError(format!("Invalid type '{}'", s))),
+        }
+    }
+}
+
+impl Display for VariableType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use VariableType::*;
+
+        f.write_str(match self {
+            Void => "void",
+            Bool => "bool",
+            Int => "int",
+            Str => "str",
+            Func { .. } => todo!(),
+        })
+    }
 }
 
 #[derive(Default, Debug)]
@@ -66,18 +100,25 @@ impl Scope {
     }
 
     /// Update a value of an already present variable.
-    pub fn update(&mut self, name: &str, value: VariableType, position: &(usize, usize)) {
+    pub fn update(
+        &mut self,
+        name: &str,
+        value: VariableType,
+        position: &(usize, usize),
+    ) -> Result<(), TypeError> {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
 
         for scope in &mut scopes {
             if let Some(old_type) = scope.get(name) {
                 if *old_type != value {
-                    error!(
-                        "Could not assign variable '{}' with type '{:?}' a value of type '{:?}' at {}:{}",
-                        name, old_type, value, position.0, position.1
-                    );
-                    std::process::exit(-1);
+                    return Err(TypeError {
+                        message: format!(
+                            "Could not assign variable '{}' with type '{}' a value of type '{}'",
+                            name, old_type, value
+                        ),
+                        position: position.to_owned(),
+                    });
                 }
                 scope.insert(name.to_owned(), value);
 
@@ -87,6 +128,8 @@ impl Scope {
 
         scopes.reverse();
         self.scope_stack = scopes;
+
+        Ok(())
     }
 }
 
@@ -106,223 +149,257 @@ fn setup_scope() -> Scope {
     scope
 }
 
-pub fn check_ast(ast: &Ast) {
+pub fn check_ast(ast: &Ast) -> Result<(), TypeError> {
     let nodes = ast.nodes();
 
     let mut scope = setup_scope();
 
     for node in nodes {
-        check_statement(&node, &mut scope);
+        check_statement(&node, &mut scope)?;
     }
+
+    Ok(())
 }
 
-fn check_statement(statement: &AstNode, scope: &mut Scope) {
-    match &statement {
-        AstNode::Declaration { .. } => check_declaration(&statement, scope),
-        AstNode::Assignment { .. } => check_assignment(&statement, scope),
-        AstNode::If { .. } => check_if(&statement, scope),
-        _ => {
-            check_expression(&statement, scope);
-        }
-    }
+fn check_statement(statement: &AstNode, scope: &mut Scope) -> TypecheckResult {
+    Ok(match &statement {
+        AstNode::Declaration { .. } => check_declaration(&statement, scope)?,
+        AstNode::Assignment { .. } => check_assignment(&statement, scope)?,
+        AstNode::If { .. } => check_if(&statement, scope)?,
+        _ => check_expression(&statement, scope)?,
+    })
 }
 
-fn check_if(if_statement: &AstNode, scope: &mut Scope) {
+fn check_if(if_statement: &AstNode, scope: &mut Scope) -> TypecheckResult {
     let AstNode::If { condition, if_block, else_block, position } = if_statement else {
-        let position = if_statement.position();
-        error!("Invalid if statement '{:?}' at {}:{}", if_statement, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid if statement '{:?}'", if_statement),
+            position: if_statement.position(),
+        });
     };
 
-    let condition_type = check_expression(condition.as_ref(), scope);
+    let condition_type = check_expression(condition.as_ref(), scope)?;
 
     if condition_type != VariableType::Bool {
-        error!(
-            "Invalid type of condition '{:?}' at {}:{}",
-            condition_type, position.0, position.1
-        );
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid tye of condition '{:?}'", condition_type),
+            position: position.to_owned(),
+        });
     }
 
-    check_block(if_block.as_ref(), scope);
+    let if_return_type = check_block(if_block.as_ref(), scope)?;
 
     if let Some(else_block) = else_block {
-        check_block(else_block.as_ref(), scope);
+        let else_return_type = check_block(else_block.as_ref(), scope)?;
+
+        if if_return_type != else_return_type {
+            return Err(TypeError {
+                message: format!(
+                    "Return type mismatch of if-else. Got '{}' and '{}'",
+                    if_return_type, else_return_type
+                ),
+                position: position.to_owned(),
+            });
+        }
     }
+
+    Ok(if_return_type)
 }
 
-fn check_block(block: &AstNode, scope: &mut Scope) {
+fn check_block(block: &AstNode, scope: &mut Scope) -> TypecheckResult {
     scope.push();
 
     let AstNode::Block { block: nodes, .. } = block else {
-        let position = block.position();
-        error!("Invalid block statement '{:?}' at {}:{}", block, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid block '{:?}'", block),
+            position: block.position(),
+        });
     };
 
+    let mut last_return = VariableType::Void;
+
     for node in nodes {
-        check_statement(&node, scope);
+        last_return = check_statement(&node, scope)?;
     }
 
     scope.pop();
+
+    Ok(last_return)
 }
 
-fn check_declaration(declaration: &AstNode, scope: &mut Scope) {
+fn check_declaration(declaration: &AstNode, scope: &mut Scope) -> TypecheckResult {
     let AstNode::Declaration { ident, value,..} = declaration else {
-        let position = declaration.position();
-        error!("Invalid declaration '{:?}' at {}:{}", declaration, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid declaration '{:?}'", declaration),
+            position: declaration.position(),
+        });
     };
 
     let AstNode::Ident { value: ident, ..} = ident.as_ref() else {
-        let position = ident.position();
-        error!("Invalid identifier '{:?}' at {}:{}", ident, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid identifier '{:?}'", ident),
+            position: ident.position(),
+        });
     };
 
-    let declaration_type = check_expression(value.as_ref(), scope);
+    let declaration_type = check_expression(value.as_ref(), scope)?;
 
     scope.set(ident, declaration_type);
+
+    Ok(VariableType::Void)
 }
 
-fn check_assignment(assignment: &AstNode, scope: &mut Scope) {
+fn check_assignment(assignment: &AstNode, scope: &mut Scope) -> TypecheckResult {
     let AstNode::Assignment { ident, value, position: assignment_position } = assignment else {
-        let position = assignment.position();
-        error!("Invalid assignment '{:?}' at {}:{}", assignment, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid assignment '{:?}'", assignment),
+            position: assignment.position(),
+        });
     };
 
     let AstNode::Ident { value: ident, position} = ident.as_ref() else {
-        let position = ident.position();
-        error!("Invalid identifier '{:?}' at {}:{}", ident, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid identifier '{:?}'", ident),
+            position: ident.position(),
+        });
     };
 
     if !scope.contains(ident) {
-        error!(
-            "Undefined identifier '{}' at {}:{}",
-            ident, position.0, position.1
-        );
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Undefined identifier '{}'", ident),
+            position: position.to_owned(),
+        });
     }
 
-    let assignment_type = check_expression(value.as_ref(), scope);
+    let assignment_type = check_expression(value.as_ref(), scope)?;
 
-    scope.update(ident, assignment_type, assignment_position);
+    scope.update(ident, assignment_type, assignment_position)?;
+
+    Ok(VariableType::Void)
 }
 
-fn check_expression(expression: &AstNode, scope: &mut Scope) -> VariableType {
+fn check_expression(expression: &AstNode, scope: &mut Scope) -> TypecheckResult {
     let position = expression.position();
 
     match expression {
         AstNode::BinaryOp { .. } => check_binary_operation(expression, scope),
-        AstNode::Integer { .. } => VariableType::Int,
-        AstNode::Str { .. } => VariableType::Str,
+        AstNode::Integer { .. } => Ok(VariableType::Int),
+        AstNode::Str { .. } => Ok(VariableType::Str),
         AstNode::Ident { .. } => check_identifier(expression, scope),
         AstNode::FnCall { .. } => check_fn_call(expression, scope),
         AstNode::FnDef { .. } => check_fn_def(expression, scope),
         _ => {
-            error!(
-                "Invalid expression '{:?}' at {}:{}",
-                expression, position.0, position.1
-            );
-            std::process::exit(-1);
+            return Err(TypeError {
+                message: format!("Invalid expression '{:?}'", expression),
+                position,
+            });
         }
     }
 }
 
-fn check_identifier(identifier: &AstNode, scope: &mut Scope) -> VariableType {
+fn check_identifier(identifier: &AstNode, scope: &mut Scope) -> TypecheckResult {
     let AstNode::Ident {value: ident, position } = identifier else {
-        let position = identifier.position();
-        error!("Invalid identifier '{:?}' at {}:{}", identifier, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid identifier '{:?}'", identifier),
+            position: identifier.position(),
+        });
     };
 
     match scope.find(ident) {
-        Some(identifier_type) => identifier_type.clone(),
+        Some(identifier_type) => Ok(identifier_type.clone()),
         None => {
-            error!(
-                "Undefined identifier '{}' at {}:{}",
-                ident, position.0, position.1
-            );
-            std::process::exit(-1);
+            return Err(TypeError {
+                message: format!("Undefined identifier '{}'", ident),
+                position: position.to_owned(),
+            });
         }
     }
 }
 
-fn check_fn_def(fn_def: &AstNode, scope: &mut Scope) -> VariableType {
+fn check_fn_def(fn_def: &AstNode, scope: &mut Scope) -> TypecheckResult {
+    let AstNode::FnDef { params, type_annotation, block, position } = fn_def else {
+        return Err(TypeError {
+            message: format!("Invalid function definition '{:?}'", fn_def),
+            position: fn_def.position(),
+        })
+    };
+
+    check_block(block, scope)?;
+
     todo!();
 }
 
-fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> VariableType {
+fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> TypecheckResult {
     scope.push();
 
     // TODO: actually type check function call
     let AstNode::FnCall { ident, params: _params, position: fn_call_position } = fn_call else {
-        let position = fn_call.position();
-        error!("Invalid function call '{:?}' at {}:{}", fn_call, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid function call '{:?}'", fn_call),
+            position: fn_call.position(),
+        })
     };
 
     let AstNode::Ident { value: ident,.. } = ident.as_ref() else {
-        let position = ident.position();
-        error!("Invalid identifier '{:?}' at {}:{}", ident, position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid identifier '{:?}'", ident),
+            position: ident.position(),
+        })
     };
 
     if !scope.contains(ident) {
-        // TODO: Should this just overwrite the value?
-        error!(
-            "Call to undefined function '{}' at {}:{}",
-            ident, fn_call_position.0, fn_call_position.1
-        );
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Call to undefined function '{}'", ident),
+            position: fn_call_position.clone(),
+        });
     }
 
     scope.pop();
 
-    VariableType::Void
+    Ok(VariableType::Void)
 }
 
-fn check_binary_operation(binary_operation: &AstNode, scope: &mut Scope) -> VariableType {
+fn check_binary_operation(binary_operation: &AstNode, scope: &mut Scope) -> TypecheckResult {
     let AstNode::BinaryOp { verb, lhs, rhs, position } = binary_operation else {
-        let position = binary_operation.position();
-        error!("Invalid binary operation: '{:?}' at {}:{}", binary_operation,  position.0, position.1);
-        std::process::exit(-1);
+        return Err(TypeError {
+            message: format!("Invalid binar operation '{:?}'", binary_operation),
+            position: binary_operation.position()
+        });
     };
 
-    let l_type = check_expression(lhs.as_ref(), scope);
-    let r_type = check_expression(rhs.as_ref(), scope);
+    let l_type = check_expression(lhs.as_ref(), scope)?;
+    let r_type = check_expression(rhs.as_ref(), scope)?;
 
     match verb {
         BinaryVerb::Equal | BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
             if l_type != r_type {
-                error!(
-                    "Left and right value of binary operation do not match! ('{:?}' and '{:?}') at {}:{}",
-                    l_type, r_type, position.0, position.1
-                );
-                std::process::exit(-1);
+                return Err(TypeError {
+                    message: format!("Left and right value of binary operation do not match! ('{:?}' and '{:?}')", l_type, r_type),
+                    position: position.clone()
+                });
             }
-            return VariableType::Bool;
+            return Ok(VariableType::Bool);
         }
         BinaryVerb::Plus | BinaryVerb::Minus | BinaryVerb::Times => {
             if l_type != VariableType::Int {
-                let position = lhs.position();
-                error!(
-                    "Left value of numeric binary operation has to be of type Int. Found '{:?}' at {}:{}",
-                    l_type, position.0, position.1
-                );
-                std::process::exit(-1);
+                return Err(TypeError {
+                    message: format!(
+                        "Left value of numeric binary operation has to be of type Int. Found '{}'",
+                        l_type
+                    ),
+                    position: lhs.position(),
+                });
             } else if r_type != VariableType::Int {
-                let position = rhs.position();
-                error!(
-                    "Right value of numeric binary operation has to be of type Int. Found '{:?}' at {}:{}",
-                    r_type, position.0, position.1
-                );
-                std::process::exit(-1);
+                return Err(TypeError {
+                    message: format!(
+                        "Right value of numeric binary operation has to be of type Int. Found '{}'",
+                        r_type
+                    ),
+                    position: rhs.position(),
+                });
             }
 
-            return VariableType::Int;
+            return Ok(VariableType::Int);
         }
     }
 }
