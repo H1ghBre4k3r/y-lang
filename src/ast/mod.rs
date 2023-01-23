@@ -16,6 +16,8 @@ mod statement;
 mod str;
 mod type_annotation;
 
+use std::fmt::Display;
+
 pub use self::assignment::*;
 pub use self::binary_op::*;
 pub use self::binary_verb::*;
@@ -63,3 +65,24 @@ impl Ast {
         self.nodes.clone()
     }
 }
+
+/// Struct representing an error which happened while parsing the code.
+#[derive(Clone, Debug)]
+pub struct ParseError {
+    /// Error message of this parse error
+    pub message: String,
+    /// Position where this error occured
+    pub position: Position,
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
+            "{} ({}:{})",
+            self.message, self.position.0, self.position.1
+        ))
+    }
+}
+
+/// The result of parsing a pair.
+pub type ParseResult<T> = Result<T, ParseError>;
