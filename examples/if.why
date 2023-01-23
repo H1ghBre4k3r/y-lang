@@ -1,6 +1,7 @@
 let foo := "well" 
 let bar := 0 
 
+// some fancy way of doing things
 if 4 > 8 {
     let foo := "yeay"
     bar = 23 * 3 

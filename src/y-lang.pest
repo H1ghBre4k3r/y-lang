@@ -2,6 +2,8 @@ program = _{ SOI ~ (stmt)* ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
+COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ( "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE ) }
+
 stmt = _{ 
     intrinsics | expr
 }
