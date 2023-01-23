@@ -8,7 +8,7 @@ stmt = _{
     intrinsics | expr
 }
 
-intrinsics = _{ ifStmt | declaration | assignment }
+intrinsics = _{ declaration | assignment }
 
 ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
 
@@ -16,7 +16,7 @@ declaration = { "let " ~ ident ~ ":=" ~ expr }
 
 assignment = { ident ~ "=" ~ expr }
 
-fnCall = { ident ~ "(" ~ expr? ~ ("," ~ expr)* ~ ")" }
+fnCall = { ident ~ "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
 
 typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
@@ -35,7 +35,7 @@ expr = _{ binaryExpr | atomExpr | "(" ~ expr ~ ")" }
 binaryExpr = { atomExpr ~ binaryVerb ~ expr }
 
 atomExpr = _{
-    fnCall | integer | ident | string | fnDef
+    ifStmt | fnCall | integer | ident | string | fnDef | block
 }
 
 string = ${ "\"" ~ inner ~ "\"" }

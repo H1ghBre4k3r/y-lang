@@ -11,15 +11,17 @@ pub enum Statement {
 impl Statement {
     pub fn from_pair(pair: Pair<Rule>) -> Statement {
         match pair.as_rule() {
-            Rule::ifStmt | Rule::declaration | Rule::assignment => {
+            Rule::declaration | Rule::assignment => {
                 Statement::Intrinsic(Intrinsic::from_pair(pair))
             }
-            Rule::binaryExpr
+            Rule::ifStmt
+            | Rule::binaryExpr
             | Rule::fnDef
             | Rule::integer
             | Rule::ident
             | Rule::string
-            | Rule::fnCall => Statement::Expression(Expression::from_pair(pair)),
+            | Rule::fnCall
+            | Rule::block => Statement::Expression(Expression::from_pair(pair)),
             _ => todo!(),
         }
     }

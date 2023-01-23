@@ -1,16 +1,18 @@
 use log::error;
 use pest::iterators::Pair;
 
-use super::{BinaryOp, FnCall, FnDef, Ident, Integer, Position, Rule, Str};
+use super::{BinaryOp, Block, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
 
 #[derive(Debug, Clone)]
 pub enum Expression {
+    If(If),
     BinaryOp(BinaryOp),
     FnCall(FnCall),
     Integer(Integer),
     Ident(Ident),
     Str(Str),
     FnDef(FnDef),
+    Block(Block),
 }
 
 impl Expression {
@@ -22,6 +24,8 @@ impl Expression {
             Rule::string => Expression::Str(Str::from_pair(pair)),
             Rule::binaryExpr => Expression::BinaryOp(BinaryOp::from_pair(pair)),
             Rule::fnDef => Expression::FnDef(FnDef::from_pair(pair)),
+            Rule::ifStmt => Expression::If(If::from_pair(pair)),
+            Rule::block => Expression::Block(Block::from_pair(pair)),
             _ => {
                 error!(
                     "Unexpected expression '{}' at {}:{}",
@@ -36,12 +40,14 @@ impl Expression {
 
     pub fn position(&self) -> Position {
         match self {
-            Expression::BinaryOp(BinaryOp { position, .. })
+            Expression::If(If { position, .. })
+            | Expression::BinaryOp(BinaryOp { position, .. })
             | Expression::FnCall(FnCall { position, .. })
             | Expression::Integer(Integer { position, .. })
             | Expression::Ident(Ident { position, .. })
             | Expression::Str(Str { position, .. })
-            | Expression::FnDef(FnDef { position, .. }) => position.to_owned(),
+            | Expression::FnDef(FnDef { position, .. })
+            | Expression::Block(Block { position, .. }) => position.to_owned(),
         }
     }
 }

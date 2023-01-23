@@ -173,7 +173,6 @@ fn check_statement(statement: &Statement, scope: &mut Scope) -> TypecheckResult 
 
 fn check_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> TypecheckResult {
     match &intrinsic {
-        Intrinsic::If(if_statement) => check_if(if_statement, scope),
         Intrinsic::Declaration(declaration) => check_declaration(declaration, scope),
         Intrinsic::Assignment(assignment) => check_assignment(assignment, scope),
     }
@@ -251,12 +250,14 @@ fn check_expression(expression: &Expression, scope: &mut Scope) -> TypecheckResu
     let position = expression.position();
 
     match expression {
+        Expression::If(if_statement) => check_if(if_statement, scope),
         Expression::BinaryOp(binaryOp) => check_binary_operation(binaryOp, scope),
         Expression::Integer(_) => Ok(VariableType::Int),
         Expression::Str(_) => Ok(VariableType::Str),
         Expression::Ident(ident) => check_identifier(ident, scope),
         Expression::FnCall(fn_call) => check_fn_call(fn_call, scope),
         Expression::FnDef(fn_def) => check_fn_def(fn_def, scope),
+        Expression::Block(block) => check_block(block, scope),
         _ => {
             return Err(TypeError {
                 message: format!("Invalid expression '{:?}'", expression),

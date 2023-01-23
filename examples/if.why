@@ -2,7 +2,7 @@ let foo := "well"
 let bar := 0 
 
 // some fancy way of doing things
-if 4 > 8 {
+if 4 < 8 {
     let foo := "yeay"
     bar = 23 * 3 
     print("greater!")
@@ -16,6 +16,21 @@ print(" ")
 print(foo)
 print(" ")
 print(bar)
+
+print(" ")
+
+let test := if bar > 50 { "hehe" } else { "lol" }
+print(test)
+
+print(" ")
+
+let test := {
+    let a := 2 
+    let b := 3 
+    a * b
+}
+
+print(test)
 
 let my_function := (a : int, b : str) : void => {
     print("test")

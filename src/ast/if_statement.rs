@@ -4,7 +4,7 @@ use super::{Block, Expression, Position, Rule};
 
 #[derive(Debug, Clone)]
 pub struct If {
-    pub condition: Expression,
+    pub condition: Box<Expression>,
     pub if_block: Block,
     pub else_block: Option<Block>,
     pub position: Position,
@@ -22,7 +22,7 @@ impl If {
         let else_block = inner.next().map(|block| Block::from_pair(block));
 
         If {
-            condition,
+            condition: Box::new(condition),
             if_block: Block::from_pair(if_block),
             else_block,
             position,
