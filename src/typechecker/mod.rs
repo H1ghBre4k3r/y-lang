@@ -2,7 +2,10 @@ mod error;
 
 use std::{collections::HashMap, fmt::Display, str::FromStr};
 
-use crate::ast::{Ast, AstNode, BinaryVerb};
+use crate::ast::{
+    Assignment, Ast, BinaryOp, BinaryVerb, Block, Declaration, Expression, FnCall, FnDef, Ident,
+    If, Intrinsic, Statement,
+};
 
 use self::error::TypeError;
 
@@ -161,36 +164,35 @@ pub fn check_ast(ast: &Ast) -> Result<(), TypeError> {
     Ok(())
 }
 
-fn check_statement(statement: &AstNode, scope: &mut Scope) -> TypecheckResult {
+fn check_statement(statement: &Statement, scope: &mut Scope) -> TypecheckResult {
     Ok(match &statement {
-        AstNode::Declaration { .. } => check_declaration(&statement, scope)?,
-        AstNode::Assignment { .. } => check_assignment(&statement, scope)?,
-        AstNode::If { .. } => check_if(&statement, scope)?,
-        _ => check_expression(&statement, scope)?,
+        Statement::Expression(expression) => check_expression(&expression, scope)?,
+        Statement::Intrinsic(intrinsic) => check_intrinsic(&intrinsic, scope)?,
     })
 }
 
-fn check_if(if_statement: &AstNode, scope: &mut Scope) -> TypecheckResult {
-    let AstNode::If { condition, if_block, else_block, position } = if_statement else {
-        return Err(TypeError {
-            message: format!("Invalid if statement '{:?}'", if_statement),
-            position: if_statement.position(),
-        });
-    };
+fn check_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> TypecheckResult {
+    match &intrinsic {
+        Intrinsic::If(if_statement) => check_if(if_statement, scope),
+        Intrinsic::Declaration(declaration) => check_declaration(declaration, scope),
+        Intrinsic::Assignment(assignment) => check_assignment(assignment, scope),
+    }
+}
 
-    let condition_type = check_expression(condition.as_ref(), scope)?;
+fn check_if(if_statement: &If, scope: &mut Scope) -> TypecheckResult {
+    let condition_type = check_expression(&if_statement.condition, scope)?;
 
     if condition_type != VariableType::Bool {
         return Err(TypeError {
             message: format!("Invalid tye of condition '{:?}'", condition_type),
-            position: position.to_owned(),
+            position: if_statement.condition.position(),
         });
     }
 
-    let if_return_type = check_block(if_block.as_ref(), scope)?;
+    let if_return_type = check_block(&if_statement.if_block, scope)?;
 
-    if let Some(else_block) = else_block {
-        let else_return_type = check_block(else_block.as_ref(), scope)?;
+    if let Some(else_block) = &if_statement.else_block {
+        let else_return_type = check_block(else_block, scope)?;
 
         if if_return_type != else_return_type {
             return Err(TypeError {
@@ -198,7 +200,7 @@ fn check_if(if_statement: &AstNode, scope: &mut Scope) -> TypecheckResult {
                     "Return type mismatch of if-else. Got '{}' and '{}'",
                     if_return_type, else_return_type
                 ),
-                position: position.to_owned(),
+                position: if_statement.position,
             });
         }
     }
@@ -206,20 +208,13 @@ fn check_if(if_statement: &AstNode, scope: &mut Scope) -> TypecheckResult {
     Ok(if_return_type)
 }
 
-fn check_block(block: &AstNode, scope: &mut Scope) -> TypecheckResult {
+fn check_block(block: &Block, scope: &mut Scope) -> TypecheckResult {
     scope.push();
-
-    let AstNode::Block { block: nodes, .. } = block else {
-        return Err(TypeError {
-            message: format!("Invalid block '{:?}'", block),
-            position: block.position(),
-        });
-    };
 
     let mut last_return = VariableType::Void;
 
-    for node in nodes {
-        last_return = check_statement(&node, scope)?;
+    for statement in &block.block {
+        last_return = check_statement(statement, scope)?;
     }
 
     scope.pop();
@@ -227,67 +222,41 @@ fn check_block(block: &AstNode, scope: &mut Scope) -> TypecheckResult {
     Ok(last_return)
 }
 
-fn check_declaration(declaration: &AstNode, scope: &mut Scope) -> TypecheckResult {
-    let AstNode::Declaration { ident, value,..} = declaration else {
-        return Err(TypeError {
-            message: format!("Invalid declaration '{:?}'", declaration),
-            position: declaration.position(),
-        });
-    };
+fn check_declaration(declaration: &Declaration, scope: &mut Scope) -> TypecheckResult {
+    let declaration_type = check_expression(&declaration.value, scope)?;
 
-    let AstNode::Ident { value: ident, ..} = ident.as_ref() else {
-        return Err(TypeError {
-            message: format!("Invalid identifier '{:?}'", ident),
-            position: ident.position(),
-        });
-    };
-
-    let declaration_type = check_expression(value.as_ref(), scope)?;
-
-    scope.set(ident, declaration_type);
+    scope.set(&declaration.ident.value, declaration_type);
 
     Ok(VariableType::Void)
 }
 
-fn check_assignment(assignment: &AstNode, scope: &mut Scope) -> TypecheckResult {
-    let AstNode::Assignment { ident, value, position: assignment_position } = assignment else {
-        return Err(TypeError {
-            message: format!("Invalid assignment '{:?}'", assignment),
-            position: assignment.position(),
-        });
-    };
+fn check_assignment(assignment: &Assignment, scope: &mut Scope) -> TypecheckResult {
+    let ident = &assignment.ident;
 
-    let AstNode::Ident { value: ident, position} = ident.as_ref() else {
+    if !scope.contains(&ident.value) {
         return Err(TypeError {
-            message: format!("Invalid identifier '{:?}'", ident),
-            position: ident.position(),
-        });
-    };
-
-    if !scope.contains(ident) {
-        return Err(TypeError {
-            message: format!("Undefined identifier '{}'", ident),
-            position: position.to_owned(),
+            message: format!("Undefined identifier '{}'", ident.value),
+            position: ident.position,
         });
     }
 
-    let assignment_type = check_expression(value.as_ref(), scope)?;
+    let assignment_type = check_expression(&assignment.value, scope)?;
 
-    scope.update(ident, assignment_type, assignment_position)?;
+    scope.update(&ident.value, assignment_type, &assignment.position)?;
 
     Ok(VariableType::Void)
 }
 
-fn check_expression(expression: &AstNode, scope: &mut Scope) -> TypecheckResult {
+fn check_expression(expression: &Expression, scope: &mut Scope) -> TypecheckResult {
     let position = expression.position();
 
     match expression {
-        AstNode::BinaryOp { .. } => check_binary_operation(expression, scope),
-        AstNode::Integer { .. } => Ok(VariableType::Int),
-        AstNode::Str { .. } => Ok(VariableType::Str),
-        AstNode::Ident { .. } => check_identifier(expression, scope),
-        AstNode::FnCall { .. } => check_fn_call(expression, scope),
-        AstNode::FnDef { .. } => check_fn_def(expression, scope),
+        Expression::BinaryOp(binaryOp) => check_binary_operation(binaryOp, scope),
+        Expression::Integer(_) => Ok(VariableType::Int),
+        Expression::Str(_) => Ok(VariableType::Str),
+        Expression::Ident(ident) => check_identifier(ident, scope),
+        Expression::FnCall(fn_call) => check_fn_call(fn_call, scope),
+        Expression::FnDef(fn_def) => check_fn_def(fn_def, scope),
         _ => {
             return Err(TypeError {
                 message: format!("Invalid expression '{:?}'", expression),
@@ -297,60 +266,36 @@ fn check_expression(expression: &AstNode, scope: &mut Scope) -> TypecheckResult 
     }
 }
 
-fn check_identifier(identifier: &AstNode, scope: &mut Scope) -> TypecheckResult {
-    let AstNode::Ident {value: ident, position } = identifier else {
-        return Err(TypeError {
-            message: format!("Invalid identifier '{:?}'", identifier),
-            position: identifier.position(),
-        });
-    };
-
-    match scope.find(ident) {
+fn check_identifier(identifier: &Ident, scope: &mut Scope) -> TypecheckResult {
+    match scope.find(&identifier.value) {
         Some(identifier_type) => Ok(identifier_type.clone()),
         None => {
             return Err(TypeError {
-                message: format!("Undefined identifier '{}'", ident),
-                position: position.to_owned(),
+                message: format!("Undefined identifier '{}'", identifier.value),
+                position: identifier.position,
             });
         }
     }
 }
 
-fn check_fn_def(fn_def: &AstNode, scope: &mut Scope) -> TypecheckResult {
-    let AstNode::FnDef { params, type_annotation, block, position } = fn_def else {
-        return Err(TypeError {
-            message: format!("Invalid function definition '{:?}'", fn_def),
-            position: fn_def.position(),
-        })
-    };
+fn check_fn_def(fn_def: &FnDef, scope: &mut Scope) -> TypecheckResult {
+    println!("{:#?}", fn_def.params);
 
-    check_block(block, scope)?;
+    check_block(&fn_def.block, scope)?;
 
     todo!();
 }
 
-fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> TypecheckResult {
+fn check_fn_call(fn_call: &FnCall, scope: &mut Scope) -> TypecheckResult {
+    // TODO: actually type check function call
     scope.push();
 
-    // TODO: actually type check function call
-    let AstNode::FnCall { ident, params: _params, position: fn_call_position } = fn_call else {
-        return Err(TypeError {
-            message: format!("Invalid function call '{:?}'", fn_call),
-            position: fn_call.position(),
-        })
-    };
-
-    let AstNode::Ident { value: ident,.. } = ident.as_ref() else {
-        return Err(TypeError {
-            message: format!("Invalid identifier '{:?}'", ident),
-            position: ident.position(),
-        })
-    };
+    let ident = &fn_call.ident.value;
 
     if !scope.contains(ident) {
         return Err(TypeError {
             message: format!("Call to undefined function '{}'", ident),
-            position: fn_call_position.clone(),
+            position: fn_call.position,
         });
     }
 
@@ -359,23 +304,24 @@ fn check_fn_call(fn_call: &AstNode, scope: &mut Scope) -> TypecheckResult {
     Ok(VariableType::Void)
 }
 
-fn check_binary_operation(binary_operation: &AstNode, scope: &mut Scope) -> TypecheckResult {
-    let AstNode::BinaryOp { verb, lhs, rhs, position } = binary_operation else {
-        return Err(TypeError {
-            message: format!("Invalid binar operation '{:?}'", binary_operation),
-            position: binary_operation.position()
-        });
-    };
+fn check_binary_operation(binary_operation: &BinaryOp, scope: &mut Scope) -> TypecheckResult {
+    let position = binary_operation.position;
 
-    let l_type = check_expression(lhs.as_ref(), scope)?;
-    let r_type = check_expression(rhs.as_ref(), scope)?;
+    let lhs = &binary_operation.lhs;
+    let rhs = &binary_operation.rhs;
 
-    match verb {
+    let l_type = check_expression(lhs, scope)?;
+    let r_type = check_expression(rhs, scope)?;
+
+    match binary_operation.verb {
         BinaryVerb::Equal | BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
             if l_type != r_type {
                 return Err(TypeError {
-                    message: format!("Left and right value of binary operation do not match! ('{:?}' and '{:?}')", l_type, r_type),
-                    position: position.clone()
+                    message: format!(
+                        "Left and right value of binary operation do not match! ('{}' and '{}')",
+                        l_type, r_type
+                    ),
+                    position,
                 });
             }
             return Ok(VariableType::Bool);

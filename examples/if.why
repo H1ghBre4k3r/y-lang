@@ -16,3 +16,6 @@ print(foo)
 print(" ")
 print(bar)
 
+let my_function := (a : int, b : str) : void => {
+    print("test")
+}
