@@ -3,7 +3,7 @@ use pest::iterators::Pair;
 
 use super::{Block, Param, Position, Rule, TypeAnnotation};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FnDef {
     pub params: Vec<Param>,
     pub type_annotation: TypeAnnotation,

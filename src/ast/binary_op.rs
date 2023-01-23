@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use super::{BinaryVerb, Expression, Position, Rule};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BinaryOp {
     pub verb: BinaryVerb,
     pub lhs: Box<Expression>,

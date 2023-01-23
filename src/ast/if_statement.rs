@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use super::{Block, Expression, Position, Rule};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct If {
     pub condition: Box<Expression>,
     pub if_block: Block,

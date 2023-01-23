@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use super::{Ident, Position, Rule, TypeAnnotation};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Param {
     pub ident: Ident,
     pub type_annotation: TypeAnnotation,

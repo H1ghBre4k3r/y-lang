@@ -32,6 +32,13 @@ let test := {
 
 print(test)
 
-let my_function := (a : int, b : str) : void => {
-    print("test")
+let my_function := (a : int, b : str) : int => {
+    print(b)
+    a * 2
 }
+
+let result := my_function(5, " From Function ")
+
+print(" ")
+
+print(result)

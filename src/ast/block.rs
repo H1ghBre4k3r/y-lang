@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use super::{Position, Rule, Statement};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Block {
     pub block: Vec<Statement>,
     pub position: Position,

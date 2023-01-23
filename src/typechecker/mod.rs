@@ -17,6 +17,8 @@ enum VariableType {
     Bool,
     Str,
     Int,
+    // TODO: Maybe just dont use
+    Any,
     Func {
         params: Vec<VariableType>,
         return_value: Box<VariableType>,
@@ -48,6 +50,7 @@ impl Display for VariableType {
             Bool => "bool",
             Int => "int",
             Str => "str",
+            Any => "any",
             Func { .. } => todo!(),
         })
     }
@@ -144,7 +147,7 @@ fn setup_scope() -> Scope {
     scope.set(
         "print",
         VariableType::Func {
-            params: vec![],
+            params: vec![VariableType::Any],
             return_value: Box::new(VariableType::Void),
         },
     );
@@ -247,23 +250,15 @@ fn check_assignment(assignment: &Assignment, scope: &mut Scope) -> TypecheckResu
 }
 
 fn check_expression(expression: &Expression, scope: &mut Scope) -> TypecheckResult {
-    let position = expression.position();
-
     match expression {
         Expression::If(if_statement) => check_if(if_statement, scope),
-        Expression::BinaryOp(binaryOp) => check_binary_operation(binaryOp, scope),
+        Expression::BinaryOp(binary_op) => check_binary_operation(binary_op, scope),
         Expression::Integer(_) => Ok(VariableType::Int),
         Expression::Str(_) => Ok(VariableType::Str),
         Expression::Ident(ident) => check_identifier(ident, scope),
         Expression::FnCall(fn_call) => check_fn_call(fn_call, scope),
         Expression::FnDef(fn_def) => check_fn_def(fn_def, scope),
         Expression::Block(block) => check_block(block, scope),
-        _ => {
-            return Err(TypeError {
-                message: format!("Invalid expression '{:?}'", expression),
-                position,
-            });
-        }
     }
 }
 
@@ -280,29 +275,92 @@ fn check_identifier(identifier: &Ident, scope: &mut Scope) -> TypecheckResult {
 }
 
 fn check_fn_def(fn_def: &FnDef, scope: &mut Scope) -> TypecheckResult {
-    println!("{:#?}", fn_def.params);
+    let Ok(type_annotation) = fn_def.type_annotation.value.parse::<VariableType>() else {
+        return Err(TypeError {
+            message: format!("Unexpected type annotatiot '{}'", fn_def.type_annotation.value),
+            position: fn_def.type_annotation.position
+        })
+    };
 
-    check_block(&fn_def.block, scope)?;
-
-    todo!();
-}
-
-fn check_fn_call(fn_call: &FnCall, scope: &mut Scope) -> TypecheckResult {
-    // TODO: actually type check function call
     scope.push();
 
-    let ident = &fn_call.ident.value;
+    let mut params = vec![];
 
-    if !scope.contains(ident) {
+    for param in &fn_def.params {
+        let Ok(param_type) = param.type_annotation.value.parse::<VariableType>() else {
+            panic!()
+        };
+
+        scope.set(&param.ident.value, param_type.clone());
+        params.push(param_type);
+    }
+
+    let return_value = check_block(&fn_def.block, scope)?;
+
+    if return_value != type_annotation {
         return Err(TypeError {
-            message: format!("Call to undefined function '{}'", ident),
-            position: fn_call.position,
+            message: format!(
+                "Expected return type of '{}' but got '{}'",
+                type_annotation, return_value
+            ),
+            position: fn_def.position,
         });
     }
 
     scope.pop();
 
-    Ok(VariableType::Void)
+    return Ok(VariableType::Func {
+        params,
+        return_value: Box::new(return_value),
+    });
+}
+
+fn check_fn_call(fn_call: &FnCall, scope: &mut Scope) -> TypecheckResult {
+    scope.push();
+
+    let ident = &fn_call.ident.value;
+
+    let Some(fn_def) = scope.find(ident) else {
+        return Err(TypeError {
+            message: format!("Call to undefined function '{}'", ident),
+            position: fn_call.position,
+        });
+    };
+
+    let VariableType::Func { params, return_value } = fn_def else {
+        return Err(TypeError {
+            message: format!("Trying to call an invalid function '{}'", ident),
+            position: fn_call.position,
+        });
+    };
+
+    if params.len() != fn_call.params.len() {
+        return Err(TypeError {
+            message: format!(
+                "Invalid amount of parameters! Expected {} but got {}",
+                params.len(),
+                fn_call.params.len()
+            ),
+            position: fn_call.position,
+        });
+    }
+
+    for (i, param) in params.iter().enumerate() {
+        let call_param_type = check_expression(&fn_call.params[i], scope)?;
+        if param != &call_param_type && param != &VariableType::Any {
+            return Err(TypeError {
+                message: format!(
+                    "Invalid type of parameter! Expected '{}' but got '{}'",
+                    param, call_param_type
+                ),
+                position: fn_call.params[i].position(),
+            });
+        }
+    }
+
+    scope.pop();
+
+    Ok(*return_value)
 }
 
 fn check_binary_operation(binary_operation: &BinaryOp, scope: &mut Scope) -> TypecheckResult {

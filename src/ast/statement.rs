@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use super::{Expression, Intrinsic, Rule};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Statement {
     Expression(Expression),
     Intrinsic(Intrinsic),

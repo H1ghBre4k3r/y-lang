@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use super::{Position, Rule};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ident {
     pub value: String,
     pub position: Position,

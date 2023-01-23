@@ -3,7 +3,7 @@ use pest::iterators::Pair;
 
 use super::{BinaryOp, Block, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expression {
     If(If),
     BinaryOp(BinaryOp),

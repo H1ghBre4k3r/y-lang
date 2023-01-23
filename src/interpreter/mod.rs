@@ -1,8 +1,8 @@
 use std::{collections::HashMap, fmt::Display};
 
 use crate::ast::{
-    Assignment, Ast, BinaryOp, BinaryVerb, Block, Declaration, Expression, FnCall, Ident, If,
-    Integer, Intrinsic, Statement, Str,
+    Assignment, Ast, BinaryOp, BinaryVerb, Block, Declaration, Expression, FnCall, FnDef, Ident,
+    If, Integer, Intrinsic, Statement, Str,
 };
 
 pub struct Interpreter {
@@ -10,30 +10,15 @@ pub struct Interpreter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum VariableType {
+enum VariableValue {
     Void,
     Bool(bool),
     Str(String),
     Int(i64),
-    Func {
-        name: String,
-        return_value: Box<VariableType>,
-    },
+    Func { params: Vec<String>, block: Block },
 }
 
-impl VariableType {
-    // pub fn as_str(&self) -> String {
-    //     match self {
-    //         Self::Void => "void".to_owned(),
-    //         Self::Bool(value) => format!("{}", value),
-    //         Self::Str(value) => format!("{}", value),
-    //         Self::Int(value) => format!("{}", value),
-    //         _ => unimplemented!(),
-    //     }
-    // }
-}
-
-impl Display for VariableType {
+impl Display for VariableValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str_representation = match self {
             Self::Void => "void".to_owned(),
@@ -48,12 +33,12 @@ impl Display for VariableType {
 
 #[derive(Default, Debug)]
 struct Scope {
-    scope_stack: Vec<HashMap<String, VariableType>>,
+    scope_stack: Vec<HashMap<String, VariableValue>>,
 }
 
 impl Scope {
     /// Find a value/reference in this scope by iterating over the scopes from back to front.
-    pub fn find(&self, name: &str) -> Option<VariableType> {
+    pub fn find(&self, name: &str) -> Option<VariableValue> {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
         for scope in scopes {
@@ -76,14 +61,14 @@ impl Scope {
     }
 
     /// Create a new variable on the current scope.
-    pub fn set(&mut self, name: &str, value: VariableType) {
+    pub fn set(&mut self, name: &str, value: VariableValue) {
         if let Some(scope) = self.scope_stack.last_mut() {
             scope.insert(name.to_owned(), value);
         }
     }
 
     /// Update a value of an already present variable.
-    pub fn update(&mut self, name: &str, value: VariableType) {
+    pub fn update(&mut self, name: &str, value: VariableValue) {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
 
@@ -117,23 +102,23 @@ impl Interpreter {
         }
     }
 
-    fn run_statement(statement: &Statement, scope: &mut Scope) -> VariableType {
+    fn run_statement(statement: &Statement, scope: &mut Scope) -> VariableValue {
         match &statement {
             Statement::Expression(expression) => Self::run_expression(expression, scope),
             Statement::Intrinsic(intrinsic) => Self::run_intrinsic(intrinsic, scope),
         }
     }
 
-    fn run_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> VariableType {
+    fn run_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> VariableValue {
         match intrinsic {
             Intrinsic::Declaration(declaration) => Self::run_declaration(declaration, scope),
             Intrinsic::Assignment(assignment) => Self::run_assignment(assignment, scope),
         }
     }
 
-    fn run_if(if_statement: &If, scope: &mut Scope) -> VariableType {
+    fn run_if(if_statement: &If, scope: &mut Scope) -> VariableValue {
         let condition = &if_statement.condition;
-        let VariableType::Bool(condition) = Self::run_expression(condition, scope) else {
+        let VariableValue::Bool(condition) = Self::run_expression(condition, scope) else {
             let position = condition.position();
             unreachable!(
                 "Invalid type of condition '{:?}' at {}:{}",
@@ -147,14 +132,14 @@ impl Interpreter {
             if let Some(else_block) = &if_statement.else_block {
                 return Self::run_block(else_block, scope);
             }
-            return VariableType::Void;
+            return VariableValue::Void;
         }
     }
 
-    fn run_block(block: &Block, scope: &mut Scope) -> VariableType {
+    fn run_block(block: &Block, scope: &mut Scope) -> VariableValue {
         scope.push();
 
-        let mut return_value = VariableType::Void;
+        let mut return_value = VariableValue::Void;
 
         for statement in &block.block {
             return_value = Self::run_statement(statement, scope);
@@ -165,25 +150,25 @@ impl Interpreter {
         return_value
     }
 
-    fn run_declaration(declaration: &Declaration, scope: &mut Scope) -> VariableType {
+    fn run_declaration(declaration: &Declaration, scope: &mut Scope) -> VariableValue {
         let value = Self::run_expression(&declaration.value, scope);
 
         scope.set(&declaration.ident.value, value);
-        VariableType::Void
+        VariableValue::Void
     }
 
-    fn run_assignment(assignment: &Assignment, scope: &mut Scope) -> VariableType {
+    fn run_assignment(assignment: &Assignment, scope: &mut Scope) -> VariableValue {
         let value = Self::run_expression(&assignment.value, scope);
 
         scope.update(&assignment.ident.value, value);
-        VariableType::Void
+        VariableValue::Void
     }
 
-    fn run_expression(expression: &Expression, scope: &mut Scope) -> VariableType {
+    fn run_expression(expression: &Expression, scope: &mut Scope) -> VariableValue {
         match expression {
             Expression::If(if_statement) => Self::run_if(if_statement, scope),
-            Expression::Integer(Integer { value, .. }) => VariableType::Int(*value),
-            Expression::Str(Str { value, .. }) => VariableType::Str(value.clone()),
+            Expression::Integer(Integer { value, .. }) => VariableValue::Int(*value),
+            Expression::Str(Str { value, .. }) => VariableValue::Str(value.clone()),
             Expression::Ident(Ident { value, .. }) => {
                 let Some(value) = scope.find(value) else {
                     unreachable!()
@@ -196,11 +181,11 @@ impl Interpreter {
             }
             Expression::FnCall(fn_call) => Self::run_fn_call(fn_call, scope),
             Expression::Block(block) => Self::run_block(block, scope),
-            Expression::FnDef(_) => todo!(),
+            Expression::FnDef(fn_def) => Self::run_fn_def(fn_def, scope),
         }
     }
 
-    fn run_binary_operation(binary_operation: &BinaryOp, scope: &mut Scope) -> VariableType {
+    fn run_binary_operation(binary_operation: &BinaryOp, scope: &mut Scope) -> VariableValue {
         let lhs = &binary_operation.lhs;
         let rhs = &binary_operation.rhs;
 
@@ -208,36 +193,49 @@ impl Interpreter {
         let rhs = Self::run_expression(rhs, scope);
 
         match binary_operation.verb {
-            BinaryVerb::Equal => VariableType::Bool(lhs == rhs),
-            BinaryVerb::GreaterThan => VariableType::Bool(lhs > rhs),
-            BinaryVerb::LessThan => VariableType::Bool(lhs < rhs),
+            BinaryVerb::Equal => VariableValue::Bool(lhs == rhs),
+            BinaryVerb::GreaterThan => VariableValue::Bool(lhs > rhs),
+            BinaryVerb::LessThan => VariableValue::Bool(lhs < rhs),
             BinaryVerb::Plus => {
-                let (VariableType::Int(lhs), VariableType::Int(rhs)) = (lhs, rhs) else {
+                let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
-                VariableType::Int(lhs + rhs)
+                VariableValue::Int(lhs + rhs)
             }
             BinaryVerb::Minus => {
-                let (VariableType::Int(lhs), VariableType::Int(rhs)) = (lhs, rhs) else {
+                let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
-                VariableType::Int(lhs - rhs)
+                VariableValue::Int(lhs - rhs)
             }
             BinaryVerb::Times => {
-                let (VariableType::Int(lhs), VariableType::Int(rhs)) = (lhs, rhs) else {
+                let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
-                VariableType::Int(lhs * rhs)
+                VariableValue::Int(lhs * rhs)
             }
         }
     }
 
-    fn run_fn_call(fn_call: &FnCall, scope: &mut Scope) -> VariableType {
+    fn run_fn_def(fn_def: &FnDef, _scope: &mut Scope) -> VariableValue {
+        let mut params = vec![];
+
+        for param in &fn_def.params {
+            params.push(param.ident.value.clone());
+        }
+
+        VariableValue::Func {
+            params,
+            block: fn_def.block.clone(),
+        }
+    }
+
+    fn run_fn_call(fn_call: &FnCall, scope: &mut Scope) -> VariableValue {
         scope.push();
 
         let ident = &fn_call.ident;
 
-        match ident.value.as_str() {
+        let return_value = match ident.value.as_str() {
             "print" => {
                 for param in &fn_call.params {
                     match param {
@@ -262,15 +260,30 @@ impl Interpreter {
                         Expression::FnDef(_) => todo!(),
                     }
                 }
+                VariableValue::Void
             }
-            _ => unreachable!(
-                "Call to undefined function '{}' at {}:{}",
-                ident.value, fn_call.position.0, fn_call.position.1
-            ),
-        }
+            ident => {
+                let Some(fn_def) = scope.find(ident) else {
+                    unreachable!();
+                };
+
+                let VariableValue::Func { params, block } = fn_def else {
+                    unreachable!();  
+                };
+
+                for (i, param) in fn_call.params.iter().enumerate() {
+                    let param_name = &params[i];
+                    let param_value = Self::run_expression(param, scope);
+
+                    scope.set(&param_name, param_value);
+                }
+
+                Self::run_block(&block, scope)
+            }
+        };
 
         scope.pop();
 
-        VariableType::Void
+        return_value
     }
 }

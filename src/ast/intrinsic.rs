@@ -2,9 +2,9 @@ use super::Rule;
 
 use pest::iterators::Pair;
 
-use super::{Assignment, Declaration, If};
+use super::{Assignment, Declaration};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Intrinsic {
     Declaration(Declaration),
     Assignment(Assignment),
