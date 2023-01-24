@@ -44,7 +44,7 @@ pub use self::parser::*;
 
 pub type Position = (usize, usize);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ast {
     nodes: Vec<Statement>,
 }

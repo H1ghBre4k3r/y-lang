@@ -1,18 +1,12 @@
-mod ast;
-mod interpreter;
-mod typechecker;
-
 extern crate pest;
-#[macro_use]
-extern crate pest_derive;
+extern crate y_lang;
 
 use clap::Parser as CParser;
-use interpreter::Interpreter;
 use log::error;
-
-use crate::{
+use y_lang::{
     ast::{Ast, YParser},
-    typechecker::check_ast,
+    interpreter::Interpreter,
+    typechecker::Typechecker,
 };
 
 #[derive(CParser, Debug)]
@@ -38,7 +32,9 @@ fn main() {
 
     let ast = Ast::from_program(pairs);
 
-    if let Err(type_error) = check_ast(&ast) {
+    let typechecker = Typechecker::from_ast(ast.clone());
+
+    if let Err(type_error) = typechecker.check() {
         error!(
             "{} ({}:{})",
             type_error.message, type_error.position.0, type_error.position.1
