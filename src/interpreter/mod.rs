@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::ast::{
     Assignment, Ast, BinaryOp, BinaryVerb, Block, Declaration, Expression, FnCall, FnDef, Ident,
@@ -9,13 +9,17 @@ pub struct Interpreter {
     ast: Ast,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum VariableValue {
     Void,
     Bool(bool),
     Str(String),
     Int(i64),
-    Func { params: Vec<String>, block: Block },
+    Func {
+        params: Vec<String>,
+        block: Block,
+        scope: Scope,
+    },
 }
 
 impl Display for VariableValue {
@@ -31,9 +35,13 @@ impl Display for VariableValue {
     }
 }
 
-#[derive(Default, Debug)]
+type ScopeFrame = HashMap<String, VariableValue>;
+
+type ScopeFrameReference = Rc<RefCell<ScopeFrame>>;
+
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct Scope {
-    scope_stack: Vec<HashMap<String, VariableValue>>,
+    scope_stack: Vec<ScopeFrameReference>,
 }
 
 impl Scope {
@@ -42,7 +50,7 @@ impl Scope {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
         for scope in scopes {
-            if let Some(variable) = scope.get(name) {
+            if let Some(variable) = scope.borrow().get(name) {
                 return Some(variable.clone());
             }
         }
@@ -52,7 +60,7 @@ impl Scope {
 
     /// Push a new scope frame.
     pub fn push(&mut self) {
-        self.scope_stack.push(HashMap::new());
+        self.scope_stack.push(Rc::new(RefCell::new(HashMap::new())));
     }
 
     /// Pop the last scope frame.
@@ -63,7 +71,7 @@ impl Scope {
     /// Create a new variable on the current scope.
     pub fn set(&mut self, name: &str, value: VariableValue) {
         if let Some(scope) = self.scope_stack.last_mut() {
-            scope.insert(name.to_owned(), value);
+            scope.borrow_mut().insert(name.to_owned(), value);
         }
     }
 
@@ -73,6 +81,7 @@ impl Scope {
         scopes.reverse();
 
         for scope in &mut scopes {
+            let mut scope = scope.borrow_mut();
             if scope.contains_key(name) {
                 scope.insert(name.to_owned(), value);
 
@@ -194,8 +203,18 @@ impl Interpreter {
 
         match binary_operation.verb {
             BinaryVerb::Equal => VariableValue::Bool(lhs == rhs),
-            BinaryVerb::GreaterThan => VariableValue::Bool(lhs > rhs),
-            BinaryVerb::LessThan => VariableValue::Bool(lhs < rhs),
+            BinaryVerb::GreaterThan => {
+                let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
+                    unreachable!();
+                };
+                VariableValue::Bool(lhs > rhs)
+            }
+            BinaryVerb::LessThan => {
+                let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
+                    unreachable!();
+                };
+                VariableValue::Bool(lhs < rhs)
+            }
             BinaryVerb::Plus => {
                 let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
@@ -217,7 +236,7 @@ impl Interpreter {
         }
     }
 
-    fn run_fn_def(fn_def: &FnDef, _scope: &mut Scope) -> VariableValue {
+    fn run_fn_def(fn_def: &FnDef, scope: &mut Scope) -> VariableValue {
         let mut params = vec![];
 
         for param in &fn_def.params {
@@ -227,6 +246,7 @@ impl Interpreter {
         VariableValue::Func {
             params,
             block: fn_def.block.clone(),
+            scope: scope.clone(),
         }
     }
 
@@ -251,12 +271,14 @@ impl Interpreter {
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{}", value),
                         Expression::If(if_statement) => {
-                            println!("{}", Self::run_if(if_statement, scope))
+                            print!("{}", Self::run_if(if_statement, scope))
                         }
                         Expression::Block(block) => {
-                            println!("{}", Self::run_block(block, scope))
+                            print!("{}", Self::run_block(block, scope))
                         }
-                        Expression::FnCall(_) => todo!(),
+                        Expression::FnCall(fn_call) => {
+                            print!("{}", Self::run_fn_call(fn_call, scope))
+                        }
                         Expression::FnDef(_) => todo!(),
                     }
                 }
@@ -267,18 +289,23 @@ impl Interpreter {
                     unreachable!();
                 };
 
-                let VariableValue::Func { params, block } = fn_def else {
+                let VariableValue::Func { params, block, scope: mut fn_scope } = fn_def else {
                     unreachable!();  
                 };
+
+                fn_scope.push();
 
                 for (i, param) in fn_call.params.iter().enumerate() {
                     let param_name = &params[i];
                     let param_value = Self::run_expression(param, scope);
 
-                    scope.set(&param_name, param_value);
+                    fn_scope.set(&param_name, param_value);
                 }
 
-                Self::run_block(&block, scope)
+                let return_value = Self::run_block(&block, &mut fn_scope);
+
+                fn_scope.pop();
+                return_value
             }
         };
 

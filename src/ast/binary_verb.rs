@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BinaryVerb {
@@ -29,5 +29,18 @@ impl FromStr for BinaryVerb {
                 s
             ))),
         }
+    }
+}
+
+impl Display for BinaryVerb {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            BinaryVerb::GreaterThan => ">",
+            BinaryVerb::LessThan => "<",
+            BinaryVerb::Equal => "==",
+            BinaryVerb::Plus => "+",
+            BinaryVerb::Minus => "-",
+            BinaryVerb::Times => "*",
+        })
     }
 }

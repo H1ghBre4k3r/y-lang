@@ -1,6 +1,6 @@
 mod error;
 
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, str::FromStr};
 
 use crate::ast::{
     Assignment, Ast, BinaryOp, BinaryVerb, Block, Declaration, Expression, FnCall, FnDef, Ident,
@@ -21,6 +21,7 @@ enum VariableType {
     Any,
     Func {
         params: Vec<VariableType>,
+        scope: Scope,
         return_value: Box<VariableType>,
     },
 }
@@ -56,9 +57,13 @@ impl Display for VariableType {
     }
 }
 
-#[derive(Default, Debug)]
+type ScopeFrame = HashMap<String, VariableType>;
+
+type ScopeFrameReference = Rc<RefCell<ScopeFrame>>;
+
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct Scope {
-    scope_stack: Vec<HashMap<String, VariableType>>,
+    scope_stack: Vec<ScopeFrameReference>,
 }
 
 impl Scope {
@@ -67,7 +72,7 @@ impl Scope {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
         for scope in scopes {
-            if let Some(variable) = scope.get(name) {
+            if let Some(variable) = scope.borrow().get(name) {
                 return Some(variable.clone());
             }
         }
@@ -79,8 +84,8 @@ impl Scope {
     pub fn contains(&self, name: &str) -> bool {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
-        for scope in scopes {
-            if scope.contains_key(name) {
+        for scope in &scopes {
+            if scope.borrow().contains_key(name) {
                 return true;
             }
         }
@@ -90,7 +95,7 @@ impl Scope {
 
     /// Push a new scope frame.
     pub fn push(&mut self) {
-        self.scope_stack.push(HashMap::new());
+        self.scope_stack.push(Rc::new(RefCell::new(HashMap::new())))
     }
 
     /// Pop the last scope frame.
@@ -101,7 +106,7 @@ impl Scope {
     /// Create a new variable on the current scope.
     pub fn set(&mut self, name: &str, value: VariableType) {
         if let Some(scope) = self.scope_stack.last_mut() {
-            scope.insert(name.to_owned(), value);
+            scope.borrow_mut().insert(name.to_owned(), value);
         }
     }
 
@@ -116,6 +121,7 @@ impl Scope {
         scopes.reverse();
 
         for scope in &mut scopes {
+            let mut scope = scope.borrow_mut();
             if let Some(old_type) = scope.get(name) {
                 if *old_type != value {
                     return Err(TypeError {
@@ -148,6 +154,7 @@ fn setup_scope() -> Scope {
         "print",
         VariableType::Func {
             params: vec![VariableType::Any],
+            scope: Scope::default(),
             return_value: Box::new(VariableType::Void),
         },
     );
@@ -169,7 +176,7 @@ pub fn check_ast(ast: &Ast) -> Result<(), TypeError> {
 
 fn check_statement(statement: &Statement, scope: &mut Scope) -> TypecheckResult {
     Ok(match &statement {
-        Statement::Expression(expression) => check_expression(&expression, scope)?,
+        Statement::Expression(expression) => check_expression(None, &expression, scope)?,
         Statement::Intrinsic(intrinsic) => check_intrinsic(&intrinsic, scope)?,
     })
 }
@@ -182,7 +189,7 @@ fn check_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> TypecheckResult 
 }
 
 fn check_if(if_statement: &If, scope: &mut Scope) -> TypecheckResult {
-    let condition_type = check_expression(&if_statement.condition, scope)?;
+    let condition_type = check_expression(None, &if_statement.condition, scope)?;
 
     if condition_type != VariableType::Bool {
         return Err(TypeError {
@@ -225,7 +232,7 @@ fn check_block(block: &Block, scope: &mut Scope) -> TypecheckResult {
 }
 
 fn check_declaration(declaration: &Declaration, scope: &mut Scope) -> TypecheckResult {
-    let declaration_type = check_expression(&declaration.value, scope)?;
+    let declaration_type = check_expression(Some(&declaration.ident), &declaration.value, scope)?;
 
     scope.set(&declaration.ident.value, declaration_type);
 
@@ -242,14 +249,18 @@ fn check_assignment(assignment: &Assignment, scope: &mut Scope) -> TypecheckResu
         });
     }
 
-    let assignment_type = check_expression(&assignment.value, scope)?;
+    let assignment_type = check_expression(Some(ident), &assignment.value, scope)?;
 
     scope.update(&ident.value, assignment_type, &assignment.position)?;
 
     Ok(VariableType::Void)
 }
 
-fn check_expression(expression: &Expression, scope: &mut Scope) -> TypecheckResult {
+fn check_expression(
+    identifier: Option<&Ident>,
+    expression: &Expression,
+    scope: &mut Scope,
+) -> TypecheckResult {
     match expression {
         Expression::If(if_statement) => check_if(if_statement, scope),
         Expression::BinaryOp(binary_op) => check_binary_operation(binary_op, scope),
@@ -257,7 +268,7 @@ fn check_expression(expression: &Expression, scope: &mut Scope) -> TypecheckResu
         Expression::Str(_) => Ok(VariableType::Str),
         Expression::Ident(ident) => check_identifier(ident, scope),
         Expression::FnCall(fn_call) => check_fn_call(fn_call, scope),
-        Expression::FnDef(fn_def) => check_fn_def(fn_def, scope),
+        Expression::FnDef(fn_def) => check_fn_def(identifier, fn_def, scope),
         Expression::Block(block) => check_block(block, scope),
     }
 }
@@ -274,7 +285,7 @@ fn check_identifier(identifier: &Ident, scope: &mut Scope) -> TypecheckResult {
     }
 }
 
-fn check_fn_def(fn_def: &FnDef, scope: &mut Scope) -> TypecheckResult {
+fn check_fn_def(identifier: Option<&Ident>, fn_def: &FnDef, scope: &mut Scope) -> TypecheckResult {
     let Ok(type_annotation) = fn_def.type_annotation.value.parse::<VariableType>() else {
         return Err(TypeError {
             message: format!("Unexpected type annotatiot '{}'", fn_def.type_annotation.value),
@@ -295,6 +306,17 @@ fn check_fn_def(fn_def: &FnDef, scope: &mut Scope) -> TypecheckResult {
         params.push(param_type);
     }
 
+    if let Some(ident) = identifier {
+        scope.set(
+            &ident.value,
+            VariableType::Func {
+                params: params.clone(),
+                return_value: Box::new(type_annotation.clone()),
+                scope: scope.clone(),
+            },
+        )
+    }
+
     let return_value = check_block(&fn_def.block, scope)?;
 
     if return_value != type_annotation {
@@ -307,11 +329,14 @@ fn check_fn_def(fn_def: &FnDef, scope: &mut Scope) -> TypecheckResult {
         });
     }
 
+    let function_scope = scope.clone();
+
     scope.pop();
 
     return Ok(VariableType::Func {
         params,
         return_value: Box::new(return_value),
+        scope: function_scope,
     });
 }
 
@@ -327,7 +352,7 @@ fn check_fn_call(fn_call: &FnCall, scope: &mut Scope) -> TypecheckResult {
         });
     };
 
-    let VariableType::Func { params, return_value } = fn_def else {
+    let VariableType::Func { params, return_value, .. } = fn_def else {
         return Err(TypeError {
             message: format!("Trying to call an invalid function '{}'", ident),
             position: fn_call.position,
@@ -346,7 +371,7 @@ fn check_fn_call(fn_call: &FnCall, scope: &mut Scope) -> TypecheckResult {
     }
 
     for (i, param) in params.iter().enumerate() {
-        let call_param_type = check_expression(&fn_call.params[i], scope)?;
+        let call_param_type = check_expression(None, &fn_call.params[i], scope)?;
         if param != &call_param_type && param != &VariableType::Any {
             return Err(TypeError {
                 message: format!(
@@ -369,16 +394,28 @@ fn check_binary_operation(binary_operation: &BinaryOp, scope: &mut Scope) -> Typ
     let lhs = &binary_operation.lhs;
     let rhs = &binary_operation.rhs;
 
-    let l_type = check_expression(lhs, scope)?;
-    let r_type = check_expression(rhs, scope)?;
+    let l_type = check_expression(None, lhs, scope)?;
+    let r_type = check_expression(None, rhs, scope)?;
 
     match binary_operation.verb {
-        BinaryVerb::Equal | BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
+        BinaryVerb::Equal => {
             if l_type != r_type {
                 return Err(TypeError {
                     message: format!(
                         "Left and right value of binary operation do not match! ('{}' and '{}')",
                         l_type, r_type
+                    ),
+                    position,
+                });
+            }
+            return Ok(VariableType::Bool);
+        }
+        BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
+            if l_type != VariableType::Int || r_type != VariableType::Int {
+                return Err(TypeError {
+                    message: format!(
+                        "Invalid types for binary operation '{}'. Got '{}' and '{}'",
+                        binary_operation.verb, l_type, r_type
                     ),
                     position,
                 });
