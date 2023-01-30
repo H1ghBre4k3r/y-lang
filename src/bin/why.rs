@@ -5,6 +5,7 @@ use clap::Parser as CParser;
 use log::error;
 use y_lang::{
     ast::{Ast, YParser},
+    compiler::Compiler,
     interpreter::Interpreter,
     typechecker::Typechecker,
 };
@@ -17,6 +18,12 @@ struct Cli {
 
     #[arg(short, long)]
     run: bool,
+
+    #[arg(short, long)]
+    compile: bool,
+
+    #[arg(short, long)]
+    output: Option<String>,
 }
 
 fn main() {
@@ -43,8 +50,14 @@ fn main() {
     }
 
     if args.run {
-        let interpreter = Interpreter::from_ast(ast);
+        let interpreter = Interpreter::from_ast(ast.clone());
 
         interpreter.run();
+    }
+
+    if args.compile {
+        let mut compiler = Compiler::from_ast(ast.clone());
+
+        compiler.compile(args.output.unwrap_or("a".to_owned()));
     }
 }
