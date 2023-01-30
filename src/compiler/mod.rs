@@ -1,5 +1,9 @@
 use std::{collections::HashMap, error::Error, fs::File, io::prelude::*};
 
+use Instruction::*;
+use LoadSource::*;
+use Reg::*;
+
 use crate::{
     asm::{Instruction, LoadSource, Reg},
     ast::{Ast, Declaration, Expression, FnCall, Intrinsic, Statement},
@@ -36,10 +40,6 @@ impl Compiler {
     }
 
     fn prelude() -> Vec<Instruction> {
-        use Instruction::*;
-        use LoadSource::*;
-        use Reg::*;
-
         vec![
             Label("print".to_owned()),
             Mov(RDI, Immediate(1)),
@@ -48,6 +48,36 @@ impl Compiler {
             Ret,
             Label("_main".to_owned()),
         ]
+    }
+
+    fn write_data_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
+        file.write(format!("section .data\n").as_bytes())?;
+
+        for k in &self.constants {
+            file.write(format!("\t{} db \"{}\", 0\n", k.0, k.1.value).as_bytes())?;
+        }
+
+        Ok(())
+    }
+
+    fn write_text_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
+        file.write(format!("\nsection .text\n").as_bytes())?;
+        file.write(format!("\tglobal _main\n\n").as_bytes())?;
+
+        for instruction in &self.instructions {
+            file.write(format!("{}\n", instruction).as_bytes())?;
+        }
+
+        Ok(())
+    }
+
+    fn write_exit(file: &mut File) -> Result<(), Box<dyn Error>> {
+        file.write("exit:\n".as_bytes())?;
+        file.write("\tmov rax, 0x2000001\n".as_bytes())?;
+        file.write("\tmov rdi, 0\n".as_bytes())?;
+        file.write("\tsyscall\n".as_bytes())?;
+
+        Ok(())
     }
 
     pub fn compile(&mut self, target: String) -> Result<(), Box<dyn Error>> {
@@ -60,23 +90,11 @@ impl Compiler {
         let mut file = File::create(format!("{}.asm", target))?;
 
         file.write(format!("default rel\n\n").as_bytes())?;
-        file.write(format!("section .data\n").as_bytes())?;
 
-        for k in &self.constants {
-            file.write(format!("\t{} db \"{}\", 0\n", k.0, k.1.value).as_bytes())?;
-        }
+        self.write_data_section(&mut file)?;
+        self.write_text_section(&mut file)?;
 
-        file.write(format!("section .text\n").as_bytes())?;
-        file.write(format!("global _main\n\n").as_bytes())?;
-
-        for instruction in &self.instructions {
-            file.write(format!("{}\n", instruction).as_bytes())?;
-        }
-
-        file.write("exit:\n".as_bytes())?;
-        file.write("\tmov rax, 0x2000001\n".as_bytes())?;
-        file.write("\tmov rdi, 0\n".as_bytes())?;
-        file.write("syscall\n".as_bytes())?;
+        Self::write_exit(&mut file)?;
 
         Ok(())
     }
@@ -126,9 +144,6 @@ impl Compiler {
     }
 
     fn compile_fn_call(&mut self, fn_call: &FnCall) {
-        use Instruction::*;
-        use LoadSource::*;
-        use Reg::*;
         let name = fn_call.ident.value.to_owned();
 
         if name.as_str() == "print" {

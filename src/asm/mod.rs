@@ -34,7 +34,7 @@ pub enum Instruction {
 impl Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let value = match self {
-            Instruction::Label(label) => format!("{}:", label),
+            Instruction::Label(label) => format!("\n{}:", label),
             Instruction::Lea(target, source) => format!("\tlea {}, {}", target, source),
             Instruction::Mov(target, source) => format!("\tmov {}, {}", target, source),
             Instruction::Syscall => "\tsyscall".to_string(),
