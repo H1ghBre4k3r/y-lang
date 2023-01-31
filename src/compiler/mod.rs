@@ -1,5 +1,6 @@
-use std::{collections::HashMap, error::Error, fs::File, io::prelude::*};
+use std::{collections::HashMap, error::Error, fs::File, io::prelude::*, process::Command};
 
+use log::info;
 use Instruction::*;
 use LoadSource::*;
 use Reg::*;
@@ -80,14 +81,8 @@ impl Compiler {
         Ok(())
     }
 
-    pub fn compile(&mut self, target: String) -> Result<(), Box<dyn Error>> {
-        let nodes = self.ast.nodes();
-
-        for node in &nodes {
-            self.compile_statement(&node);
-        }
-
-        let mut file = File::create(format!("{}.asm", target))?;
+    fn write_code(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
+        let mut file = File::create(format!("{}.asm", target.to_string()))?;
 
         file.write(format!("default rel\n\n").as_bytes())?;
 
@@ -95,6 +90,49 @@ impl Compiler {
         self.write_text_section(&mut file)?;
 
         Self::write_exit(&mut file)?;
+        Ok(())
+    }
+
+    fn compile_nasm(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
+        info!("Compiling '{}.asm'...", target.to_string());
+
+        #[cfg(target_os = "macos")]
+        Command::new("nasm")
+            .args(["-f", "macho64", &format!("{}.asm", target.to_string())])
+            .output()?;
+
+        Ok(())
+    }
+
+    fn link_program(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
+        info!("Linking program...");
+
+        #[cfg(target_os = "macos")]
+        Command::new("ld")
+            .args([
+                "-macos_version_min",
+                "10.12.0",
+                "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib",
+                "-lSystem",
+                "-o",
+                &format!("{}", target.to_string()),
+                &format!("{}.o", target.to_string()),
+            ])
+            .output()?;
+        Ok(())
+    }
+
+    pub fn compile(&mut self, target: impl ToString) -> Result<(), Box<dyn Error>> {
+        info!("Generating code...");
+        let nodes = self.ast.nodes();
+
+        for node in &nodes {
+            self.compile_statement(&node);
+        }
+
+        self.write_code(&target)?;
+        self.compile_nasm(&target)?;
+        self.link_program(&target)?;
 
         Ok(())
     }
