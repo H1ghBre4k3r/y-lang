@@ -2,16 +2,16 @@ use std::{collections::HashMap, error::Error, fs::File, io::prelude::*, process:
 
 use log::info;
 use Instruction::*;
-use LoadSource::*;
+use InstructionOperand::*;
 use Reg::*;
 
 use crate::{
-    asm::{Instruction, LoadSource, Reg},
-    ast::{Ast, Declaration, Expression, FnCall, Intrinsic, Statement},
+    asm::{Instruction, InstructionOperand, Reg},
+    ast::{Ast, BinaryVerb, Declaration, Expression, FnCall, Intrinsic, Statement},
 };
 
+#[derive(Debug, Clone, Copy)]
 struct Variable {
-    value: String,
     offset: usize,
 }
 
@@ -30,6 +30,7 @@ pub struct Compiler {
     constants: ConstantsMap,
     instructions: Vec<Instruction>,
     var_count: usize,
+    stack_offset: usize,
 }
 
 impl Compiler {
@@ -40,6 +41,7 @@ impl Compiler {
             constants: HashMap::default(),
             instructions: Self::prelude(),
             var_count: 0,
+            stack_offset: 0,
         }
     }
 
@@ -52,11 +54,13 @@ impl Compiler {
     fn prelude() -> Vec<Instruction> {
         vec![
             Label("print".to_owned()),
-            Mov(RDI, Immediate(1)),
-            Mov(RAX, Immediate(0x2000004)),
+            Mov(Register(RDI), Immediate(1)),
+            Mov(Register(RAX), Immediate(0x2000004)),
             Syscall,
             Ret,
             Label("_main".to_owned()),
+            Push(RBP),
+            Mov(Register(RBP), Register(RSP)),
         ]
     }
 
@@ -82,6 +86,7 @@ impl Compiler {
     }
 
     fn write_exit(file: &mut File) -> Result<(), Box<dyn Error>> {
+        file.write(format!("{}\n", Pop(RBP)).as_bytes())?;
         file.write("exit:\n".as_bytes())?;
         file.write("\tmov rax, 0x2000001\n".as_bytes())?;
         file.write("\tmov rdi, 0\n".as_bytes())?;
@@ -158,8 +163,20 @@ impl Compiler {
             Expression::If(_) => todo!(),
             Expression::BinaryOp(_) => todo!(),
             Expression::FnCall(fn_call) => self.compile_fn_call(fn_call),
-            Expression::Integer(_) => todo!(),
-            Expression::Ident(identifier) => todo!(),
+            Expression::Integer(integer) => {
+                let value = integer.value;
+                self.instructions.push(Mov(Register(RAX), Immediate(value)));
+            }
+            Expression::Ident(identifier) => {
+                let identifier = &identifier.value;
+                let variable = self
+                    .variables
+                    .get(identifier)
+                    .expect("Variable not defined");
+                let offset = variable.offset;
+                self.instructions
+                    .push(Mov(Register(RAX), Memory(format!("{}-{}", RBP, offset))));
+            }
             Expression::Str(_) => todo!(),
             Expression::FnDef(_) => todo!(),
             Expression::Block(_) => todo!(),
@@ -178,9 +195,54 @@ impl Compiler {
 
         match &declaration.value {
             Expression::Str(string) => {
-                self.add_string_constant(Some(name.to_owned()), &string.value.to_owned())
+                self.add_string_constant(Some(name.to_owned()), &string.value.to_owned());
             }
-            _ => unimplemented!(),
+            Expression::Integer(integer) => {
+                self.stack_offset += std::mem::size_of::<i64>();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+                self.instructions.push(Mov(
+                    Memory(format!("{}-{}", RBP, self.stack_offset)),
+                    Immediate(integer.value),
+                ));
+            }
+            Expression::If(_) => todo!(),
+            Expression::BinaryOp(binary_operation) => {
+                let lhs = &binary_operation.lhs;
+                let rhs = &binary_operation.rhs;
+                // Compile the seconds expression. (RTL evaluation)
+                // This will store the result of this expression in RAX
+                self.compile_expression(&rhs);
+                // Move value from RAX to RCX
+                self.instructions.push(Mov(Register(RCX), Register(RAX)));
+
+                self.compile_expression(&lhs);
+
+                match &binary_operation.verb {
+                    BinaryVerb::Plus => self.instructions.push(Add(Register(RAX), Register(RCX))),
+                    BinaryVerb::Minus => self.instructions.push(Sub(Register(RAX), Register(RCX))),
+                    BinaryVerb::Times => todo!(),
+                    BinaryVerb::GreaterThan => todo!(),
+                    BinaryVerb::LessThan => todo!(),
+                    BinaryVerb::Equal => todo!(),
+                };
+
+                self.stack_offset += std::mem::size_of::<i64>();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+                self.instructions.push(Mov(
+                    Memory(format!("{}-{}", RBP, self.stack_offset)),
+                    Register(RAX),
+                ));
+            }
+            Expression::FnCall(_) => todo!(),
+            Expression::Ident(_) => todo!(),
+            Expression::FnDef(_) => todo!(),
+            Expression::Block(_) => todo!(),
         };
     }
 
@@ -199,8 +261,8 @@ impl Compiler {
                     let constant = self.constants.get(value).expect("Variable not defined");
 
                     self.instructions.append(&mut vec![
-                        Lea(RSI, Identifier(constant.name.to_owned())),
-                        Mov(RDX, Immediate(constant.value.len() as i64)),
+                        Lea(Register(RSI), Identifier(constant.name.to_owned())),
+                        Mov(Register(RDX), Immediate(constant.value.len() as i64)),
                         Call("print".to_owned()),
                     ])
                 }
@@ -208,8 +270,8 @@ impl Compiler {
                     let value = string.value;
                     let var_name = self.add_string_constant(None, &value.to_owned());
                     self.instructions.append(&mut vec![
-                        Lea(RSI, Identifier(var_name)),
-                        Mov(RDX, Immediate(value.len() as i64)),
+                        Lea(Register(RSI), Identifier(var_name)),
+                        Mov(Register(RDX), Immediate(value.len() as i64)),
                         Call("print".to_owned()),
                     ])
                 }

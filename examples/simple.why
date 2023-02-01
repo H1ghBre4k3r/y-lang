@@ -2,4 +2,12 @@ let foo := "Kartoffelrofl!"
 
 print(foo)
 
+let bar := 3
+
+let lol := 7
+
+let yeay := bar + lol
+
+let rofl := yeay - 3
+
 print("hello, world!")
