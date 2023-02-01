@@ -1,3 +1,5 @@
-let foo := "Volvic-Trinker!"
+let foo := "Kartoffelrofl!"
 
 print(foo)
+
+print("hello, world!")

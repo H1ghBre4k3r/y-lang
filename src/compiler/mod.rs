@@ -12,6 +12,7 @@ use crate::{
 
 struct Variable {
     value: String,
+    offset: usize,
 }
 
 struct Constant {
@@ -28,6 +29,7 @@ pub struct Compiler {
     variables: VariableMap,
     constants: ConstantsMap,
     instructions: Vec<Instruction>,
+    var_count: usize,
 }
 
 impl Compiler {
@@ -37,7 +39,14 @@ impl Compiler {
             variables: HashMap::default(),
             constants: HashMap::default(),
             instructions: Self::prelude(),
+            var_count: 0,
         }
+    }
+
+    fn var(&mut self, name: &str) -> String {
+        let var_name = format!("{}_{}", name, self.var_count);
+        self.var_count += 1;
+        var_name
     }
 
     fn prelude() -> Vec<Instruction> {
@@ -169,16 +178,10 @@ impl Compiler {
 
         match &declaration.value {
             Expression::Str(string) => {
-                self.constants.insert(
-                    name.to_owned(),
-                    Constant {
-                        name: name.to_owned(),
-                        value: string.value.clone(),
-                    },
-                );
+                self.add_string_constant(Some(name.to_owned()), &string.value.to_owned())
             }
             _ => unimplemented!(),
-        }
+        };
     }
 
     fn compile_fn_call(&mut self, fn_call: &FnCall) {
@@ -193,19 +196,36 @@ impl Compiler {
                 Expression::Integer(_) => todo!(),
                 Expression::Ident(ident) => {
                     let value = &ident.value;
+                    let constant = self.constants.get(value).expect("Variable not defined");
+
                     self.instructions.append(&mut vec![
-                        Lea(RSI, Identifier(value.to_owned())),
-                        Mov(
-                            RDX,
-                            Immediate(self.constants.get(value).unwrap().value.len() as i64),
-                        ),
+                        Lea(RSI, Identifier(constant.name.to_owned())),
+                        Mov(RDX, Immediate(constant.value.len() as i64)),
                         Call("print".to_owned()),
                     ])
                 }
-                Expression::Str(_) => todo!(),
+                Expression::Str(string) => {
+                    let value = string.value;
+                    let var_name = self.add_string_constant(None, &value.to_owned());
+                    self.instructions.append(&mut vec![
+                        Lea(RSI, Identifier(var_name)),
+                        Mov(RDX, Immediate(value.len() as i64)),
+                        Call("print".to_owned()),
+                    ])
+                }
                 Expression::FnDef(_) => todo!(),
                 Expression::Block(_) => todo!(),
             };
         }
+    }
+
+    fn add_string_constant(&mut self, name: Option<String>, value: &str) -> String {
+        let var_name = name.unwrap_or_else(|| self.var("str_const"));
+        let con = Constant {
+            name: var_name.to_owned(),
+            value: value.to_owned(),
+        };
+        self.constants.insert(var_name.to_owned(), con);
+        var_name
     }
 }
