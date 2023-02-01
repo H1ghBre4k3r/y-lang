@@ -61,6 +61,7 @@ impl Compiler {
             Label("_main".to_owned()),
             Push(RBP),
             Mov(Register(RBP), Register(RSP)),
+            // TODO: add somethign like "sub rsp STACK_OFFSET"
         ]
     }
 
@@ -161,10 +162,35 @@ impl Compiler {
     fn compile_expression(&mut self, expression: &Expression) {
         match expression {
             Expression::If(_) => todo!(),
-            Expression::BinaryOp(_) => todo!(),
+            Expression::BinaryOp(binary_operation) => {
+                let lhs = &binary_operation.lhs;
+                let rhs = &binary_operation.rhs;
+                // Compile the seconds expression. (RTL evaluation)
+                // This will store the result of this expression in RAX
+                self.compile_expression(&rhs);
+                // Move value from RAX to RCX
+                self.instructions.push(Mov(Register(RCX), Register(RAX)));
+
+                self.compile_expression(&lhs);
+
+                self.instructions.push(Comment(format!(
+                    "{:?} {} {:?}",
+                    lhs, binary_operation.verb, rhs
+                )));
+
+                match &binary_operation.verb {
+                    BinaryVerb::Plus => self.instructions.push(Add(Register(RAX), Register(RCX))),
+                    BinaryVerb::Minus => self.instructions.push(Sub(Register(RAX), Register(RCX))),
+                    BinaryVerb::Times => todo!(),
+                    BinaryVerb::GreaterThan => todo!(),
+                    BinaryVerb::LessThan => todo!(),
+                    BinaryVerb::Equal => todo!(),
+                };
+            }
             Expression::FnCall(fn_call) => self.compile_fn_call(fn_call),
             Expression::Integer(integer) => {
                 let value = integer.value;
+                self.instructions.push(Comment(format!("LOAD {}", value)));
                 self.instructions.push(Mov(Register(RAX), Immediate(value)));
             }
             Expression::Boolean(_) => todo!(),
@@ -175,6 +201,8 @@ impl Compiler {
                     .get(identifier)
                     .expect("Variable not defined");
                 let offset = variable.offset;
+                self.instructions
+                    .push(Comment(format!("LOAD {}", identifier)));
                 self.instructions
                     .push(Mov(Register(RAX), Memory(format!("{}-{}", RBP, offset))));
             }
@@ -230,24 +258,7 @@ impl Compiler {
             }
             Expression::If(_) => todo!(),
             Expression::BinaryOp(binary_operation) => {
-                let lhs = &binary_operation.lhs;
-                let rhs = &binary_operation.rhs;
-                // Compile the seconds expression. (RTL evaluation)
-                // This will store the result of this expression in RAX
-                self.compile_expression(&rhs);
-                // Move value from RAX to RCX
-                self.instructions.push(Mov(Register(RCX), Register(RAX)));
-
-                self.compile_expression(&lhs);
-
-                match &binary_operation.verb {
-                    BinaryVerb::Plus => self.instructions.push(Add(Register(RAX), Register(RCX))),
-                    BinaryVerb::Minus => self.instructions.push(Sub(Register(RAX), Register(RCX))),
-                    BinaryVerb::Times => todo!(),
-                    BinaryVerb::GreaterThan => todo!(),
-                    BinaryVerb::LessThan => todo!(),
-                    BinaryVerb::Equal => todo!(),
-                };
+                self.compile_expression(&Expression::BinaryOp(binary_operation.to_owned()));
 
                 self.stack_offset += std::mem::size_of::<i64>();
                 let variable = Variable {
@@ -257,7 +268,7 @@ impl Compiler {
 
                 self.instructions.push(Comment(format!(
                     "{} = {:?} {} {:?}",
-                    name, lhs, binary_operation.verb, rhs
+                    name, binary_operation.lhs, binary_operation.verb, binary_operation.rhs
                 )));
 
                 self.instructions.push(Mov(
