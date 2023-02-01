@@ -35,7 +35,7 @@ expr = _{ binaryExpr | atomExpr | "(" ~ expr ~ ")" }
 binaryExpr = { atomExpr ~ binaryVerb ~ expr }
 
 atomExpr = _{
-    ifStmt | fnCall | integer | ident | string | fnDef | block
+    ifStmt | fnCall | integer | boolean | ident | string | fnDef | block 
 }
 
 string = ${ "\"" ~ inner ~ "\"" }
@@ -53,3 +53,5 @@ binaryVerb = {
 block = { "{" ~ (stmt | expr)* ~ "}"}
 
 integer = @{ ASCII_DIGIT+ }
+
+boolean = { "true" | "false" }

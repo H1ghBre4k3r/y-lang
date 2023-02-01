@@ -276,6 +276,7 @@ impl Typechecker {
             Expression::BinaryOp(binary_op) => Self::check_binary_operation(binary_op, scope),
             Expression::Integer(_) => Ok(VariableType::Int),
             Expression::Str(_) => Ok(VariableType::Str),
+            Expression::Boolean(_) => Ok(VariableType::Bool),
             Expression::Ident(ident) => Self::check_identifier(ident, scope),
             Expression::FnCall(fn_call) => Self::check_fn_call(fn_call, scope),
             Expression::FnDef(fn_def) => Self::check_fn_def(identifier, fn_def, scope),

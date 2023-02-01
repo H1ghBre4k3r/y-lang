@@ -87,7 +87,7 @@ impl Compiler {
 
     fn write_exit(file: &mut File) -> Result<(), Box<dyn Error>> {
         file.write(format!("{}\n", Pop(RBP)).as_bytes())?;
-        file.write("exit:\n".as_bytes())?;
+        file.write("\nexit:\n".as_bytes())?;
         file.write("\tmov rax, 0x2000001\n".as_bytes())?;
         file.write("\tmov rdi, 0\n".as_bytes())?;
         file.write("\tsyscall\n".as_bytes())?;
@@ -167,6 +167,7 @@ impl Compiler {
                 let value = integer.value;
                 self.instructions.push(Mov(Register(RAX), Immediate(value)));
             }
+            Expression::Boolean(_) => todo!(),
             Expression::Ident(identifier) => {
                 let identifier = &identifier.value;
                 let variable = self
@@ -203,9 +204,28 @@ impl Compiler {
                     offset: self.stack_offset,
                 };
                 self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{} = {}", name, integer.value)));
+
                 self.instructions.push(Mov(
                     Memory(format!("{}-{}", RBP, self.stack_offset)),
                     Immediate(integer.value),
+                ));
+            }
+            Expression::Boolean(boolean) => {
+                self.stack_offset += std::mem::size_of::<bool>();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{} = {}", name, boolean.value)));
+
+                self.instructions.push(Mov(
+                    Memory(format!("{}-{}", RBP, self.stack_offset)),
+                    Immediate(if boolean.value { 1 } else { 0 }),
                 ));
             }
             Expression::If(_) => todo!(),
@@ -234,6 +254,12 @@ impl Compiler {
                     offset: self.stack_offset,
                 };
                 self.variables.insert(name.to_owned(), variable);
+
+                self.instructions.push(Comment(format!(
+                    "{} = {:?} {} {:?}",
+                    name, lhs, binary_operation.verb, rhs
+                )));
+
                 self.instructions.push(Mov(
                     Memory(format!("{}-{}", RBP, self.stack_offset)),
                     Register(RAX),
@@ -256,15 +282,21 @@ impl Compiler {
                 Expression::BinaryOp(_) => todo!(),
                 Expression::FnCall(_) => todo!(),
                 Expression::Integer(_) => todo!(),
+                Expression::Boolean(_) => todo!(),
                 Expression::Ident(ident) => {
                     let value = &ident.value;
-                    let constant = self.constants.get(value).expect("Variable not defined");
+                    if let Some(constant) = self.constants.get(value) {
+                        self.instructions.append(&mut vec![
+                            Lea(Register(RSI), Identifier(constant.name.to_owned())),
+                            Mov(Register(RDX), Immediate(constant.value.len() as i64)),
+                            Call("print".to_owned()),
+                        ]);
+                        return;
+                    };
 
-                    self.instructions.append(&mut vec![
-                        Lea(Register(RSI), Identifier(constant.name.to_owned())),
-                        Mov(Register(RDX), Immediate(constant.value.len() as i64)),
-                        Call("print".to_owned()),
-                    ])
+                    if let Some(variable) = self.variables.get(value) {
+                        // TODO: this is another variable (e.g., integer or boolean)
+                    }
                 }
                 Expression::Str(string) => {
                     let value = string.value;

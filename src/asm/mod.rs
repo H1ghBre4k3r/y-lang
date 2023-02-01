@@ -25,6 +25,7 @@ impl Display for InstructionOperand {
 
 #[derive(Debug)]
 pub enum Instruction {
+    Comment(String),
     Label(String),
     Lea(InstructionOperand, InstructionOperand),
     Mov(InstructionOperand, InstructionOperand),
@@ -40,6 +41,7 @@ pub enum Instruction {
 impl Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let value = match self {
+            Instruction::Comment(comment) => format!(" ; {}", comment),
             Instruction::Label(label) => format!("\n{}:", label),
             Instruction::Lea(target, source) => format!("\tlea \t{}, \t{}", target, source),
             Instruction::Mov(target, source) => format!("\tmov \t{}, \t{}", target, source),

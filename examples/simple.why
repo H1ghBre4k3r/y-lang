@@ -10,4 +10,6 @@ let yeay := bar + lol
 
 let rofl := yeay - 3
 
+let a := true
+
 print("hello, world!")
