@@ -3,10 +3,11 @@ use std::{collections::HashMap, error::Error, fs::File, io::prelude::*, process:
 use log::info;
 use Instruction::*;
 use InstructionOperand::*;
+use InstructionSize::*;
 use Reg::*;
 
 use crate::{
-    asm::{Instruction, InstructionOperand, Reg},
+    asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{Ast, BinaryVerb, Declaration, Expression, FnCall, Intrinsic, Statement},
 };
 
@@ -39,7 +40,7 @@ impl Compiler {
             ast,
             variables: HashMap::default(),
             constants: HashMap::default(),
-            instructions: Self::prelude(),
+            instructions: vec![],
             var_count: 0,
             stack_offset: 0,
         }
@@ -53,14 +54,20 @@ impl Compiler {
 
     fn prelude() -> Vec<Instruction> {
         vec![
+            Label("str_len".to_owned()),
+            Xor(Register(RAX), Register(RAX)),
+            Label(".str_len_loop".to_owned()),
+            Cmp(Memory(Byte, format!("{}+{}", RDI, RAX)), Immediate(0)),
+            Je(".str_len_end".to_owned()),
+            Inc(RAX),
+            Jmp(".str_len_loop".to_owned()),
+            Label(".str_len_end".to_owned()),
+            Ret,
             Label("print".to_owned()),
             Mov(Register(RDI), Immediate(1)),
             Mov(Register(RAX), Immediate(0x2000004)),
             Syscall,
             Ret,
-            Label("_main".to_owned()),
-            Push(RBP),
-            Mov(Register(RBP), Register(RSP)),
             // TODO: add somethign like "sub rsp STACK_OFFSET"
         ]
     }
@@ -79,14 +86,45 @@ impl Compiler {
         file.write(format!("\nsection .text\n").as_bytes())?;
         file.write(format!("\tglobal _main\n\n").as_bytes())?;
 
-        for instruction in &self.instructions {
+        let prelude = Self::prelude();
+        for instruction in &prelude {
+            file.write(format!("{}\n", instruction).as_bytes())?;
+        }
+
+        let mut instructions = vec![
+            Label("_main".to_owned()),
+            Comment("Save old stack pointer".to_owned()),
+            Push(RBP),
+            Mov(Register(RBP), Register(RSP)),
+            Comment(
+                "Adjust stack pointer by the amount of space allocated in this stack frame"
+                    .to_owned(),
+            ),
+            Sub(
+                Register(RSP),
+                Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
+            ),
+        ];
+        instructions.append(&mut self.instructions.clone());
+
+        for instruction in &instructions {
             file.write(format!("{}\n", instruction).as_bytes())?;
         }
 
         Ok(())
     }
 
-    fn write_exit(file: &mut File) -> Result<(), Box<dyn Error>> {
+    fn write_exit(&self, file: &mut File) -> Result<(), Box<dyn Error>> {
+        file.write(
+            format!(
+                "{}\n",
+                Add(
+                    Register(RSP),
+                    Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
+                )
+            )
+            .as_bytes(),
+        )?;
         file.write(format!("{}\n", Pop(RBP)).as_bytes())?;
         file.write("\nexit:\n".as_bytes())?;
         file.write("\tmov rax, 0x2000001\n".as_bytes())?;
@@ -104,7 +142,7 @@ impl Compiler {
         self.write_data_section(&mut file)?;
         self.write_text_section(&mut file)?;
 
-        Self::write_exit(&mut file)?;
+        self.write_exit(&mut file)?;
         Ok(())
     }
 
@@ -203,8 +241,10 @@ impl Compiler {
                 let offset = variable.offset;
                 self.instructions
                     .push(Comment(format!("LOAD {}", identifier)));
-                self.instructions
-                    .push(Mov(Register(RAX), Memory(format!("{}-{}", RBP, offset))));
+                self.instructions.push(Mov(
+                    Register(RAX),
+                    Memory(Qword, format!("{}-{}", RBP, offset)),
+                ));
             }
             Expression::Str(_) => todo!(),
             Expression::FnDef(_) => todo!(),
@@ -237,7 +277,7 @@ impl Compiler {
                     .push(Comment(format!("{} = {}", name, integer.value)));
 
                 self.instructions.push(Mov(
-                    Memory(format!("{}-{}", RBP, self.stack_offset)),
+                    Memory(Qword, format!("{}-{}", RBP, self.stack_offset)),
                     Immediate(integer.value),
                 ));
             }
@@ -252,7 +292,7 @@ impl Compiler {
                     .push(Comment(format!("{} = {}", name, boolean.value)));
 
                 self.instructions.push(Mov(
-                    Memory(format!("{}-{}", RBP, self.stack_offset)),
+                    Memory(Qword, format!("{}-{}", RBP, self.stack_offset)),
                     Immediate(if boolean.value { 1 } else { 0 }),
                 ));
             }
@@ -272,7 +312,7 @@ impl Compiler {
                 )));
 
                 self.instructions.push(Mov(
-                    Memory(format!("{}-{}", RBP, self.stack_offset)),
+                    Memory(Qword, format!("{}-{}", RBP, self.stack_offset)),
                     Register(RAX),
                 ));
             }
@@ -299,7 +339,9 @@ impl Compiler {
                     if let Some(constant) = self.constants.get(value) {
                         self.instructions.append(&mut vec![
                             Lea(Register(RSI), Identifier(constant.name.to_owned())),
-                            Mov(Register(RDX), Immediate(constant.value.len() as i64)),
+                            Mov(Register(RDI), Register(RSI)),
+                            Call("str_len".to_owned()),
+                            Mov(Register(RDX), Register(RAX)),
                             Call("print".to_owned()),
                         ]);
                         return;
@@ -314,7 +356,9 @@ impl Compiler {
                     let var_name = self.add_string_constant(None, &value.to_owned());
                     self.instructions.append(&mut vec![
                         Lea(Register(RSI), Identifier(var_name)),
-                        Mov(Register(RDX), Immediate(value.len() as i64)),
+                        Mov(Register(RDI), Register(RSI)),
+                        Call("str_len".to_owned()),
+                        Mov(Register(RDX), Register(RAX)),
                         Call("print".to_owned()),
                     ])
                 }

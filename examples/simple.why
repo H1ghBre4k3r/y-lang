@@ -1,4 +1,4 @@
-let foo := "Kartoffelrofl!"
+let foo := "I like trains! "
 
 print(foo)
 
@@ -14,4 +14,4 @@ let luuul := 3 + yeay
 
 let a := true
 
-print("hello, world!")
+print("Whoop whoop!")
