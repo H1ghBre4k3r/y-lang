@@ -347,7 +347,7 @@ impl Compiler {
                         return;
                     };
 
-                    if let Some(variable) = self.variables.get(value) {
+                    if let Some(_) = self.variables.get(value) {
                         // TODO: this is another variable (e.g., integer or boolean)
                     }
                 }

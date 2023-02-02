@@ -1,6 +1,8 @@
 extern crate pest;
 extern crate y_lang;
 
+use std::error::Error;
+
 use clap::Parser as CParser;
 use log::error;
 use y_lang::{
@@ -26,7 +28,7 @@ struct Cli {
     output: Option<String>,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     simple_logger::init_with_level(log::Level::Info).unwrap();
     let args = Cli::parse();
 
@@ -58,6 +60,8 @@ fn main() {
     if args.compile {
         let mut compiler = Compiler::from_ast(ast.clone());
 
-        compiler.compile(args.output.unwrap_or("a".to_owned()));
+        compiler.compile(args.output.unwrap_or("a".to_owned()))?;
     }
+
+    Ok(())
 }
