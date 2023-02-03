@@ -205,10 +205,14 @@ impl Compiler {
                 // Compile the seconds expression. (RTL evaluation)
                 // This will store the result of this expression in RAX
                 self.compile_expression(rhs);
-                // Move value from RAX to RCX
-                self.instructions.push(Mov(Register(Rcx), Register(Rax)));
+                // Save value on stack
+                self.instructions.push(Push(Rax));
 
+                // Evaluate second expression
                 self.compile_expression(lhs);
+
+                // Get value from first expression
+                self.instructions.push(Pop(Rcx));
 
                 self.instructions.push(Comment(format!(
                     "{:?} {} {:?}",
@@ -219,9 +223,24 @@ impl Compiler {
                     BinaryVerb::Plus => self.instructions.push(Add(Register(Rax), Register(Rcx))),
                     BinaryVerb::Minus => self.instructions.push(Sub(Register(Rax), Register(Rcx))),
                     BinaryVerb::Times => todo!(),
-                    BinaryVerb::GreaterThan => todo!(),
-                    BinaryVerb::LessThan => todo!(),
-                    BinaryVerb::Equal => todo!(),
+                    BinaryVerb::GreaterThan => {
+                        self.instructions.push(Cmp(Register(Rax), Register(Rcx)));
+                        self.instructions.push(Setg(Register(Al)));
+                        // self.instructions.push(Xor(Register(Rax), Register(Rax)));
+                        self.instructions.push(Movzx(Register(Eax), Register(Al)));
+                    }
+                    BinaryVerb::LessThan => {
+                        self.instructions.push(Cmp(Register(Rax), Register(Rcx)));
+                        self.instructions.push(Setl(Register(Al)));
+                        // self.instructions.push(Xor(Register(Rax), Register(Rax)));
+                        self.instructions.push(Movzx(Register(Eax), Register(Al)));
+                    }
+                    BinaryVerb::Equal => {
+                        self.instructions.push(Cmp(Register(Rax), Register(Rcx)));
+                        self.instructions.push(Sete(Register(Al)));
+                        // self.instructions.push(Xor(Register(Rax), Register(Rax)));
+                        self.instructions.push(Movzx(Register(Eax), Register(Al)));
+                    }
                 };
             }
             Expression::FnCall(fn_call) => self.compile_fn_call(fn_call),
@@ -340,7 +359,7 @@ impl Compiler {
                             Call("str_len".to_owned()),
                             Mov(Register(Rdx), Register(Rax)),
                             Mov(Register(Rdi), Identifier("print".to_owned())),
-                            Call("".to_owned()),
+                            Call("rdi".to_owned()),
                         ]);
                         return;
                     };

@@ -358,11 +358,11 @@ impl Typechecker {
         let ident = &fn_call.ident.value;
 
         let Some(fn_def) = scope.find(ident) else {
-        return Err(TypeError {
-            message: format!("Call to undefined function '{ident}'"),
-            position: fn_call.position,
-        });
-    };
+            return Err(TypeError {
+                message: format!("Call to undefined function '{ident}'"),
+                position: fn_call.position,
+            });
+        };
 
         let VariableType::Func { params, return_value, .. } = fn_def else {
         return Err(TypeError {

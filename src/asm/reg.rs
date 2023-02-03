@@ -8,6 +8,9 @@ pub enum Reg {
     Rsi,
     /// Return value
     Rax,
+    Eax,
+    Ax,
+    Al,
 
     /// Preserved. Sometimes used to store the old value of the stack pointer
     Rbp,
@@ -24,7 +27,12 @@ impl Display for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Reg::Rdi => "rdi",
+
             Reg::Rax => "rax",
+            Reg::Eax => "eax",
+            Reg::Ax => "ax",
+            Reg::Al => "al",
+
             Reg::Rsi => "rsi",
             Reg::Rdx => "rdx",
             Reg::Rbp => "rbp",
