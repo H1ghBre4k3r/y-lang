@@ -23,3 +23,5 @@ if luuul < 5 {
 } else { 
     print("Yeeaayy")
 }
+
+let pizza := if luuul < 5 { 3 } else { lol }

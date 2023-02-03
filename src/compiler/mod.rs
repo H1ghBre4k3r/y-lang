@@ -346,7 +346,25 @@ impl Compiler {
                     Immediate(if boolean.value { 1 } else { 0 }),
                 ));
             }
-            Expression::If(_) => todo!(),
+            Expression::If(if_statement) => {
+                self.compile_expression(&Expression::If(if_statement.to_owned()));
+
+                self.stack_offset += std::mem::size_of::<i64>();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions.push(Comment(format!(
+                    "if {:?} then {:?} else {:?} ",
+                    if_statement.condition, if_statement.if_block, if_statement.else_block
+                )));
+
+                self.instructions.push(Mov(
+                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                    Register(Rax),
+                ));
+            }
             Expression::BinaryOp(binary_operation) => {
                 self.compile_expression(&Expression::BinaryOp(binary_operation.to_owned()));
 
