@@ -55,17 +55,17 @@ impl Compiler {
     fn prelude() -> Vec<Instruction> {
         vec![
             Label("str_len".to_owned()),
-            Xor(Register(RAX), Register(RAX)),
+            Xor(Register(Rax), Register(Rax)),
             Label(".str_len_loop".to_owned()),
-            Cmp(Memory(Byte, format!("{}+{}", RDI, RAX)), Immediate(0)),
+            Cmp(Memory(Byte, format!("{Rdi}+{Rax}")), Immediate(0)),
             Je(".str_len_end".to_owned()),
-            Inc(RAX),
+            Inc(Rax),
             Jmp(".str_len_loop".to_owned()),
             Label(".str_len_end".to_owned()),
             Ret,
             Label("print".to_owned()),
-            Mov(Register(RDI), Immediate(1)),
-            Mov(Register(RAX), Immediate(0x2000004)),
+            Mov(Register(Rdi), Immediate(1)),
+            Mov(Register(Rax), Immediate(0x2000004)),
             Syscall,
             Ret,
             // TODO: add somethign like "sub rsp STACK_OFFSET"
@@ -73,63 +73,62 @@ impl Compiler {
     }
 
     fn write_data_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
-        file.write(format!("section .data\n").as_bytes())?;
-
+        file.write_all("section .data\n".as_bytes())?;
         for k in &self.constants {
-            file.write(format!("\t{} db \"{}\", 0\n", k.0, k.1.value).as_bytes())?;
+            file.write_all(format!("\t{} db \"{}\", 0\n", k.0, k.1.value).as_bytes())?;
         }
 
         Ok(())
     }
 
     fn write_text_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
-        file.write(format!("\nsection .text\n").as_bytes())?;
-        file.write(format!("\tglobal _main\n\n").as_bytes())?;
+        file.write_all("\nsection .text\n".as_bytes())?;
+        file.write_all("\tglobal _main\n\n".as_bytes())?;
 
         let prelude = Self::prelude();
         for instruction in &prelude {
-            file.write(format!("{}\n", instruction).as_bytes())?;
+            file.write_all(format!("{instruction}\n").as_bytes())?;
         }
 
         let mut instructions = vec![
             Label("_main".to_owned()),
             Comment("Save old stack pointer".to_owned()),
-            Push(RBP),
-            Mov(Register(RBP), Register(RSP)),
+            Push(Rbp),
+            Mov(Register(Rbp), Register(Rsp)),
             Comment(
                 "Adjust stack pointer by the amount of space allocated in this stack frame"
                     .to_owned(),
             ),
             Sub(
-                Register(RSP),
+                Register(Rsp),
                 Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
             ),
         ];
         instructions.append(&mut self.instructions.clone());
 
         for instruction in &instructions {
-            file.write(format!("{}\n", instruction).as_bytes())?;
+            file.write_all(format!("{instruction}\n").as_bytes())?;
         }
 
         Ok(())
     }
 
     fn write_exit(&self, file: &mut File) -> Result<(), Box<dyn Error>> {
-        file.write(
+        file.write_all(
             format!(
                 "{}\n",
                 Add(
-                    Register(RSP),
+                    Register(Rsp),
                     Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
                 )
             )
             .as_bytes(),
         )?;
-        file.write(format!("{}\n", Pop(RBP)).as_bytes())?;
-        file.write("\nexit:\n".as_bytes())?;
-        file.write("\tmov rax, 0x2000001\n".as_bytes())?;
-        file.write("\tmov rdi, 0\n".as_bytes())?;
-        file.write("\tsyscall\n".as_bytes())?;
+        file.write_all(format!("{}\n", Pop(Rbp)).as_bytes())?;
+        file.write_all("\nexit:\n".as_bytes())?;
+        file.write_all("\tmov rax, 0x2000001\n".as_bytes())?;
+        file.write_all("\tmov rdi, 0\n".as_bytes())?;
+        file.write_all("\tsyscall\n".as_bytes())?;
 
         Ok(())
     }
@@ -137,7 +136,7 @@ impl Compiler {
     fn write_code(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
         let mut file = File::create(format!("{}.asm", target.to_string()))?;
 
-        file.write(format!("default rel\n\n").as_bytes())?;
+        file.write_all("default rel\n\n".as_bytes())?;
 
         self.write_data_section(&mut file)?;
         self.write_text_section(&mut file)?;
@@ -168,7 +167,7 @@ impl Compiler {
                 "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib",
                 "-lSystem",
                 "-o",
-                &format!("{}", target.to_string()),
+                &target.to_string(),
                 &format!("{}.o", target.to_string()),
             ])
             .output()?;
@@ -180,7 +179,7 @@ impl Compiler {
         let nodes = self.ast.nodes();
 
         for node in &nodes {
-            self.compile_statement(&node);
+            self.compile_statement(node);
         }
 
         self.write_code(&target)?;
@@ -205,11 +204,11 @@ impl Compiler {
                 let rhs = &binary_operation.rhs;
                 // Compile the seconds expression. (RTL evaluation)
                 // This will store the result of this expression in RAX
-                self.compile_expression(&rhs);
+                self.compile_expression(rhs);
                 // Move value from RAX to RCX
-                self.instructions.push(Mov(Register(RCX), Register(RAX)));
+                self.instructions.push(Mov(Register(Rcx), Register(Rax)));
 
-                self.compile_expression(&lhs);
+                self.compile_expression(lhs);
 
                 self.instructions.push(Comment(format!(
                     "{:?} {} {:?}",
@@ -217,8 +216,8 @@ impl Compiler {
                 )));
 
                 match &binary_operation.verb {
-                    BinaryVerb::Plus => self.instructions.push(Add(Register(RAX), Register(RCX))),
-                    BinaryVerb::Minus => self.instructions.push(Sub(Register(RAX), Register(RCX))),
+                    BinaryVerb::Plus => self.instructions.push(Add(Register(Rax), Register(Rcx))),
+                    BinaryVerb::Minus => self.instructions.push(Sub(Register(Rax), Register(Rcx))),
                     BinaryVerb::Times => todo!(),
                     BinaryVerb::GreaterThan => todo!(),
                     BinaryVerb::LessThan => todo!(),
@@ -228,8 +227,8 @@ impl Compiler {
             Expression::FnCall(fn_call) => self.compile_fn_call(fn_call),
             Expression::Integer(integer) => {
                 let value = integer.value;
-                self.instructions.push(Comment(format!("LOAD {}", value)));
-                self.instructions.push(Mov(Register(RAX), Immediate(value)));
+                self.instructions.push(Comment(format!("LOAD {value}")));
+                self.instructions.push(Mov(Register(Rax), Immediate(value)));
             }
             Expression::Boolean(_) => todo!(),
             Expression::Ident(identifier) => {
@@ -240,11 +239,9 @@ impl Compiler {
                     .expect("Variable not defined");
                 let offset = variable.offset;
                 self.instructions
-                    .push(Comment(format!("LOAD {}", identifier)));
-                self.instructions.push(Mov(
-                    Register(RAX),
-                    Memory(Qword, format!("{}-{}", RBP, offset)),
-                ));
+                    .push(Comment(format!("LOAD {identifier}")));
+                self.instructions
+                    .push(Mov(Register(Rax), Memory(Qword, format!("{Rbp}-{offset}"))));
             }
             Expression::Str(_) => todo!(),
             Expression::FnDef(_) => todo!(),
@@ -277,7 +274,7 @@ impl Compiler {
                     .push(Comment(format!("{} = {}", name, integer.value)));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", RBP, self.stack_offset)),
+                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
                     Immediate(integer.value),
                 ));
             }
@@ -292,7 +289,7 @@ impl Compiler {
                     .push(Comment(format!("{} = {}", name, boolean.value)));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", RBP, self.stack_offset)),
+                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
                     Immediate(if boolean.value { 1 } else { 0 }),
                 ));
             }
@@ -312,8 +309,8 @@ impl Compiler {
                 )));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", RBP, self.stack_offset)),
-                    Register(RAX),
+                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                    Register(Rax),
                 ));
             }
             Expression::FnCall(_) => todo!(),
@@ -338,27 +335,29 @@ impl Compiler {
                     let value = &ident.value;
                     if let Some(constant) = self.constants.get(value) {
                         self.instructions.append(&mut vec![
-                            Lea(Register(RSI), Identifier(constant.name.to_owned())),
-                            Mov(Register(RDI), Register(RSI)),
+                            Lea(Register(Rsi), Identifier(constant.name.to_owned())),
+                            Mov(Register(Rdi), Register(Rsi)),
                             Call("str_len".to_owned()),
-                            Mov(Register(RDX), Register(RAX)),
-                            Call("print".to_owned()),
+                            Mov(Register(Rdx), Register(Rax)),
+                            Mov(Register(Rdi), Identifier("print".to_owned())),
+                            Call("".to_owned()),
                         ]);
                         return;
                     };
 
+                    #[allow(clippy::redundant_pattern_matching)]
                     if let Some(_) = self.variables.get(value) {
                         // TODO: this is another variable (e.g., integer or boolean)
                     }
                 }
                 Expression::Str(string) => {
                     let value = string.value;
-                    let var_name = self.add_string_constant(None, &value.to_owned());
+                    let var_name = self.add_string_constant(None, &value);
                     self.instructions.append(&mut vec![
-                        Lea(Register(RSI), Identifier(var_name)),
-                        Mov(Register(RDI), Register(RSI)),
+                        Lea(Register(Rsi), Identifier(var_name)),
+                        Mov(Register(Rdi), Register(Rsi)),
                         Call("str_len".to_owned()),
-                        Mov(Register(RDX), Register(RAX)),
+                        Mov(Register(Rdx), Register(Rax)),
                         Call("print".to_owned()),
                     ])
                 }

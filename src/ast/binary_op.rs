@@ -18,12 +18,14 @@ impl BinaryOp {
 
         let lhs = Expression::from_pair(inner.next().unwrap());
 
-        let verb = inner.next().expect(&format!(
-            "Expected verb in binary expression '{}' at {}:{}",
-            pair.as_str(),
-            pair.line_col().0,
-            pair.line_col().1,
-        ));
+        let verb = inner.next().unwrap_or_else(|| {
+            panic!(
+                "Expected verb in binary expression '{}' at {}:{}",
+                pair.as_str(),
+                pair.line_col().0,
+                pair.line_col().1
+            )
+        });
 
         let verb = verb
             .as_str()

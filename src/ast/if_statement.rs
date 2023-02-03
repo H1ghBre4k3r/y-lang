@@ -19,7 +19,7 @@ impl If {
         let mut inner = pair.into_inner();
         let condition = Expression::from_pair(inner.next().unwrap());
         let if_block = inner.next().unwrap();
-        let else_block = inner.next().map(|block| Block::from_pair(block));
+        let else_block = inner.next().map(Block::from_pair);
 
         If {
             condition: Box::new(condition),

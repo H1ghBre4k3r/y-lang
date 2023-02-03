@@ -24,10 +24,7 @@ impl FromStr for BinaryVerb {
             "+" => Ok(BinaryVerb::Plus),
             "-" => Ok(BinaryVerb::Minus),
             "*" => Ok(BinaryVerb::Times),
-            _ => Err(UndefinedVerbError(format!(
-                "Unexpected binary verb '{}'",
-                s
-            ))),
+            _ => Err(UndefinedVerbError(format!("Unexpected binary verb '{s}'"))),
         }
     }
 }

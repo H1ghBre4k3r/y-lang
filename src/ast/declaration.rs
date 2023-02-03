@@ -13,19 +13,23 @@ impl Declaration {
     pub fn from_pair(pair: Pair<Rule>) -> Declaration {
         let mut inner = pair.clone().into_inner();
 
-        let ident = Ident::from_pair(inner.next().expect(&format!(
-            "Expected lvalue in declaration '{}' at {}:{}",
-            pair.as_str(),
-            pair.line_col().0,
-            pair.line_col().1
-        )));
+        let ident = Ident::from_pair(inner.next().unwrap_or_else(|| {
+            panic!(
+                "Expected lvalue in declaration '{}' at {}:{}",
+                pair.as_str(),
+                pair.line_col().0,
+                pair.line_col().1
+            )
+        }));
 
-        let value = inner.next().expect(&format!(
-            "Expected rvalue in declaration '{}' at {}:{}",
-            pair.as_str(),
-            pair.line_col().0,
-            pair.line_col().1
-        ));
+        let value = inner.next().unwrap_or_else(|| {
+            panic!(
+                "Expected rvalue in declaration '{}' at {}:{}",
+                pair.as_str(),
+                pair.line_col().0,
+                pair.line_col().1
+            )
+        });
         let value = Expression::from_pair(value);
 
         Declaration {

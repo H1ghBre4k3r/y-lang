@@ -37,7 +37,7 @@ impl FromStr for VariableType {
             "bool" => Ok(Self::Bool),
             "str" => Ok(Self::Str),
             "int" => Ok(Self::Int),
-            _ => Err(VariableParseError(format!("Invalid type '{}'", s))),
+            _ => Err(VariableParseError(format!("Invalid type '{s}'"))),
         }
     }
 }
@@ -77,7 +77,7 @@ impl Scope {
             }
         }
 
-        return None;
+        None
     }
 
     /// Check, if a variable with a given name is present.
@@ -126,8 +126,7 @@ impl Scope {
                 if *old_type != value {
                     return Err(TypeError {
                         message: format!(
-                            "Could not assign variable '{}' with type '{}' a value of type '{}'",
-                            name, old_type, value
+                            "Could not assign variable '{name}' with type '{old_type}' a value of type '{value}'"
                         ),
                         position: position.to_owned(),
                     });
@@ -185,8 +184,8 @@ impl Typechecker {
 
     fn check_statement(statement: &Statement, scope: &mut Scope) -> TypecheckResult {
         Ok(match &statement {
-            Statement::Expression(expression) => Self::check_expression(None, &expression, scope)?,
-            Statement::Intrinsic(intrinsic) => Self::check_intrinsic(&intrinsic, scope)?,
+            Statement::Expression(expression) => Self::check_expression(None, expression, scope)?,
+            Statement::Intrinsic(intrinsic) => Self::check_intrinsic(intrinsic, scope)?,
         })
     }
 
@@ -202,7 +201,7 @@ impl Typechecker {
 
         if condition_type != VariableType::Bool {
             return Err(TypeError {
-                message: format!("Invalid tye of condition '{:?}'", condition_type),
+                message: format!("Invalid tye of condition '{condition_type:?}'"),
                 position: if_statement.condition.position(),
             });
         }
@@ -215,8 +214,7 @@ impl Typechecker {
             if if_return_type != else_return_type {
                 return Err(TypeError {
                     message: format!(
-                        "Return type mismatch of if-else. Got '{}' and '{}'",
-                        if_return_type, else_return_type
+                        "Return type mismatch of if-else. Got '{if_return_type}' and '{else_return_type}'"
                     ),
                     position: if_statement.position,
                 });
@@ -286,7 +284,7 @@ impl Typechecker {
 
     fn check_identifier(identifier: &Ident, scope: &mut Scope) -> TypecheckResult {
         match scope.find(&identifier.value) {
-            Some(identifier_type) => Ok(identifier_type.clone()),
+            Some(identifier_type) => Ok(identifier_type),
             None => {
                 return Err(TypeError {
                     message: format!("Undefined identifier '{}'", identifier.value),
@@ -337,8 +335,7 @@ impl Typechecker {
         if return_value != type_annotation {
             return Err(TypeError {
                 message: format!(
-                    "Expected return type of '{}' but got '{}'",
-                    type_annotation, return_value
+                    "Expected return type of '{type_annotation}' but got '{return_value}'"
                 ),
                 position: fn_def.position,
             });
@@ -348,11 +345,11 @@ impl Typechecker {
 
         scope.pop();
 
-        return Ok(VariableType::Func {
+        Ok(VariableType::Func {
             params,
             return_value: Box::new(return_value),
             scope: function_scope,
-        });
+        })
     }
 
     fn check_fn_call(fn_call: &FnCall, scope: &mut Scope) -> TypecheckResult {
@@ -362,14 +359,14 @@ impl Typechecker {
 
         let Some(fn_def) = scope.find(ident) else {
         return Err(TypeError {
-            message: format!("Call to undefined function '{}'", ident),
+            message: format!("Call to undefined function '{ident}'"),
             position: fn_call.position,
         });
     };
 
         let VariableType::Func { params, return_value, .. } = fn_def else {
         return Err(TypeError {
-            message: format!("Trying to call an invalid function '{}'", ident),
+            message: format!("Trying to call an invalid function '{ident}'"),
             position: fn_call.position,
         });
     };
@@ -390,8 +387,7 @@ impl Typechecker {
             if param != &call_param_type && param != &VariableType::Any {
                 return Err(TypeError {
                     message: format!(
-                        "Invalid type of parameter! Expected '{}' but got '{}'",
-                        param, call_param_type
+                        "Invalid type of parameter! Expected '{param}' but got '{call_param_type}'"
                     ),
                     position: fn_call.params[i].position(),
                 });
@@ -417,13 +413,12 @@ impl Typechecker {
                 if l_type != r_type {
                     return Err(TypeError {
                         message: format!(
-                        "Left and right value of binary operation do not match! ('{}' and '{}')",
-                        l_type, r_type
+                        "Left and right value of binary operation do not match! ('{l_type}' and '{r_type}')"
                     ),
                         position,
                     });
                 }
-                return Ok(VariableType::Bool);
+                Ok(VariableType::Bool)
             }
             BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
                 if l_type != VariableType::Int || r_type != VariableType::Int {
@@ -435,28 +430,26 @@ impl Typechecker {
                         position,
                     });
                 }
-                return Ok(VariableType::Bool);
+                Ok(VariableType::Bool)
             }
             BinaryVerb::Plus | BinaryVerb::Minus | BinaryVerb::Times => {
                 if l_type != VariableType::Int {
                     return Err(TypeError {
                         message: format!(
-                        "Left value of numeric binary operation has to be of type Int. Found '{}'",
-                        l_type
+                        "Left value of numeric binary operation has to be of type Int. Found '{l_type}'"
                     ),
                         position: lhs.position(),
                     });
                 } else if r_type != VariableType::Int {
                     return Err(TypeError {
                         message: format!(
-                        "Right value of numeric binary operation has to be of type Int. Found '{}'",
-                        r_type
+                        "Right value of numeric binary operation has to be of type Int. Found '{r_type}'"
                     ),
                         position: rhs.position(),
                     });
                 }
 
-                return Ok(VariableType::Int);
+                Ok(VariableType::Int)
             }
         }
     }

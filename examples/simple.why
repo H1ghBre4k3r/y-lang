@@ -15,3 +15,9 @@ let luuul := 3 + yeay
 let a := true
 
 print("Whoop whoop!")
+
+if luuul > 5 {
+    print("Yesss!")
+} else { 
+    print("Noooooo")
+}

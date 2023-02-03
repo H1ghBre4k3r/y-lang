@@ -3,33 +3,33 @@ use std::fmt::Display;
 #[derive(Debug, Clone)]
 pub enum Reg {
     /// 1. function argument
-    RDI,
+    Rdi,
     /// 2. function argument
-    RSI,
+    Rsi,
     /// Return value
-    RAX,
+    Rax,
 
     /// Preserved. Sometimes used to store the old value of the stack pointer
-    RBP,
+    Rbp,
     /// Stack pointer
-    RSP,
+    Rsp,
 
     /// Scratch register
-    RCX,
+    Rcx,
     /// Scratch register
-    RDX,
+    Rdx,
 }
 
 impl Display for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            Reg::RDI => "rdi",
-            Reg::RAX => "rax",
-            Reg::RSI => "rsi",
-            Reg::RDX => "rdx",
-            Reg::RBP => "rbp",
-            Reg::RSP => "rsp",
-            Reg::RCX => "rcx",
+            Reg::Rdi => "rdi",
+            Reg::Rax => "rax",
+            Reg::Rsi => "rsi",
+            Reg::Rdx => "rdx",
+            Reg::Rbp => "rbp",
+            Reg::Rsp => "rsp",
+            Reg::Rcx => "rcx",
         })
     }
 }

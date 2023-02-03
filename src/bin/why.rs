@@ -32,10 +32,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     simple_logger::init_with_level(log::Level::Info).unwrap();
     let args = Cli::parse();
 
-    let file_content = std::fs::read_to_string(&args.file).expect(&format!(
-        "Could not read file: '{}'",
-        args.file.to_string_lossy()
-    ));
+    let file_content = std::fs::read_to_string(&args.file)
+        .unwrap_or_else(|_| panic!("Could not read file: '{}'", args.file.to_string_lossy()));
 
     let pairs = YParser::parse_program(&file_content);
 
@@ -58,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if args.compile {
-        let mut compiler = Compiler::from_ast(ast.clone());
+        let mut compiler = Compiler::from_ast(ast);
 
         compiler.compile(args.output.unwrap_or("a".to_owned()))?;
     }

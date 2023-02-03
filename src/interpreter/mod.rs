@@ -26,9 +26,9 @@ impl Display for VariableValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str_representation = match self {
             Self::Void => "void".to_owned(),
-            Self::Bool(value) => format!("{}", value),
-            Self::Str(value) => format!("{}", value),
-            Self::Int(value) => format!("{}", value),
+            Self::Bool(value) => format!("{value}"),
+            Self::Str(value) => value.to_string(),
+            Self::Int(value) => format!("{value}"),
             _ => unimplemented!(),
         };
         f.write_str(&str_representation)
@@ -55,7 +55,7 @@ impl Scope {
             }
         }
 
-        return None;
+        None
     }
 
     /// Push a new scope frame.
@@ -136,12 +136,12 @@ impl Interpreter {
         };
 
         if condition {
-            return Self::run_block(&if_statement.if_block, scope);
+            Self::run_block(&if_statement.if_block, scope)
         } else {
             if let Some(else_block) = &if_statement.else_block {
                 return Self::run_block(else_block, scope);
             }
-            return VariableValue::Void;
+            VariableValue::Void
         }
     }
 
@@ -261,17 +261,17 @@ impl Interpreter {
                 for param in &fn_call.params {
                     match param {
                         Expression::Ident(Ident { value: name, .. }) => {
-                            let Some(value) = scope.find(&name) else {
+                            let Some(value) = scope.find(name) else {
                                 unreachable!();
                             };
-                            print!("{}", value);
+                            print!("{value}");
                         }
-                        Expression::Str(Str { value, .. }) => print!("{}", value),
+                        Expression::Str(Str { value, .. }) => print!("{value}"),
                         Expression::BinaryOp(binary_operation) => {
-                            print!("{}", Self::run_binary_operation(&binary_operation, scope))
+                            print!("{}", Self::run_binary_operation(binary_operation, scope))
                         }
-                        Expression::Integer(Integer { value, .. }) => print!("{}", value),
-                        Expression::Boolean(Boolean { value, .. }) => println!("{}", value),
+                        Expression::Integer(Integer { value, .. }) => print!("{value}"),
+                        Expression::Boolean(Boolean { value, .. }) => print!("{value}"),
                         Expression::If(if_statement) => {
                             print!("{}", Self::run_if(if_statement, scope))
                         }
@@ -292,7 +292,7 @@ impl Interpreter {
                 };
 
                 let VariableValue::Func { params, block, scope: mut fn_scope } = fn_def else {
-                    unreachable!();  
+                    unreachable!();
                 };
 
                 fn_scope.push();
@@ -301,7 +301,7 @@ impl Interpreter {
                     let param_name = &params[i];
                     let param_value = Self::run_expression(param, scope);
 
-                    fn_scope.set(&param_name, param_value);
+                    fn_scope.set(param_name, param_value);
                 }
 
                 let return_value = Self::run_block(&block, &mut fn_scope);
