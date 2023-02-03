@@ -1,7 +1,7 @@
 use log::error;
 use pest::iterators::Pair;
 
-use super::{BinaryOp, Block, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
+use super::{BinaryOp, Block, Boolean, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expression {
@@ -13,6 +13,7 @@ pub enum Expression {
     Str(Str),
     FnDef(FnDef),
     Block(Block),
+    Boolean(Boolean),
 }
 
 impl Expression {
@@ -26,6 +27,7 @@ impl Expression {
             Rule::fnDef => Expression::FnDef(FnDef::from_pair(pair)),
             Rule::ifStmt => Expression::If(If::from_pair(pair)),
             Rule::block => Expression::Block(Block::from_pair(pair)),
+            Rule::boolean => Expression::Boolean(Boolean::from_pair(pair)),
             _ => {
                 error!(
                     "Unexpected expression '{}' at {}:{}",
@@ -47,7 +49,8 @@ impl Expression {
             | Expression::Ident(Ident { position, .. })
             | Expression::Str(Str { position, .. })
             | Expression::FnDef(FnDef { position, .. })
-            | Expression::Block(Block { position, .. }) => position.to_owned(),
+            | Expression::Block(Block { position, .. })
+            | Expression::Boolean(Boolean { position, .. }) => position.to_owned(),
         }
     }
 }

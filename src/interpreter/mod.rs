@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::ast::{
-    Assignment, Ast, BinaryOp, BinaryVerb, Block, Declaration, Expression, FnCall, FnDef, Ident,
-    If, Integer, Intrinsic, Statement, Str,
+    Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Declaration, Expression, FnCall, FnDef,
+    Ident, If, Integer, Intrinsic, Statement, Str,
 };
 
 pub struct Interpreter {
@@ -178,6 +178,7 @@ impl Interpreter {
             Expression::If(if_statement) => Self::run_if(if_statement, scope),
             Expression::Integer(Integer { value, .. }) => VariableValue::Int(*value),
             Expression::Str(Str { value, .. }) => VariableValue::Str(value.clone()),
+            Expression::Boolean(Boolean { value, .. }) => VariableValue::Bool(*value),
             Expression::Ident(Ident { value, .. }) => {
                 let Some(value) = scope.find(value) else {
                     unreachable!()
@@ -270,6 +271,7 @@ impl Interpreter {
                             print!("{}", Self::run_binary_operation(&binary_operation, scope))
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{}", value),
+                        Expression::Boolean(Boolean { value, .. }) => println!("{}", value),
                         Expression::If(if_statement) => {
                             print!("{}", Self::run_if(if_statement, scope))
                         }
