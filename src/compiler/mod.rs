@@ -198,7 +198,41 @@ impl Compiler {
 
     fn compile_expression(&mut self, expression: &Expression) {
         match expression {
-            Expression::If(_) => todo!(),
+            Expression::If(if_statement) => {
+                let condition = &if_statement.condition;
+
+                self.compile_expression(condition);
+
+                let if_block = &if_statement.if_block;
+
+                let if_label = self.var("if");
+                let else_label = format!(".{if_label}_else");
+                let end_label = format!(".{if_label}_end");
+
+                self.instructions.push(Cmp(Register(Rax), Immediate(0)));
+                self.instructions
+                    .push(Je(if if_statement.else_block.is_some() {
+                        else_label.clone()
+                    } else {
+                        end_label.clone()
+                    }));
+
+                // TODO: Do some stack offset opimizations
+                // i.e.: Only increment stack offset by the larger amount and not both
+                for statement in &if_block.block {
+                    self.compile_statement(statement);
+                }
+
+                if let Some(else_block) = &if_statement.else_block {
+                    self.instructions.push(Jmp(end_label.clone()));
+                    self.instructions.push(Label(else_label));
+                    for statement in &else_block.block {
+                        self.compile_statement(statement);
+                    }
+                }
+
+                self.instructions.push(Label(end_label));
+            }
             Expression::BinaryOp(binary_operation) => {
                 let lhs = &binary_operation.lhs;
                 let rhs = &binary_operation.rhs;

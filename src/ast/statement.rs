@@ -21,7 +21,8 @@ impl Statement {
             | Rule::ident
             | Rule::string
             | Rule::fnCall
-            | Rule::block => Statement::Expression(Expression::from_pair(pair)),
+            | Rule::block
+            | Rule::boolean => Statement::Expression(Expression::from_pair(pair)),
             _ => todo!(),
         }
     }

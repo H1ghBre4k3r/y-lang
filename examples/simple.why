@@ -16,10 +16,10 @@ let a := true
 
 let b := 3 < 4
 
-print("Whoop whoop!")
+print("Whoop whoop! ")
 
-/* if luuul > 5 { */
-/*     print("Yesss!") */
-/* } else {  */
-/*     print("Noooooo") */
-/* } */
+if luuul < 5 {
+    print("Pizza!")
+} else { 
+    print("Yeeaayy")
+}
