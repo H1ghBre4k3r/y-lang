@@ -8,7 +8,7 @@ description = "Y would anyone build a new (and rather experimental) language wit
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.1.1", features = ["derive"]}
+clap = { version = "4.1.4", features = ["derive"]}
 log = "0.4.17"
 pest = "2.0"
 pest_derive = "2.5"
