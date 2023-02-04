@@ -11,4 +11,6 @@ let f := (x : int, y : int) : int => {
     }
 }
 
-print(f(4, 1))
+f(4, 1)
+
+print("finished\n")

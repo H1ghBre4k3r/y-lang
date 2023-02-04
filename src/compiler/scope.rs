@@ -7,7 +7,7 @@ use Reg::*;
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
-    ast::{BinaryVerb, Declaration, Expression, FnCall, Intrinsic, Statement},
+    ast::{BinaryVerb, Block, Declaration, Expression, FnCall, Intrinsic, Statement},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -165,16 +165,12 @@ impl Scope {
 
                 // TODO: Do some stack offset opimizations
                 // i.e.: Only increment stack offset by the larger amount and not both
-                for statement in &if_block.block {
-                    self.compile_statement(statement);
-                }
+                self.compile_expression(&Expression::Block(if_block.to_owned()));
 
                 if let Some(else_block) = &if_statement.else_block {
                     self.instructions.push(Jmp(end_label.clone()));
                     self.instructions.push(Label(else_label));
-                    for statement in &else_block.block {
-                        self.compile_statement(statement);
-                    }
+                    self.compile_expression(&Expression::Block(else_block.to_owned()));
                 }
 
                 self.instructions.push(Label(end_label));
@@ -249,7 +245,12 @@ impl Scope {
                     .push(Mov(Register(Rax), Identifier(var_name)));
             }
             Expression::FnDef(_) => todo!(),
-            Expression::Block(_) => todo!(),
+            Expression::Block(Block { block, .. }) => {
+                // TODO: This does _not_ preserve scope.
+                for statement in block {
+                    self.compile_statement(statement);
+                }
+            }
         }
     }
 
@@ -298,7 +299,7 @@ impl Scope {
                 ));
             }
             Expression::If(if_statement) => {
-                self.compile_expression(&Expression::If(if_statement.to_owned()));
+                self.compile_expression(&declaration.value);
 
                 self.stack_offset += std::mem::size_of::<i64>();
                 let variable = Variable {
@@ -367,7 +368,23 @@ impl Scope {
                 self.functions
                     .insert(name.to_owned(), Function { instructions });
             }
-            Expression::Block(_) => todo!(),
+            Expression::Block(block) => {
+                self.compile_expression(&declaration.value);
+
+                self.stack_offset += std::mem::size_of::<i64>();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{name} = {block:?}")));
+
+                self.instructions.push(Mov(
+                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                    Register(Rax),
+                ));
+            }
         };
     }
 
