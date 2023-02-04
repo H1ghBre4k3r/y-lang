@@ -26,6 +26,14 @@ pub struct Function {
     pub instructions: Vec<Instruction>,
 }
 
+#[derive(Debug, Clone)]
+struct Parameter {
+    name: String,
+    source: InstructionOperand,
+}
+
+type Parameters = Vec<Parameter>;
+
 type VariableMap = HashMap<String, Variable>;
 
 type ConstantsMap = HashMap<String, Constant>;
@@ -34,6 +42,7 @@ type FunctionMap = HashMap<String, Function>;
 
 #[derive(Debug)]
 pub struct Scope {
+    params: Parameters,
     pub statements: Vec<Statement>,
     pub variables: VariableMap,
     pub constants: ConstantsMap,
@@ -50,6 +59,7 @@ impl Scope {
         Self {
             statements,
             level,
+            params: vec![],
             variables: HashMap::default(),
             constants: HashMap::default(),
             functions: HashMap::default(),
@@ -71,8 +81,31 @@ impl Scope {
         self.level_count
     }
 
+    pub fn add_param(&mut self, name: impl ToString, source: InstructionOperand) {
+        self.params.push(Parameter {
+            name: name.to_string(),
+            source,
+        });
+    }
+
     pub fn compile(&mut self) {
         let statements = self.statements.clone();
+
+        for Parameter { name, source } in &self.params {
+            self.stack_offset += std::mem::size_of::<i64>();
+
+            let variable = Variable {
+                offset: self.stack_offset,
+            };
+            self.variables.insert(name.to_owned(), variable);
+            self.instructions
+                .push(Comment(format!("{name} = {source}")));
+
+            self.instructions.push(Mov(
+                Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                source.to_owned(),
+            ));
+        }
 
         for node in statements {
             self.compile_statement(&node);
@@ -99,6 +132,7 @@ impl Scope {
             Register(Rsp),
             Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
         ));
+        self.instructions.push(Pop(Rbp));
     }
 
     fn compile_statement(&mut self, statement: &Statement) {
@@ -208,7 +242,12 @@ impl Scope {
                 self.instructions
                     .push(Mov(Register(Rax), Memory(Qword, format!("{Rbp}-{offset}"))));
             }
-            Expression::Str(_) => todo!(),
+            Expression::Str(string) => {
+                let value = &string.value;
+                let var_name = self.add_string_constant(None, value);
+                self.instructions
+                    .push(Mov(Register(Rax), Identifier(var_name)));
+            }
             Expression::FnDef(_) => todo!(),
             Expression::Block(_) => todo!(),
         }
@@ -299,9 +338,21 @@ impl Scope {
             Expression::FnCall(_) => todo!(),
             Expression::Ident(_) => todo!(),
             Expression::FnDef(fn_definition) => {
-                // TODO: Do param magic
                 let statements = &fn_definition.block.block;
                 let mut function_scope = Scope::from_statements(statements.clone(), self.level());
+
+                for (index, param) in fn_definition.params.iter().enumerate() {
+                    let identifier = &param.ident;
+
+                    let source = match index {
+                        0 => InstructionOperand::Register(Rdi),
+                        1 => InstructionOperand::Register(Rsi),
+                        _ => todo!(),
+                    };
+
+                    function_scope.add_param(&identifier.value, source);
+                }
+
                 function_scope.compile();
 
                 let mut instructions = function_scope.instructions.clone();
@@ -315,8 +366,6 @@ impl Scope {
                 // TODO: This does not allow for function definitions in functions
                 self.functions
                     .insert(name.to_owned(), Function { instructions });
-
-                println!("{function_scope:#?}")
             }
             Expression::Block(_) => todo!(),
         };
@@ -348,8 +397,18 @@ impl Scope {
                     };
 
                     #[allow(clippy::redundant_pattern_matching)]
-                    if let Some(_) = self.variables.get(value) {
-                        // TODO: this is another variable (e.g., integer or boolean)
+                    if let Some(variable) = self.variables.get(value) {
+                        self.instructions.append(&mut vec![
+                            Mov(
+                                Register(Rsi),
+                                Memory(Qword, format!("{}-{}", Rbp, variable.offset)),
+                            ),
+                            Mov(Register(Rdi), Register(Rsi)),
+                            Call("str_len".to_owned()),
+                            Mov(Register(Rdx), Register(Rax)),
+                            Mov(Register(Rdi), Identifier("print".to_owned())),
+                            Call("rdi".to_owned()),
+                        ]);
                     }
                 }
                 Expression::Str(string) => {
@@ -366,7 +425,19 @@ impl Scope {
                 Expression::FnDef(_) => todo!(),
                 Expression::Block(_) => todo!(),
             };
+            return;
+        };
+
+        for (index, param) in fn_call.params.iter().enumerate() {
+            // TODO: Safe param values on stack
+            self.compile_expression(param);
+            match index {
+                0 => self.instructions.push(Mov(Register(Rdi), Register(Rax))),
+                1 => self.instructions.push(Mov(Register(Rsi), Register(Rax))),
+                _ => todo!(),
+            };
         }
+        self.instructions.push(Call(name));
     }
 
     fn add_string_constant(&mut self, name: Option<String>, value: &str) -> String {

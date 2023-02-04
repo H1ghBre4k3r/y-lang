@@ -96,7 +96,6 @@ impl Compiler {
     }
 
     fn write_exit(&self, file: &mut File) -> Result<(), Box<dyn Error>> {
-        file.write_all(format!("{}\n", Pop(Rbp)).as_bytes())?;
         file.write_all("\nexit:\n".as_bytes())?;
         file.write_all("\tmov rax, 0x2000001\n".as_bytes())?;
         file.write_all("\tmov rdi, 0\n".as_bytes())?;
