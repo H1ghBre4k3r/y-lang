@@ -6,7 +6,7 @@ let bar := 3
 
 let lol := 7
 
-let yeay := bar + lol
+let yeay := (bar + (lol + 3)) + 3 - (2 + 4 - 6)
 
 let rofl := yeay - 3
 

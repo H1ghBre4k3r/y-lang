@@ -30,9 +30,11 @@ fnDef = {  paramList ~ typeAnnotation ~ "=>" ~ block }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
-expr = _{ binaryExpr | atomExpr | "(" ~ expr ~ ")" }
+expr = _{ binaryExpr | term }
 
-binaryExpr = { atomExpr ~ binaryVerb ~ expr }
+binaryExpr = { term ~ binaryVerb ~ expr }
+
+term = _{ atomExpr | "(" ~ expr ~ ")" }
 
 atomExpr = _{
     ifStmt | fnCall | integer | boolean | ident | string | fnDef | block 
