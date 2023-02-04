@@ -13,3 +13,4 @@ log = "0.4.17"
 pest = "2.0"
 pest_derive = "2.5"
 simple_logger = { version = "4.0.0", default-features = false, features = ["colored", "colors"]}
+unescape = "0.1.0"

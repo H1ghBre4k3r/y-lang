@@ -68,14 +68,27 @@ impl Compiler {
             Mov(Register(Rax), Immediate(0x2000004)),
             Syscall,
             Ret,
-            // TODO: add somethign like "sub rsp STACK_OFFSET"
         ]
     }
 
     fn write_data_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
         file.write_all("section .data\n".as_bytes())?;
         for k in &self.constants {
-            file.write_all(format!("\t{} db \"{}\", 0\n", k.0, k.1.value).as_bytes())?;
+            // write the name of the string constant
+            file.write_all(format!("\t{} db ", k.0).as_bytes())?;
+
+            // split string into lines
+            let string = &k.1.value;
+            let mut parts = string.split('\n').peekable();
+
+            while let Some(part) = parts.next() {
+                file.write_all(format!("\"{part}\", ").as_bytes())?;
+                // if this is not the last line, we append a CRLF
+                if parts.peek().is_some() {
+                    file.write_all("0xa, 0xd, ".as_bytes())?;
+                }
+            }
+            file.write_all("0\n".as_bytes())?;
         }
 
         Ok(())
@@ -332,7 +345,7 @@ impl Compiler {
                 ));
             }
             Expression::Boolean(boolean) => {
-                self.stack_offset += std::mem::size_of::<bool>();
+                self.stack_offset += std::mem::size_of::<i64>();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
