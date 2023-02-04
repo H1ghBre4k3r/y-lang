@@ -53,11 +53,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # args: --all-features -- -D warnings
-          args: --all-features
+      - run: cargo clippy --all-targets
   formatting:
     name: Formatting
     runs-on: ubuntu-latest
