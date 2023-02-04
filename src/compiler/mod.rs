@@ -70,27 +70,22 @@ impl Compiler {
 
     fn write_text_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
         file.write_all("\nsection .text\n".as_bytes())?;
-        file.write_all("\tglobal _main\n\n".as_bytes())?;
+        file.write_all("\tglobal _main\n".as_bytes())?;
 
         let prelude = Self::prelude();
         for instruction in &prelude {
             file.write_all(format!("{instruction}\n").as_bytes())?;
         }
 
-        let mut instructions = vec![
-            Label("_main".to_owned()),
-            Comment("Save old stack pointer".to_owned()),
-            Push(Rbp),
-            Mov(Register(Rbp), Register(Rsp)),
-            Comment(
-                "Adjust stack pointer by the amount of space allocated in this stack frame"
-                    .to_owned(),
-            ),
-            Sub(
-                Register(Rsp),
-                Immediate(((self.scope.stack_offset as i64 / 16) + 1) * 16),
-            ),
-        ];
+        for (identifier, function) in &self.scope.functions {
+            file.write_all(format!("{}", Label(identifier.to_owned())).as_bytes())?;
+
+            for instruction in &function.instructions {
+                file.write_all(format!("{instruction}\n").as_bytes())?;
+            }
+        }
+
+        let mut instructions = vec![Label("_main".to_owned())];
         instructions.append(&mut self.scope.instructions.clone());
 
         for instruction in &instructions {
@@ -101,16 +96,6 @@ impl Compiler {
     }
 
     fn write_exit(&self, file: &mut File) -> Result<(), Box<dyn Error>> {
-        file.write_all(
-            format!(
-                "{}\n",
-                Add(
-                    Register(Rsp),
-                    Immediate(((self.scope.stack_offset as i64 / 16) + 1) * 16),
-                )
-            )
-            .as_bytes(),
-        )?;
         file.write_all(format!("{}\n", Pop(Rbp)).as_bytes())?;
         file.write_all("\nexit:\n".as_bytes())?;
         file.write_all("\tmov rax, 0x2000001\n".as_bytes())?;

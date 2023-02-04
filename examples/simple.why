@@ -25,3 +25,7 @@ if luuul < 5 {
 }
 
 let pizza := if luuul < 5 { 3 } else { lol }
+
+let fn := () : void => {
+    print("From function")
+}

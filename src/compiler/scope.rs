@@ -15,14 +15,15 @@ pub struct Variable {
     offset: usize,
 }
 
+#[derive(Debug, Clone)]
 pub struct Constant {
     pub value: String,
     pub name: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct Function {
-    name: String,
-    instructions: Vec<Instruction>,
+    pub instructions: Vec<Instruction>,
 }
 
 type VariableMap = HashMap<String, Variable>;
@@ -31,6 +32,7 @@ type ConstantsMap = HashMap<String, Constant>;
 
 type FunctionMap = HashMap<String, Function>;
 
+#[derive(Debug)]
 pub struct Scope {
     pub statements: Vec<Statement>,
     pub variables: VariableMap,
@@ -40,6 +42,7 @@ pub struct Scope {
     var_count: usize,
     pub stack_offset: usize,
     level: usize,
+    level_count: usize,
 }
 
 impl Scope {
@@ -53,6 +56,7 @@ impl Scope {
             instructions: vec![],
             var_count: 0,
             stack_offset: 0,
+            level_count: level,
         }
     }
 
@@ -62,11 +66,39 @@ impl Scope {
         var_name
     }
 
+    fn level(&mut self) -> usize {
+        self.level_count += 1;
+        self.level_count
+    }
+
     pub fn compile(&mut self) {
         let statements = self.statements.clone();
+
         for node in statements {
             self.compile_statement(&node);
         }
+
+        let mut instructions = vec![
+            Comment("Save old stack pointer".to_owned()),
+            Push(Rbp),
+            Mov(Register(Rbp), Register(Rsp)),
+            Comment(
+                "Adjust stack pointer by the amount of space allocated in this stack frame"
+                    .to_owned(),
+            ),
+            Sub(
+                Register(Rsp),
+                Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
+            ),
+        ];
+
+        instructions.append(&mut self.instructions);
+        self.instructions = instructions;
+
+        self.instructions.push(Add(
+            Register(Rsp),
+            Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
+        ));
     }
 
     fn compile_statement(&mut self, statement: &Statement) {
@@ -266,7 +298,26 @@ impl Scope {
             }
             Expression::FnCall(_) => todo!(),
             Expression::Ident(_) => todo!(),
-            Expression::FnDef(fn_definition) => {}
+            Expression::FnDef(fn_definition) => {
+                // TODO: Do param magic
+                let statements = &fn_definition.block.block;
+                let mut function_scope = Scope::from_statements(statements.clone(), self.level());
+                function_scope.compile();
+
+                let mut instructions = function_scope.instructions.clone();
+                instructions.push(Ret);
+
+                for (identifier, constant) in &function_scope.constants {
+                    self.constants
+                        .insert(identifier.to_owned(), constant.to_owned());
+                }
+
+                // TODO: This does not allow for function definitions in functions
+                self.functions
+                    .insert(name.to_owned(), Function { instructions });
+
+                println!("{function_scope:#?}")
+            }
             Expression::Block(_) => todo!(),
         };
     }
