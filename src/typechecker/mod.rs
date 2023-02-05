@@ -80,6 +80,14 @@ impl Scope {
         None
     }
 
+    pub fn is_in_current_scope(&self, name: &str) -> bool {
+        let scopes = self.scope_stack.clone();
+        if let Some(last) = scopes.last() {
+            return last.borrow().contains_key(name);
+        }
+        false
+    }
+
     /// Check, if a variable with a given name is present.
     pub fn contains(&self, name: &str) -> bool {
         let mut scopes = self.scope_stack.clone();
@@ -262,6 +270,16 @@ impl Typechecker {
         if !scope.contains(&ident.value) {
             return Err(TypeError {
                 message: format!("Undefined identifier '{}'", ident.value),
+                position: ident.position,
+            });
+        }
+
+        if !scope.is_in_current_scope(&ident.value) {
+            return Err(TypeError {
+                message: format!(
+                    "Variable '{}' can not be modified, because it is not defined in current scope",
+                    ident.value
+                ),
                 position: ident.position,
             });
         }

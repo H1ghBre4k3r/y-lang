@@ -7,9 +7,7 @@ use Reg::*;
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
-    ast::{
-        BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Integer, Intrinsic, Statement,
-    },
+    ast::{BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Intrinsic, Statement},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -130,6 +128,9 @@ impl Scope {
         instructions.append(&mut self.instructions);
         self.instructions = instructions;
 
+        self.instructions.push(Comment(
+            "Adjust stack pointer to fit the previous one".to_owned(),
+        ));
         self.instructions.push(Add(
             Register(Rsp),
             Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
@@ -254,9 +255,16 @@ impl Scope {
             }
             Expression::FnDef(_) => todo!(),
             Expression::Block(Block { block, .. }) => {
-                // TODO: This does _not_ preserve scope.
-                for statement in block {
-                    self.compile_statement(statement);
+                let mut scope = Scope::from_statements(block.clone(), self.level());
+
+                scope.compile();
+
+                let mut instructions = scope.instructions.clone();
+                instructions.push(Ret);
+
+                for (identifier, constant) in &scope.constants {
+                    self.constants
+                        .insert(identifier.to_owned(), constant.to_owned());
                 }
             }
         }
@@ -415,14 +423,12 @@ impl Scope {
     fn compile_fn_call(&mut self, fn_call: &FnCall) {
         let name = fn_call.ident.value.to_owned();
 
+        self.instructions
+            .push(Comment(format!("CALL {name} ({:?})", fn_call.params)));
+
         if name.as_str() == "print" {
             let param = fn_call.params[0].to_owned();
             match param {
-                Expression::If(_) => todo!(),
-                Expression::BinaryOp(_) => todo!(),
-                Expression::FnCall(_) => todo!(),
-                Expression::Integer(_) => todo!(),
-                Expression::Boolean(_) => todo!(),
                 Expression::Ident(Ident { value, position }) => {
                     if let Some(constant) = self.constants.get(&value) {
                         self.instructions.append(&mut vec![
@@ -430,8 +436,7 @@ impl Scope {
                             Mov(Register(Rdi), Register(Rsi)),
                             Call("str_len".to_owned()),
                             Mov(Register(Rdx), Register(Rax)),
-                            Mov(Register(Rdi), Identifier("print".to_owned())),
-                            Call("rdi".to_owned()),
+                            Call("print".to_owned()),
                         ]);
                         return;
                     } else if let Some(variable) = self.variables.get(&value) {
@@ -443,8 +448,7 @@ impl Scope {
                             Mov(Register(Rdi), Register(Rsi)),
                             Call("str_len".to_owned()),
                             Mov(Register(Rdx), Register(Rax)),
-                            Mov(Register(Rdi), Identifier("print".to_owned())),
-                            Call("rdi".to_owned()),
+                            Call("print".to_owned()),
                         ]);
                     } else {
                         unreachable!(
@@ -464,6 +468,11 @@ impl Scope {
                         Call("print".to_owned()),
                     ])
                 }
+                Expression::If(_) => todo!(),
+                Expression::BinaryOp(_) => todo!(),
+                Expression::FnCall(_) => todo!(),
+                Expression::Integer(_) => todo!(),
+                Expression::Boolean(_) => todo!(),
                 Expression::FnDef(_) => todo!(),
                 Expression::Block(_) => todo!(),
             };
@@ -474,6 +483,7 @@ impl Scope {
                 Expression::If(_) => todo!(),
                 Expression::BinaryOp(_) => todo!(),
                 Expression::FnCall(_) => todo!(),
+                Expression::Block(_) => todo!(),
                 Expression::Integer(_) => {
                     self.compile_expression(&param);
                     self.instructions.append(&mut vec![
@@ -483,11 +493,9 @@ impl Scope {
                         Mov(Register(Rdi), Register(Rsi)),
                         Call("str_len".to_owned()),
                         Mov(Register(Rdx), Register(Rax)),
-                        Mov(Register(Rdi), Identifier("print".to_owned())),
-                        Call("rdi".to_owned()),
+                        Call("print".to_owned()),
                     ]);
                 }
-                Expression::Boolean(_) => todo!(),
                 Expression::Ident(Ident { value, position }) => {
                     if let Some(variable) = self.variables.get(&value) {
                         self.instructions.append(&mut vec![
@@ -500,8 +508,7 @@ impl Scope {
                             Mov(Register(Rdi), Register(Rsi)),
                             Call("str_len".to_owned()),
                             Mov(Register(Rdx), Register(Rax)),
-                            Mov(Register(Rdi), Identifier("print".to_owned())),
-                            Call("rdi".to_owned()),
+                            Call("print".to_owned()),
                         ]);
                     } else {
                         unreachable!(
@@ -510,9 +517,7 @@ impl Scope {
                         );
                     }
                 }
-                Expression::Str(_) => todo!(),
-                Expression::FnDef(_) => todo!(),
-                Expression::Block(_) => todo!(),
+                _ => unreachable!(),
             };
             return;
         };
@@ -524,7 +529,7 @@ impl Scope {
         }
 
         for (index, _) in fn_call.params.iter().enumerate() {
-            match (fn_call.params.len() - (index + 1)) {
+            match fn_call.params.len() - (index + 1) {
                 0 => self.instructions.push(Pop(Rdi)),
                 1 => self.instructions.push(Pop(Rsi)),
                 _ => todo!(),

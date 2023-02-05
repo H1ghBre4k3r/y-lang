@@ -1,0 +1,7 @@
+let foo := 42
+
+if 3 > 2 {
+    let foo := 13
+}
+
+printi(foo)
