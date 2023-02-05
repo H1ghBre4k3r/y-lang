@@ -286,6 +286,33 @@ impl Interpreter {
                 }
                 VariableValue::Void
             }
+            "printi" => {
+                for param in &fn_call.params {
+                    match param {
+                        Expression::Ident(Ident { value: name, .. }) => {
+                            let Some(value) = scope.find(name) else {
+                                unreachable!();
+                            };
+                            print!("{value}");
+                        }
+                        Expression::BinaryOp(binary_operation) => {
+                            print!("{}", Self::run_binary_operation(binary_operation, scope))
+                        }
+                        Expression::Integer(Integer { value, .. }) => print!("{value}"),
+                        Expression::If(if_statement) => {
+                            print!("{}", Self::run_if(if_statement, scope))
+                        }
+                        Expression::Block(block) => {
+                            print!("{}", Self::run_block(block, scope))
+                        }
+                        Expression::FnCall(fn_call) => {
+                            print!("{}", Self::run_fn_call(fn_call, scope))
+                        }
+                        _ => todo!(),
+                    }
+                }
+                VariableValue::Void
+            }
             ident => {
                 let Some(fn_def) = scope.find(ident) else {
                     unreachable!();

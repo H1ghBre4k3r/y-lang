@@ -158,6 +158,15 @@ fn setup_scope() -> Scope {
         },
     );
 
+    scope.set(
+        "printi",
+        VariableType::Func {
+            params: vec![VariableType::Int],
+            scope: Scope::default(),
+            return_value: Box::new(VariableType::Void),
+        },
+    );
+
     scope
 }
 

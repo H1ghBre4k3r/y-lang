@@ -47,3 +47,6 @@ let block_variable := {
 }
 
 print(block_variable)
+
+printi(3)
+print("\n")

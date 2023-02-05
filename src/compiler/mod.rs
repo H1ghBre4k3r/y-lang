@@ -1,4 +1,5 @@
 mod scope;
+mod ystd;
 
 use std::{error::Error, fs::File, io::prelude::*, process::Command};
 
@@ -14,7 +15,7 @@ use crate::{
     ast::Ast,
 };
 
-use self::scope::Scope;
+use self::{scope::Scope, ystd::int_to_str};
 pub struct Compiler {
     scope: Scope,
 }
@@ -42,6 +43,7 @@ impl Compiler {
             Mov(Register(Rax), Immediate(0x2000004)),
             Syscall,
             Ret,
+            Literal(int_to_str.to_owned()),
         ]
     }
 
@@ -64,6 +66,8 @@ impl Compiler {
             }
             file.write_all("0\n".as_bytes())?;
         }
+
+        file.write_all("\tint_to_str_val: times 64 db 0\n".as_bytes())?;
 
         Ok(())
     }

@@ -7,7 +7,9 @@ use Reg::*;
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
-    ast::{BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Intrinsic, Statement},
+    ast::{
+        BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Integer, Intrinsic, Statement,
+    },
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -40,7 +42,7 @@ type ConstantsMap = HashMap<String, Constant>;
 
 type FunctionMap = HashMap<String, Function>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Scope {
     params: Parameters,
     pub statements: Vec<Statement>,
@@ -342,7 +344,23 @@ impl Scope {
                     Register(Rax),
                 ));
             }
-            Expression::FnCall(_) => todo!(),
+            Expression::FnCall(fn_call) => {
+                self.compile_expression(&declaration.value);
+
+                self.stack_offset += std::mem::size_of::<i64>();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{name} = {fn_call:?}",)));
+
+                self.instructions.push(Mov(
+                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                    Register(Rax),
+                ));
+            }
             Expression::Ident(_) => todo!(),
             Expression::FnDef(fn_definition) => {
                 let statements = &fn_definition.block.block;
@@ -450,17 +468,69 @@ impl Scope {
                 Expression::Block(_) => todo!(),
             };
             return;
+        } else if name.as_str() == "printi" {
+            let param = fn_call.params[0].to_owned();
+            match param {
+                Expression::If(_) => todo!(),
+                Expression::BinaryOp(_) => todo!(),
+                Expression::FnCall(_) => todo!(),
+                Expression::Integer(_) => {
+                    self.compile_expression(&param);
+                    self.instructions.append(&mut vec![
+                        Mov(Register(Rdi), Register(Rax)),
+                        Call("int_to_str".to_owned()),
+                        Lea(Register(Rsi), Identifier("int_to_str_val".to_owned())),
+                        Mov(Register(Rdi), Register(Rsi)),
+                        Call("str_len".to_owned()),
+                        Mov(Register(Rdx), Register(Rax)),
+                        Mov(Register(Rdi), Identifier("print".to_owned())),
+                        Call("rdi".to_owned()),
+                    ]);
+                }
+                Expression::Boolean(_) => todo!(),
+                Expression::Ident(Ident { value, position }) => {
+                    if let Some(variable) = self.variables.get(&value) {
+                        self.instructions.append(&mut vec![
+                            Mov(
+                                Register(Rdi),
+                                Memory(Qword, format!("{}-{}", Rbp, variable.offset)),
+                            ),
+                            Call("int_to_str".to_owned()),
+                            Lea(Register(Rsi), Identifier("int_to_str_val".to_owned())),
+                            Mov(Register(Rdi), Register(Rsi)),
+                            Call("str_len".to_owned()),
+                            Mov(Register(Rdx), Register(Rax)),
+                            Mov(Register(Rdi), Identifier("print".to_owned())),
+                            Call("rdi".to_owned()),
+                        ]);
+                    } else {
+                        unreachable!(
+                            "Could not find variable '{value}' ({}:{})",
+                            position.0, position.1
+                        );
+                    }
+                }
+                Expression::Str(_) => todo!(),
+                Expression::FnDef(_) => todo!(),
+                Expression::Block(_) => todo!(),
+            };
+            return;
         };
 
-        for (index, param) in fn_call.params.iter().enumerate() {
+        for param in fn_call.params.iter() {
             // TODO: Safe param values on stack
             self.compile_expression(param);
-            match index {
-                0 => self.instructions.push(Mov(Register(Rdi), Register(Rax))),
-                1 => self.instructions.push(Mov(Register(Rsi), Register(Rax))),
-                _ => todo!(),
-            };
+            self.instructions.push(Push(Rax));
         }
+
+        for (index, _) in fn_call.params.iter().enumerate() {
+            match (fn_call.params.len() - (index + 1)) {
+                0 => self.instructions.push(Pop(Rdi)),
+                1 => self.instructions.push(Pop(Rsi)),
+                _ => todo!(),
+            }
+        }
+
         self.instructions.push(Call(name));
     }
 

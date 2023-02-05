@@ -4,6 +4,10 @@ use std::fmt::Display;
 pub enum Reg {
     /// 1. function argument
     Rdi,
+    Edi,
+    Di,
+    Dil,
+
     /// 2. function argument
     Rsi,
     /// Return value
@@ -21,12 +25,20 @@ pub enum Reg {
     Rcx,
     /// Scratch register
     Rdx,
+
+    R8,
+    R9,
+    R10,
+    R11,
 }
 
 impl Display for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Reg::Rdi => "rdi",
+            Reg::Edi => "edi",
+            Reg::Di => "di",
+            Reg::Dil => "dil",
 
             Reg::Rax => "rax",
             Reg::Eax => "eax",
@@ -38,6 +50,11 @@ impl Display for Reg {
             Reg::Rbp => "rbp",
             Reg::Rsp => "rsp",
             Reg::Rcx => "rcx",
+
+            Reg::R8 => "r8",
+            Reg::R9 => "r9",
+            Reg::R10 => "r10",
+            Reg::R11 => "r11",
         })
     }
 }
