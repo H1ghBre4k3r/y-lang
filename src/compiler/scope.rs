@@ -7,7 +7,7 @@ use Reg::*;
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
-    ast::{BinaryVerb, Block, Declaration, Expression, FnCall, Intrinsic, Statement},
+    ast::{BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Intrinsic, Statement},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -226,17 +226,23 @@ impl Scope {
                 self.instructions.push(Mov(Register(Rax), Immediate(value)));
             }
             Expression::Boolean(_) => todo!(),
-            Expression::Ident(identifier) => {
-                let identifier = &identifier.value;
-                let variable = self
-                    .variables
-                    .get(identifier)
-                    .expect("Variable not defined");
-                let offset = variable.offset;
+            Expression::Ident(Ident { value, position }) => {
+                let identifier = value;
                 self.instructions
                     .push(Comment(format!("LOAD {identifier}")));
-                self.instructions
-                    .push(Mov(Register(Rax), Memory(Qword, format!("{Rbp}-{offset}"))));
+                if let Some(variable) = self.variables.get(identifier) {
+                    let offset = variable.offset;
+                    self.instructions
+                        .push(Mov(Register(Rax), Memory(Qword, format!("{Rbp}-{offset}"))));
+                } else if let Some(constant) = self.constants.get(identifier) {
+                    self.instructions
+                        .push(Lea(Register(Rax), Identifier(constant.name.to_owned())));
+                } else {
+                    unreachable!(
+                        "Could not find variable or constant '{identifier}' ({}:{})",
+                        position.0, position.1
+                    )
+                }
             }
             Expression::Str(string) => {
                 let value = &string.value;
@@ -399,9 +405,8 @@ impl Scope {
                 Expression::FnCall(_) => todo!(),
                 Expression::Integer(_) => todo!(),
                 Expression::Boolean(_) => todo!(),
-                Expression::Ident(ident) => {
-                    let value = &ident.value;
-                    if let Some(constant) = self.constants.get(value) {
+                Expression::Ident(Ident { value, position }) => {
+                    if let Some(constant) = self.constants.get(&value) {
                         self.instructions.append(&mut vec![
                             Lea(Register(Rsi), Identifier(constant.name.to_owned())),
                             Mov(Register(Rdi), Register(Rsi)),
@@ -411,10 +416,7 @@ impl Scope {
                             Call("rdi".to_owned()),
                         ]);
                         return;
-                    };
-
-                    #[allow(clippy::redundant_pattern_matching)]
-                    if let Some(variable) = self.variables.get(value) {
+                    } else if let Some(variable) = self.variables.get(&value) {
                         self.instructions.append(&mut vec![
                             Mov(
                                 Register(Rsi),
@@ -426,6 +428,11 @@ impl Scope {
                             Mov(Register(Rdi), Identifier("print".to_owned())),
                             Call("rdi".to_owned()),
                         ]);
+                    } else {
+                        unreachable!(
+                            "Could not find variable or constant '{value}' ({}:{})",
+                            position.0, position.1
+                        );
                     }
                 }
                 Expression::Str(string) => {
