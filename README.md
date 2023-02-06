@@ -96,6 +96,33 @@ Y supports a couple of primitive types which are build directly into the lanuage
 
 More complex types are subject for futures features.
 
+### Mutablity
+
+Currently, Y only allows mutation of variables which are defined within the current scope (i.e., in the current block). You can still access variables defined in an outter scope (write-only):
+
+```why
+let foo := 42
+
+if a > b {
+    let bar := foo // works, because it is read-only
+    bar = 1337
+} else {
+    foo = 1337 // TypeError!
+}
+```
+
+### Functions
+
+You can encapsulate behaviour in functions. Functions are (currently) the only place in Y where you need to explicitly annotate types (for parameters and return type):
+
+```why
+let add := (x : int, y : int) : int => {
+    x + y
+}
+```
+
+Function declarations work in a similar way like regular variable declarations, since functions are treated as first-class citizens in Y.
+
 ## Pipeline
 
 To turn a Y program into an executable (or interpret it), the compiler takes several steps.
@@ -129,3 +156,9 @@ why -f path/to/program.why -o path/to/output -c # typecheck and compile
 ## Operating Systems
 
 Y currently only supports macOS as the target operating system if you want to compile it.
+
+## Contributing
+
+TBD
+
+> Even though I currently have no guide for contributing, feel free to open issues with feature requests.
