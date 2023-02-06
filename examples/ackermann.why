@@ -11,7 +11,7 @@ let f := (x : int, y : int) : int => {
     }
 }
 
-let val := f(4, 2)
+let val := f(4, 1)
 
 printi(val)
 print("\n")
