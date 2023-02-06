@@ -2,5 +2,4 @@
 *.o
 *.asm
 
-/output
 .DS_Store
