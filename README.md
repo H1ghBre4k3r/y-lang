@@ -159,6 +159,6 @@ Y currently only supports macOS as the target operating system if you want to co
 
 ## Contributing
 
-TBD
+> The code is the reincarnation of the mighty spaghetti monster. I had no real time to refactor anything or even write useful tests.
 
-> Even though I currently have no guide for contributing, feel free to open issues with feature requests.
+Even though I currently have no guide for contributing, feel free to open issues with feature requests. Be warned that I will probably not accept any PRs until I defined some guidelines for contributing or code/assembly style.
