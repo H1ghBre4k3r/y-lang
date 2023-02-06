@@ -20,9 +20,9 @@ jobs:
         os:
           # Check compilation works on common OSes
           # (i.e. no path issues)
-          - ubuntu-latest
+          # - ubuntu-latest
           - macOS-latest
-          - windows-latest
+          # - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2

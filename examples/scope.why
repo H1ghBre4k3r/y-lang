@@ -1,7 +1,60 @@
 let foo := 42
 
 if 3 > 2 {
+    printi(foo)
+    print(" ")
     let foo := 13
+    printi(foo)
+    print(" ")
 }
+
+if 3 < 2 {
+    printi(foo)
+    print(" ")
+    let foo := 13
+    printi(foo)
+    print(" ")
+} else {
+    printi(foo)
+    print(" ")
+    let foo := 13
+    printi(foo)
+    print(" ")
+}
+
+{
+    printi(foo)
+    print(" ")
+    let foo := 13
+    printi(foo)
+    print(" ")
+}
+
+let bar := (foo : str) : void => {
+    print(foo)
+    print(" ")
+}
+
+bar("foo")
+
+let test := () : void => {
+    let foo := 13
+    printi(foo)
+    print(" ")
+}
+
+test()
+
+let x := {
+    printi(foo)
+    print(" ")
+    let foo := 13
+    printi(foo)
+    print(" ")
+    foo
+}
+
+printi(x)
+print(" ")
 
 printi(foo)

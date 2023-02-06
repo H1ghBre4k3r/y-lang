@@ -274,6 +274,7 @@ impl Scope {
                     scope.variables.insert(key.to_owned(), value.to_owned());
                 }
 
+                scope.stack_offset = self.stack_offset;
                 scope.compile();
 
                 let mut instructions = scope.instructions.clone();
@@ -285,7 +286,7 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
-                self.stack_offset += scope.stack_offset;
+                self.stack_offset = scope.stack_offset;
             }
         }
     }
