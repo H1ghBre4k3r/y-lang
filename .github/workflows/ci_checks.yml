@@ -35,6 +35,7 @@ jobs:
       - run: cargo build --all --release
   testing:
     name: Testing
+    # runs-on: ubuntu-latest
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
@@ -45,7 +46,8 @@ jobs:
       - run: cargo test
   linting:
     name: Linting
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -57,7 +59,8 @@ jobs:
       - run: cargo clippy --all-targets
   formatting:
     name: Formatting
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
         with:
