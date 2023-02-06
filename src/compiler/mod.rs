@@ -134,13 +134,8 @@ impl Compiler {
     fn link_program(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
         info!("Linking program...");
 
-        #[cfg(target_os = "macos")]
-        Command::new("ld")
+        Command::new("cc")
             .args([
-                "-macos_version_min",
-                "10.12.0",
-                "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib",
-                "-lSystem",
                 "-o",
                 &target.to_string(),
                 &format!("{}.o", target.to_string()),
