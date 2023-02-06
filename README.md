@@ -141,7 +141,7 @@ As a last step, the generated AST either gets interpreted or compiled to assembl
 
 ## Usage
 
-At the time of writing this, we do not provide binaries for Y. If you want to use or experiment with y, you can compile the toolchain yourself. For that you need rust and cargo installed on your system. This crate provides a binary called `why`.
+At the time of writing this, we do not provide binaries for Y. If you want to use or experiment with y, you can compile the toolchain yourself. For that you need rust and cargo installed on your system. If you want to actually compile a program, you also need `NASM` installed. This crate provides a binary called `why`.
 
 You can use `why` to typecheck, interpret and compile your program:
 

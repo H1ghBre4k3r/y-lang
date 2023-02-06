@@ -8,7 +8,7 @@ use InstructionOperand::*;
 use InstructionSize::*;
 use Reg::*;
 
-use log::info;
+use log::{error, info};
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
@@ -124,9 +124,15 @@ impl Compiler {
         info!("Compiling '{}.asm'...", target.to_string());
 
         #[cfg(target_os = "macos")]
-        Command::new("nasm")
+        let output = Command::new("nasm")
             .args(["-f", "macho64", &format!("{}.asm", target.to_string())])
             .output()?;
+
+        let stderr = std::str::from_utf8(&output.stderr)?;
+
+        if !stderr.is_empty() {
+            error!("{stderr}");
+        }
 
         Ok(())
     }
@@ -134,7 +140,7 @@ impl Compiler {
     fn link_program(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
         info!("Linking program...");
 
-        Command::new("ld")
+        let output = Command::new("ld")
             .args([
                 "-macos_version_min",
                 "10.12.0",
@@ -145,6 +151,13 @@ impl Compiler {
                 &format!("{}.o", target.to_string()),
             ])
             .output()?;
+
+        let stderr = std::str::from_utf8(&output.stderr)?;
+
+        if !stderr.is_empty() {
+            error!("{stderr}");
+        }
+
         Ok(())
     }
 
