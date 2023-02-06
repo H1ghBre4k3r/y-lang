@@ -52,10 +52,15 @@ pub struct Scope {
     pub stack_offset: usize,
     level: usize,
     level_count: usize,
+    new_stack_frame: bool,
 }
 
 impl Scope {
-    pub fn from_statements(statements: Vec<Statement>, level: usize) -> Self {
+    pub fn from_statements(
+        statements: Vec<Statement>,
+        level: usize,
+        new_stack_frame: bool,
+    ) -> Self {
         Self {
             statements,
             level,
@@ -67,6 +72,7 @@ impl Scope {
             var_count: 0,
             stack_offset: 0,
             level_count: level,
+            new_stack_frame,
         }
     }
 
@@ -111,31 +117,37 @@ impl Scope {
             self.compile_statement(&node);
         }
 
-        let mut instructions = vec![
-            Comment("Save old stack pointer".to_owned()),
-            Push(Rbp),
-            Mov(Register(Rbp), Register(Rsp)),
-            Comment(
-                "Adjust stack pointer by the amount of space allocated in this stack frame"
-                    .to_owned(),
-            ),
-            Sub(
-                Register(Rsp),
-                Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
-            ),
-        ];
+        let mut instructions = if self.new_stack_frame {
+            vec![
+                Comment("Save old stack pointer".to_owned()),
+                Push(Rbp),
+                Mov(Register(Rbp), Register(Rsp)),
+                Comment(
+                    "Adjust stack pointer by the amount of space allocated in this stack frame"
+                        .to_owned(),
+                ),
+                Sub(
+                    Register(Rsp),
+                    Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
+                ),
+            ]
+        } else {
+            vec![]
+        };
 
         instructions.append(&mut self.instructions);
         self.instructions = instructions;
 
-        self.instructions.push(Comment(
-            "Adjust stack pointer to fit the previous one".to_owned(),
-        ));
-        self.instructions.push(Add(
-            Register(Rsp),
-            Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
-        ));
-        self.instructions.push(Pop(Rbp));
+        if self.new_stack_frame {
+            self.instructions.push(Comment(
+                "Adjust stack pointer to fit the previous one".to_owned(),
+            ));
+            self.instructions.push(Add(
+                Register(Rsp),
+                Immediate(((self.stack_offset as i64 / 16) + 1) * 16),
+            ));
+            self.instructions.push(Pop(Rbp));
+        }
     }
 
     fn compile_statement(&mut self, statement: &Statement) {
@@ -241,6 +253,7 @@ impl Scope {
                     self.instructions
                         .push(Lea(Register(Rax), Identifier(constant.name.to_owned())));
                 } else {
+                    // TODO: In if-statements, this triggers...
                     unreachable!(
                         "Could not find variable or constant '{identifier}' ({}:{})",
                         position.0, position.1
@@ -255,17 +268,24 @@ impl Scope {
             }
             Expression::FnDef(_) => todo!(),
             Expression::Block(Block { block, .. }) => {
-                let mut scope = Scope::from_statements(block.clone(), self.level());
+                let mut scope = Scope::from_statements(block.clone(), self.level(), false);
+
+                for (key, value) in &self.variables {
+                    scope.variables.insert(key.to_owned(), value.to_owned());
+                }
 
                 scope.compile();
 
                 let mut instructions = scope.instructions.clone();
-                instructions.push(Ret);
+
+                self.instructions.append(&mut instructions);
 
                 for (identifier, constant) in &scope.constants {
                     self.constants
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
+
+                self.stack_offset += scope.stack_offset;
             }
         }
     }
@@ -372,7 +392,8 @@ impl Scope {
             Expression::Ident(_) => todo!(),
             Expression::FnDef(fn_definition) => {
                 let statements = &fn_definition.block.block;
-                let mut function_scope = Scope::from_statements(statements.clone(), self.level());
+                let mut function_scope =
+                    Scope::from_statements(statements.clone(), self.level(), true);
 
                 for (index, param) in fn_definition.params.iter().enumerate() {
                     let identifier = &param.ident;

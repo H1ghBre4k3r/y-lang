@@ -23,7 +23,7 @@ pub struct Compiler {
 impl Compiler {
     pub fn from_ast(ast: Ast) -> Self {
         Self {
-            scope: Scope::from_statements(ast.nodes(), 0),
+            scope: Scope::from_statements(ast.nodes(), 0, true),
         }
     }
 
@@ -134,8 +134,12 @@ impl Compiler {
     fn link_program(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
         info!("Linking program...");
 
-        Command::new("cc")
+        Command::new("ld")
             .args([
+                "-macos_version_min",
+                "10.12.0",
+                "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib",
+                "-lSystem",
                 "-o",
                 &target.to_string(),
                 &format!("{}.o", target.to_string()),
