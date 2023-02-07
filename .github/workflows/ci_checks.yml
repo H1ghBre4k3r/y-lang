@@ -20,7 +20,7 @@ jobs:
         os:
           # Check compilation works on common OSes
           # (i.e. no path issues)
-          # - ubuntu-latest
+          - ubuntu-latest
           - macOS-latest
           # - windows-latest
     runs-on: ${{ matrix.os }}
@@ -35,8 +35,16 @@ jobs:
       - run: cargo build --all --release
   testing:
     name: Testing
-    # runs-on: ubuntu-latest
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        # All generated code should be running on stable now
+        rust: stable
+        os:
+          # Check compilation works on common OSes
+          # (i.e. no path issues)
+          - ubuntu-latest
+          - macOS-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - uses: ilammy/setup-nasm@v1
@@ -46,8 +54,16 @@ jobs:
       - run: cargo test
   linting:
     name: Linting
-    # runs-on: ubuntu-latest
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        # All generated code should be running on stable now
+        rust: stable
+        os:
+          # Check compilation works on common OSes
+          # (i.e. no path issues)
+          - ubuntu-latest
+          - macOS-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -59,8 +75,16 @@ jobs:
       - run: cargo clippy --all-targets
   formatting:
     name: Formatting
-    # runs-on: ubuntu-latest
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        # All generated code should be running on stable now
+        rust: stable
+        os:
+          # Check compilation works on common OSes
+          # (i.e. no path issues)
+          - ubuntu-latest
+          - macOS-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
         with:

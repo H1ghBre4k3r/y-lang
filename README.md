@@ -155,7 +155,7 @@ why -f path/to/program.why -o path/to/output -c # typecheck and compile
 
 ## Operating Systems
 
-Y currently only supports macOS as the target operating system if you want to compile it.
+Y is actively developed under macOS. I tested Linux to some point (and CI should test aswell), but I can not guarantee full compatibility. 
 
 ## Contributing
 
