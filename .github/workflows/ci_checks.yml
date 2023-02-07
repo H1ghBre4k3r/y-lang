@@ -37,8 +37,6 @@ jobs:
     name: Testing
     strategy:
       matrix:
-        # All generated code should be running on stable now
-        rust: stable
         os:
           # Check compilation works on common OSes
           # (i.e. no path issues)
@@ -56,8 +54,6 @@ jobs:
     name: Linting
     strategy:
       matrix:
-        # All generated code should be running on stable now
-        rust: stable
         os:
           # Check compilation works on common OSes
           # (i.e. no path issues)
@@ -77,8 +73,6 @@ jobs:
     name: Formatting
     strategy:
       matrix:
-        # All generated code should be running on stable now
-        rust: stable
         os:
           # Check compilation works on common OSes
           # (i.e. no path issues)
