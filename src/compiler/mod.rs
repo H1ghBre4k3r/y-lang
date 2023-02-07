@@ -11,7 +11,7 @@ use Reg::*;
 use log::{error, info};
 
 use crate::{
-    asm::{Instruction, InstructionOperand, InstructionSize, Reg, WRITE_SYSCALL, EXIT_SYSCALL},
+    asm::{Instruction, InstructionOperand, InstructionSize, Reg, EXIT_SYSCALL, WRITE_SYSCALL},
     ast::Ast,
 };
 
@@ -74,7 +74,7 @@ impl Compiler {
 
     fn write_text_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
         file.write_all("\nsection .text\n".as_bytes())?;
-        
+
         #[cfg(target_os = "macos")]
         file.write_all("\tglobal _main\n".as_bytes())?;
 
@@ -96,7 +96,7 @@ impl Compiler {
 
         #[cfg(target_os = "macos")]
         let mut instructions = vec![Label("_main".to_owned())];
-        
+
         #[cfg(target_os = "linux")]
         let mut instructions = vec![Label("_start".to_owned())];
 
