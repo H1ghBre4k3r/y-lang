@@ -16,6 +16,7 @@ mod parser;
 mod statement;
 mod str;
 mod type_annotation;
+mod types;
 
 use std::fmt::Display;
 
@@ -37,6 +38,7 @@ pub use self::parser::*;
 pub use self::statement::*;
 pub use self::str::*;
 pub use self::type_annotation::*;
+pub use self::types::*;
 
 use pest::iterators::Pairs;
 

@@ -1,28 +1,21 @@
 use pest::iterators::Pair;
 
-use super::{Position, Rule};
+use super::{Position, Rule, Type};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeAnnotation {
-    pub value: String,
+    pub value: Type,
     pub position: Position,
 }
 
 impl TypeAnnotation {
     pub fn from_pair(pair: Pair<Rule>) -> TypeAnnotation {
-        assert_eq!(pair.as_rule(), Rule::typeAnnotation);
-
         let position = pair.line_col();
 
         let mut inner = pair.into_inner();
 
-        let type_pair = inner.next().unwrap();
-        assert_eq!(type_pair.as_rule(), Rule::typeName);
-
-        let type_name = type_pair.as_str();
-
         TypeAnnotation {
-            value: type_name.to_owned(),
+            value: Type::from_pair(inner.next().unwrap()),
             position,
         }
     }

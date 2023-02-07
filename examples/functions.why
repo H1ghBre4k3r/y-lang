@@ -1,0 +1,10 @@
+
+let foo := ( bar : (int, int) -> int ): int => {
+    bar(3, 4)
+}
+
+let test := (x : int, y : int) : int => {
+    x + y
+}
+
+printi(foo(test))

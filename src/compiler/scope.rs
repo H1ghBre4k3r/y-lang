@@ -261,10 +261,12 @@ impl Scope {
                 } else if let Some(constant) = self.constants.get(identifier) {
                     self.instructions
                         .push(Lea(Register(Rax), Identifier(constant.name.to_owned())));
+                } else if let Some(_) = self.functions.get(identifier) {
+                    self.instructions
+                        .push(Mov(Register(Rax), Identifier(identifier.to_owned())));
                 } else {
-                    // TODO: In if-statements, this triggers...
                     unreachable!(
-                        "Could not find variable or constant '{identifier}' ({}:{})",
+                        "Could not find variable, constant or function '{identifier}' ({}:{})",
                         position.0, position.1
                     )
                 }
@@ -518,7 +520,7 @@ impl Scope {
     }
 
     fn compile_fn_call(&mut self, fn_call: &FnCall) {
-        let name = fn_call.ident.value.to_owned();
+        let mut name = fn_call.ident.value.to_owned();
 
         self.instructions
             .push(Comment(format!("CALL {name} ({:?})", fn_call.params)));
@@ -600,9 +602,14 @@ impl Scope {
         };
 
         for param in fn_call.params.iter() {
-            // TODO: Safe param values on stack
             self.compile_expression(param);
             self.instructions.push(Push(Rax));
+        }
+
+        if self.variables.get(&name).is_some() {
+            // if we have a variable with this name, we need to load it first
+            self.compile_expression(&Expression::Ident(fn_call.ident.to_owned()));
+            name = Rax.to_string();
         }
 
         for (index, _) in fn_call.params.iter().enumerate() {

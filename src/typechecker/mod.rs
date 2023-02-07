@@ -4,7 +4,7 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, str::FromSt
 
 use crate::ast::{
     Assignment, Ast, BinaryOp, BinaryVerb, Block, Definition, Expression, FnCall, FnDef, Ident, If,
-    Intrinsic, Statement,
+    Intrinsic, Position, Statement, Type,
 };
 
 use self::error::TypeError;
@@ -46,14 +46,20 @@ impl Display for VariableType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use VariableType::*;
 
-        f.write_str(match self {
-            Void => "void",
-            Bool => "bool",
-            Int => "int",
-            Str => "str",
-            Any => "any",
-            Func { .. } => todo!(),
-        })
+        let value = &match self {
+            Void => "void".to_owned(),
+            Bool => "bool".to_owned(),
+            Int => "int".to_owned(),
+            Str => "str".to_owned(),
+            Any => "any".to_owned(),
+            Func {
+                params,
+                return_value,
+                ..
+            } => format!("{params:?} -> {return_value:?}"),
+        };
+
+        f.write_str(value)
     }
 }
 
@@ -61,10 +67,18 @@ type ScopeFrame = HashMap<String, VariableType>;
 
 type ScopeFrameReference = Rc<RefCell<ScopeFrame>>;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone)]
 struct Scope {
     scope_stack: Vec<ScopeFrameReference>,
 }
+
+impl PartialEq for Scope {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for Scope {}
 
 impl Scope {
     /// Find a value/reference in this scope by iterating over the scopes from back to front.
@@ -321,26 +335,50 @@ impl Typechecker {
         }
     }
 
+    fn get_type_def(type_: &Type, position: Position) -> TypecheckResult {
+        match type_ {
+            Type::Literal(literal) => literal.parse().map_err(|_| TypeError {
+                message: format!("Unexpected type annotatiot '{type_:?}'"),
+                position,
+            }),
+            Type::Function {
+                params,
+                return_type,
+            } => {
+                let mut fn_params = vec![];
+                for param in params {
+                    fn_params.push(Self::get_type_def(param, position)?);
+                }
+
+                let return_type = Self::get_type_def(return_type, position)?;
+                Ok(VariableType::Func {
+                    return_value: Box::new(return_type),
+                    params: fn_params,
+                    scope: Scope::default(),
+                })
+            }
+        }
+    }
+
     fn check_fn_def(
         identifier: Option<&Ident>,
         fn_def: &FnDef,
         scope: &mut Scope,
     ) -> TypecheckResult {
-        let Ok(type_annotation) = fn_def.type_annotation.value.parse::<VariableType>() else {
-        return Err(TypeError {
-            message: format!("Unexpected type annotatiot '{}'", fn_def.type_annotation.value),
-            position: fn_def.type_annotation.position
-        })
-    };
-
+        let type_annotation = Self::get_type_def(
+            &fn_def.type_annotation.value,
+            fn_def.type_annotation.position,
+        )?;
         scope.push();
 
         let mut params = vec![];
 
         for param in &fn_def.params {
-            let Ok(param_type) = param.type_annotation.value.parse::<VariableType>() else {
-            panic!()
-        };
+            //     let Ok(param_type) = param.type_annotation.value.parse::<VariableType>() else {
+            //     panic!()
+            // };
+            let param_type =
+                Self::get_type_def(&param.type_annotation.value, param.type_annotation.position)?;
 
             scope.set(&param.ident.value, param_type.clone());
             params.push(param_type);

@@ -20,9 +20,11 @@ fnCall = { ident ~ "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
 
 typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
-fnDec = { "(" ~ ( typeName ~ ("," ~ typeName)* )? ~ ")" ~ "->" ~ typeName }
+fnType = { "(" ~ ( typeName ~ ("," ~ typeName)* )? ~ ")" ~ "->" ~ typeName }
 
-typeAnnotation = { ":" ~ typeName  }
+variableType = _{ typeName | fnType }
+
+typeAnnotation = { ":" ~ variableType }
 
 parameter = { ident ~ typeAnnotation }
 
