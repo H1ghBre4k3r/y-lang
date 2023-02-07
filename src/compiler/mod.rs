@@ -11,7 +11,7 @@ use Reg::*;
 use log::{error, info};
 
 use crate::{
-    asm::{Instruction, InstructionOperand, InstructionSize, Reg},
+    asm::{Instruction, InstructionOperand, InstructionSize, Reg, WRITE_SYSCALL, EXIT_SYSCALL},
     ast::Ast,
 };
 
@@ -40,7 +40,7 @@ impl Compiler {
             Ret,
             Label("print".to_owned()),
             Mov(Register(Rdi), Immediate(1)),
-            Mov(Register(Rax), Immediate(0x2000004)),
+            Mov(Register(Rax), WRITE_SYSCALL),
             Syscall,
             Ret,
             Literal(int_to_str.to_owned()),
@@ -74,7 +74,12 @@ impl Compiler {
 
     fn write_text_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
         file.write_all("\nsection .text\n".as_bytes())?;
+        
+        #[cfg(target_os = "macos")]
         file.write_all("\tglobal _main\n".as_bytes())?;
+
+        #[cfg(target_os = "linux")]
+        file.write_all("\tglobal _start\n".as_bytes())?;
 
         let prelude = Self::prelude();
         for instruction in &prelude {
@@ -89,7 +94,12 @@ impl Compiler {
             }
         }
 
+        #[cfg(target_os = "macos")]
         let mut instructions = vec![Label("_main".to_owned())];
+        
+        #[cfg(target_os = "linux")]
+        let mut instructions = vec![Label("_start".to_owned())];
+
         instructions.append(&mut self.scope.instructions.clone());
 
         for instruction in &instructions {
@@ -100,10 +110,10 @@ impl Compiler {
     }
 
     fn write_exit(&self, file: &mut File) -> Result<(), Box<dyn Error>> {
-        file.write_all("\nexit:\n".as_bytes())?;
-        file.write_all("\tmov rax, 0x2000001\n".as_bytes())?;
-        file.write_all("\tmov rdi, 0\n".as_bytes())?;
-        file.write_all("\tsyscall\n".as_bytes())?;
+        file.write_all(format!("{}\n", Label("exit".to_owned())).as_bytes())?;
+        file.write_all(format!("{}\n", Mov(Register(Rax), EXIT_SYSCALL)).as_bytes())?;
+        file.write_all(format!("{}\n", Mov(Register(Rdi), Immediate(0))).as_bytes())?;
+        file.write_all(format!("{}\n", Syscall).as_bytes())?;
 
         Ok(())
     }
@@ -128,6 +138,11 @@ impl Compiler {
             .args(["-f", "macho64", &format!("{}.asm", target.to_string())])
             .output()?;
 
+        #[cfg(target_os = "linux")]
+        let output = Command::new("nasm")
+            .args(["-f", "elf64", &format!("{}.asm", target.to_string())])
+            .output()?;
+
         let stderr = std::str::from_utf8(&output.stderr)?;
 
         if !stderr.is_empty() {
@@ -140,12 +155,22 @@ impl Compiler {
     fn link_program(&mut self, target: &impl ToString) -> Result<(), Box<dyn Error>> {
         info!("Linking program...");
 
+        #[cfg(target_os = "macos")]
         let output = Command::new("ld")
             .args([
                 "-macos_version_min",
                 "10.12.0",
                 "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib",
                 "-lSystem",
+                "-o",
+                &target.to_string(),
+                &format!("{}.o", target.to_string()),
+            ])
+            .output()?;
+
+        #[cfg(target_os = "linux")]
+        let output = Command::new("ld")
+            .args([
                 "-o",
                 &target.to_string(),
                 &format!("{}.o", target.to_string()),

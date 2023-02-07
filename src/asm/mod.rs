@@ -30,6 +30,18 @@ impl Display for InstructionSize {
     }
 }
 
+#[cfg(target_os = "macos")]
+pub const EXIT_SYSCALL: InstructionOperand = InstructionOperand::Immediate(0x2000001);
+
+#[cfg(target_os = "linux")]
+pub const EXIT_SYSCALL: InstructionOperand = InstructionOperand::Immediate(60);
+
+#[cfg(target_os = "macos")]
+pub const WRITE_SYSCALL: InstructionOperand = InstructionOperand::Immediate(0x2000004);
+
+#[cfg(target_os = "linux")]
+pub const WRITE_SYSCALL: InstructionOperand = InstructionOperand::Immediate(1);
+
 #[derive(Debug, Clone)]
 pub enum InstructionOperand {
     Register(Reg),
