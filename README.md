@@ -35,7 +35,7 @@ To store the values of expressions, you are able to declare variables:
 let foo := "bar"
 ```
 
-Variable declarations always start with the keyword `let` followed by an identifier (e.g., `foo`) and the "walrus operator" `:=` and the value. To assign a new value to a variable, you can use a similar pattern:
+Variable definitions always start with the keyword `let` followed by an identifier (e.g., `foo`) and the "walrus operator" `:=` and the value. To assign a new value to a variable, you can use a similar pattern:
 
 ```why
 foo = "another value"
@@ -47,7 +47,7 @@ Following the idea of "everything evaluates to a value", you can "assign" comple
 
 ```
 let foo := {
-    let a := 16 // Yes, variable declarations also work in blocks
+    let a := 16 // Yes, variable definitions also work in blocks
     a + 26
 }
 
@@ -121,7 +121,7 @@ let add := (x : int, y : int) : int => {
 }
 ```
 
-Function declarations work in a similar way like regular variable declarations, since functions are treated as first-class citizens in Y.
+Function definitions work in a similar way like regular variable definitions, since functions are treated as first-class citizens in Y.
 
 ## Pipeline
 

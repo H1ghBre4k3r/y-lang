@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::ast::{
-    Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Declaration, Expression, FnCall, FnDef,
+    Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, FnDef,
     Ident, If, Integer, Intrinsic, Statement, Str,
 };
 
@@ -120,7 +120,7 @@ impl Interpreter {
 
     fn run_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> VariableValue {
         match intrinsic {
-            Intrinsic::Declaration(declaration) => Self::run_declaration(declaration, scope),
+            Intrinsic::Definition(definition) => Self::run_definition(definition, scope),
             Intrinsic::Assignment(assignment) => Self::run_assignment(assignment, scope),
         }
     }
@@ -159,10 +159,10 @@ impl Interpreter {
         return_value
     }
 
-    fn run_declaration(declaration: &Declaration, scope: &mut Scope) -> VariableValue {
-        let value = Self::run_expression(&declaration.value, scope);
+    fn run_definition(definition: &Definition, scope: &mut Scope) -> VariableValue {
+        let value = Self::run_expression(&definition.value, scope);
 
-        scope.set(&declaration.ident.value, value);
+        scope.set(&definition.ident.value, value);
         VariableValue::Void
     }
 

@@ -8,7 +8,7 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Intrinsic, Statement,
+        Assignment, BinaryVerb, Block, Definition, Expression, FnCall, Ident, Intrinsic, Statement,
     },
 };
 
@@ -338,15 +338,15 @@ impl Scope {
 
     fn compile_intrinsic(&mut self, intrinsic: &Intrinsic) {
         match intrinsic {
-            Intrinsic::Declaration(declaration) => self.compile_declaration(declaration),
+            Intrinsic::Definition(definition) => self.compile_definition(definition),
             Intrinsic::Assignment(assignment) => self.compile_assignment(assignment),
         }
     }
 
-    fn compile_declaration(&mut self, declaration: &Declaration) {
-        let name = &declaration.ident.value;
+    fn compile_definition(&mut self, definition: &Definition) {
+        let name = &definition.ident.value;
 
-        match &declaration.value {
+        match &definition.value {
             Expression::Str(string) => {
                 self.add_string_constant(Some(name.to_owned()), &string.value.to_owned());
             }
@@ -381,7 +381,7 @@ impl Scope {
                 ));
             }
             Expression::If(if_statement) => {
-                self.compile_expression(&declaration.value);
+                self.compile_expression(&definition.value);
 
                 self.stack_offset += std::mem::size_of::<i64>();
                 let variable = Variable {
@@ -419,7 +419,7 @@ impl Scope {
                 ));
             }
             Expression::FnCall(fn_call) => {
-                self.compile_expression(&declaration.value);
+                self.compile_expression(&definition.value);
 
                 self.stack_offset += std::mem::size_of::<i64>();
                 let variable = Variable {
@@ -436,7 +436,7 @@ impl Scope {
                 ));
             }
             Expression::Ident(ident) => {
-                self.compile_expression(&declaration.value);
+                self.compile_expression(&definition.value);
                 self.stack_offset += std::mem::size_of::<i64>();
                 let variable = Variable {
                     offset: self.stack_offset,
@@ -482,7 +482,7 @@ impl Scope {
                     .insert(name.to_owned(), Function { instructions });
             }
             Expression::Block(block) => {
-                self.compile_expression(&declaration.value);
+                self.compile_expression(&definition.value);
 
                 self.stack_offset += std::mem::size_of::<i64>();
                 let variable = Variable {

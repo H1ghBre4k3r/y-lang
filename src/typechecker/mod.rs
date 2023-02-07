@@ -3,8 +3,8 @@ mod error;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, str::FromStr};
 
 use crate::ast::{
-    Assignment, Ast, BinaryOp, BinaryVerb, Block, Declaration, Expression, FnCall, FnDef, Ident,
-    If, Intrinsic, Statement,
+    Assignment, Ast, BinaryOp, BinaryVerb, Block, Definition, Expression, FnCall, FnDef, Ident, If,
+    Intrinsic, Statement,
 };
 
 use self::error::TypeError;
@@ -208,7 +208,7 @@ impl Typechecker {
 
     fn check_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> TypecheckResult {
         match &intrinsic {
-            Intrinsic::Declaration(declaration) => Self::check_declaration(declaration, scope),
+            Intrinsic::Definition(definition) => Self::check_definition(definition, scope),
             Intrinsic::Assignment(assignment) => Self::check_assignment(assignment, scope),
         }
     }
@@ -255,11 +255,11 @@ impl Typechecker {
         Ok(last_return)
     }
 
-    fn check_declaration(declaration: &Declaration, scope: &mut Scope) -> TypecheckResult {
-        let declaration_type =
-            Self::check_expression(Some(&declaration.ident), &declaration.value, scope)?;
+    fn check_definition(definition: &Definition, scope: &mut Scope) -> TypecheckResult {
+        let definition_type =
+            Self::check_expression(Some(&definition.ident), &definition.value, scope)?;
 
-        scope.set(&declaration.ident.value, declaration_type);
+        scope.set(&definition.ident.value, definition_type);
 
         Ok(VariableType::Void)
     }

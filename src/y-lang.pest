@@ -8,17 +8,19 @@ stmt = _{
     intrinsics | expr
 }
 
-intrinsics = _{ declaration | assignment }
+intrinsics = _{ definition | assignment }
 
 ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
 
-declaration = { "let " ~ ident ~ ":=" ~ expr }
+definition = { "let " ~ ident ~ ":=" ~ expr }
 
 assignment = { ident ~ "=" ~ expr }
 
 fnCall = { ident ~ "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
 
 typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+fnDec = { "(" ~ ( typeName ~ ("," ~ typeName)* )? ~ ")" ~ "->" ~ typeName }
 
 typeAnnotation = { ":" ~ typeName  }
 
