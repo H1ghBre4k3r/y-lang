@@ -7,7 +7,9 @@ use Reg::*;
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
-    ast::{BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Intrinsic, Statement},
+    ast::{
+        Assignment, BinaryVerb, Block, Declaration, Expression, FnCall, Ident, Intrinsic, Statement,
+    },
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -240,7 +242,14 @@ impl Scope {
                 self.instructions.push(Comment(format!("LOAD {value}")));
                 self.instructions.push(Mov(Register(Rax), Immediate(value)));
             }
-            Expression::Boolean(_) => todo!(),
+            Expression::Boolean(boolean) => {
+                self.instructions.push(Comment(format!("LOAD {boolean:?}")));
+
+                self.instructions.push(Mov(
+                    Register(Rax),
+                    Immediate(if boolean.value { 1 } else { 0 }),
+                ));
+            }
             Expression::Ident(Ident { value, position }) => {
                 let identifier = value;
                 self.instructions
@@ -266,7 +275,43 @@ impl Scope {
                 self.instructions
                     .push(Mov(Register(Rax), Identifier(var_name)));
             }
-            Expression::FnDef(_) => todo!(),
+            Expression::FnDef(fn_definition) => {
+                // this stuff is basically useful for lambdas
+                let statements = &fn_definition.block.block;
+                let mut function_scope =
+                    Scope::from_statements(statements.clone(), self.level(), true);
+
+                for (index, param) in fn_definition.params.iter().enumerate() {
+                    let identifier = &param.ident;
+
+                    let source = match index {
+                        0 => InstructionOperand::Register(Rdi),
+                        1 => InstructionOperand::Register(Rsi),
+                        _ => todo!(),
+                    };
+
+                    function_scope.add_param(&identifier.value, source);
+                }
+
+                function_scope.compile();
+
+                let mut instructions = function_scope.instructions.clone();
+                instructions.push(Ret);
+
+                for (identifier, constant) in &function_scope.constants {
+                    self.constants
+                        .insert(identifier.to_owned(), constant.to_owned());
+                }
+
+                let fn_name = self.var("fn");
+
+                self.functions
+                    .insert(fn_name.to_owned(), Function { instructions });
+
+                self.instructions.push(Comment(format!("fn {fn_name}")));
+                self.instructions
+                    .push(Mov(Register(Rax), Identifier(fn_name)));
+            }
             Expression::Block(Block { block, .. }) => {
                 let mut scope = Scope::from_statements(block.clone(), self.level(), false);
 
@@ -294,7 +339,7 @@ impl Scope {
     fn compile_intrinsic(&mut self, intrinsic: &Intrinsic) {
         match intrinsic {
             Intrinsic::Declaration(declaration) => self.compile_declaration(declaration),
-            Intrinsic::Assignment(_) => todo!(),
+            Intrinsic::Assignment(assignment) => self.compile_assignment(assignment),
         }
     }
 
@@ -390,7 +435,21 @@ impl Scope {
                     Register(Rax),
                 ));
             }
-            Expression::Ident(_) => todo!(),
+            Expression::Ident(ident) => {
+                self.compile_expression(&declaration.value);
+                self.stack_offset += std::mem::size_of::<i64>();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{name} = {ident:?}",)));
+                self.instructions.push(Mov(
+                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                    Register(Rax),
+                ));
+            }
             Expression::FnDef(fn_definition) => {
                 let statements = &fn_definition.block.block;
                 let mut function_scope =
@@ -440,6 +499,22 @@ impl Scope {
                 ));
             }
         };
+    }
+
+    fn compile_assignment(&mut self, assignment: &Assignment) {
+        let value = &assignment.value;
+        self.compile_expression(value);
+
+        let identifier = &assignment.ident.value;
+
+        if let Some(variable) = self.variables.get(identifier) {
+            self.instructions
+                .push(Comment(format!("{identifier} = {value:?}")));
+            self.instructions.push(Mov(
+                Memory(Qword, format!("{}-{}", Rbp, variable.offset)),
+                Register(Rax),
+            ));
+        }
     }
 
     fn compile_fn_call(&mut self, fn_call: &FnCall) {
@@ -502,11 +577,12 @@ impl Scope {
         } else if name.as_str() == "printi" {
             let param = fn_call.params[0].to_owned();
             match param {
-                Expression::If(_) => todo!(),
-                Expression::BinaryOp(_) => todo!(),
-                Expression::FnCall(_) => todo!(),
-                Expression::Block(_) => todo!(),
-                Expression::Integer(_) => {
+                Expression::If(_)
+                | Expression::BinaryOp(_)
+                | Expression::FnCall(_)
+                | Expression::Block(_)
+                | Expression::Integer(_)
+                | Expression::Ident(_) => {
                     self.compile_expression(&param);
                     self.instructions.append(&mut vec![
                         Mov(Register(Rdi), Register(Rax)),
@@ -517,27 +593,6 @@ impl Scope {
                         Mov(Register(Rdx), Register(Rax)),
                         Call("print".to_owned()),
                     ]);
-                }
-                Expression::Ident(Ident { value, position }) => {
-                    if let Some(variable) = self.variables.get(&value) {
-                        self.instructions.append(&mut vec![
-                            Mov(
-                                Register(Rdi),
-                                Memory(Qword, format!("{}-{}", Rbp, variable.offset)),
-                            ),
-                            Call("int_to_str".to_owned()),
-                            Lea(Register(Rsi), Identifier("int_to_str_val".to_owned())),
-                            Mov(Register(Rdi), Register(Rsi)),
-                            Call("str_len".to_owned()),
-                            Mov(Register(Rdx), Register(Rax)),
-                            Call("print".to_owned()),
-                        ]);
-                    } else {
-                        unreachable!(
-                            "Could not find variable '{value}' ({}:{})",
-                            position.0, position.1
-                        );
-                    }
                 }
                 _ => unreachable!(),
             };

@@ -1,0 +1,27 @@
+printi(3)
+print(" ")
+
+let bar := 17
+printi(bar)
+print(" ")
+
+let foo := () : int => {
+    42
+}
+
+printi(foo())
+print(" ")
+
+printi({
+    13        
+})
+print(" ")
+
+printi(if 3 < 2 {
+    89
+} else {
+    69
+})
+print(" ")
+
+printi(3 + 1)

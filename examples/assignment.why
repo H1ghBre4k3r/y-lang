@@ -1,0 +1,17 @@
+let foo := 42
+
+{
+    let foo := 13
+    printi(foo)
+    print(" ")
+
+    foo = 17
+    printi(foo)
+    print(" ")
+}
+
+printi(foo)
+print(" ")
+
+foo = 1337
+printi(foo)

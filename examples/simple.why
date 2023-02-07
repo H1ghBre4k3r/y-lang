@@ -50,3 +50,7 @@ print(block_variable)
 
 printi(3)
 print("\n")
+
+() : void => {
+    print("Hello, testt")
+}
