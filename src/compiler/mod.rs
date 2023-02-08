@@ -13,6 +13,7 @@ use log::{error, info};
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg, EXIT_SYSCALL, WRITE_SYSCALL},
     ast::Ast,
+    typechecker::TypeInfo,
 };
 
 use self::{scope::Scope, ystd::int_to_str};
@@ -21,7 +22,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn from_ast(ast: Ast) -> Self {
+    pub fn from_ast(ast: Ast<TypeInfo>) -> Self {
         Self {
             scope: Scope::from_statements(ast.nodes(), 0, true),
         }
@@ -113,7 +114,7 @@ impl Compiler {
         file.write_all(format!("{}\n", Label("exit".to_owned())).as_bytes())?;
         file.write_all(format!("{}\n", Mov(Register(Rax), EXIT_SYSCALL)).as_bytes())?;
         file.write_all(format!("{}\n", Mov(Register(Rdi), Immediate(0))).as_bytes())?;
-        file.write_all(format!("{}\n", Syscall).as_bytes())?;
+        file.write_all(format!("{Syscall}\n").as_bytes())?;
 
         Ok(())
     }

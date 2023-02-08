@@ -3,16 +3,16 @@ mod error;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, str::FromStr};
 
 use crate::ast::{
-    Assignment, Ast, BinaryOp, BinaryVerb, Block, Definition, Expression, FnCall, FnDef, Ident, If,
-    Intrinsic, Position, Statement, Type,
+    Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, FnDef,
+    Ident, If, Integer, Intrinsic, Position, Statement, Str, Type,
 };
 
 use self::error::TypeError;
 
-type TypecheckResult = Result<VariableType, TypeError>;
+type TResult<T> = Result<T, TypeError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum VariableType {
+pub enum VariableType {
     Void,
     Bool,
     Str,
@@ -21,12 +21,16 @@ enum VariableType {
     Any,
     Func {
         params: Vec<VariableType>,
-        scope: Scope,
         return_value: Box<VariableType>,
     },
 }
 
-struct VariableParseError(String);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeInfo {
+    _type: VariableType,
+}
+
+pub struct VariableParseError(String);
 
 impl FromStr for VariableType {
     type Err = VariableParseError;
@@ -68,7 +72,7 @@ type ScopeFrame = HashMap<String, VariableType>;
 type ScopeFrameReference = Rc<RefCell<ScopeFrame>>;
 
 #[derive(Default, Debug, Clone)]
-struct Scope {
+pub struct Scope {
     scope_stack: Vec<ScopeFrameReference>,
 }
 
@@ -175,7 +179,6 @@ fn setup_scope() -> Scope {
         "print",
         VariableType::Func {
             params: vec![VariableType::Any],
-            scope: Scope::default(),
             return_value: Box::new(VariableType::Void),
         },
     );
@@ -184,7 +187,6 @@ fn setup_scope() -> Scope {
         "printi",
         VariableType::Func {
             params: vec![VariableType::Int],
-            scope: Scope::default(),
             return_value: Box::new(VariableType::Void),
         },
     );
@@ -193,42 +195,60 @@ fn setup_scope() -> Scope {
 }
 
 pub struct Typechecker {
-    ast: Ast,
+    ast: Ast<()>,
 }
 
 impl Typechecker {
-    pub fn from_ast(ast: Ast) -> Self {
+    pub fn from_ast(ast: Ast<()>) -> Self {
         Self { ast }
     }
 
-    pub fn check(&self) -> Result<(), TypeError> {
+    pub fn check(&self) -> Result<Ast<TypeInfo>, TypeError> {
         let nodes = self.ast.nodes();
 
         let mut scope = setup_scope();
 
+        let mut statements = vec![];
+
         for node in nodes {
-            Self::check_statement(&node, &mut scope)?;
+            statements.push(Self::check_statement(&node, &mut scope)?);
         }
 
-        Ok(())
+        Ok(Ast::from_nodes(statements))
     }
 
-    fn check_statement(statement: &Statement, scope: &mut Scope) -> TypecheckResult {
+    fn check_statement(
+        statement: &Statement<()>,
+        scope: &mut Scope,
+    ) -> TResult<Statement<TypeInfo>> {
         Ok(match &statement {
-            Statement::Expression(expression) => Self::check_expression(None, expression, scope)?,
-            Statement::Intrinsic(intrinsic) => Self::check_intrinsic(intrinsic, scope)?,
+            Statement::Expression(expression) => {
+                Statement::Expression(Self::check_expression(None, expression, scope)?)
+            }
+            Statement::Intrinsic(intrinsic) => {
+                Statement::Intrinsic(Self::check_intrinsic(intrinsic, scope)?)
+            }
         })
     }
 
-    fn check_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> TypecheckResult {
-        match &intrinsic {
-            Intrinsic::Definition(definition) => Self::check_definition(definition, scope),
-            Intrinsic::Assignment(assignment) => Self::check_assignment(assignment, scope),
-        }
+    fn check_intrinsic(
+        intrinsic: &Intrinsic<()>,
+        scope: &mut Scope,
+    ) -> TResult<Intrinsic<TypeInfo>> {
+        Ok(match &intrinsic {
+            Intrinsic::Definition(definition) => {
+                Intrinsic::Definition(Self::check_definition(definition, scope)?)
+            }
+            Intrinsic::Assignment(assignment) => {
+                Intrinsic::Assignment(Self::check_assignment(assignment, scope)?)
+            }
+        })
     }
 
-    fn check_if(if_statement: &If, scope: &mut Scope) -> TypecheckResult {
-        let condition_type = Self::check_expression(None, &if_statement.condition, scope)?;
+    fn check_if(if_statement: &If<()>, scope: &mut Scope) -> TResult<If<TypeInfo>> {
+        let condition = Self::check_expression(None, &if_statement.condition, scope)?;
+        let condition_info = condition.info();
+        let condition_type = condition_info._type;
 
         if condition_type != VariableType::Bool {
             return Err(TypeError {
@@ -237,48 +257,89 @@ impl Typechecker {
             });
         }
 
-        let if_return_type = Self::check_block(&if_statement.if_block, scope)?;
+        let if_block = Self::check_block(&if_statement.if_block, scope)?;
+        let if_block_type = if_block.info._type.clone();
+
+        let mut new_if = If {
+            condition: Box::new(condition),
+            if_block,
+            else_block: None,
+            position: if_statement.position,
+            info: TypeInfo {
+                _type: if_block_type.clone(),
+            },
+        };
 
         if let Some(else_block) = &if_statement.else_block {
-            let else_return_type = Self::check_block(else_block, scope)?;
+            let else_block = Self::check_block(else_block, scope)?;
+            let else_block_type = else_block.info._type.clone();
 
-            if if_return_type != else_return_type {
+            if if_block_type != else_block_type {
                 return Err(TypeError {
                     message: format!(
-                        "Return type mismatch of if-else. Got '{if_return_type}' and '{else_return_type}'"
+                        "Return type mismatch of if-else. Got '{if_block_type}' and '{else_block_type}'"
                     ),
                     position: if_statement.position,
                 });
             }
+
+            new_if.else_block = Some(else_block);
         }
 
-        Ok(if_return_type)
+        Ok(new_if)
     }
 
-    fn check_block(block: &Block, scope: &mut Scope) -> TypecheckResult {
+    fn check_block(block: &Block<()>, scope: &mut Scope) -> TResult<Block<TypeInfo>> {
         scope.push();
 
-        let mut last_return = VariableType::Void;
+        let mut new_block = Block {
+            position: block.position,
+            block: vec![],
+            info: TypeInfo {
+                _type: VariableType::Void,
+            },
+        };
 
         for statement in &block.block {
-            last_return = Self::check_statement(statement, scope)?;
+            let statement = Self::check_statement(statement, scope)?;
+            new_block.info._type = statement.info()._type;
+            new_block.block.push(statement);
         }
 
         scope.pop();
 
-        Ok(last_return)
+        Ok(new_block)
     }
 
-    fn check_definition(definition: &Definition, scope: &mut Scope) -> TypecheckResult {
-        let definition_type =
+    fn check_definition(
+        definition: &Definition<()>,
+        scope: &mut Scope,
+    ) -> TResult<Definition<TypeInfo>> {
+        let definition_rhs =
             Self::check_expression(Some(&definition.ident), &definition.value, scope)?;
 
-        scope.set(&definition.ident.value, definition_type);
+        scope.set(&definition.ident.value, definition_rhs.info()._type);
 
-        Ok(VariableType::Void)
+        let ident = &definition.ident;
+
+        Ok(Definition {
+            ident: Ident {
+                position: ident.position,
+                value: ident.value.clone(),
+                info: definition_rhs.info(),
+            },
+            value: definition_rhs,
+            position: definition.position,
+            info: TypeInfo {
+                _type: VariableType::Void,
+            },
+        })
     }
 
-    fn check_assignment(assignment: &Assignment, scope: &mut Scope) -> TypecheckResult {
+    fn check_assignment(
+        assignment: &Assignment<()>,
+        scope: &mut Scope,
+    ) -> TResult<Assignment<TypeInfo>> {
         let ident = &assignment.ident;
 
         if !scope.contains(&ident.value) {
@@ -298,34 +359,83 @@ impl Typechecker {
             });
         }
 
-        let assignment_type = Self::check_expression(Some(ident), &assignment.value, scope)?;
+        let assignment_rhs = Self::check_expression(Some(ident), &assignment.value, scope)?;
 
-        scope.update(&ident.value, assignment_type, &assignment.position)?;
+        scope.update(
+            &ident.value,
+            assignment_rhs.info()._type,
+            &assignment.position,
+        )?;
 
-        Ok(VariableType::Void)
+        Ok(Assignment {
+            ident: Ident {
+                position: ident.position,
+                value: ident.value.clone(),
+                info: assignment_rhs.info(),
+            },
+            value: assignment_rhs,
+            position: assignment.position,
+            info: TypeInfo {
+                _type: VariableType::Void,
+            },
+        })
     }
 
     fn check_expression(
-        identifier: Option<&Ident>,
-        expression: &Expression,
+        identifier: Option<&Ident<()>>,
+        expression: &Expression<()>,
         scope: &mut Scope,
-    ) -> TypecheckResult {
-        match expression {
-            Expression::If(if_statement) => Self::check_if(if_statement, scope),
-            Expression::BinaryOp(binary_op) => Self::check_binary_operation(binary_op, scope),
-            Expression::Integer(_) => Ok(VariableType::Int),
-            Expression::Str(_) => Ok(VariableType::Str),
-            Expression::Boolean(_) => Ok(VariableType::Bool),
-            Expression::Ident(ident) => Self::check_identifier(ident, scope),
-            Expression::FnCall(fn_call) => Self::check_fn_call(fn_call, scope),
-            Expression::FnDef(fn_def) => Self::check_fn_def(identifier, fn_def, scope),
-            Expression::Block(block) => Self::check_block(block, scope),
-        }
+    ) -> TResult<Expression<TypeInfo>> {
+        Ok(match expression {
+            Expression::If(if_statement) => Expression::If(Self::check_if(if_statement, scope)?),
+            Expression::BinaryOp(binary_op) => {
+                Expression::BinaryOp(Self::check_binary_operation(binary_op, scope)?)
+            }
+            Expression::Integer(Integer {
+                value, position, ..
+            }) => Expression::Integer(Integer {
+                value: *value,
+                position: *position,
+                info: TypeInfo {
+                    _type: VariableType::Int,
+                },
+            }),
+            Expression::Str(Str {
+                value, position, ..
+            }) => Expression::Str(Str {
+                value: value.to_owned(),
+                position: *position,
+                info: TypeInfo {
+                    _type: VariableType::Str,
+                },
+            }),
+            Expression::Boolean(Boolean {
+                value, position, ..
+            }) => Expression::Boolean(Boolean {
+                value: *value,
+                position: *position,
+                info: TypeInfo {
+                    _type: VariableType::Bool,
+                },
+            }),
+            Expression::Ident(ident) => Expression::Ident(Self::check_identifier(ident, scope)?),
+            Expression::FnCall(fn_call) => Expression::FnCall(Self::check_fn_call(fn_call, scope)?),
+            Expression::FnDef(fn_def) => {
+                Expression::FnDef(Self::check_fn_def(identifier, fn_def, scope)?)
+            }
+            Expression::Block(block) => Expression::Block(Self::check_block(block, scope)?),
+        })
     }
 
-    fn check_identifier(identifier: &Ident, scope: &mut Scope) -> TypecheckResult {
+    fn check_identifier(identifier: &Ident<()>, scope: &mut Scope) -> TResult<Ident<TypeInfo>> {
         match scope.find(&identifier.value) {
-            Some(identifier_type) => Ok(identifier_type),
+            Some(identifier_type) => Ok(Ident {
+                value: identifier.value.clone(),
+                position: identifier.position,
+                info: TypeInfo {
+                    _type: identifier_type,
+                },
+            }),
             None => {
                 return Err(TypeError {
                     message: format!("Undefined identifier '{}'", identifier.value),
@@ -335,7 +445,7 @@ impl Typechecker {
         }
     }
 
-    fn get_type_def(type_: &Type, position: Position) -> TypecheckResult {
+    fn get_type_def(type_: &Type, position: Position) -> Result<VariableType, TypeError> {
         match type_ {
             Type::Literal(literal) => literal.parse().map_err(|_| TypeError {
                 message: format!("Unexpected type annotatiot '{type_:?}'"),
@@ -354,17 +464,16 @@ impl Typechecker {
                 Ok(VariableType::Func {
                     return_value: Box::new(return_type),
                     params: fn_params,
-                    scope: Scope::default(),
                 })
             }
         }
     }
 
     fn check_fn_def(
-        identifier: Option<&Ident>,
-        fn_def: &FnDef,
+        identifier: Option<&Ident<()>>,
+        fn_def: &FnDef<()>,
         scope: &mut Scope,
-    ) -> TypecheckResult {
+    ) -> TResult<FnDef<TypeInfo>> {
         let type_annotation = Self::get_type_def(
             &fn_def.type_annotation.value,
             fn_def.type_annotation.position,
@@ -374,9 +483,6 @@ impl Typechecker {
         let mut params = vec![];
 
         for param in &fn_def.params {
-            //     let Ok(param_type) = param.type_annotation.value.parse::<VariableType>() else {
-            //     panic!()
-            // };
             let param_type =
                 Self::get_type_def(&param.type_annotation.value, param.type_annotation.position)?;
 
@@ -390,34 +496,39 @@ impl Typechecker {
                 VariableType::Func {
                     params: params.clone(),
                     return_value: Box::new(type_annotation.clone()),
-                    scope: scope.clone(),
                 },
             )
         }
 
-        let return_value = Self::check_block(&fn_def.block, scope)?;
+        let block = Self::check_block(&fn_def.block, scope)?;
 
-        if return_value != type_annotation {
+        if block.info._type != type_annotation {
             return Err(TypeError {
                 message: format!(
-                    "Expected return type of '{type_annotation}' but got '{return_value}'"
+                    "Expected return type of '{type_annotation}' but got '{}'",
+                    block.info._type
                 ),
                 position: fn_def.position,
             });
         }
 
-        let function_scope = scope.clone();
-
         scope.pop();
 
-        Ok(VariableType::Func {
-            params,
-            return_value: Box::new(return_value),
-            scope: function_scope,
+        Ok(FnDef {
+            params: fn_def.params.clone(),
+            type_annotation: fn_def.type_annotation.clone(),
+            block: block.clone(),
+            position: fn_def.position,
+            info: TypeInfo {
+                _type: VariableType::Func {
+                    params,
+                    return_value: Box::new(block.info._type),
+                },
+            },
         })
     }
 
-    fn check_fn_call(fn_call: &FnCall, scope: &mut Scope) -> TypecheckResult {
+    fn check_fn_call(fn_call: &FnCall<()>, scope: &mut Scope) -> TResult<FnCall<TypeInfo>> {
         scope.push();
 
         let ident = &fn_call.ident.value;
@@ -429,12 +540,12 @@ impl Typechecker {
             });
         };
 
-        let VariableType::Func { params, return_value, .. } = fn_def else {
-        return Err(TypeError {
-            message: format!("Trying to call an invalid function '{ident}'"),
-            position: fn_call.position,
-        });
-    };
+        let VariableType::Func { params, return_value, .. } = fn_def.clone() else {
+            return Err(TypeError {
+                message: format!("Trying to call an invalid function '{ident}'"),
+                position: fn_call.position,
+            });
+        };
 
         if params.len() != fn_call.params.len() {
             return Err(TypeError {
@@ -447,8 +558,12 @@ impl Typechecker {
             });
         }
 
+        let mut new_params = vec![];
+
         for (i, param) in params.iter().enumerate() {
-            let call_param_type = Self::check_expression(None, &fn_call.params[i], scope)?;
+            let call_param = Self::check_expression(None, &fn_call.params[i], scope)?;
+            let call_param_type = call_param.info()._type;
+
             if param != &call_param_type && param != &VariableType::Any {
                 return Err(TypeError {
                     message: format!(
@@ -457,21 +572,40 @@ impl Typechecker {
                     position: fn_call.params[i].position(),
                 });
             }
+
+            new_params.push(call_param);
         }
 
         scope.pop();
 
-        Ok(*return_value)
+        Ok(FnCall {
+            ident: Ident {
+                value: fn_call.ident.value.clone(),
+                position: fn_call.ident.position,
+                info: TypeInfo { _type: fn_def },
+            },
+            params: new_params,
+            position: fn_call.position,
+            info: TypeInfo {
+                _type: *return_value,
+            },
+        })
     }
 
-    fn check_binary_operation(binary_operation: &BinaryOp, scope: &mut Scope) -> TypecheckResult {
+    fn check_binary_operation(
+        binary_operation: &BinaryOp<()>,
+        scope: &mut Scope,
+    ) -> TResult<BinaryOp<TypeInfo>> {
         let position = binary_operation.position;
 
         let lhs = &binary_operation.lhs;
         let rhs = &binary_operation.rhs;
 
-        let l_type = Self::check_expression(None, lhs, scope)?;
-        let r_type = Self::check_expression(None, rhs, scope)?;
+        let lhs = Self::check_expression(None, lhs, scope)?;
+        let l_type = lhs.info()._type;
+
+        let rhs = Self::check_expression(None, rhs, scope)?;
+        let r_type = rhs.info()._type;
 
         match binary_operation.verb {
             BinaryVerb::Equal => {
@@ -483,7 +617,15 @@ impl Typechecker {
                         position,
                     });
                 }
-                Ok(VariableType::Bool)
+                Ok(BinaryOp {
+                    verb: binary_operation.verb,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                    position: binary_operation.position,
+                    info: TypeInfo {
+                        _type: VariableType::Bool,
+                    },
+                })
             }
             BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
                 if l_type != VariableType::Int || r_type != VariableType::Int {
@@ -495,7 +637,15 @@ impl Typechecker {
                         position,
                     });
                 }
-                Ok(VariableType::Bool)
+                Ok(BinaryOp {
+                    verb: binary_operation.verb,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                    position: binary_operation.position,
+                    info: TypeInfo {
+                        _type: VariableType::Bool,
+                    },
+                })
             }
             BinaryVerb::Plus | BinaryVerb::Minus | BinaryVerb::Times => {
                 if l_type != VariableType::Int {
@@ -514,7 +664,15 @@ impl Typechecker {
                     });
                 }
 
-                Ok(VariableType::Int)
+                Ok(BinaryOp {
+                    verb: binary_operation.verb,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                    position: binary_operation.position,
+                    info: TypeInfo {
+                        _type: VariableType::Int,
+                    },
+                })
             }
         }
     }

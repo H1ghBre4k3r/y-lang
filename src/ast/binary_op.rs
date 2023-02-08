@@ -3,15 +3,16 @@ use pest::iterators::Pair;
 use super::{BinaryVerb, Expression, Position, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BinaryOp {
+pub struct BinaryOp<T> {
     pub verb: BinaryVerb,
-    pub lhs: Box<Expression>,
-    pub rhs: Box<Expression>,
+    pub lhs: Box<Expression<T>>,
+    pub rhs: Box<Expression<T>>,
     pub position: Position,
+    pub info: T,
 }
 
-impl BinaryOp {
-    pub fn from_pair(pair: Pair<Rule>) -> BinaryOp {
+impl BinaryOp<()> {
+    pub fn from_pair(pair: Pair<Rule>) -> BinaryOp<()> {
         assert_eq!(pair.as_rule(), Rule::binaryExpr);
 
         let mut inner = pair.clone().into_inner();
@@ -38,6 +39,7 @@ impl BinaryOp {
             rhs: Box::new(rhs),
             verb,
             position: pair.line_col(),
+            info: (),
         }
     }
 }

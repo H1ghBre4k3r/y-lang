@@ -3,13 +3,14 @@ use pest::iterators::Pair;
 use super::{Position, Rule, Statement};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Block {
-    pub block: Vec<Statement>,
+pub struct Block<T> {
+    pub block: Vec<Statement<T>>,
     pub position: Position,
+    pub info: T,
 }
 
-impl Block {
-    pub fn from_pair(pair: Pair<Rule>) -> Block {
+impl Block<()> {
+    pub fn from_pair(pair: Pair<Rule>) -> Block<()> {
         assert_eq!(pair.as_rule(), Rule::block);
 
         let position = pair.line_col();
@@ -25,6 +26,7 @@ impl Block {
         Block {
             block: block_ast,
             position,
+            info: (),
         }
     }
 }

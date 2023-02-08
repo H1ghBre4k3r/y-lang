@@ -10,6 +10,7 @@ use crate::{
     ast::{
         Assignment, BinaryVerb, Block, Definition, Expression, FnCall, Ident, Intrinsic, Statement,
     },
+    typechecker::TypeInfo,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -45,7 +46,7 @@ type FunctionMap = HashMap<String, Function>;
 #[derive(Debug, Default)]
 pub struct Scope {
     params: Parameters,
-    pub statements: Vec<Statement>,
+    pub statements: Vec<Statement<TypeInfo>>,
     pub variables: VariableMap,
     pub constants: ConstantsMap,
     pub functions: FunctionMap,
@@ -59,7 +60,7 @@ pub struct Scope {
 
 impl Scope {
     pub fn from_statements(
-        statements: Vec<Statement>,
+        statements: Vec<Statement<TypeInfo>>,
         level: usize,
         new_stack_frame: bool,
     ) -> Self {
@@ -152,14 +153,14 @@ impl Scope {
         }
     }
 
-    fn compile_statement(&mut self, statement: &Statement) {
+    fn compile_statement(&mut self, statement: &Statement<TypeInfo>) {
         match statement {
             Statement::Expression(expression) => self.compile_expression(expression),
             Statement::Intrinsic(intrinsic) => self.compile_intrinsic(intrinsic),
         }
     }
 
-    fn compile_expression(&mut self, expression: &Expression) {
+    fn compile_expression(&mut self, expression: &Expression<TypeInfo>) {
         match expression {
             Expression::If(if_statement) => {
                 let condition = &if_statement.condition;
@@ -250,7 +251,9 @@ impl Scope {
                     Immediate(if boolean.value { 1 } else { 0 }),
                 ));
             }
-            Expression::Ident(Ident { value, position }) => {
+            Expression::Ident(Ident {
+                value, position, ..
+            }) => {
                 let identifier = value;
                 self.instructions
                     .push(Comment(format!("LOAD {identifier}")));
@@ -261,7 +264,7 @@ impl Scope {
                 } else if let Some(constant) = self.constants.get(identifier) {
                     self.instructions
                         .push(Lea(Register(Rax), Identifier(constant.name.to_owned())));
-                } else if let Some(_) = self.functions.get(identifier) {
+                } else if self.functions.get(identifier).is_some() {
                     self.instructions
                         .push(Mov(Register(Rax), Identifier(identifier.to_owned())));
                 } else {
@@ -338,14 +341,14 @@ impl Scope {
         }
     }
 
-    fn compile_intrinsic(&mut self, intrinsic: &Intrinsic) {
+    fn compile_intrinsic(&mut self, intrinsic: &Intrinsic<TypeInfo>) {
         match intrinsic {
             Intrinsic::Definition(definition) => self.compile_definition(definition),
             Intrinsic::Assignment(assignment) => self.compile_assignment(assignment),
         }
     }
 
-    fn compile_definition(&mut self, definition: &Definition) {
+    fn compile_definition(&mut self, definition: &Definition<TypeInfo>) {
         let name = &definition.ident.value;
 
         match &definition.value {
@@ -503,7 +506,7 @@ impl Scope {
         };
     }
 
-    fn compile_assignment(&mut self, assignment: &Assignment) {
+    fn compile_assignment(&mut self, assignment: &Assignment<TypeInfo>) {
         let value = &assignment.value;
         self.compile_expression(value);
 
@@ -519,7 +522,7 @@ impl Scope {
         }
     }
 
-    fn compile_fn_call(&mut self, fn_call: &FnCall) {
+    fn compile_fn_call(&mut self, fn_call: &FnCall<TypeInfo>) {
         let mut name = fn_call.ident.value.to_owned();
 
         self.instructions
@@ -528,7 +531,9 @@ impl Scope {
         if name.as_str() == "print" {
             let param = fn_call.params[0].to_owned();
             match param {
-                Expression::Ident(Ident { value, position }) => {
+                Expression::Ident(Ident {
+                    value, position, ..
+                }) => {
                     if let Some(constant) = self.constants.get(&value) {
                         self.instructions.append(&mut vec![
                             Lea(Register(Rsi), Identifier(constant.name.to_owned())),

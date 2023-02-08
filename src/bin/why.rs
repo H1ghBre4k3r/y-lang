@@ -39,15 +39,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let ast = Ast::from_program(pairs);
 
-    let typechecker = Typechecker::from_ast(ast.clone());
+    let typechecker = Typechecker::from_ast(ast);
 
-    if let Err(type_error) = typechecker.check() {
-        error!(
-            "{} ({}:{})",
-            type_error.message, type_error.position.0, type_error.position.1
-        );
-        std::process::exit(-1);
-    }
+    let ast = match typechecker.check() {
+        Ok(ast) => ast,
+        Err(type_error) => {
+            error!(
+                "{} ({}:{})",
+                type_error.message, type_error.position.0, type_error.position.1
+            );
+            std::process::exit(-1);
+        }
+    };
 
     if args.run {
         let interpreter = Interpreter::from_ast(ast.clone());

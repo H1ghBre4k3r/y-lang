@@ -4,15 +4,16 @@ use pest::iterators::Pair;
 use super::{Block, Param, Position, Rule, TypeAnnotation};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct FnDef {
+pub struct FnDef<T> {
     pub params: Vec<Param>,
     pub type_annotation: TypeAnnotation,
-    pub block: Block,
+    pub block: Block<T>,
     pub position: Position,
+    pub info: T,
 }
 
-impl FnDef {
-    pub fn from_pair(pair: Pair<Rule>) -> FnDef {
+impl FnDef<()> {
+    pub fn from_pair(pair: Pair<Rule>) -> FnDef<()> {
         assert_eq!(pair.as_rule(), Rule::fnDef);
 
         let position = pair.line_col();
@@ -42,6 +43,7 @@ impl FnDef {
             type_annotation,
             block,
             position,
+            info: (),
         }
     }
 

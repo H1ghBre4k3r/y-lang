@@ -49,12 +49,12 @@ pub use self::parser::*;
 pub type Position = (usize, usize);
 
 #[derive(Debug, Clone)]
-pub struct Ast {
-    nodes: Vec<Statement>,
+pub struct Ast<T> {
+    nodes: Vec<Statement<T>>,
 }
 
-impl Ast {
-    pub fn from_program(program: Pairs<Rule>) -> Ast {
+impl Ast<()> {
+    pub fn from_program(program: Pairs<Rule>) -> Ast<()> {
         let mut ast = vec![];
 
         for statement in program {
@@ -64,8 +64,17 @@ impl Ast {
         }
         Self { nodes: ast }
     }
+}
 
-    pub fn nodes(&self) -> Vec<Statement> {
+impl<T> Ast<T>
+where
+    T: Clone,
+{
+    pub fn from_nodes(nodes: Vec<Statement<T>>) -> Ast<T> {
+        Self { nodes }
+    }
+
+    pub fn nodes(&self) -> Vec<Statement<T>> {
         self.nodes.clone()
     }
 }

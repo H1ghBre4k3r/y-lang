@@ -1,12 +1,15 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
-use crate::ast::{
-    Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, FnDef,
-    Ident, If, Integer, Intrinsic, Statement, Str,
+use crate::{
+    ast::{
+        Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall,
+        FnDef, Ident, If, Integer, Intrinsic, Statement, Str,
+    },
+    typechecker::TypeInfo,
 };
 
 pub struct Interpreter {
-    ast: Ast,
+    ast: Ast<TypeInfo>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,7 +20,7 @@ enum VariableValue {
     Int(i64),
     Func {
         params: Vec<String>,
-        block: Block,
+        block: Block<TypeInfo>,
         scope: Scope,
     },
 }
@@ -95,7 +98,7 @@ impl Scope {
 }
 
 impl Interpreter {
-    pub fn from_ast(ast: Ast) -> Self {
+    pub fn from_ast(ast: Ast<TypeInfo>) -> Self {
         Self { ast }
     }
 
@@ -111,21 +114,21 @@ impl Interpreter {
         }
     }
 
-    fn run_statement(statement: &Statement, scope: &mut Scope) -> VariableValue {
+    fn run_statement(statement: &Statement<TypeInfo>, scope: &mut Scope) -> VariableValue {
         match &statement {
             Statement::Expression(expression) => Self::run_expression(expression, scope),
             Statement::Intrinsic(intrinsic) => Self::run_intrinsic(intrinsic, scope),
         }
     }
 
-    fn run_intrinsic(intrinsic: &Intrinsic, scope: &mut Scope) -> VariableValue {
+    fn run_intrinsic(intrinsic: &Intrinsic<TypeInfo>, scope: &mut Scope) -> VariableValue {
         match intrinsic {
             Intrinsic::Definition(definition) => Self::run_definition(definition, scope),
             Intrinsic::Assignment(assignment) => Self::run_assignment(assignment, scope),
         }
     }
 
-    fn run_if(if_statement: &If, scope: &mut Scope) -> VariableValue {
+    fn run_if(if_statement: &If<TypeInfo>, scope: &mut Scope) -> VariableValue {
         let condition = &if_statement.condition;
         let VariableValue::Bool(condition) = Self::run_expression(condition, scope) else {
             let position = condition.position();
@@ -145,7 +148,7 @@ impl Interpreter {
         }
     }
 
-    fn run_block(block: &Block, scope: &mut Scope) -> VariableValue {
+    fn run_block(block: &Block<TypeInfo>, scope: &mut Scope) -> VariableValue {
         scope.push();
 
         let mut return_value = VariableValue::Void;
@@ -159,21 +162,21 @@ impl Interpreter {
         return_value
     }
 
-    fn run_definition(definition: &Definition, scope: &mut Scope) -> VariableValue {
+    fn run_definition(definition: &Definition<TypeInfo>, scope: &mut Scope) -> VariableValue {
         let value = Self::run_expression(&definition.value, scope);
 
         scope.set(&definition.ident.value, value);
         VariableValue::Void
     }
 
-    fn run_assignment(assignment: &Assignment, scope: &mut Scope) -> VariableValue {
+    fn run_assignment(assignment: &Assignment<TypeInfo>, scope: &mut Scope) -> VariableValue {
         let value = Self::run_expression(&assignment.value, scope);
 
         scope.update(&assignment.ident.value, value);
         VariableValue::Void
     }
 
-    fn run_expression(expression: &Expression, scope: &mut Scope) -> VariableValue {
+    fn run_expression(expression: &Expression<TypeInfo>, scope: &mut Scope) -> VariableValue {
         match expression {
             Expression::If(if_statement) => Self::run_if(if_statement, scope),
             Expression::Integer(Integer { value, .. }) => VariableValue::Int(*value),
@@ -195,7 +198,10 @@ impl Interpreter {
         }
     }
 
-    fn run_binary_operation(binary_operation: &BinaryOp, scope: &mut Scope) -> VariableValue {
+    fn run_binary_operation(
+        binary_operation: &BinaryOp<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
         let lhs = &binary_operation.lhs;
         let rhs = &binary_operation.rhs;
 
@@ -237,7 +243,7 @@ impl Interpreter {
         }
     }
 
-    fn run_fn_def(fn_def: &FnDef, scope: &mut Scope) -> VariableValue {
+    fn run_fn_def(fn_def: &FnDef<TypeInfo>, scope: &mut Scope) -> VariableValue {
         let mut params = vec![];
 
         for param in &fn_def.params {
@@ -251,7 +257,7 @@ impl Interpreter {
         }
     }
 
-    fn run_fn_call(fn_call: &FnCall, scope: &mut Scope) -> VariableValue {
+    fn run_fn_call(fn_call: &FnCall<TypeInfo>, scope: &mut Scope) -> VariableValue {
         scope.push();
 
         let ident = &fn_call.ident;

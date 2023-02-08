@@ -3,14 +3,15 @@ use pest::iterators::Pair;
 use super::{Expression, Ident, Position, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Assignment {
-    pub ident: Ident,
-    pub value: Expression,
+pub struct Assignment<T> {
+    pub ident: Ident<T>,
+    pub value: Expression<T>,
     pub position: Position,
+    pub info: T,
 }
 
-impl Assignment {
-    pub fn from_pair(pair: Pair<Rule>) -> Assignment {
+impl Assignment<()> {
+    pub fn from_pair(pair: Pair<Rule>) -> Assignment<()> {
         let mut inner = pair.clone().into_inner();
 
         let ident = Ident::from_pair(inner.next().unwrap_or_else(|| {
@@ -36,6 +37,7 @@ impl Assignment {
             ident,
             value,
             position: pair.line_col(),
+            info: (),
         }
     }
 }

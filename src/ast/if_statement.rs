@@ -3,15 +3,16 @@ use pest::iterators::Pair;
 use super::{Block, Expression, Position, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct If {
-    pub condition: Box<Expression>,
-    pub if_block: Block,
-    pub else_block: Option<Block>,
+pub struct If<T> {
+    pub condition: Box<Expression<T>>,
+    pub if_block: Block<T>,
+    pub else_block: Option<Block<T>>,
     pub position: Position,
+    pub info: T,
 }
 
-impl If {
-    pub fn from_pair(pair: Pair<Rule>) -> If {
+impl If<()> {
+    pub fn from_pair(pair: Pair<Rule>) -> If<()> {
         assert_eq!(pair.as_rule(), Rule::ifStmt);
 
         let position = pair.line_col();
@@ -26,6 +27,7 @@ impl If {
             if_block: Block::from_pair(if_block),
             else_block,
             position,
+            info: (),
         }
     }
 }
