@@ -1,0 +1,23 @@
+let a := 456
+
+let b := true
+
+let c := 123
+
+printi(a)
+
+printi(c)
+
+let d := true
+
+let foo := () : void => {
+    print("\nFrom Function\n")
+}
+
+let e := true 
+
+let bar := foo
+
+foo()
+bar()
+

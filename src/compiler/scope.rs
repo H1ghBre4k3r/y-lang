@@ -356,7 +356,7 @@ impl Scope {
                 self.add_string_constant(Some(name.to_owned()), &string.value.to_owned());
             }
             Expression::Integer(integer) => {
-                self.stack_offset += std::mem::size_of::<i64>();
+                self.stack_offset += integer.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -371,7 +371,7 @@ impl Scope {
                 ));
             }
             Expression::Boolean(boolean) => {
-                self.stack_offset += std::mem::size_of::<i64>();
+                self.stack_offset += boolean.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -381,14 +381,14 @@ impl Scope {
                     .push(Comment(format!("{} = {}", name, boolean.value)));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                    Memory(Byte, format!("{}-{}", Rbp, self.stack_offset)),
                     Immediate(if boolean.value { 1 } else { 0 }),
                 ));
             }
             Expression::If(if_statement) => {
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += std::mem::size_of::<i64>();
+                self.stack_offset += if_statement.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -407,7 +407,7 @@ impl Scope {
             Expression::BinaryOp(binary_operation) => {
                 self.compile_expression(&Expression::BinaryOp(binary_operation.to_owned()));
 
-                self.stack_offset += std::mem::size_of::<i64>();
+                self.stack_offset += binary_operation.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -426,7 +426,7 @@ impl Scope {
             Expression::FnCall(fn_call) => {
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += std::mem::size_of::<i64>();
+                self.stack_offset += fn_call.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -442,7 +442,7 @@ impl Scope {
             }
             Expression::Ident(ident) => {
                 self.compile_expression(&definition.value);
-                self.stack_offset += std::mem::size_of::<i64>();
+                self.stack_offset += ident.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -450,6 +450,7 @@ impl Scope {
 
                 self.instructions
                     .push(Comment(format!("{name} = {ident:?}",)));
+                // TODO: This does not cover booleans or other non-aligned types
                 self.instructions.push(Mov(
                     Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
                     Register(Rax),
@@ -489,7 +490,7 @@ impl Scope {
             Expression::Block(block) => {
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += std::mem::size_of::<i64>();
+                self.stack_offset += block.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };

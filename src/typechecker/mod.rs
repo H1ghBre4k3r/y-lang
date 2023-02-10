@@ -1,198 +1,22 @@
 mod error;
-
-use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, str::FromStr};
+mod info;
+mod typescope;
+mod variabletype;
 
 use crate::ast::{
     Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, FnDef,
     Ident, If, Integer, Intrinsic, Position, Statement, Str, Type,
 };
 
-use self::error::TypeError;
+pub use self::info::TypeInfo;
+
+use self::{
+    error::TypeError,
+    typescope::{setup_scope, TypeScope},
+    variabletype::VariableType,
+};
 
 type TResult<T> = Result<T, TypeError>;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum VariableType {
-    Void,
-    Bool,
-    Str,
-    Int,
-    // TODO: Maybe just dont use
-    Any,
-    Func {
-        params: Vec<VariableType>,
-        return_value: Box<VariableType>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeInfo {
-    _type: VariableType,
-}
-
-pub struct VariableParseError(String);
-
-impl FromStr for VariableType {
-    type Err = VariableParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "void" => Ok(Self::Void),
-            "bool" => Ok(Self::Bool),
-            "str" => Ok(Self::Str),
-            "int" => Ok(Self::Int),
-            _ => Err(VariableParseError(format!("Invalid type '{s}'"))),
-        }
-    }
-}
-
-impl Display for VariableType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use VariableType::*;
-
-        let value = &match self {
-            Void => "void".to_owned(),
-            Bool => "bool".to_owned(),
-            Int => "int".to_owned(),
-            Str => "str".to_owned(),
-            Any => "any".to_owned(),
-            Func {
-                params,
-                return_value,
-                ..
-            } => format!("{params:?} -> {return_value:?}"),
-        };
-
-        f.write_str(value)
-    }
-}
-
-type ScopeFrame = HashMap<String, VariableType>;
-
-type ScopeFrameReference = Rc<RefCell<ScopeFrame>>;
-
-#[derive(Default, Debug, Clone)]
-pub struct Scope {
-    scope_stack: Vec<ScopeFrameReference>,
-}
-
-impl PartialEq for Scope {
-    fn eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-
-impl Eq for Scope {}
-
-impl Scope {
-    /// Find a value/reference in this scope by iterating over the scopes from back to front.
-    pub fn find(&self, name: &str) -> Option<VariableType> {
-        let mut scopes = self.scope_stack.clone();
-        scopes.reverse();
-        for scope in scopes {
-            if let Some(variable) = scope.borrow().get(name) {
-                return Some(variable.clone());
-            }
-        }
-
-        None
-    }
-
-    pub fn is_in_current_scope(&self, name: &str) -> bool {
-        let scopes = self.scope_stack.clone();
-        if let Some(last) = scopes.last() {
-            return last.borrow().contains_key(name);
-        }
-        false
-    }
-
-    /// Check, if a variable with a given name is present.
-    pub fn contains(&self, name: &str) -> bool {
-        let mut scopes = self.scope_stack.clone();
-        scopes.reverse();
-        for scope in &scopes {
-            if scope.borrow().contains_key(name) {
-                return true;
-            }
-        }
-
-        false
-    }
-
-    /// Push a new scope frame.
-    pub fn push(&mut self) {
-        self.scope_stack.push(Rc::new(RefCell::new(HashMap::new())))
-    }
-
-    /// Pop the last scope frame.
-    pub fn pop(&mut self) {
-        self.scope_stack.pop();
-    }
-
-    /// Create a new variable on the current scope.
-    pub fn set(&mut self, name: &str, value: VariableType) {
-        if let Some(scope) = self.scope_stack.last_mut() {
-            scope.borrow_mut().insert(name.to_owned(), value);
-        }
-    }
-
-    /// Update a value of an already present variable.
-    pub fn update(
-        &mut self,
-        name: &str,
-        value: VariableType,
-        position: &(usize, usize),
-    ) -> Result<(), TypeError> {
-        let mut scopes = self.scope_stack.clone();
-        scopes.reverse();
-
-        for scope in &mut scopes {
-            let mut scope = scope.borrow_mut();
-            if let Some(old_type) = scope.get(name) {
-                if *old_type != value {
-                    return Err(TypeError {
-                        message: format!(
-                            "Could not assign variable '{name}' with type '{old_type}' a value of type '{value}'"
-                        ),
-                        position: position.to_owned(),
-                    });
-                }
-                scope.insert(name.to_owned(), value);
-
-                break;
-            }
-        }
-
-        scopes.reverse();
-        self.scope_stack = scopes;
-
-        Ok(())
-    }
-}
-
-fn setup_scope() -> Scope {
-    let mut scope = Scope::default();
-
-    scope.push();
-
-    scope.set(
-        "print",
-        VariableType::Func {
-            params: vec![VariableType::Any],
-            return_value: Box::new(VariableType::Void),
-        },
-    );
-
-    scope.set(
-        "printi",
-        VariableType::Func {
-            params: vec![VariableType::Int],
-            return_value: Box::new(VariableType::Void),
-        },
-    );
-
-    scope
-}
 
 pub struct Typechecker {
     ast: Ast<()>,
@@ -219,7 +43,7 @@ impl Typechecker {
 
     fn check_statement(
         statement: &Statement<()>,
-        scope: &mut Scope,
+        scope: &mut TypeScope,
     ) -> TResult<Statement<TypeInfo>> {
         Ok(match &statement {
             Statement::Expression(expression) => {
@@ -233,7 +57,7 @@ impl Typechecker {
 
     fn check_intrinsic(
         intrinsic: &Intrinsic<()>,
-        scope: &mut Scope,
+        scope: &mut TypeScope,
     ) -> TResult<Intrinsic<TypeInfo>> {
         Ok(match &intrinsic {
             Intrinsic::Definition(definition) => {
@@ -245,7 +69,7 @@ impl Typechecker {
         })
     }
 
-    fn check_if(if_statement: &If<()>, scope: &mut Scope) -> TResult<If<TypeInfo>> {
+    fn check_if(if_statement: &If<()>, scope: &mut TypeScope) -> TResult<If<TypeInfo>> {
         let condition = Self::check_expression(None, &if_statement.condition, scope)?;
         let condition_info = condition.info();
         let condition_type = condition_info._type;
@@ -289,7 +113,7 @@ impl Typechecker {
         Ok(new_if)
     }
 
-    fn check_block(block: &Block<()>, scope: &mut Scope) -> TResult<Block<TypeInfo>> {
+    fn check_block(block: &Block<()>, scope: &mut TypeScope) -> TResult<Block<TypeInfo>> {
         scope.push();
 
         let mut new_block = Block {
@@ -313,7 +137,7 @@ impl Typechecker {
 
     fn check_definition(
         definition: &Definition<()>,
-        scope: &mut Scope,
+        scope: &mut TypeScope,
     ) -> TResult<Definition<TypeInfo>> {
         let definition_rhs =
             Self::check_expression(Some(&definition.ident), &definition.value, scope)?;
@@ -338,7 +162,7 @@ impl Typechecker {
 
     fn check_assignment(
         assignment: &Assignment<()>,
-        scope: &mut Scope,
+        scope: &mut TypeScope,
     ) -> TResult<Assignment<TypeInfo>> {
         let ident = &assignment.ident;
 
@@ -384,7 +208,7 @@ impl Typechecker {
     fn check_expression(
         identifier: Option<&Ident<()>>,
         expression: &Expression<()>,
-        scope: &mut Scope,
+        scope: &mut TypeScope,
     ) -> TResult<Expression<TypeInfo>> {
         Ok(match expression {
             Expression::If(if_statement) => Expression::If(Self::check_if(if_statement, scope)?),
@@ -427,7 +251,7 @@ impl Typechecker {
         })
     }
 
-    fn check_identifier(identifier: &Ident<()>, scope: &mut Scope) -> TResult<Ident<TypeInfo>> {
+    fn check_identifier(identifier: &Ident<()>, scope: &mut TypeScope) -> TResult<Ident<TypeInfo>> {
         match scope.find(&identifier.value) {
             Some(identifier_type) => Ok(Ident {
                 value: identifier.value.clone(),
@@ -472,7 +296,7 @@ impl Typechecker {
     fn check_fn_def(
         identifier: Option<&Ident<()>>,
         fn_def: &FnDef<()>,
-        scope: &mut Scope,
+        scope: &mut TypeScope,
     ) -> TResult<FnDef<TypeInfo>> {
         let type_annotation = Self::get_type_def(
             &fn_def.type_annotation.value,
@@ -528,7 +352,7 @@ impl Typechecker {
         })
     }
 
-    fn check_fn_call(fn_call: &FnCall<()>, scope: &mut Scope) -> TResult<FnCall<TypeInfo>> {
+    fn check_fn_call(fn_call: &FnCall<()>, scope: &mut TypeScope) -> TResult<FnCall<TypeInfo>> {
         scope.push();
 
         let ident = &fn_call.ident.value;
@@ -594,7 +418,7 @@ impl Typechecker {
 
     fn check_binary_operation(
         binary_operation: &BinaryOp<()>,
-        scope: &mut Scope,
+        scope: &mut TypeScope,
     ) -> TResult<BinaryOp<TypeInfo>> {
         let position = binary_operation.position;
 
