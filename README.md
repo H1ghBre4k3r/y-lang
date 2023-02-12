@@ -93,6 +93,7 @@ Y supports a couple of primitive types which are build directly into the lanuage
 - `str` for string **constants**
 - `bool` for boolean values
 - `void` for "empty" values
+- functions (see later for information on how to declare a function type)
 
 More complex types are subject for futures features.
 
@@ -122,6 +123,22 @@ let add := (x : int, y : int) : int => {
 ```
 
 Function definitions work in a similar way like regular variable definitions, since functions are treated as first-class citizens in Y.
+
+#### Function Type
+
+If you want to declare a parameter of your function to be a function itself, you can do it like this:
+
+```why
+let foo := (bar : (int, int) -> int) : int => {
+    bar(3, 4)
+}
+```
+
+In this example, we declare a variable `foo` and assign it a function, which expects one parameter (in this case named `bar`) of type `(int, int) -> int`, meaning the provided function should accept two parameters of type `int` and produce/return a value of type `int`.
+
+#### ⚠️ Known Limitations
+
+Currently, you are not able to return functions from other functions or use values which are defined in an outter scope of a function. I am currently figuring out a way to achieve that.
 
 ## Pipeline
 
@@ -155,7 +172,7 @@ why -f path/to/program.why -o path/to/output -c # typecheck and compile
 
 ## Operating Systems
 
-Y is actively developed under macOS. I tested Linux to some point (and CI should test aswell), but I can not guarantee full compatibility. 
+Y is actively developed under macOS. I tested Linux to some point (and CI should test aswell), but I can not guarantee full compatibility.
 
 ## Contributing
 
