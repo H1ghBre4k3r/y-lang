@@ -8,3 +8,13 @@ let test := (x : int, y : int) : int => {
 }
 
 printi(foo(test))
+
+let a := 3
+
+let nested := (offset : int, func: ( (int, int) -> int ) -> int) : int => {
+    func(test) + offset 
+}
+
+print(" ")
+
+printi(nested(a, foo))

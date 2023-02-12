@@ -461,6 +461,12 @@ impl Scope {
                 let mut function_scope =
                     Scope::from_statements(statements.clone(), self.level(), true);
 
+                for (key, function) in &self.functions {
+                    function_scope
+                        .functions
+                        .insert(key.to_owned(), function.to_owned());
+                }
+
                 for (index, param) in fn_definition.params.iter().enumerate() {
                     let identifier = &param.ident;
 
