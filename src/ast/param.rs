@@ -4,6 +4,7 @@ use super::{Ident, Position, Rule, TypeAnnotation};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Param {
+    // TODO: Also parametrize this (needed for functions)
     pub ident: Ident<()>,
     pub type_annotation: TypeAnnotation,
     pub position: Position,

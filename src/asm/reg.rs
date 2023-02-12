@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+use crate::typechecker::TypeInfo;
+
+#[derive(Debug, Clone, Copy)]
 pub enum Reg {
     /// 1. function argument
     Rdi,
@@ -56,5 +58,63 @@ impl Display for Reg {
             Reg::R10 => "r10",
             Reg::R11 => "r11",
         })
+    }
+}
+
+impl Reg {
+    pub fn to_sized(self, info: &TypeInfo) -> Self {
+        use Reg::*;
+        match self {
+            Rdi | Edi | Di | Dil => match info.var_size() {
+                8 => Rdi,
+                4 => Edi,
+                2 => Di,
+                1 => Dil,
+                _ => unimplemented!(),
+            },
+            Rsi => match info.var_size() {
+                8 => Rdi,
+                _ => unimplemented!(),
+            },
+            Rax | Eax | Ax | Al => match info.var_size() {
+                8 => Rax,
+                4 => Eax,
+                2 => Ax,
+                1 => Al,
+                _ => unimplemented!(),
+            },
+            Rbp => match info.var_size() {
+                8 => Rbp,
+                _ => unimplemented!(),
+            },
+            Rsp => match info.var_size() {
+                8 => Rsp,
+                _ => unimplemented!(),
+            },
+            Rcx => match info.var_size() {
+                8 => Rcx,
+                _ => unimplemented!(),
+            },
+            Rdx => match info.var_size() {
+                8 => Rdx,
+                _ => unimplemented!(),
+            },
+            R8 => match info.var_size() {
+                8 => R8,
+                _ => unimplemented!(),
+            },
+            R9 => match info.var_size() {
+                8 => R9,
+                _ => unimplemented!(),
+            },
+            R10 => match info.var_size() {
+                8 => R10,
+                _ => unimplemented!(),
+            },
+            R11 => match info.var_size() {
+                8 => R11,
+                _ => unimplemented!(),
+            },
+        }
     }
 }

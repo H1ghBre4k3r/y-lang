@@ -8,7 +8,8 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryVerb, Block, Definition, Expression, FnCall, Ident, Intrinsic, Statement,
+        Assignment, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, Ident, If, Integer,
+        Intrinsic, Statement,
     },
     typechecker::TypeInfo,
 };
@@ -173,7 +174,8 @@ impl Scope {
                 let else_label = format!(".{if_label}_else");
                 let end_label = format!(".{if_label}_end");
 
-                self.instructions.push(Cmp(Register(Rax), Immediate(0)));
+                self.instructions
+                    .push(Cmp(Register(Rax.to_sized(&condition.info())), Immediate(0)));
                 self.instructions
                     .push(Je(if if_statement.else_block.is_some() {
                         else_label.clone()
@@ -200,13 +202,13 @@ impl Scope {
                 // This will store the result of this expression in RAX
                 self.compile_expression(rhs);
                 // Save value on stack
-                self.instructions.push(Push(Rax));
+                self.instructions.push(Push(Rax.to_sized(&rhs.info())));
 
                 // Evaluate second expression
                 self.compile_expression(lhs);
 
                 // Get value from first expression
-                self.instructions.push(Pop(Rcx));
+                self.instructions.push(Pop(Rcx.to_sized(&rhs.info())));
 
                 self.instructions.push(Comment(format!(
                     "{:?} {} {:?}",
@@ -214,23 +216,38 @@ impl Scope {
                 )));
 
                 match &binary_operation.verb {
-                    BinaryVerb::Plus => self.instructions.push(Add(Register(Rax), Register(Rcx))),
-                    BinaryVerb::Minus => self.instructions.push(Sub(Register(Rax), Register(Rcx))),
+                    BinaryVerb::Plus => self.instructions.push(Add(
+                        Register(Rax.to_sized(&lhs.info())),
+                        Register(Rcx.to_sized(&rhs.info())),
+                    )),
+                    BinaryVerb::Minus => self.instructions.push(Sub(
+                        Register(Rax.to_sized(&lhs.info())),
+                        Register(Rcx.to_sized(&rhs.info())),
+                    )),
                     BinaryVerb::Times => todo!(),
                     BinaryVerb::GreaterThan => {
-                        self.instructions.push(Cmp(Register(Rax), Register(Rcx)));
+                        self.instructions.push(Cmp(
+                            Register(Rax.to_sized(&lhs.info())),
+                            Register(Rcx.to_sized(&rhs.info())),
+                        ));
                         self.instructions.push(Setg(Register(Al)));
                         // self.instructions.push(Xor(Register(Rax), Register(Rax)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryVerb::LessThan => {
-                        self.instructions.push(Cmp(Register(Rax), Register(Rcx)));
+                        self.instructions.push(Cmp(
+                            Register(Rax.to_sized(&lhs.info())),
+                            Register(Rcx.to_sized(&rhs.info())),
+                        ));
                         self.instructions.push(Setl(Register(Al)));
                         // self.instructions.push(Xor(Register(Rax), Register(Rax)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryVerb::Equal => {
-                        self.instructions.push(Cmp(Register(Rax), Register(Rcx)));
+                        self.instructions.push(Cmp(
+                            Register(Rax.to_sized(&lhs.info())),
+                            Register(Rcx.to_sized(&rhs.info())),
+                        ));
                         self.instructions.push(Sete(Register(Al)));
                         // self.instructions.push(Xor(Register(Rax), Register(Rax)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
@@ -241,32 +258,44 @@ impl Scope {
             Expression::Integer(integer) => {
                 let value = integer.value;
                 self.instructions.push(Comment(format!("LOAD {value}")));
-                self.instructions.push(Mov(Register(Rax), Immediate(value)));
+                self.instructions
+                    .push(Mov(Register(Rax.to_sized(&integer.info)), Immediate(value)));
             }
             Expression::Boolean(boolean) => {
                 self.instructions.push(Comment(format!("LOAD {boolean:?}")));
 
                 self.instructions.push(Mov(
-                    Register(Rax),
+                    Register(Rax.to_sized(&boolean.info)),
                     Immediate(if boolean.value { 1 } else { 0 }),
                 ));
             }
             Expression::Ident(Ident {
-                value, position, ..
+                value,
+                position,
+                info,
             }) => {
                 let identifier = value;
                 self.instructions
                     .push(Comment(format!("LOAD {identifier}")));
                 if let Some(variable) = self.variables.get(identifier) {
                     let offset = variable.offset;
-                    self.instructions
-                        .push(Mov(Register(Rax), Memory(Qword, format!("{Rbp}-{offset}"))));
+                    self.instructions.push(Mov(
+                        Register(Rax.to_sized(info)),
+                        Memory(
+                            InstructionSize::from(info.clone()),
+                            format!("{Rbp}-{offset}"),
+                        ),
+                    ));
                 } else if let Some(constant) = self.constants.get(identifier) {
-                    self.instructions
-                        .push(Lea(Register(Rax), Identifier(constant.name.to_owned())));
+                    self.instructions.push(Lea(
+                        Register(Rax.to_sized(info)),
+                        Identifier(constant.name.to_owned()),
+                    ));
                 } else if self.functions.get(identifier).is_some() {
-                    self.instructions
-                        .push(Mov(Register(Rax), Identifier(identifier.to_owned())));
+                    self.instructions.push(Mov(
+                        Register(Rax.to_sized(info)),
+                        Identifier(identifier.to_owned()),
+                    ));
                 } else {
                     unreachable!(
                         "Could not find variable, constant or function '{identifier}' ({}:{})",
@@ -277,8 +306,10 @@ impl Scope {
             Expression::Str(string) => {
                 let value = &string.value;
                 let var_name = self.add_string_constant(None, value);
-                self.instructions
-                    .push(Mov(Register(Rax), Identifier(var_name)));
+                self.instructions.push(Mov(
+                    Register(Rax.to_sized(&string.info)),
+                    Identifier(var_name),
+                ));
             }
             Expression::FnDef(fn_definition) => {
                 // this stuff is basically useful for lambdas
@@ -314,8 +345,10 @@ impl Scope {
                     .insert(fn_name.to_owned(), Function { instructions });
 
                 self.instructions.push(Comment(format!("fn {fn_name}")));
-                self.instructions
-                    .push(Mov(Register(Rax), Identifier(fn_name)));
+                self.instructions.push(Mov(
+                    Register(Rax.to_sized(&fn_definition.info)),
+                    Identifier(fn_name),
+                ));
             }
             Expression::Block(Block { block, .. }) => {
                 let mut scope = Scope::from_statements(block.clone(), self.level(), false);
@@ -355,59 +388,72 @@ impl Scope {
             Expression::Str(string) => {
                 self.add_string_constant(Some(name.to_owned()), &string.value.to_owned());
             }
-            Expression::Integer(integer) => {
-                self.stack_offset += integer.info.var_size();
+            Expression::Integer(Integer { value, info, .. }) => {
+                self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
                 self.variables.insert(name.to_owned(), variable);
 
-                self.instructions
-                    .push(Comment(format!("{} = {}", name, integer.value)));
+                self.instructions.push(Comment(format!("{name} = {value}")));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
-                    Immediate(integer.value),
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Immediate(*value),
                 ));
             }
-            Expression::Boolean(boolean) => {
-                self.stack_offset += boolean.info.var_size();
+            Expression::Boolean(Boolean { value, info, .. }) => {
+                self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
                 self.variables.insert(name.to_owned(), variable);
 
-                self.instructions
-                    .push(Comment(format!("{} = {}", name, boolean.value)));
+                self.instructions.push(Comment(format!("{name} = {value}")));
 
                 self.instructions.push(Mov(
-                    Memory(Byte, format!("{}-{}", Rbp, self.stack_offset)),
-                    Immediate(if boolean.value { 1 } else { 0 }),
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Immediate(if *value { 1 } else { 0 }),
                 ));
             }
-            Expression::If(if_statement) => {
+            Expression::If(If {
+                condition,
+                if_block,
+                else_block,
+                info,
+                ..
+            }) => {
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += if_statement.info.var_size();
+                self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
                 self.variables.insert(name.to_owned(), variable);
 
                 self.instructions.push(Comment(format!(
-                    "if {:?} then {:?} else {:?} ",
-                    if_statement.condition, if_statement.if_block, if_statement.else_block
+                    "if {condition:?} then {if_block:?} else {else_block:?} "
                 )));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
-                    Register(Rax),
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Register(Rax.to_sized(info)),
                 ));
             }
             Expression::BinaryOp(binary_operation) => {
                 self.compile_expression(&Expression::BinaryOp(binary_operation.to_owned()));
 
-                self.stack_offset += binary_operation.info.var_size();
+                let info = &binary_operation.info;
+                self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -419,41 +465,50 @@ impl Scope {
                 )));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
-                    Register(Rax),
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Register(Rax.to_sized(info)),
                 ));
             }
-            Expression::FnCall(fn_call) => {
+            Expression::FnCall(FnCall { info, .. }) => {
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += fn_call.info.var_size();
+                self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
                 self.variables.insert(name.to_owned(), variable);
 
                 self.instructions
-                    .push(Comment(format!("{name} = {fn_call:?}",)));
+                    .push(Comment(format!("{name} = {:?}", definition.value)));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
-                    Register(Rax),
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Register(Rax.to_sized(info)),
                 ));
             }
-            Expression::Ident(ident) => {
+            Expression::Ident(Ident { value, info, .. }) => {
                 self.compile_expression(&definition.value);
-                self.stack_offset += ident.info.var_size();
+                self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
                 self.variables.insert(name.to_owned(), variable);
 
                 self.instructions
-                    .push(Comment(format!("{name} = {ident:?}",)));
+                    .push(Comment(format!("{name} = {value}",)));
                 // TODO: This does not cover booleans or other non-aligned types
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
-                    Register(Rax),
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Register(Rax.to_sized(info)),
                 ));
             }
             Expression::FnDef(fn_definition) => {
@@ -470,6 +525,7 @@ impl Scope {
                 for (index, param) in fn_definition.params.iter().enumerate() {
                     let identifier = &param.ident;
 
+                    // TODO: This does not really work with actual param sizes
                     let source = match index {
                         0 => InstructionOperand::Register(Rdi),
                         1 => InstructionOperand::Register(Rsi),
@@ -493,10 +549,10 @@ impl Scope {
                 self.functions
                     .insert(name.to_owned(), Function { instructions });
             }
-            Expression::Block(block) => {
+            Expression::Block(Block { block, info, .. }) => {
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += block.info.var_size();
+                self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -506,7 +562,10 @@ impl Scope {
                     .push(Comment(format!("{name} = {block:?}")));
 
                 self.instructions.push(Mov(
-                    Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
                     Register(Rax),
                 ));
             }
@@ -517,14 +576,18 @@ impl Scope {
         let value = &assignment.value;
         self.compile_expression(value);
 
-        let identifier = &assignment.ident.value;
+        let identifier = &assignment.ident;
+        let info = &identifier.info;
 
-        if let Some(variable) = self.variables.get(identifier) {
+        if let Some(variable) = self.variables.get(&identifier.value) {
             self.instructions
-                .push(Comment(format!("{identifier} = {value:?}")));
+                .push(Comment(format!("{} = {value:?}", identifier.value)));
             self.instructions.push(Mov(
-                Memory(Qword, format!("{}-{}", Rbp, variable.offset)),
-                Register(Rax),
+                Memory(
+                    InstructionSize::from(info.clone()),
+                    format!("{}-{}", Rbp, variable.offset),
+                ),
+                Register(Rax.to_sized(info)),
             ));
         }
     }
@@ -624,6 +687,7 @@ impl Scope {
             name = Rax.to_string();
         }
 
+        // TODO: this does not handle sizes correctly.
         for (index, _) in fn_call.params.iter().enumerate() {
             match fn_call.params.len() - (index + 1) {
                 0 => self.instructions.push(Pop(Rdi)),

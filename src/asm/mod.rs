@@ -1,34 +1,10 @@
+mod instructionsize;
 mod reg;
 
 use std::fmt::Display;
 
+pub use self::instructionsize::InstructionSize;
 pub use self::reg::*;
-
-#[derive(Debug, Clone)]
-pub enum InstructionSize {
-    /// size for working with 1 byte
-    Byte = 1,
-
-    /// size for working with 2 bytes
-    Word = 2,
-
-    /// size for working with 4 bytes
-    Dword = 4,
-
-    /// size for working with 8 bytes
-    Qword = 8,
-}
-
-impl Display for InstructionSize {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            InstructionSize::Byte => "byte",
-            InstructionSize::Word => "word",
-            InstructionSize::Dword => "dword",
-            InstructionSize::Qword => "qword",
-        })
-    }
-}
 
 #[cfg(target_os = "macos")]
 pub const EXIT_SYSCALL: InstructionOperand = InstructionOperand::Immediate(0x2000001);

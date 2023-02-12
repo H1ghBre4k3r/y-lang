@@ -56,10 +56,10 @@ impl VariableType {
         match self {
             VariableType::Void => 0,
             VariableType::Bool => 1,
-            VariableType::Str => 4,
+            VariableType::Str => 8,
             VariableType::Int => 8,
-            VariableType::Any => 4,
-            VariableType::Func { .. } => 4,
+            VariableType::Any => 8,
+            VariableType::Func { .. } => 8,
         }
     }
 }

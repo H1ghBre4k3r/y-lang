@@ -18,6 +18,15 @@ let e := true
 
 let bar := foo
 
+let some_function := (x : bool) : int => {
+    if x {
+        4 
+    } else {
+        7
+    }
+}
+
 foo()
 bar()
 
+printi(some_function(false))
