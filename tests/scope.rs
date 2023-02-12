@@ -10,7 +10,7 @@ fn interpret_scope() -> Result<(), Box<dyn Error>> {
 
     assert_eq!(
         std::str::from_utf8(&output.stdout)?,
-        "42 13 42 13 42 13 foo 13 42 13 13 42"
+        "foo 42 13 foo 42 13 foo 42 13 foo foo 13 foo 42 13 13 42"
     );
     assert_eq!(std::str::from_utf8(&output.stderr)?, "");
 
@@ -29,7 +29,7 @@ fn compile_and_run_scope() -> Result<(), Box<dyn Error>> {
 
     assert_eq!(
         std::str::from_utf8(&output.stdout)?,
-        "42 13 42 13 42 13 foo 13 42 13 13 42"
+        "foo 42 13 foo 42 13 foo 42 13 foo foo 13 foo 42 13 13 42"
     );
     assert_eq!(std::str::from_utf8(&output.stderr)?, "");
     Ok(())
