@@ -18,3 +18,6 @@ let nested := (offset : int, func: ( (int, int) -> int ) -> int) : int => {
 print(" ")
 
 printi(nested(a, foo))
+
+print(" ")
+printi(nested(7, (inner : (int, int) -> int): int => { inner(41, 17) }))

@@ -3,15 +3,14 @@ use pest::iterators::Pair;
 use super::{Ident, Position, Rule, TypeAnnotation};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Param {
-    // TODO: Also parametrize this (needed for functions)
-    pub ident: Ident<()>,
+pub struct Param<T> {
+    pub ident: Ident<T>,
     pub type_annotation: TypeAnnotation,
     pub position: Position,
 }
 
-impl Param {
-    pub fn from_pair(pair: Pair<Rule>) -> Param {
+impl Param<()> {
+    pub fn from_pair(pair: Pair<Rule>) -> Param<()> {
         assert_eq!(pair.as_rule(), Rule::parameter);
 
         let position = pair.line_col();
@@ -29,5 +28,14 @@ impl Param {
             type_annotation,
             position,
         }
+    }
+}
+
+impl<T> Param<T>
+where
+    T: Clone,
+{
+    pub fn info(&self) -> T {
+        self.ident.info.clone()
     }
 }

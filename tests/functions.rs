@@ -8,7 +8,7 @@ fn interpret_functions() -> Result<(), Box<dyn Error>> {
         .args(["-f", FILE_NAME, "-r"])
         .output()?;
 
-    assert_eq!(std::str::from_utf8(&output.stdout)?, "7 10");
+    assert_eq!(std::str::from_utf8(&output.stdout)?, "7 10 65");
     assert_eq!(std::str::from_utf8(&output.stderr)?, "");
 
     Ok(())
@@ -24,7 +24,7 @@ fn compile_and_run_functions() -> Result<(), Box<dyn Error>> {
 
     let output = Command::new("./output/functions").output()?;
 
-    assert_eq!(std::str::from_utf8(&output.stdout)?, "7 10");
+    assert_eq!(std::str::from_utf8(&output.stdout)?, "7 10 65");
     assert_eq!(std::str::from_utf8(&output.stderr)?, "");
     Ok(())
 }

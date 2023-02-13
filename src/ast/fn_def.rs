@@ -5,7 +5,7 @@ use super::{Block, Param, Position, Rule, TypeAnnotation};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FnDef<T> {
-    pub params: Vec<Param>,
+    pub params: Vec<Param<T>>,
     pub type_annotation: TypeAnnotation,
     pub block: Block<T>,
     pub position: Position,
@@ -47,7 +47,7 @@ impl FnDef<()> {
         }
     }
 
-    fn from_param_list(pair: Pair<Rule>) -> Vec<Param> {
+    fn from_param_list(pair: Pair<Rule>) -> Vec<Param<()>> {
         assert_eq!(pair.as_rule(), Rule::paramList);
 
         let param_pairs = pair.into_inner();

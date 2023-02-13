@@ -73,7 +73,7 @@ impl Reg {
                 _ => unimplemented!(),
             },
             Rsi => match info.var_size() {
-                8 => Rdi,
+                8 => Rsi,
                 _ => unimplemented!(),
             },
             Rax | Eax | Ax | Al => match info.var_size() {

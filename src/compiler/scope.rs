@@ -33,6 +33,7 @@ pub struct Function {
 #[derive(Debug, Clone)]
 struct Parameter {
     name: String,
+    info: TypeInfo,
     source: InstructionOperand,
 }
 
@@ -91,9 +92,10 @@ impl Scope {
         self.level_count
     }
 
-    pub fn add_param(&mut self, name: impl ToString, source: InstructionOperand) {
+    pub fn add_param(&mut self, name: impl ToString, info: TypeInfo, source: InstructionOperand) {
         self.params.push(Parameter {
             name: name.to_string(),
+            info,
             source,
         });
     }
@@ -101,8 +103,8 @@ impl Scope {
     pub fn compile(&mut self) {
         let statements = self.statements.clone();
 
-        for Parameter { name, source } in &self.params {
-            self.stack_offset += std::mem::size_of::<i64>();
+        for Parameter { name, info, source } in &self.params {
+            self.stack_offset += info.var_size();
 
             let variable = Variable {
                 offset: self.stack_offset,
@@ -112,7 +114,10 @@ impl Scope {
                 .push(Comment(format!("{name} = {source}")));
 
             self.instructions.push(Mov(
-                Memory(Qword, format!("{}-{}", Rbp, self.stack_offset)),
+                Memory(
+                    InstructionSize::from(info.clone()),
+                    format!("{}-{}", Rbp, self.stack_offset),
+                ),
                 source.to_owned(),
             ));
         }
@@ -320,13 +325,14 @@ impl Scope {
                 for (index, param) in fn_definition.params.iter().enumerate() {
                     let identifier = &param.ident;
 
+                    let info = &identifier.info;
                     let source = match index {
-                        0 => InstructionOperand::Register(Rdi),
-                        1 => InstructionOperand::Register(Rsi),
+                        0 => InstructionOperand::Register(Rdi.to_sized(info)),
+                        1 => InstructionOperand::Register(Rsi.to_sized(info)),
                         _ => todo!(),
                     };
 
-                    function_scope.add_param(&identifier.value, source);
+                    function_scope.add_param(&identifier.value, info.clone(), source);
                 }
 
                 function_scope.compile();
@@ -525,14 +531,14 @@ impl Scope {
                 for (index, param) in fn_definition.params.iter().enumerate() {
                     let identifier = &param.ident;
 
-                    // TODO: This does not really work with actual param sizes
+                    let info = &identifier.info;
                     let source = match index {
-                        0 => InstructionOperand::Register(Rdi),
-                        1 => InstructionOperand::Register(Rsi),
+                        0 => InstructionOperand::Register(Rdi.to_sized(info)),
+                        1 => InstructionOperand::Register(Rsi.to_sized(info)),
                         _ => todo!(),
                     };
 
-                    function_scope.add_param(&identifier.value, source);
+                    function_scope.add_param(&identifier.value, info.clone(), source);
                 }
 
                 function_scope.compile();
@@ -687,7 +693,6 @@ impl Scope {
             name = Rax.to_string();
         }
 
-        // TODO: this does not handle sizes correctly.
         for (index, _) in fn_call.params.iter().enumerate() {
             match fn_call.params.len() - (index + 1) {
                 0 => self.instructions.push(Pop(Rdi)),

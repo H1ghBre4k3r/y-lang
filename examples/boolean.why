@@ -11,7 +11,7 @@ printi(c)
 let d := true
 
 let foo := () : void => {
-    print("\nFrom Function\n")
+    print(" From Function ")
 }
 
 let e := true 
@@ -29,4 +29,4 @@ let some_function := (x : bool) : int => {
 foo()
 bar()
 
-printi(some_function(false))
+printi(some_function(true))

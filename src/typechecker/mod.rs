@@ -5,7 +5,7 @@ mod variabletype;
 
 use crate::ast::{
     Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, FnDef,
-    Ident, If, Integer, Intrinsic, Position, Statement, Str, Type,
+    Ident, If, Integer, Intrinsic, Param, Position, Statement, Str, Type,
 };
 
 pub use self::info::TypeInfo;
@@ -339,7 +339,7 @@ impl Typechecker {
         scope.pop();
 
         Ok(FnDef {
-            params: fn_def.params.clone(),
+            params: Self::check_fn_params(&fn_def.params)?,
             type_annotation: fn_def.type_annotation.clone(),
             block: block.clone(),
             position: fn_def.position,
@@ -350,6 +350,30 @@ impl Typechecker {
                 },
             },
         })
+    }
+
+    fn check_fn_params(params: &Vec<Param<()>>) -> TResult<Vec<Param<TypeInfo>>> {
+        let mut new_params = vec![];
+
+        for param in params {
+            let Ident {
+                value, position, ..
+            } = &param.ident;
+            let type_annotation = &param.type_annotation;
+            let param_type = Self::get_type_def(&type_annotation.value, type_annotation.position)?;
+
+            new_params.push(Param {
+                ident: Ident {
+                    value: value.clone(),
+                    position: *position,
+                    info: TypeInfo { _type: param_type },
+                },
+                position: param.position,
+                type_annotation: type_annotation.clone(),
+            });
+        }
+
+        Ok(new_params)
     }
 
     fn check_fn_call(fn_call: &FnCall<()>, scope: &mut TypeScope) -> TResult<FnCall<TypeInfo>> {
