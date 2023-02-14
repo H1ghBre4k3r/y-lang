@@ -8,9 +8,11 @@ stmt = _{
     intrinsics | expr
 }
 
-intrinsics = _{ definition | assignment }
+intrinsics = _{ declaration | definition | assignment }
 
 ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
+
+declaration = { "declare " ~ ident ~ typeAnnotation }
 
 definition = { "let " ~ ident ~ ":=" ~ expr }
 

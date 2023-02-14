@@ -1,4 +1,4 @@
-use super::Rule;
+use super::{Declaration, Rule};
 
 use pest::iterators::Pair;
 
@@ -6,6 +6,7 @@ use super::{Assignment, Definition};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Intrinsic<T> {
+    Declaration(Declaration),
     Definition(Definition<T>),
     Assignment(Assignment<T>),
 }
@@ -13,6 +14,7 @@ pub enum Intrinsic<T> {
 impl Intrinsic<()> {
     pub fn from_pair(pair: Pair<Rule>) -> Intrinsic<()> {
         match pair.as_rule() {
+            Rule::declaration => Intrinsic::Declaration(Declaration::from_pair(pair)),
             Rule::definition => Intrinsic::Definition(Definition::from_pair(pair)),
             Rule::assignment => Intrinsic::Assignment(Assignment::from_pair(pair)),
             _ => panic!("Unexpected intrinsic '{pair:#?}'"),
@@ -28,6 +30,7 @@ where
         match self {
             Intrinsic::Definition(Definition { info, .. })
             | Intrinsic::Assignment(Assignment { info, .. }) => info.clone(),
+            _ => unimplemented!(),
         }
     }
 }

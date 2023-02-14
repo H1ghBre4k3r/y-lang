@@ -4,8 +4,8 @@ mod typescope;
 mod variabletype;
 
 use crate::ast::{
-    Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, FnDef,
-    Ident, If, Integer, Intrinsic, Param, Position, Statement, Str, Type,
+    Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Declaration, Definition, Expression,
+    FnCall, FnDef, Ident, If, Integer, Intrinsic, Param, Position, Statement, Str, Type,
 };
 
 pub use self::info::TypeInfo;
@@ -66,7 +66,19 @@ impl Typechecker {
             Intrinsic::Assignment(assignment) => {
                 Intrinsic::Assignment(Self::check_assignment(assignment, scope)?)
             }
+            Intrinsic::Declaration(declaration) => {
+                Intrinsic::Declaration(Self::check_declaration(declaration, scope)?)
+            }
         })
+    }
+
+    fn check_declaration(declaration: &Declaration, scope: &mut TypeScope) -> TResult<Declaration> {
+        let ident = &declaration.ident;
+        let type_annotation = &declaration.type_annotation;
+        let type_def = Self::get_type_def(&type_annotation.value, type_annotation.position)?;
+
+        scope.set(&ident.value, type_def);
+        Ok(declaration.clone())
     }
 
     fn check_if(if_statement: &If<()>, scope: &mut TypeScope) -> TResult<If<TypeInfo>> {

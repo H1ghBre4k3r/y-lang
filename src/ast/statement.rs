@@ -11,7 +11,9 @@ pub enum Statement<T> {
 impl Statement<()> {
     pub fn from_pair(pair: Pair<Rule>) -> Statement<()> {
         match pair.as_rule() {
-            Rule::definition | Rule::assignment => Statement::Intrinsic(Intrinsic::from_pair(pair)),
+            Rule::declaration | Rule::definition | Rule::assignment => {
+                Statement::Intrinsic(Intrinsic::from_pair(pair))
+            }
             Rule::ifStmt
             | Rule::binaryExpr
             | Rule::fnDef

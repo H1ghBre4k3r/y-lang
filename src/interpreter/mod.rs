@@ -125,6 +125,7 @@ impl Interpreter {
         match intrinsic {
             Intrinsic::Definition(definition) => Self::run_definition(definition, scope),
             Intrinsic::Assignment(assignment) => Self::run_assignment(assignment, scope),
+            Intrinsic::Declaration(_) => VariableValue::Void,
         }
     }
 

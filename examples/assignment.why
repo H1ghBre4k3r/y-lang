@@ -1,3 +1,6 @@
+declare print : (str) -> void
+declare printi : (int) -> void
+
 let foo := 42
 
 {

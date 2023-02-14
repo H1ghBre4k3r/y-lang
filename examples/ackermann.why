@@ -1,3 +1,4 @@
+declare printi : (int) -> void
 
 let f := (x : int, y : int) : int => {
     if x == 0 {

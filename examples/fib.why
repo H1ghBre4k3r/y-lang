@@ -1,3 +1,5 @@
+declare printi : (int) -> void
+
 let fib := (n : int) : int => {
     if n < 2 {
         n

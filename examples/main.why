@@ -1,3 +1,5 @@
+declare print : (str) -> void
+
 let main := () : void => {
     print("Hello, World!\n")
 }

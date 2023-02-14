@@ -110,21 +110,5 @@ pub fn setup_scope() -> TypeScope {
 
     scope.push();
 
-    scope.set(
-        "print",
-        VariableType::Func {
-            params: vec![VariableType::Any],
-            return_value: Box::new(VariableType::Void),
-        },
-    );
-
-    scope.set(
-        "printi",
-        VariableType::Func {
-            params: vec![VariableType::Int],
-            return_value: Box::new(VariableType::Void),
-        },
-    );
-
     scope
 }

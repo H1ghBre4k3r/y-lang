@@ -384,6 +384,8 @@ impl Scope {
         match intrinsic {
             Intrinsic::Definition(definition) => self.compile_definition(definition),
             Intrinsic::Assignment(assignment) => self.compile_assignment(assignment),
+            // TODO: Maybe compile as "extern"
+            Intrinsic::Declaration(_) => (),
         }
     }
 
