@@ -138,7 +138,11 @@ impl Typechecker {
         let imports = module.exports.flatten();
 
         for (key, value) in imports {
-            scope.set(&format!("{path}::{key}"), value);
+            if module.is_wildcard {
+                scope.set(&key, value);
+            } else {
+                scope.set(&format!("{path}::{key}"), value);
+            }
         }
 
         Ok(import.clone())

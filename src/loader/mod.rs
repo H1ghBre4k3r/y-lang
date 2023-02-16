@@ -44,6 +44,7 @@ pub struct Module {
     pub name: String,
     pub ast: Ast<()>,
     pub exports: TypeScope,
+    pub is_wildcard: bool,
 }
 
 pub type Modules = HashMap<String, Module>;
@@ -66,7 +67,15 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules, Box<dyn
     let mut modules = HashMap::default();
 
     for import in &imports {
-        let file = format!("{}/{}.why", folder, import.path);
+        let is_wildcard = import.path.ends_with("::*");
+
+        let path = &import.path[0..if is_wildcard {
+            import.path.len() - 3
+        } else {
+            import.path.len()
+        }];
+
+        let file = format!("{folder}/{path}.why");
 
         let Ok(file_content) = std::fs::read_to_string(&file) else {
             return Err(Box::new(FileLoadError {
@@ -96,9 +105,10 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules, Box<dyn
         modules.insert(
             import.path.to_owned(),
             Module {
-                name: import.path.to_owned(),
+                name: path.to_owned(),
                 ast,
                 exports: function_declarations,
+                is_wildcard,
             },
         );
     }

@@ -8,7 +8,7 @@ importStmt = {
     "import " ~ importPath
 }
 
-importPath = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+importPath = @{ ident ~ ("::*")? }
 
 stmt = _{ 
     intrinsics | expr
