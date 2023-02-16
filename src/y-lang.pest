@@ -1,8 +1,14 @@
-program = _{ SOI ~ (stmt)* ~ EOI }
+program = _{ SOI ~ (importStmt)* ~ (stmt)* ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
 COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ( "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE ) }
+
+importStmt = {
+    "import " ~ importPath
+}
+
+importPath = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 stmt = _{ 
     intrinsics | expr
@@ -14,9 +20,9 @@ ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
 
 declaration = { "declare " ~ ident ~ typeAnnotation }
 
-definition = { "let " ~ ident ~ ":=" ~ expr }
+definition = { "let " ~ localIdent ~ ":=" ~ expr }
 
-assignment = { ident ~ "=" ~ expr }
+assignment = { localIdent ~ "=" ~ expr }
 
 fnCall = { ident ~ "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
 
@@ -34,7 +40,9 @@ paramList = { ( "(" ~ ")" | "(" ~ parameter ~ ("," ~ parameter )* ~ ")" ) }
 
 fnDef = {  paramList ~ typeAnnotation ~ "=>" ~ block }
 
-ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+localIdent = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+ident = @{ localIdent ~ ("::" ~ localIdent)* }
 
 expr = _{ binaryExpr | term }
 

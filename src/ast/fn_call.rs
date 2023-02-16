@@ -11,10 +11,10 @@ pub struct FnCall<T> {
 }
 
 impl FnCall<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> FnCall<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> FnCall<()> {
         assert_eq!(pair.as_rule(), Rule::fnCall);
 
-        let position = pair.line_col();
+        let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();
 
@@ -23,13 +23,13 @@ impl FnCall<()> {
         let mut params = vec![];
 
         for param in inner {
-            params.push(Expression::from_pair(param));
+            params.push(Expression::from_pair(param, file));
         }
 
         FnCall {
-            ident: Ident::from_pair(ident),
+            ident: Ident::from_pair(ident, file),
             params,
-            position,
+            position: (file.to_owned(), line, col),
             info: (),
         }
     }

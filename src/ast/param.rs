@@ -10,23 +10,23 @@ pub struct Param<T> {
 }
 
 impl Param<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Param<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Param<()> {
         assert_eq!(pair.as_rule(), Rule::parameter);
 
-        let position = pair.line_col();
+        let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();
 
         let ident = inner.next().unwrap();
-        let ident = Ident::from_pair(ident);
+        let ident = Ident::from_pair(ident, file);
 
         let type_annotation = inner.next().unwrap();
-        let type_annotation = TypeAnnotation::from_pair(type_annotation);
+        let type_annotation = TypeAnnotation::from_pair(type_annotation, file);
 
         Param {
             ident,
             type_annotation,
-            position,
+            position: (file.to_owned(), line, col),
         }
     }
 }

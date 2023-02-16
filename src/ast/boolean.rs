@@ -10,11 +10,12 @@ pub struct Boolean<T> {
 }
 
 impl Boolean<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Boolean<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Boolean<()> {
         assert_eq!(pair.as_rule(), Rule::boolean);
+        let (line, col) = pair.line_col();
         Boolean {
             value: pair.as_str().parse::<bool>().unwrap(),
-            position: pair.line_col(),
+            position: (file.to_owned(), line, col),
             info: (),
         }
     }

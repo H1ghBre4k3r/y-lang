@@ -10,11 +10,11 @@ pub struct Ident<T> {
 }
 
 impl Ident<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Ident<()> {
-        assert_eq!(pair.as_rule(), Rule::ident);
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Ident<()> {
+        let (line, col) = pair.line_col();
         Ident {
             value: pair.as_str().to_owned(),
-            position: pair.line_col(),
+            position: (file.to_owned(), line, col),
             info: (),
         }
     }

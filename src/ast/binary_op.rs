@@ -12,12 +12,14 @@ pub struct BinaryOp<T> {
 }
 
 impl BinaryOp<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> BinaryOp<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> BinaryOp<()> {
         assert_eq!(pair.as_rule(), Rule::binaryExpr);
+
+        let (line, col) = pair.line_col();
 
         let mut inner = pair.clone().into_inner();
 
-        let lhs = Expression::from_pair(inner.next().unwrap());
+        let lhs = Expression::from_pair(inner.next().unwrap(), file);
 
         let verb = inner.next().unwrap_or_else(|| {
             panic!(
@@ -33,12 +35,12 @@ impl BinaryOp<()> {
             .parse::<BinaryVerb>()
             .expect("Invalid binary verb");
 
-        let rhs = Expression::from_pair(inner.next().unwrap());
+        let rhs = Expression::from_pair(inner.next().unwrap(), file);
         BinaryOp {
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
             verb,
-            position: pair.line_col(),
+            position: (file.to_owned(), line, col),
             info: (),
         }
     }

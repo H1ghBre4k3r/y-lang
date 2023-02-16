@@ -118,6 +118,7 @@ impl Interpreter {
         match &statement {
             Statement::Expression(expression) => Self::run_expression(expression, scope),
             Statement::Intrinsic(intrinsic) => Self::run_intrinsic(intrinsic, scope),
+            Statement::Import(_) => todo!(),
         }
     }
 

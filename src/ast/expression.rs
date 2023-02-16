@@ -17,17 +17,17 @@ pub enum Expression<T> {
 }
 
 impl Expression<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Expression<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Expression<()> {
         match pair.as_rule() {
-            Rule::integer => Expression::Integer(Integer::from_pair(pair)),
-            Rule::ident => Expression::Ident(Ident::from_pair(pair)),
-            Rule::fnCall => Expression::FnCall(FnCall::from_pair(pair)),
-            Rule::string => Expression::Str(Str::from_pair(pair)),
-            Rule::binaryExpr => Expression::BinaryOp(BinaryOp::from_pair(pair)),
-            Rule::fnDef => Expression::FnDef(FnDef::from_pair(pair)),
-            Rule::ifStmt => Expression::If(If::from_pair(pair)),
-            Rule::block => Expression::Block(Block::from_pair(pair)),
-            Rule::boolean => Expression::Boolean(Boolean::from_pair(pair)),
+            Rule::integer => Expression::Integer(Integer::from_pair(pair, file)),
+            Rule::ident => Expression::Ident(Ident::from_pair(pair, file)),
+            Rule::fnCall => Expression::FnCall(FnCall::from_pair(pair, file)),
+            Rule::string => Expression::Str(Str::from_pair(pair, file)),
+            Rule::binaryExpr => Expression::BinaryOp(BinaryOp::from_pair(pair, file)),
+            Rule::fnDef => Expression::FnDef(FnDef::from_pair(pair, file)),
+            Rule::ifStmt => Expression::If(If::from_pair(pair, file)),
+            Rule::block => Expression::Block(Block::from_pair(pair, file)),
+            Rule::boolean => Expression::Boolean(Boolean::from_pair(pair, file)),
             _ => {
                 error!(
                     "Unexpected expression '{}' at {}:{}",

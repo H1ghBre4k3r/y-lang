@@ -1,0 +1,5 @@
+let bar := () : void => {} 
+
+let lool := 4
+
+declare foo : (int) -> void

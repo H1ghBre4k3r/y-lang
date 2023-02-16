@@ -11,17 +11,22 @@ pub struct Assignment<T> {
 }
 
 impl Assignment<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Assignment<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Assignment<()> {
         let mut inner = pair.clone().into_inner();
 
-        let ident = Ident::from_pair(inner.next().unwrap_or_else(|| {
-            panic!(
-                "Expected lvalue in assignment '{}' at {}:{}",
-                pair.as_str(),
-                pair.line_col().0,
-                pair.line_col().1
-            )
-        }));
+        let (line, col) = pair.line_col();
+
+        let ident = Ident::from_pair(
+            inner.next().unwrap_or_else(|| {
+                panic!(
+                    "Expected lvalue in assignment '{}' at {}:{}",
+                    pair.as_str(),
+                    pair.line_col().0,
+                    pair.line_col().1
+                )
+            }),
+            file,
+        );
 
         let value = inner.next().unwrap_or_else(|| {
             panic!(
@@ -31,12 +36,12 @@ impl Assignment<()> {
                 pair.line_col().1
             )
         });
-        let value = Expression::from_pair(value);
+        let value = Expression::from_pair(value, file);
 
         Assignment {
             ident,
             value,
-            position: pair.line_col(),
+            position: (file.to_owned(), line, col),
             info: (),
         }
     }

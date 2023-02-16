@@ -9,14 +9,14 @@ pub struct TypeAnnotation {
 }
 
 impl TypeAnnotation {
-    pub fn from_pair(pair: Pair<Rule>) -> TypeAnnotation {
-        let position = pair.line_col();
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> TypeAnnotation {
+        let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();
 
         TypeAnnotation {
             value: Type::from_pair(inner.next().unwrap()),
-            position,
+            position: (file.to_owned(), line, col),
         }
     }
 }

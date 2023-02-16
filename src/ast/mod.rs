@@ -10,6 +10,7 @@ mod fn_call;
 mod fn_def;
 mod ident;
 mod if_statement;
+mod import;
 mod integer;
 mod intrinsic;
 mod param;
@@ -33,6 +34,7 @@ pub use self::fn_call::*;
 pub use self::fn_def::*;
 pub use self::ident::*;
 pub use self::if_statement::*;
+pub use self::import::*;
 pub use self::integer::*;
 pub use self::intrinsic::*;
 pub use self::param::*;
@@ -42,26 +44,26 @@ pub use self::str::*;
 pub use self::type_annotation::*;
 pub use self::types::*;
 
-use pest::iterators::Pairs;
+use pest::iterators::Pair;
 
-use self::parser::Rule;
+pub use self::parser::Rule;
 
 pub use self::parser::*;
 
-pub type Position = (usize, usize);
+pub type Position = (String, usize, usize);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ast<T> {
     nodes: Vec<Statement<T>>,
 }
 
 impl Ast<()> {
-    pub fn from_program(program: Pairs<Rule>) -> Ast<()> {
+    pub fn from_program(program: Vec<Pair<Rule>>, file: &str) -> Ast<()> {
         let mut ast = vec![];
 
         for statement in program {
             if statement.as_rule() != Rule::EOI {
-                ast.push(Statement::from_pair(statement));
+                ast.push(Statement::from_pair(statement, file));
             }
         }
         Self { nodes: ast }
@@ -93,8 +95,8 @@ pub struct ParseError {
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!(
-            "{} ({}:{})",
-            self.message, self.position.0, self.position.1
+            "{} ({}:{}:{})",
+            self.message, self.position.0, self.position.1, self.position.2
         ))
     }
 }

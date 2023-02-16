@@ -163,6 +163,7 @@ impl Scope {
         match statement {
             Statement::Expression(expression) => self.compile_expression(expression),
             Statement::Intrinsic(intrinsic) => self.compile_intrinsic(intrinsic),
+            Statement::Import(_) => todo!(),
         }
     }
 
@@ -236,7 +237,6 @@ impl Scope {
                             Register(Rcx.to_sized(&rhs.info())),
                         ));
                         self.instructions.push(Setg(Register(Al)));
-                        // self.instructions.push(Xor(Register(Rax), Register(Rax)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryVerb::LessThan => {
@@ -245,7 +245,6 @@ impl Scope {
                             Register(Rcx.to_sized(&rhs.info())),
                         ));
                         self.instructions.push(Setl(Register(Al)));
-                        // self.instructions.push(Xor(Register(Rax), Register(Rax)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryVerb::Equal => {
@@ -254,7 +253,6 @@ impl Scope {
                             Register(Rcx.to_sized(&rhs.info())),
                         ));
                         self.instructions.push(Sete(Register(Al)));
-                        // self.instructions.push(Xor(Register(Rax), Register(Rax)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                 };
@@ -297,7 +295,7 @@ impl Scope {
                         Identifier(constant.name.to_owned()),
                     ));
                 } else if self.functions.get(identifier).is_some() {
-                    self.instructions.push(Mov(
+                    self.instructions.push(Lea(
                         Register(Rax.to_sized(info)),
                         Identifier(identifier.to_owned()),
                     ));
@@ -311,7 +309,7 @@ impl Scope {
             Expression::Str(string) => {
                 let value = &string.value;
                 let var_name = self.add_string_constant(None, value);
-                self.instructions.push(Mov(
+                self.instructions.push(Lea(
                     Register(Rax.to_sized(&string.info)),
                     Identifier(var_name),
                 ));
@@ -351,7 +349,7 @@ impl Scope {
                     .insert(fn_name.to_owned(), Function { instructions });
 
                 self.instructions.push(Comment(format!("fn {fn_name}")));
-                self.instructions.push(Mov(
+                self.instructions.push(Lea(
                     Register(Rax.to_sized(&fn_definition.info)),
                     Identifier(fn_name),
                 ));

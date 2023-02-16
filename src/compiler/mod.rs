@@ -157,12 +157,8 @@ impl Compiler {
         info!("Linking program...");
 
         #[cfg(target_os = "macos")]
-        let output = Command::new("ld")
+        let output = Command::new("cc")
             .args([
-                "-macos_version_min",
-                "10.12.0",
-                "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib",
-                "-lSystem",
                 "-o",
                 &target.to_string(),
                 &format!("{}.o", target.to_string()),
@@ -170,7 +166,7 @@ impl Compiler {
             .output()?;
 
         #[cfg(target_os = "linux")]
-        let output = Command::new("ld")
+        let output = Command::new("cc")
             .args([
                 "-o",
                 &target.to_string(),

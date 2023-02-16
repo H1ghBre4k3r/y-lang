@@ -12,21 +12,21 @@ pub struct If<T> {
 }
 
 impl If<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> If<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> If<()> {
         assert_eq!(pair.as_rule(), Rule::ifStmt);
 
-        let position = pair.line_col();
+        let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();
-        let condition = Expression::from_pair(inner.next().unwrap());
+        let condition = Expression::from_pair(inner.next().unwrap(), file);
         let if_block = inner.next().unwrap();
-        let else_block = inner.next().map(Block::from_pair);
+        let else_block = inner.next().map(|block| Block::from_pair(block, file));
 
         If {
             condition: Box::new(condition),
-            if_block: Block::from_pair(if_block),
+            if_block: Block::from_pair(if_block, file),
             else_block,
-            position,
+            position: (file.to_owned(), line, col),
             info: (),
         }
     }

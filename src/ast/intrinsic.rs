@@ -12,11 +12,11 @@ pub enum Intrinsic<T> {
 }
 
 impl Intrinsic<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Intrinsic<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Intrinsic<()> {
         match pair.as_rule() {
-            Rule::declaration => Intrinsic::Declaration(Declaration::from_pair(pair)),
-            Rule::definition => Intrinsic::Definition(Definition::from_pair(pair)),
-            Rule::assignment => Intrinsic::Assignment(Assignment::from_pair(pair)),
+            Rule::declaration => Intrinsic::Declaration(Declaration::from_pair(pair, file)),
+            Rule::definition => Intrinsic::Definition(Definition::from_pair(pair, file)),
+            Rule::assignment => Intrinsic::Assignment(Assignment::from_pair(pair, file)),
             _ => panic!("Unexpected intrinsic '{pair:#?}'"),
         }
     }

@@ -10,22 +10,22 @@ pub struct Block<T> {
 }
 
 impl Block<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Block<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Block<()> {
         assert_eq!(pair.as_rule(), Rule::block);
 
-        let position = pair.line_col();
+        let (line, col) = pair.line_col();
 
         let block = pair.into_inner();
 
         let mut block_ast = vec![];
 
         for statement in block {
-            block_ast.push(Statement::from_pair(statement));
+            block_ast.push(Statement::from_pair(statement, file));
         }
 
         Block {
             block: block_ast,
-            position,
+            position: (file.to_owned(), line, col),
             info: (),
         }
     }

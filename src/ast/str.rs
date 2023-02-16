@@ -10,12 +10,14 @@ pub struct Str<T> {
 }
 
 impl Str<()> {
-    pub fn from_pair(pair: Pair<Rule>) -> Str<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> Str<()> {
         assert_eq!(pair.as_rule(), Rule::string);
+        let (line, col) = pair.line_col();
+
         Str {
             value: unescape(pair.clone().into_inner().next().unwrap().as_str())
                 .expect("Invalid character escaped"),
-            position: pair.line_col(),
+            position: (file.to_string(), line, col),
             info: (),
         }
     }

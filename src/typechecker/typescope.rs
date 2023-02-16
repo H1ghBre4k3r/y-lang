@@ -76,7 +76,7 @@ impl TypeScope {
         &mut self,
         name: &str,
         value: VariableType,
-        position: &(usize, usize),
+        position: &(String, usize, usize),
     ) -> Result<(), TypeError> {
         let mut scopes = self.scope_stack.clone();
         scopes.reverse();
@@ -102,6 +102,20 @@ impl TypeScope {
         self.scope_stack = scopes;
 
         Ok(())
+    }
+
+    pub fn flatten(&self) -> HashMap<String, VariableType> {
+        let mut entries = HashMap::default();
+
+        for scope in &self.scope_stack {
+            let scope = scope.borrow();
+
+            for (key, value) in scope.iter() {
+                entries.insert(key.to_owned(), value.to_owned());
+            }
+        }
+
+        entries
     }
 }
 
