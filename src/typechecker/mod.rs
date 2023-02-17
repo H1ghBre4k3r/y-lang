@@ -132,7 +132,7 @@ impl Typechecker {
            return Err(TypeError {
                message: format!("Could not import module '{path}'"),
                position: position.clone()
-           }); 
+           });
         };
 
         let imports = module.exports.flatten();
