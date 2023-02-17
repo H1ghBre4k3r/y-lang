@@ -1,12 +1,12 @@
 use log::error;
 use pest::iterators::Pair;
 
-use super::{BinaryOp, Block, Boolean, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
+use super::{BinaryExpr, Block, Boolean, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expression<T> {
     If(If<T>),
-    BinaryOp(BinaryOp<T>),
+    Binary(BinaryExpr<T>),
     FnCall(FnCall<T>),
     Integer(Integer<T>),
     Ident(Ident<T>),
@@ -23,7 +23,7 @@ impl Expression<()> {
             Rule::ident => Expression::Ident(Ident::from_pair(pair, file)),
             Rule::fnCall => Expression::FnCall(FnCall::from_pair(pair, file)),
             Rule::string => Expression::Str(Str::from_pair(pair, file)),
-            Rule::binaryExpr => Expression::BinaryOp(BinaryOp::from_pair(pair, file)),
+            Rule::binaryExpr => Expression::Binary(BinaryExpr::from_pair(pair, file)),
             Rule::fnDef => Expression::FnDef(FnDef::from_pair(pair, file)),
             Rule::ifStmt => Expression::If(If::from_pair(pair, file)),
             Rule::block => Expression::Block(Block::from_pair(pair, file)),
@@ -48,7 +48,7 @@ where
     pub fn position(&self) -> Position {
         match self {
             Expression::If(If { position, .. })
-            | Expression::BinaryOp(BinaryOp { position, .. })
+            | Expression::Binary(BinaryExpr { position, .. })
             | Expression::FnCall(FnCall { position, .. })
             | Expression::Integer(Integer { position, .. })
             | Expression::Ident(Ident { position, .. })
@@ -62,7 +62,7 @@ where
     pub fn info(&self) -> T {
         match self {
             Expression::If(If { info, .. })
-            | Expression::BinaryOp(BinaryOp { info, .. })
+            | Expression::Binary(BinaryExpr { info, .. })
             | Expression::FnCall(FnCall { info, .. })
             | Expression::Integer(Integer { info, .. })
             | Expression::Ident(Ident { info, .. })

@@ -8,7 +8,7 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryVerb, Block, Boolean, Definition, Expression, FnCall, Ident, If, Integer,
+        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If, Integer,
         Intrinsic, Statement,
     },
     typechecker::TypeInfo,
@@ -201,7 +201,7 @@ impl Scope {
 
                 self.instructions.push(Label(end_label));
             }
-            Expression::BinaryOp(binary_operation) => {
+            Expression::Binary(binary_operation) => {
                 let lhs = &binary_operation.lhs;
                 let rhs = &binary_operation.rhs;
                 // Compile the seconds expression. (RTL evaluation)
@@ -218,20 +218,20 @@ impl Scope {
 
                 self.instructions.push(Comment(format!(
                     "{:?} {} {:?}",
-                    lhs, binary_operation.verb, rhs
+                    lhs, binary_operation.op, rhs
                 )));
 
-                match &binary_operation.verb {
-                    BinaryVerb::Plus => self.instructions.push(Add(
+                match &binary_operation.op {
+                    BinaryOp::Plus => self.instructions.push(Add(
                         Register(Rax.to_sized(&lhs.info())),
                         Register(Rcx.to_sized(&rhs.info())),
                     )),
-                    BinaryVerb::Minus => self.instructions.push(Sub(
+                    BinaryOp::Minus => self.instructions.push(Sub(
                         Register(Rax.to_sized(&lhs.info())),
                         Register(Rcx.to_sized(&rhs.info())),
                     )),
-                    BinaryVerb::Times => todo!(),
-                    BinaryVerb::GreaterThan => {
+                    BinaryOp::Times => todo!(),
+                    BinaryOp::GreaterThan => {
                         self.instructions.push(Cmp(
                             Register(Rax.to_sized(&lhs.info())),
                             Register(Rcx.to_sized(&rhs.info())),
@@ -239,7 +239,7 @@ impl Scope {
                         self.instructions.push(Setg(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
-                    BinaryVerb::LessThan => {
+                    BinaryOp::LessThan => {
                         self.instructions.push(Cmp(
                             Register(Rax.to_sized(&lhs.info())),
                             Register(Rcx.to_sized(&rhs.info())),
@@ -247,7 +247,7 @@ impl Scope {
                         self.instructions.push(Setl(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
-                    BinaryVerb::Equal => {
+                    BinaryOp::Equal => {
                         self.instructions.push(Cmp(
                             Register(Rax.to_sized(&lhs.info())),
                             Register(Rcx.to_sized(&rhs.info())),
@@ -455,8 +455,8 @@ impl Scope {
                     Register(Rax.to_sized(info)),
                 ));
             }
-            Expression::BinaryOp(binary_operation) => {
-                self.compile_expression(&Expression::BinaryOp(binary_operation.to_owned()));
+            Expression::Binary(binary_operation) => {
+                self.compile_expression(&Expression::Binary(binary_operation.to_owned()));
 
                 let info = &binary_operation.info;
                 self.stack_offset += info.var_size();
@@ -467,7 +467,7 @@ impl Scope {
 
                 self.instructions.push(Comment(format!(
                     "{} = {:?} {} {:?}",
-                    name, binary_operation.lhs, binary_operation.verb, binary_operation.rhs
+                    name, binary_operation.lhs, binary_operation.op, binary_operation.rhs
                 )));
 
                 self.instructions.push(Mov(
@@ -649,7 +649,7 @@ impl Scope {
                     ])
                 }
                 Expression::If(_) => todo!(),
-                Expression::BinaryOp(_) => todo!(),
+                Expression::Binary(_) => todo!(),
                 Expression::FnCall(_) => todo!(),
                 Expression::Integer(_) => todo!(),
                 Expression::Boolean(_) => todo!(),
@@ -661,7 +661,7 @@ impl Scope {
             let param = fn_call.params[0].to_owned();
             match param {
                 Expression::If(_)
-                | Expression::BinaryOp(_)
+                | Expression::Binary(_)
                 | Expression::FnCall(_)
                 | Expression::Block(_)
                 | Expression::Integer(_)

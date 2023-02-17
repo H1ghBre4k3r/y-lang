@@ -1,6 +1,6 @@
 mod assignment;
+mod binary_expr;
 mod binary_op;
-mod binary_verb;
 mod block;
 mod boolean;
 mod declaration;
@@ -23,8 +23,8 @@ mod types;
 use std::fmt::Display;
 
 pub use self::assignment::*;
+pub use self::binary_expr::*;
 pub use self::binary_op::*;
-pub use self::binary_verb::*;
 pub use self::block::*;
 pub use self::boolean::*;
 pub use self::declaration::*;

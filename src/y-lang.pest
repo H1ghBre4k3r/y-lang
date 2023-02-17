@@ -46,7 +46,7 @@ ident = @{ localIdent ~ ("::" ~ localIdent)* }
 
 expr = _{ binaryExpr | term }
 
-binaryExpr = { term ~ binaryVerb ~ expr }
+binaryExpr = { term ~ binaryOp ~ expr }
 
 term = _{ atomExpr | "(" ~ expr ~ ")" }
 
@@ -62,7 +62,7 @@ char = {
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
-binaryVerb = {
+binaryOp = {
     ">" | "<" | "==" | "+" | "-" | "*"
 }
 

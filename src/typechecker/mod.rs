@@ -6,7 +6,7 @@ mod variabletype;
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Declaration, Definition, Expression,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Declaration, Definition, Expression,
         FnCall, FnDef, Ident, If, Import, Integer, Intrinsic, Param, Position, Statement, Str,
         Type,
     },
@@ -326,8 +326,8 @@ impl Typechecker {
     ) -> TResult<Expression<TypeInfo>> {
         Ok(match expression {
             Expression::If(if_statement) => Expression::If(self.check_if(if_statement, scope)?),
-            Expression::BinaryOp(binary_op) => {
-                Expression::BinaryOp(self.check_binary_operation(binary_op, scope)?)
+            Expression::Binary(binary_op) => {
+                Expression::Binary(self.check_binary_operation(binary_op, scope)?)
             }
             Expression::Integer(Integer {
                 value, position, ..
@@ -568,9 +568,9 @@ impl Typechecker {
 
     fn check_binary_operation(
         &self,
-        binary_operation: &BinaryOp<()>,
+        binary_operation: &BinaryExpr<()>,
         scope: &mut TypeScope,
-    ) -> TResult<BinaryOp<TypeInfo>> {
+    ) -> TResult<BinaryExpr<TypeInfo>> {
         let position = binary_operation.position.clone();
 
         let lhs = &binary_operation.lhs;
@@ -582,8 +582,8 @@ impl Typechecker {
         let rhs = self.check_expression(None, rhs, scope)?;
         let r_type = rhs.info()._type;
 
-        match binary_operation.verb {
-            BinaryVerb::Equal => {
+        match binary_operation.op {
+            BinaryOp::Equal => {
                 if l_type != r_type {
                     return Err(TypeError {
                         message: format!(
@@ -592,8 +592,8 @@ impl Typechecker {
                         position,
                     });
                 }
-                Ok(BinaryOp {
-                    verb: binary_operation.verb,
+                Ok(BinaryExpr {
+                    op: binary_operation.op,
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
                     position: binary_operation.position.clone(),
@@ -602,18 +602,18 @@ impl Typechecker {
                     },
                 })
             }
-            BinaryVerb::LessThan | BinaryVerb::GreaterThan => {
+            BinaryOp::LessThan | BinaryOp::GreaterThan => {
                 if l_type != VariableType::Int || r_type != VariableType::Int {
                     return Err(TypeError {
                         message: format!(
                             "Invalid types for binary operation '{}'. Got '{}' and '{}'",
-                            binary_operation.verb, l_type, r_type
+                            binary_operation.op, l_type, r_type
                         ),
                         position,
                     });
                 }
-                Ok(BinaryOp {
-                    verb: binary_operation.verb,
+                Ok(BinaryExpr {
+                    op: binary_operation.op,
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
                     position: binary_operation.position.clone(),
@@ -622,7 +622,7 @@ impl Typechecker {
                     },
                 })
             }
-            BinaryVerb::Plus | BinaryVerb::Minus | BinaryVerb::Times => {
+            BinaryOp::Plus | BinaryOp::Minus | BinaryOp::Times => {
                 if l_type != VariableType::Int {
                     return Err(TypeError {
                         message: format!(
@@ -639,8 +639,8 @@ impl Typechecker {
                     });
                 }
 
-                Ok(BinaryOp {
-                    verb: binary_operation.verb,
+                Ok(BinaryExpr {
+                    op: binary_operation.op,
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
                     position: binary_operation.position.clone(),
