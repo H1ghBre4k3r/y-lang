@@ -154,7 +154,7 @@ In order to provide the security of strong types, the type checker checks the ty
 
 ### Interpreter & Compiler
 
-As a last step, the generated AST either gets interpreted or compiled to assembly. This generated assembly get then compiled to an object file using NASM and then linked via `ld`.
+As a last step, the generated AST either gets interpreted or compiled to assembly. This generated assembly get then compiled to an object file using NASM and then linked via `cc`.
 
 ## Usage
 
