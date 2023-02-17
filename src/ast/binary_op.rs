@@ -1,47 +1,43 @@
-use pest::iterators::Pair;
+use std::{fmt::Display, str::FromStr};
 
-use super::{BinaryVerb, Expression, Position, Rule};
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BinaryOp<T> {
-    pub verb: BinaryVerb,
-    pub lhs: Box<Expression<T>>,
-    pub rhs: Box<Expression<T>>,
-    pub position: Position,
-    pub info: T,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum BinaryOp {
+    GreaterThan,
+    LessThan,
+    Equal,
+    Plus,
+    Minus,
+    Times,
 }
 
-impl BinaryOp<()> {
-    pub fn from_pair(pair: Pair<Rule>, file: &str) -> BinaryOp<()> {
-        assert_eq!(pair.as_rule(), Rule::binaryExpr);
+#[derive(Debug)]
+pub struct UndefinedOpError(String);
 
-        let (line, col) = pair.line_col();
+impl FromStr for BinaryOp {
+    type Err = UndefinedOpError;
 
-        let mut inner = pair.clone().into_inner();
-
-        let lhs = Expression::from_pair(inner.next().unwrap(), file);
-
-        let verb = inner.next().unwrap_or_else(|| {
-            panic!(
-                "Expected verb in binary expression '{}' at {}:{}",
-                pair.as_str(),
-                pair.line_col().0,
-                pair.line_col().1
-            )
-        });
-
-        let verb = verb
-            .as_str()
-            .parse::<BinaryVerb>()
-            .expect("Invalid binary verb");
-
-        let rhs = Expression::from_pair(inner.next().unwrap(), file);
-        BinaryOp {
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-            verb,
-            position: (file.to_owned(), line, col),
-            info: (),
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            ">" => Ok(BinaryOp::GreaterThan),
+            "<" => Ok(BinaryOp::LessThan),
+            "==" => Ok(BinaryOp::Equal),
+            "+" => Ok(BinaryOp::Plus),
+            "-" => Ok(BinaryOp::Minus),
+            "*" => Ok(BinaryOp::Times),
+            _ => Err(UndefinedOpError(format!("Unexpected binary op '{s}'"))),
         }
+    }
+}
+
+impl Display for BinaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            BinaryOp::GreaterThan => ">",
+            BinaryOp::LessThan => "<",
+            BinaryOp::Equal => "==",
+            BinaryOp::Plus => "+",
+            BinaryOp::Minus => "-",
+            BinaryOp::Times => "*",
+        })
     }
 }

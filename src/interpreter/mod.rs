@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Definition, Expression, FnCall,
         FnDef, Ident, If, Import, Integer, Intrinsic, Statement, Str,
     },
     loader::Modules,
@@ -255,7 +255,7 @@ impl Interpreter {
 
                 value
             }
-            Expression::BinaryOp(binary_operation) => {
+            Expression::Binary(binary_operation) => {
                 self.run_binary_operation(binary_operation, scope)
             }
             Expression::FnCall(fn_call) => self.run_fn_call(fn_call, scope),
@@ -266,7 +266,7 @@ impl Interpreter {
 
     fn run_binary_operation(
         &self,
-        binary_operation: &BinaryOp<TypeInfo>,
+        binary_operation: &BinaryExpr<TypeInfo>,
         scope: &mut Scope,
     ) -> VariableValue {
         let lhs = &binary_operation.lhs;
@@ -275,33 +275,33 @@ impl Interpreter {
         let lhs = self.run_expression(lhs, scope);
         let rhs = self.run_expression(rhs, scope);
 
-        match binary_operation.verb {
-            BinaryVerb::Equal => VariableValue::Bool(lhs == rhs),
-            BinaryVerb::GreaterThan => {
+        match binary_operation.op {
+            BinaryOp::Equal => VariableValue::Bool(lhs == rhs),
+            BinaryOp::GreaterThan => {
                 let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
                 VariableValue::Bool(lhs > rhs)
             }
-            BinaryVerb::LessThan => {
+            BinaryOp::LessThan => {
                 let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
                 VariableValue::Bool(lhs < rhs)
             }
-            BinaryVerb::Plus => {
+            BinaryOp::Plus => {
                 let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
                 VariableValue::Int(lhs + rhs)
             }
-            BinaryVerb::Minus => {
+            BinaryOp::Minus => {
                 let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
                 VariableValue::Int(lhs - rhs)
             }
-            BinaryVerb::Times => {
+            BinaryOp::Times => {
                 let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
                     unreachable!();
                 };
@@ -340,7 +340,7 @@ impl Interpreter {
                             print!("{value}");
                         }
                         Expression::Str(Str { value, .. }) => print!("{value}"),
-                        Expression::BinaryOp(binary_operation) => {
+                        Expression::Binary(binary_operation) => {
                             print!("{}", self.run_binary_operation(binary_operation, scope))
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{value}"),
@@ -368,7 +368,7 @@ impl Interpreter {
                             };
                             print!("{value}");
                         }
-                        Expression::BinaryOp(binary_operation) => {
+                        Expression::Binary(binary_operation) => {
                             print!("{}", self.run_binary_operation(binary_operation, scope))
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{value}"),
