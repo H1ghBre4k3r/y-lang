@@ -3,13 +3,15 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 use crate::{
     ast::{
         Assignment, Ast, BinaryOp, BinaryVerb, Block, Boolean, Definition, Expression, FnCall,
-        FnDef, Ident, If, Integer, Intrinsic, Statement, Str,
+        FnDef, Ident, If, Import, Integer, Intrinsic, Statement, Str,
     },
+    loader::Modules,
     typechecker::TypeInfo,
 };
 
 pub struct Interpreter {
     ast: Ast<TypeInfo>,
+    modules: Modules<TypeInfo>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +34,11 @@ impl Display for VariableValue {
             Self::Bool(value) => format!("{value}"),
             Self::Str(value) => value.to_string(),
             Self::Int(value) => format!("{value}"),
-            _ => unimplemented!(),
+            Self::Func {
+                params,
+                block,
+                scope,
+            } => format!("{params:?} {{ .. }}"),
         };
         f.write_str(&str_representation)
     }
@@ -95,11 +101,25 @@ impl Scope {
         scopes.reverse();
         self.scope_stack = scopes;
     }
+
+    pub fn flatten(&self) -> HashMap<String, VariableValue> {
+        let mut entries = HashMap::default();
+
+        for scope in &self.scope_stack {
+            let scope = scope.borrow();
+
+            for (key, value) in scope.iter() {
+                entries.insert(key.to_owned(), value.to_owned());
+            }
+        }
+
+        entries
+    }
 }
 
 impl Interpreter {
-    pub fn from_ast(ast: Ast<TypeInfo>) -> Self {
-        Self { ast }
+    pub fn from_ast(ast: Ast<TypeInfo>, modules: Modules<TypeInfo>) -> Self {
+        Self { ast, modules }
     }
 
     pub fn run(&self) {
@@ -110,29 +130,61 @@ impl Interpreter {
         scope.push();
 
         for node in nodes {
-            Self::run_statement(&node, &mut scope);
+            self.run_statement(&node, &mut scope);
         }
     }
 
-    fn run_statement(statement: &Statement<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_statement(&self, statement: &Statement<TypeInfo>, scope: &mut Scope) -> VariableValue {
         match &statement {
-            Statement::Expression(expression) => Self::run_expression(expression, scope),
-            Statement::Intrinsic(intrinsic) => Self::run_intrinsic(intrinsic, scope),
-            Statement::Import(_) => todo!(),
+            Statement::Expression(expression) => self.run_expression(expression, scope),
+            Statement::Intrinsic(intrinsic) => self.run_intrinsic(intrinsic, scope),
+            Statement::Import(import) => self.run_import(import, scope),
         }
     }
 
-    fn run_intrinsic(intrinsic: &Intrinsic<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_import(&self, import: &Import, scope: &mut Scope) -> VariableValue {
+        let Import {
+            path,
+            position: (file, line, col),
+        } = import;
+
+        let Some(module) = self.modules.get(path) else {
+            unreachable!("Could not load module '{}' ({}:{}:{})", path, file, line, col);
+        };
+
+        let mut import_scope = Scope::default();
+        import_scope.push();
+
+        let nodes = module.ast.nodes();
+
+        for node in &nodes {
+            self.run_statement(node, &mut import_scope);
+        }
+
+        let imports = import_scope.flatten();
+
+        for (key, value) in imports {
+            if module.is_wildcard {
+                scope.set(&key, value);
+            } else {
+                scope.set(&format!("{path}::{key}"), value);
+            }
+        }
+
+        VariableValue::Void
+    }
+
+    fn run_intrinsic(&self, intrinsic: &Intrinsic<TypeInfo>, scope: &mut Scope) -> VariableValue {
         match intrinsic {
-            Intrinsic::Definition(definition) => Self::run_definition(definition, scope),
-            Intrinsic::Assignment(assignment) => Self::run_assignment(assignment, scope),
+            Intrinsic::Definition(definition) => self.run_definition(definition, scope),
+            Intrinsic::Assignment(assignment) => self.run_assignment(assignment, scope),
             Intrinsic::Declaration(_) => VariableValue::Void,
         }
     }
 
-    fn run_if(if_statement: &If<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_if(&self, if_statement: &If<TypeInfo>, scope: &mut Scope) -> VariableValue {
         let condition = &if_statement.condition;
-        let VariableValue::Bool(condition) = Self::run_expression(condition, scope) else {
+        let VariableValue::Bool(condition) = self.run_expression(condition, scope) else {
             let position = condition.position();
             unreachable!(
                 "Invalid type of condition '{:?}' at {}:{}",
@@ -141,22 +193,22 @@ impl Interpreter {
         };
 
         if condition {
-            Self::run_block(&if_statement.if_block, scope)
+            self.run_block(&if_statement.if_block, scope)
         } else {
             if let Some(else_block) = &if_statement.else_block {
-                return Self::run_block(else_block, scope);
+                return self.run_block(else_block, scope);
             }
             VariableValue::Void
         }
     }
 
-    fn run_block(block: &Block<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_block(&self, block: &Block<TypeInfo>, scope: &mut Scope) -> VariableValue {
         scope.push();
 
         let mut return_value = VariableValue::Void;
 
         for statement in &block.block {
-            return_value = Self::run_statement(statement, scope);
+            return_value = self.run_statement(statement, scope);
         }
 
         scope.pop();
@@ -164,23 +216,35 @@ impl Interpreter {
         return_value
     }
 
-    fn run_definition(definition: &Definition<TypeInfo>, scope: &mut Scope) -> VariableValue {
-        let value = Self::run_expression(&definition.value, scope);
+    fn run_definition(
+        &self,
+        definition: &Definition<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
+        let value = self.run_expression(&definition.value, scope);
 
         scope.set(&definition.ident.value, value);
         VariableValue::Void
     }
 
-    fn run_assignment(assignment: &Assignment<TypeInfo>, scope: &mut Scope) -> VariableValue {
-        let value = Self::run_expression(&assignment.value, scope);
+    fn run_assignment(
+        &self,
+        assignment: &Assignment<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
+        let value = self.run_expression(&assignment.value, scope);
 
         scope.update(&assignment.ident.value, value);
         VariableValue::Void
     }
 
-    fn run_expression(expression: &Expression<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_expression(
+        &self,
+        expression: &Expression<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
         match expression {
-            Expression::If(if_statement) => Self::run_if(if_statement, scope),
+            Expression::If(if_statement) => self.run_if(if_statement, scope),
             Expression::Integer(Integer { value, .. }) => VariableValue::Int(*value),
             Expression::Str(Str { value, .. }) => VariableValue::Str(value.clone()),
             Expression::Boolean(Boolean { value, .. }) => VariableValue::Bool(*value),
@@ -192,23 +256,24 @@ impl Interpreter {
                 value
             }
             Expression::BinaryOp(binary_operation) => {
-                Self::run_binary_operation(binary_operation, scope)
+                self.run_binary_operation(binary_operation, scope)
             }
-            Expression::FnCall(fn_call) => Self::run_fn_call(fn_call, scope),
-            Expression::Block(block) => Self::run_block(block, scope),
-            Expression::FnDef(fn_def) => Self::run_fn_def(fn_def, scope),
+            Expression::FnCall(fn_call) => self.run_fn_call(fn_call, scope),
+            Expression::Block(block) => self.run_block(block, scope),
+            Expression::FnDef(fn_def) => self.run_fn_def(fn_def, scope),
         }
     }
 
     fn run_binary_operation(
+        &self,
         binary_operation: &BinaryOp<TypeInfo>,
         scope: &mut Scope,
     ) -> VariableValue {
         let lhs = &binary_operation.lhs;
         let rhs = &binary_operation.rhs;
 
-        let lhs = Self::run_expression(lhs, scope);
-        let rhs = Self::run_expression(rhs, scope);
+        let lhs = self.run_expression(lhs, scope);
+        let rhs = self.run_expression(rhs, scope);
 
         match binary_operation.verb {
             BinaryVerb::Equal => VariableValue::Bool(lhs == rhs),
@@ -245,7 +310,7 @@ impl Interpreter {
         }
     }
 
-    fn run_fn_def(fn_def: &FnDef<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_fn_def(&self, fn_def: &FnDef<TypeInfo>, scope: &mut Scope) -> VariableValue {
         let mut params = vec![];
 
         for param in &fn_def.params {
@@ -259,7 +324,7 @@ impl Interpreter {
         }
     }
 
-    fn run_fn_call(fn_call: &FnCall<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_fn_call(&self, fn_call: &FnCall<TypeInfo>, scope: &mut Scope) -> VariableValue {
         scope.push();
 
         let ident = &fn_call.ident;
@@ -276,18 +341,18 @@ impl Interpreter {
                         }
                         Expression::Str(Str { value, .. }) => print!("{value}"),
                         Expression::BinaryOp(binary_operation) => {
-                            print!("{}", Self::run_binary_operation(binary_operation, scope))
+                            print!("{}", self.run_binary_operation(binary_operation, scope))
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{value}"),
                         Expression::Boolean(Boolean { value, .. }) => print!("{value}"),
                         Expression::If(if_statement) => {
-                            print!("{}", Self::run_if(if_statement, scope))
+                            print!("{}", self.run_if(if_statement, scope))
                         }
                         Expression::Block(block) => {
-                            print!("{}", Self::run_block(block, scope))
+                            print!("{}", self.run_block(block, scope))
                         }
                         Expression::FnCall(fn_call) => {
-                            print!("{}", Self::run_fn_call(fn_call, scope))
+                            print!("{}", self.run_fn_call(fn_call, scope))
                         }
                         Expression::FnDef(_) => todo!(),
                     }
@@ -304,17 +369,17 @@ impl Interpreter {
                             print!("{value}");
                         }
                         Expression::BinaryOp(binary_operation) => {
-                            print!("{}", Self::run_binary_operation(binary_operation, scope))
+                            print!("{}", self.run_binary_operation(binary_operation, scope))
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{value}"),
                         Expression::If(if_statement) => {
-                            print!("{}", Self::run_if(if_statement, scope))
+                            print!("{}", self.run_if(if_statement, scope))
                         }
                         Expression::Block(block) => {
-                            print!("{}", Self::run_block(block, scope))
+                            print!("{}", self.run_block(block, scope))
                         }
                         Expression::FnCall(fn_call) => {
-                            print!("{}", Self::run_fn_call(fn_call, scope))
+                            print!("{}", self.run_fn_call(fn_call, scope))
                         }
                         _ => todo!(),
                     }
@@ -334,12 +399,12 @@ impl Interpreter {
 
                 for (i, param) in fn_call.params.iter().enumerate() {
                     let param_name = &params[i];
-                    let param_value = Self::run_expression(param, scope);
+                    let param_value = self.run_expression(param, scope);
 
                     fn_scope.set(param_name, param_value);
                 }
 
-                let return_value = Self::run_block(&block, &mut fn_scope);
+                let return_value = self.run_block(&block, &mut fn_scope);
 
                 fn_scope.pop();
                 return_value

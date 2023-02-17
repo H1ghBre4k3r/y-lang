@@ -39,17 +39,17 @@ fn is_fn_declaration(pair: &Pair<Rule>) -> bool {
     }
 }
 
-#[derive(Debug)]
-pub struct Module {
+#[derive(Debug, Clone)]
+pub struct Module<T> {
     pub name: String,
-    pub ast: Ast<()>,
+    pub ast: Ast<T>,
     pub exports: TypeScope,
     pub is_wildcard: bool,
 }
 
-pub type Modules = HashMap<String, Module>;
+pub type Modules<T> = HashMap<String, Module<T>>;
 
-pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules, Box<dyn Error>> {
+pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box<dyn Error>> {
     let nodes = ast.nodes();
 
     let imports = nodes
@@ -100,7 +100,7 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules, Box<dyn
 
         let function_declarations = extract_function_declarations(&ast)?;
 
-        let ast = Ast::from_program(pairs.collect(), &file);
+        // let ast = Ast::from_program(pairs.collect(), &file);
 
         modules.insert(
             import.path.to_owned(),

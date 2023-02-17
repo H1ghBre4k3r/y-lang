@@ -1,7 +1,7 @@
 extern crate pest;
 extern crate y_lang;
 
-use std::{error::Error, fs};
+use std::{collections::HashMap, error::Error, fs};
 
 use clap::Parser as CParser;
 use log::error;
@@ -9,7 +9,7 @@ use y_lang::{
     ast::{Ast, YParser},
     compiler::Compiler,
     interpreter::Interpreter,
-    loader::load_modules,
+    loader::{load_modules, Module},
     typechecker::Typechecker,
 };
 
@@ -50,7 +50,39 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(modules) => modules,
     };
 
-    let typechecker = Typechecker::from_ast(ast, modules);
+    let mut type_safe_modules = HashMap::default();
+
+    for (
+        key,
+        Module {
+            ast,
+            name,
+            exports,
+            is_wildcard,
+        },
+    ) in modules
+    {
+        let typechecker = Typechecker::from_ast(ast.clone(), HashMap::default());
+        let ast = match typechecker.check() {
+            Ok(ast) => ast,
+            Err(type_error) => {
+                error!("{}", type_error);
+                std::process::exit(-1);
+            }
+        };
+
+        type_safe_modules.insert(
+            key,
+            Module {
+                ast,
+                name,
+                exports,
+                is_wildcard,
+            },
+        );
+    }
+
+    let typechecker = Typechecker::from_ast(ast, type_safe_modules.clone());
 
     let ast = match typechecker.check() {
         Ok(ast) => ast,
@@ -61,7 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     if args.run {
-        let interpreter = Interpreter::from_ast(ast.clone());
+        let interpreter = Interpreter::from_ast(ast.clone(), type_safe_modules.clone());
 
         interpreter.run();
     }

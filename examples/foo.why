@@ -1,5 +1,9 @@
-let bar := () : void => {} 
+declare print : (str) -> void
 
-let lool := 4
+let a := () : void => {
+    print("from other module\n")
+}
 
-declare foo : (int) -> void
+let bar := () : void => {
+    a()
+} 

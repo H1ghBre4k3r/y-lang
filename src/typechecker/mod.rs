@@ -23,11 +23,11 @@ type TResult<T> = Result<T, TypeError>;
 
 pub struct Typechecker {
     ast: Ast<()>,
-    modules: Modules,
+    modules: Modules<TypeInfo>,
 }
 
 impl Typechecker {
-    pub fn from_ast(ast: Ast<()>, modules: Modules) -> Self {
+    pub fn from_ast(ast: Ast<()>, modules: Modules<TypeInfo>) -> Self {
         Self { ast, modules }
     }
 
