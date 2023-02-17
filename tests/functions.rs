@@ -20,6 +20,7 @@ fn compile_and_run_functions() -> Result<(), Box<dyn Error>> {
         .args(["-f", FILE_NAME, "-c", "-o", "./output/functions"])
         .output()?;
 
+    println!("{}", std::str::from_utf8(&output.stdout)?);
     assert_eq!(std::str::from_utf8(&output.stderr)?, "");
 
     let output = Command::new("./output/functions").output()?;
