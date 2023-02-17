@@ -17,7 +17,7 @@ fn interpret_assignment() -> Result<(), Box<dyn Error>> {
 #[test]
 fn compile_and_run_assignment() -> Result<(), Box<dyn Error>> {
     let output = Command::new("./target/debug/why")
-        .args(["-f", FILE_NAME, "-c", "-o", "./output/assignment"])
+        .args(["-f", FILE_NAME, "-o", "./output/assignment"])
         .output()?;
 
     println!("{}", std::str::from_utf8(&output.stdout)?);

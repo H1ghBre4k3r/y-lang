@@ -17,7 +17,7 @@ fn interpret_functions() -> Result<(), Box<dyn Error>> {
 #[test]
 fn compile_and_run_functions() -> Result<(), Box<dyn Error>> {
     let output = Command::new("./target/debug/why")
-        .args(["-f", FILE_NAME, "-c", "-o", "./output/functions"])
+        .args(["-f", FILE_NAME, "-o", "./output/functions"])
         .output()?;
 
     println!("{}", std::str::from_utf8(&output.stdout)?);

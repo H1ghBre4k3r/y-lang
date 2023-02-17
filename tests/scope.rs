@@ -20,7 +20,7 @@ fn interpret_scope() -> Result<(), Box<dyn Error>> {
 #[test]
 fn compile_and_run_scope() -> Result<(), Box<dyn Error>> {
     let output = Command::new("./target/debug/why")
-        .args(["-f", FILE_NAME, "-c", "-o", "./output/scope"])
+        .args(["-f", FILE_NAME, "-o", "./output/scope"])
         .output()?;
 
     println!("{}", std::str::from_utf8(&output.stdout)?);
