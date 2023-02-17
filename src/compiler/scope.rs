@@ -705,12 +705,14 @@ impl Scope {
     }
 
     fn add_string_constant(&mut self, name: Option<String>, value: &str) -> String {
-        let var_name = name.unwrap_or_else(|| self.var("c"));
+        let var_name = self.var(&name.clone().unwrap_or_else(|| "c".to_owned()));
+        // let var_name = name.unwrap_or_else(|| self.var("c"));
         let con = Constant {
             name: var_name.to_owned(),
             value: value.to_owned(),
         };
-        self.constants.insert(var_name.to_owned(), con);
+        self.constants
+            .insert(name.unwrap_or_else(|| var_name.clone()), con);
         var_name
     }
 }

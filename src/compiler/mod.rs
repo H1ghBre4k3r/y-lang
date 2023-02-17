@@ -16,7 +16,10 @@ use crate::{
     typechecker::TypeInfo,
 };
 
-use self::{scope::Scope, ystd::int_to_str};
+use self::{
+    scope::{Constant, Scope},
+    ystd::int_to_str,
+};
 pub struct Compiler {
     scope: Scope,
 }
@@ -50,12 +53,12 @@ impl Compiler {
 
     fn write_data_section(&mut self, file: &mut File) -> Result<(), Box<dyn Error>> {
         file.write_all("section .data\n".as_bytes())?;
-        for k in &self.scope.constants {
+        for Constant { value, name } in self.scope.constants.values() {
             // write the name of the string constant
-            file.write_all(format!("\t{} db ", k.0).as_bytes())?;
+            file.write_all(format!("\t{name} db ").as_bytes())?;
 
             // split string into lines
-            let string = &k.1.value;
+            let string = &value;
             let mut parts = string.split('\n').peekable();
 
             while let Some(part) = parts.next() {

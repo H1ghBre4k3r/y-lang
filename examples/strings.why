@@ -1,0 +1,11 @@
+declare print : (str) -> void
+
+let test := "This is a test"
+
+let a := test
+
+print("Hello, World\n")
+print(test)
+print("\n")
+print(a)
+print("\n")
