@@ -167,7 +167,7 @@ why -f path/to/program.why # typechecking
 
 why -f path/to/program.why -r # typecheck & run/interpret
 
-why -f path/to/program.why -o path/to/output -c # typecheck and compile
+why -f path/to/program.why -o path/to/output # typecheck and compile
 ```
 
 ## Operating Systems

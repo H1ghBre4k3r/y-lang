@@ -23,9 +23,6 @@ struct Cli {
     run: bool,
 
     #[arg(short, long)]
-    compile: bool,
-
-    #[arg(short, long)]
     output: Option<String>,
 }
 
@@ -92,16 +89,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    if args.run {
+    if args.run && args.output.is_none() {
         let interpreter = Interpreter::from_ast(ast.clone(), type_safe_modules.clone());
 
         interpreter.run();
     }
 
-    if args.compile {
+    if let Some(output) = args.output {
         let mut compiler = Compiler::from_ast(ast);
 
-        compiler.compile(args.output.unwrap_or("a".to_owned()))?;
+        compiler.compile(output)?;
     }
 
     Ok(())
