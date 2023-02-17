@@ -80,7 +80,7 @@ impl Compiler {
         file.write_all("\tglobal _main\n".as_bytes())?;
 
         #[cfg(target_os = "linux")]
-        file.write_all("\tglobal _start\n".as_bytes())?;
+        file.write_all("\tglobal main\n".as_bytes())?;
 
         let prelude = Self::prelude();
         for instruction in &prelude {
@@ -99,7 +99,7 @@ impl Compiler {
         let mut instructions = vec![Label("_main".to_owned())];
 
         #[cfg(target_os = "linux")]
-        let mut instructions = vec![Label("_start".to_owned())];
+        let mut instructions = vec![Label("main".to_owned())];
 
         instructions.append(&mut self.scope.instructions.clone());
 
