@@ -53,14 +53,7 @@ jobs:
       - run: cargo test
   linting:
     name: Linting
-    strategy:
-      matrix:
-        os:
-          # Check compilation works on common OSes
-          # (i.e. no path issues)
-          - ubuntu-latest
-          - macOS-latest
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -72,14 +65,7 @@ jobs:
       - run: cargo clippy --all-targets
   formatting:
     name: Formatting
-    strategy:
-      matrix:
-        os:
-          # Check compilation works on common OSes
-          # (i.e. no path issues)
-          - ubuntu-latest
-          - macOS-latest
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
