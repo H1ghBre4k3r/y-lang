@@ -162,6 +162,8 @@ impl Compiler {
         #[cfg(target_os = "macos")]
         let output = Command::new("cc")
             .args([
+                "-arch",
+                "x86_64",
                 "-o",
                 &target.to_string(),
                 &format!("{}.o", target.to_string()),
