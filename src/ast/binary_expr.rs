@@ -30,10 +30,7 @@ impl BinaryExpr<()> {
             )
         });
 
-        let op = op
-            .as_str()
-            .parse::<BinaryOp>()
-            .expect("Invalid binary op");
+        let op = op.as_str().parse::<BinaryOp>().expect("Invalid binary op");
 
         let rhs = Expression::from_pair(inner.next().unwrap(), file);
         BinaryExpr {
