@@ -87,6 +87,7 @@ impl Typechecker {
                                 &type_annotation.value,
                                 position.clone(),
                             )?),
+                            source: None,
                         },
                     )
                 }
@@ -139,9 +140,9 @@ impl Typechecker {
 
         for (key, value) in imports {
             if module.is_wildcard {
-                scope.set(&key, value);
+                scope.set(&key, value.set_source(module.clone()));
             } else {
-                scope.set(&format!("{path}::{key}"), value);
+                scope.set(&format!("{path}::{key}"), value.set_source(module.clone()));
             }
         }
 
@@ -202,6 +203,7 @@ impl Typechecker {
             position: if_statement.position.clone(),
             info: TypeInfo {
                 _type: if_block_type.clone(),
+                source: None,
             },
         };
 
@@ -232,6 +234,7 @@ impl Typechecker {
             block: vec![],
             info: TypeInfo {
                 _type: VariableType::Void,
+                source: None,
             },
         };
 
@@ -268,6 +271,7 @@ impl Typechecker {
             position: definition.position.clone(),
             info: TypeInfo {
                 _type: VariableType::Void,
+                source: None,
             },
         })
     }
@@ -313,6 +317,7 @@ impl Typechecker {
             value: assignment_rhs,
             position: assignment.position.clone(),
             info: TypeInfo {
+                source: None,
                 _type: VariableType::Void,
             },
         })
@@ -336,6 +341,7 @@ impl Typechecker {
                 position: position.clone(),
                 info: TypeInfo {
                     _type: VariableType::Int,
+                    source: None,
                 },
             }),
             Expression::Str(Str {
@@ -345,6 +351,7 @@ impl Typechecker {
                 position: position.clone(),
                 info: TypeInfo {
                     _type: VariableType::Str,
+                    source: None,
                 },
             }),
             Expression::Boolean(Boolean {
@@ -354,6 +361,7 @@ impl Typechecker {
                 position: position.clone(),
                 info: TypeInfo {
                     _type: VariableType::Bool,
+                    source: None,
                 },
             }),
             Expression::Ident(ident) => Expression::Ident(self.check_identifier(ident, scope)?),
@@ -376,6 +384,7 @@ impl Typechecker {
                 position: identifier.position.clone(),
                 info: TypeInfo {
                     _type: identifier_type,
+                    source: None,
                 },
             }),
             None => {
@@ -406,6 +415,7 @@ impl Typechecker {
                 Ok(VariableType::Func {
                     return_value: Box::new(return_type),
                     params: fn_params,
+                    source: None,
                 })
             }
         }
@@ -441,6 +451,7 @@ impl Typechecker {
                 VariableType::Func {
                     params: params.clone(),
                     return_value: Box::new(type_annotation.clone()),
+                    source: None,
                 },
             )
         }
@@ -468,7 +479,9 @@ impl Typechecker {
                 _type: VariableType::Func {
                     params,
                     return_value: Box::new(block.info._type),
+                    source: None,
                 },
+                source: None,
             },
         })
     }
@@ -488,7 +501,10 @@ impl Typechecker {
                 ident: Ident {
                     value: value.clone(),
                     position: position.clone(),
-                    info: TypeInfo { _type: param_type },
+                    info: TypeInfo {
+                        _type: param_type,
+                        source: None,
+                    },
                 },
                 position: param.position.clone(),
                 type_annotation: type_annotation.clone(),
@@ -556,12 +572,16 @@ impl Typechecker {
             ident: Ident {
                 value: fn_call.ident.value.clone(),
                 position: fn_call.ident.position.clone(),
-                info: TypeInfo { _type: fn_def },
+                info: TypeInfo {
+                    _type: fn_def.clone(),
+                    source: None,
+                },
             },
             params: new_params,
             position: fn_call.position.clone(),
             info: TypeInfo {
                 _type: *return_value,
+                source: fn_def.get_source(),
             },
         })
     }
@@ -599,6 +619,7 @@ impl Typechecker {
                     position: binary_operation.position.clone(),
                     info: TypeInfo {
                         _type: VariableType::Bool,
+                        source: None,
                     },
                 })
             }
@@ -619,6 +640,7 @@ impl Typechecker {
                     position: binary_operation.position.clone(),
                     info: TypeInfo {
                         _type: VariableType::Bool,
+                        source: None,
                     },
                 })
             }
@@ -646,6 +668,7 @@ impl Typechecker {
                     position: binary_operation.position.clone(),
                     info: TypeInfo {
                         _type: VariableType::Int,
+                        source: None,
                     },
                 })
             }

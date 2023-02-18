@@ -34,11 +34,7 @@ impl Display for VariableValue {
             Self::Bool(value) => format!("{value}"),
             Self::Str(value) => value.to_string(),
             Self::Int(value) => format!("{value}"),
-            Self::Func {
-                params,
-                block,
-                scope,
-            } => format!("{params:?} {{ .. }}"),
+            Self::Func { params, .. } => format!("{params:?} {{ .. }}"),
         };
         f.write_str(&str_representation)
     }

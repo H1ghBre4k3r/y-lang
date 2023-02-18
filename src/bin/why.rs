@@ -23,7 +23,7 @@ struct Cli {
     run: bool,
 
     #[arg(short, long)]
-    output: Option<String>,
+    output: Option<std::path::PathBuf>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -96,7 +96,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if let Some(output) = args.output {
-        let mut compiler = Compiler::from_ast(ast);
+        let mut compiler = Compiler::from_ast(ast, type_safe_modules.clone());
 
         compiler.compile(output)?;
     }

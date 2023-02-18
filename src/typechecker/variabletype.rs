@@ -1,5 +1,9 @@
 use std::{fmt::Display, str::FromStr};
 
+use crate::loader::Module;
+
+use super::TypeInfo;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VariableType {
     Void,
@@ -11,6 +15,7 @@ pub enum VariableType {
     Func {
         params: Vec<VariableType>,
         return_value: Box<VariableType>,
+        source: Option<Module<TypeInfo>>,
     },
 }
 
@@ -60,6 +65,28 @@ impl VariableType {
             VariableType::Int => 8,
             VariableType::Any => 8,
             VariableType::Func { .. } => 8,
+        }
+    }
+
+    pub fn set_source(self, source: Module<TypeInfo>) -> Self {
+        match self {
+            VariableType::Func {
+                params,
+                return_value,
+                ..
+            } => VariableType::Func {
+                params,
+                return_value,
+                source: Some(source),
+            },
+            _ => self,
+        }
+    }
+
+    pub fn get_source(&self) -> Option<Module<TypeInfo>> {
+        match self {
+            VariableType::Func { source, .. } => source.clone(),
+            _ => None,
         }
     }
 }

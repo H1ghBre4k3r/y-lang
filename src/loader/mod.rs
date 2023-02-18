@@ -39,7 +39,7 @@ fn is_fn_declaration(pair: &Pair<Rule>) -> bool {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module<T> {
     pub name: String,
     pub ast: Ast<T>,

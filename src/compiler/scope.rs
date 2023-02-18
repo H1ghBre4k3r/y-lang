@@ -8,8 +8,8 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If, Integer,
-        Intrinsic, Statement,
+        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If, Import,
+        Integer, Intrinsic, Statement,
     },
     typechecker::TypeInfo,
 };
@@ -45,7 +45,9 @@ type ConstantsMap = HashMap<String, Constant>;
 
 type FunctionMap = HashMap<String, Function>;
 
-#[derive(Debug, Default)]
+type ExternSymbols = Vec<String>;
+
+#[derive(Clone, Debug, Default)]
 pub struct Scope {
     params: Parameters,
     pub statements: Vec<Statement<TypeInfo>>,
@@ -53,11 +55,13 @@ pub struct Scope {
     pub constants: ConstantsMap,
     pub functions: FunctionMap,
     pub instructions: Vec<Instruction>,
+    pub externals: ExternSymbols,
     var_count: usize,
     pub stack_offset: usize,
     level: usize,
     level_count: usize,
     new_stack_frame: bool,
+    prefix: String,
 }
 
 impl Scope {
@@ -65,6 +69,7 @@ impl Scope {
         statements: Vec<Statement<TypeInfo>>,
         level: usize,
         new_stack_frame: bool,
+        prefix: String,
     ) -> Self {
         Self {
             statements,
@@ -74,10 +79,12 @@ impl Scope {
             constants: HashMap::default(),
             functions: HashMap::default(),
             instructions: vec![],
+            externals: vec![],
             var_count: 0,
             stack_offset: 0,
             level_count: level,
             new_stack_frame,
+            prefix,
         }
     }
 
@@ -163,7 +170,7 @@ impl Scope {
         match statement {
             Statement::Expression(expression) => self.compile_expression(expression),
             Statement::Intrinsic(intrinsic) => self.compile_intrinsic(intrinsic),
-            Statement::Import(_) => todo!(),
+            Statement::Import(_) => {}
         }
     }
 
@@ -318,7 +325,7 @@ impl Scope {
                 // this stuff is basically useful for lambdas
                 let statements = &fn_definition.block.block;
                 let mut function_scope =
-                    Scope::from_statements(statements.clone(), self.level(), true);
+                    Scope::from_statements(statements.clone(), self.level(), true, "".to_owned());
 
                 for (index, param) in fn_definition.params.iter().enumerate() {
                     let identifier = &param.ident;
@@ -355,7 +362,8 @@ impl Scope {
                 ));
             }
             Expression::Block(Block { block, .. }) => {
-                let mut scope = Scope::from_statements(block.clone(), self.level(), false);
+                let mut scope =
+                    Scope::from_statements(block.clone(), self.level(), false, "".to_owned());
 
                 for (key, value) in &self.variables {
                     scope.variables.insert(key.to_owned(), value.to_owned());
@@ -520,7 +528,7 @@ impl Scope {
             Expression::FnDef(fn_definition) => {
                 let statements = &fn_definition.block.block;
                 let mut function_scope =
-                    Scope::from_statements(statements.clone(), self.level(), true);
+                    Scope::from_statements(statements.clone(), self.level(), true, "".to_owned());
 
                 for (key, function) in &self.functions {
                     function_scope
@@ -552,8 +560,10 @@ impl Scope {
                 }
 
                 // TODO: This does not allow for function definitions in functions
-                self.functions
-                    .insert(name.to_owned(), Function { instructions });
+                self.functions.insert(
+                    format!("{}{}", self.prefix, name.to_owned()),
+                    Function { instructions },
+                );
             }
             Expression::Block(Block { block, info, .. }) => {
                 self.compile_expression(&definition.value);
@@ -701,7 +711,22 @@ impl Scope {
             }
         }
 
-        self.instructions.push(Call(name));
+        match fn_call.info.source() {
+            Some(source) => {
+                if !source.is_wildcard {
+                    let fn_name = name.split("::").last().unwrap();
+                    name = format!("{}_{}", source.name, fn_name);
+                } else {
+                    let fn_name = name.split("::").last().unwrap();
+                    name = format!("{}", fn_name);
+                }
+                self.externals.push(name.clone());
+                self.instructions.push(Call(name));
+            }
+            None => {
+                self.instructions.push(Call(name));
+            }
+        }
     }
 
     fn add_string_constant(&mut self, name: Option<String>, value: &str) -> String {
