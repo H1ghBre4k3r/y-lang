@@ -28,7 +28,6 @@ pub struct Compiler {
 
 impl Compiler {
     pub fn from_ast(ast: Ast<TypeInfo>, modules: Modules<TypeInfo>) -> Self {
-        println!("{modules:#?}");
         Self {
             scope: Scope::from_statements(ast.nodes(), 0, true, "".to_owned()),
             modules,
@@ -231,19 +230,7 @@ impl Compiler {
 
         args.append(&mut files);
 
-        println!("{args:?}");
-
-        #[cfg(target_os = "macos")]
         let output = Command::new("cc").args(args.as_slice()).output()?;
-
-        #[cfg(target_os = "linux")]
-        let output = Command::new("cc")
-            .args([
-                "-o",
-                &target.to_string_lossy(),
-                &format!("{}.o", target.to_string_lossy()),
-            ])
-            .output()?;
 
         let stderr = std::str::from_utf8(&output.stderr)?;
 
@@ -270,7 +257,6 @@ impl Compiler {
 
         let mut output = folder;
         output.push(module.name.clone());
-        println!("{output:#?}");
 
         let mut file = File::create(format!("{}.asm", output.to_string_lossy()))?;
 
