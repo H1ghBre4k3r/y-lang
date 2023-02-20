@@ -303,6 +303,12 @@ impl Interpreter {
                 };
                 VariableValue::Int(lhs * rhs)
             }
+            BinaryOp::DividedBy => {
+                let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
+                    unreachable!();
+                };
+                VariableValue::Int(lhs / rhs)
+            }
         }
     }
 
