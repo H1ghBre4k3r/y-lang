@@ -8,8 +8,8 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If,
-        Integer, Intrinsic, Statement,
+        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If, Integer,
+        Intrinsic, Statement,
     },
     typechecker::TypeInfo,
 };
