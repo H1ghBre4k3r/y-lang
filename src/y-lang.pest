@@ -44,11 +44,21 @@ localIdent = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 ident = @{ localIdent ~ ("::" ~ localIdent)* }
 
-expr = _{ binaryExpr | term }
+// TODO: Add prefix/postfix operators, see https://pest.rs/book/precedence.html
+// expr = { prefix* ~ primaryExpr ~ postfix* ~ (infix ~ prefix* ~ primaryExpr ~ postfix* )* }
 
-binaryExpr = { term ~ binaryOp ~ expr }
+expr = { primaryExpr ~ (infix ~ primaryExpr )* }
+    infix = _{ binaryOp }
+    binaryOp = _{ greaterThan | lessThan | equal | plus | minus | times | dividedBy }
+        greaterThan = { ">" }
+        lessThan = { "<" }
+        equal = { "==" }
+        plus = { "+" }
+        minus = { "-" }
+        times = { "*" }
+        dividedBy = { "/" }
 
-term = _{ atomExpr | "(" ~ expr ~ ")" }
+primaryExpr = _{ atomExpr | "(" ~ expr ~ ")" }
 
 atomExpr = _{
     ifStmt | fnCall | integer | boolean | ident | string | fnDef | block 
@@ -60,10 +70,6 @@ char = {
     !("\"" | "\\") ~ ANY
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
-}
-
-binaryOp = {
-    ">" | "<" | "==" | "+" | "-" | "*" | "/"
 }
 
 block = { "{" ~ stmt* ~ "}"}
