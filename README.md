@@ -99,7 +99,7 @@ More complex types are subject for futures features.
 
 ### Mutablity
 
-Currently, Y only allows mutation of variables which are defined within the current scope (i.e., in the current block). You can still access variables defined in an outter scope (write-only):
+Currently, Y only allows mutation of variables which are defined within the current scope (i.e., in the current block). You can still access variables defined in an outer scope (write-only):
 
 ```why
 let foo := 42
@@ -138,7 +138,7 @@ In this example, we declare a variable `foo` and assign it a function, which exp
 
 #### ⚠️ Known Limitations
 
-Currently, you are not able to return functions from other functions or use values which are defined in an outter scope of a function. I am currently figuring out a way to achieve that.
+Currently, you are not able to return functions from other functions or use values which are defined in an outer scope of a function. I am currently figuring out a way to achieve that.
 
 ## Pipeline
 
