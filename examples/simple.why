@@ -57,3 +57,7 @@ print("\n")
 () : void => {
     print("Hello, testt")
 }
+
+print(" The meaning of life is ")
+printi(21 * 2)
+print("\n")
