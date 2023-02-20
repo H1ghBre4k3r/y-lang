@@ -237,8 +237,11 @@ impl Scope {
                         Register(Rax.to_sized(&lhs.info())),
                         Register(Rcx.to_sized(&rhs.info())),
                     )),
-                    BinaryOp::Times => self.instructions.push(Mul(
+                    BinaryOp::Times => self.instructions.push(Imul(
                         Register(Rax.to_sized(&lhs.info())),
+                        Register(Rcx.to_sized(&rhs.info())),
+                    )),
+                    BinaryOp::DividedBy => self.instructions.push(Idiv(
                         Register(Rcx.to_sized(&rhs.info())),
                     )),
                     BinaryOp::GreaterThan => {

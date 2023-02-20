@@ -8,6 +8,7 @@ pub enum BinaryOp {
     Plus,
     Minus,
     Times,
+    DividedBy,
 }
 
 #[derive(Debug)]
@@ -24,6 +25,7 @@ impl FromStr for BinaryOp {
             "+" => Ok(BinaryOp::Plus),
             "-" => Ok(BinaryOp::Minus),
             "*" => Ok(BinaryOp::Times),
+            "/" => Ok(BinaryOp::DividedBy),
             _ => Err(UndefinedOpError(format!("Unexpected binary op '{s}'"))),
         }
     }
@@ -38,6 +40,7 @@ impl Display for BinaryOp {
             BinaryOp::Plus => "+",
             BinaryOp::Minus => "-",
             BinaryOp::Times => "*",
+            BinaryOp::DividedBy => "/",
         })
     }
 }

@@ -644,7 +644,7 @@ impl Typechecker {
                     },
                 })
             }
-            BinaryOp::Plus | BinaryOp::Minus | BinaryOp::Times => {
+            BinaryOp::Plus | BinaryOp::Minus | BinaryOp::Times | BinaryOp::DividedBy => {
                 if l_type != VariableType::Int {
                     return Err(TypeError {
                         message: format!(

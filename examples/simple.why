@@ -58,6 +58,10 @@ print("\n")
     print("Hello, testt")
 }
 
-print(" The meaning of life is ")
+print("The meaning of life is ")
 printi(21 * 2)
+print("\n")
+
+print("It's not ")
+printi(9 / 2)
 print("\n")
