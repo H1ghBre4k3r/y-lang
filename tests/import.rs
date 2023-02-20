@@ -5,7 +5,7 @@ const FILE_NAME: &str = "./examples/import.why";
 #[test]
 fn interpret_import() -> Result<(), Box<dyn Error>> {
     let output = Command::new("./target/debug/why")
-        .args(["-f", FILE_NAME, "-r"])
+        .args([FILE_NAME, "-r"])
         .output()?;
 
     assert_eq!(std::str::from_utf8(&output.stdout)?, "42 10");
@@ -17,7 +17,7 @@ fn interpret_import() -> Result<(), Box<dyn Error>> {
 #[test]
 fn compile_and_run_import() -> Result<(), Box<dyn Error>> {
     let output = Command::new("./target/debug/why")
-        .args(["-f", FILE_NAME, "-o", "./output/import"])
+        .args([FILE_NAME, "-o", "./output/import"])
         .output()?;
 
     println!("{}", std::str::from_utf8(&output.stdout)?);
