@@ -8,7 +8,7 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If, Import,
+        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If,
         Integer, Intrinsic, Statement,
     },
     typechecker::TypeInfo,
@@ -276,7 +276,7 @@ impl Scope {
 
                 self.instructions.push(Mov(
                     Register(Rax.to_sized(&boolean.info)),
-                    Immediate(if boolean.value { 1 } else { 0 }),
+                    Immediate(i64::from(boolean.value)),
                 ));
             }
             Expression::Ident(Ident {
@@ -433,7 +433,7 @@ impl Scope {
                         InstructionSize::from(info.clone()),
                         format!("{}-{}", Rbp, self.stack_offset),
                     ),
-                    Immediate(if *value { 1 } else { 0 }),
+                    Immediate(i64::from(*value)),
                 ));
             }
             Expression::If(If {
@@ -718,7 +718,7 @@ impl Scope {
                     name = format!("{}_{}", source.name, fn_name);
                 } else {
                     let fn_name = name.split("::").last().unwrap();
-                    name = format!("{}", fn_name);
+                    name = fn_name.to_string();
                 }
                 self.externals.push(name.clone());
                 self.instructions.push(Call(name));

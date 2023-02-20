@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use crate::typechecker::TypeInfo;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub enum Reg {
     /// 1. function argument

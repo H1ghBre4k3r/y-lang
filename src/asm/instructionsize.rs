@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use crate::typechecker::TypeInfo;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum InstructionSize {
     /// size for working with 1 byte

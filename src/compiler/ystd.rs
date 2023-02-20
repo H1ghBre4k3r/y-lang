@@ -1,4 +1,4 @@
-pub const int_to_str: &str = "
+pub const INT_TO_STR: &str = "
 int_to_str:
         push    rbp
         mov     rbp, rsp

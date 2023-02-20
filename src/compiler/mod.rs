@@ -19,7 +19,7 @@ use crate::{
 
 use self::{
     scope::{Constant, Scope},
-    ystd::int_to_str,
+    ystd::INT_TO_STR,
 };
 pub struct Compiler {
     scope: Scope,
@@ -50,7 +50,7 @@ impl Compiler {
             Mov(Register(Rax), WRITE_SYSCALL),
             Syscall,
             Ret,
-            Literal(int_to_str.to_owned()),
+            Literal(INT_TO_STR.to_owned()),
         ]
     }
 
