@@ -211,11 +211,14 @@ impl Compiler {
     fn link_program(&mut self, target: PathBuf, files: Vec<PathBuf>) -> Result<(), Box<dyn Error>> {
         info!("Linking program...");
 
-        #[cfg(target_os = "macos")]
-        let mut args = vec!["-arch".to_string(), "x86_64".to_string(), "-o".to_string()];
+        let mut args = Vec::<String>::new();
 
-        #[cfg(target_os = "linux")]
-        let mut args = vec!["-o"];
+        #[cfg(target_os = "macos")]
+        {
+            args.extend(["-arch", "x86_64"].map(|s| s.to_string()));
+        }
+
+        args.push("-o".to_string());
 
         let target = target.to_string_lossy();
         args.push(target.to_string());
