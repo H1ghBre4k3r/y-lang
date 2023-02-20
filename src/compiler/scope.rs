@@ -241,9 +241,9 @@ impl Scope {
                         Register(Rax.to_sized(&lhs.info())),
                         Register(Rcx.to_sized(&rhs.info())),
                     )),
-                    BinaryOp::DividedBy => self.instructions.push(Idiv(
-                        Register(Rcx.to_sized(&rhs.info())),
-                    )),
+                    BinaryOp::DividedBy => self
+                        .instructions
+                        .push(Idiv(Register(Rcx.to_sized(&rhs.info())))),
                     BinaryOp::GreaterThan => {
                         self.instructions.push(Cmp(
                             Register(Rax.to_sized(&lhs.info())),
