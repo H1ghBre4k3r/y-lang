@@ -16,7 +16,7 @@ use y_lang::{
 #[derive(CParser, Debug)]
 #[command(author, version, about)]
 struct Cli {
-    #[arg(short, long)]
+    #[arg(index = 1)]
     file: std::path::PathBuf,
 
     #[arg(short, long)]

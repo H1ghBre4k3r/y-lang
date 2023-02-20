@@ -5,7 +5,7 @@ const FILE_NAME: &str = "./examples/scope.why";
 #[test]
 fn interpret_scope() -> Result<(), Box<dyn Error>> {
     let output = Command::new("./target/debug/why")
-        .args(["-f", FILE_NAME, "-r"])
+        .args([FILE_NAME, "-r"])
         .output()?;
 
     assert_eq!(
@@ -20,7 +20,7 @@ fn interpret_scope() -> Result<(), Box<dyn Error>> {
 #[test]
 fn compile_and_run_scope() -> Result<(), Box<dyn Error>> {
     let output = Command::new("./target/debug/why")
-        .args(["-f", FILE_NAME, "-o", "./output/scope"])
+        .args([FILE_NAME, "-o", "./output/scope"])
         .output()?;
 
     println!("{}", std::str::from_utf8(&output.stdout)?);

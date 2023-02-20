@@ -163,11 +163,11 @@ At the time of writing this, we do not provide binaries for Y. If you want to us
 You can use `why` to typecheck, interpret and compile your program:
 
 ```shell
-why -f path/to/program.why # typechecking
+why path/to/program.why # typechecking
 
-why -f path/to/program.why -r # typecheck & run/interpret
+why path/to/program.why -r # typecheck & run/interpret
 
-why -f path/to/program.why -o path/to/output # typecheck and compile
+why path/to/program.why -o path/to/output # typecheck and compile
 ```
 
 ## Operating Systems
