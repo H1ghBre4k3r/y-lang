@@ -39,7 +39,7 @@ fn is_fn_declaration(pair: &Pair<Rule>) -> bool {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Module<T> {
     pub name: String,
     pub ast: Ast<T>,
@@ -48,6 +48,12 @@ pub struct Module<T> {
 }
 
 pub type Modules<T> = HashMap<String, Module<T>>;
+
+impl<T> Module<T> {
+    pub fn resolve(&self, var_name: &impl ToString) -> String {
+        format!("{}_{}", self.name, var_name.to_string())
+    }
+}
 
 pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box<dyn Error>> {
     let nodes = ast.nodes();

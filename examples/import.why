@@ -1,3 +1,8 @@
 import foo::*
+import bar
 
-printi(bar())
+declare print : (str) -> void
+
+printi(a())
+print(" ")
+printi(bar::b(3, 4))

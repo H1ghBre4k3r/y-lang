@@ -1,5 +1,9 @@
 declare printi : (int) -> void
 
-let bar := () : int => {
+let foo := () : int => {
     42
+}
+
+let a := () : int => {
+    foo()
 } 

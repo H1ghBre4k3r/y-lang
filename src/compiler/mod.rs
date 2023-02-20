@@ -29,7 +29,7 @@ pub struct Compiler {
 impl Compiler {
     pub fn from_ast(ast: Ast<TypeInfo>, modules: Modules<TypeInfo>) -> Self {
         Self {
-            scope: Scope::from_statements(ast.nodes(), 0, true, "".to_owned()),
+            scope: Scope::from_statements(ast.nodes(), 0, true, None),
             modules,
         }
     }
@@ -249,13 +249,7 @@ impl Compiler {
         module: &Module<TypeInfo>,
         folder: PathBuf,
     ) -> Result<PathBuf, Box<dyn Error>> {
-        let prefix = if module.is_wildcard {
-            "".to_owned()
-        } else {
-            format!("__{}", module.name)
-        };
-
-        let mut scope = Scope::from_statements(module.ast.nodes(), 0, true, prefix);
+        let mut scope = Scope::from_statements(module.ast.nodes(), 0, true, Some(module.clone()));
         scope.compile();
 
         let mut output = folder;
@@ -266,7 +260,7 @@ impl Compiler {
         file.write_all("default rel\n\n".as_bytes())?;
 
         for export in module.exports.flatten().keys() {
-            file.write_all(format!("global {export}\n").as_bytes())?;
+            file.write_all(format!("global {}\n", module.resolve(export)).as_bytes())?;
         }
 
         self.write_data_from_scope(&mut file, &scope)?;
@@ -277,7 +271,7 @@ impl Compiler {
         Ok(output)
     }
 
-    pub fn compile(&mut self, target: PathBuf) -> Result<(), Box<dyn Error>> {
+    pub fn compile_program(&mut self, target: PathBuf) -> Result<(), Box<dyn Error>> {
         info!("Generating code...");
 
         self.scope.compile();

@@ -1,0 +1,7 @@
+let c := (x: int) : int => {
+    x + 3
+}
+
+let b := (x: int, y: int) : int => {
+    c(x) + y
+}

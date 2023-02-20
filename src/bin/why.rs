@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Some(output) = args.output {
         let mut compiler = Compiler::from_ast(ast, type_safe_modules.clone());
 
-        compiler.compile(output)?;
+        compiler.compile_program(output)?;
     }
 
     Ok(())

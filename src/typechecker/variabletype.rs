@@ -4,8 +4,9 @@ use crate::loader::Module;
 
 use super::TypeInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum VariableType {
+    #[default]
     Void,
     Bool,
     Str,

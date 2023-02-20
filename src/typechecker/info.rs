@@ -2,7 +2,7 @@ use crate::loader::Module;
 
 use super::variabletype::VariableType;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct TypeInfo {
     pub(super) _type: VariableType,
     pub source: Option<Module<TypeInfo>>,

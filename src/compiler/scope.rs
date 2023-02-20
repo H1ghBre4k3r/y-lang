@@ -11,6 +11,7 @@ use crate::{
         Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If, Integer,
         Intrinsic, Statement,
     },
+    loader::Module,
     typechecker::TypeInfo,
 };
 
@@ -61,7 +62,7 @@ pub struct Scope {
     level: usize,
     level_count: usize,
     new_stack_frame: bool,
-    prefix: String,
+    module: Option<Module<TypeInfo>>,
 }
 
 impl Scope {
@@ -69,7 +70,7 @@ impl Scope {
         statements: Vec<Statement<TypeInfo>>,
         level: usize,
         new_stack_frame: bool,
-        prefix: String,
+        module: Option<Module<TypeInfo>>,
     ) -> Self {
         Self {
             statements,
@@ -84,7 +85,7 @@ impl Scope {
             stack_offset: 0,
             level_count: level,
             new_stack_frame,
-            prefix,
+            module,
         }
     }
 
@@ -324,8 +325,12 @@ impl Scope {
             Expression::FnDef(fn_definition) => {
                 // this stuff is basically useful for lambdas
                 let statements = &fn_definition.block.block;
-                let mut function_scope =
-                    Scope::from_statements(statements.clone(), self.level(), true, "".to_owned());
+                let mut function_scope = Scope::from_statements(
+                    statements.clone(),
+                    self.level(),
+                    true,
+                    self.module.clone(),
+                );
 
                 for (index, param) in fn_definition.params.iter().enumerate() {
                     let identifier = &param.ident;
@@ -363,7 +368,7 @@ impl Scope {
             }
             Expression::Block(Block { block, .. }) => {
                 let mut scope =
-                    Scope::from_statements(block.clone(), self.level(), false, "".to_owned());
+                    Scope::from_statements(block.clone(), self.level(), false, self.module.clone());
 
                 for (key, value) in &self.variables {
                     scope.variables.insert(key.to_owned(), value.to_owned());
@@ -527,8 +532,12 @@ impl Scope {
             }
             Expression::FnDef(fn_definition) => {
                 let statements = &fn_definition.block.block;
-                let mut function_scope =
-                    Scope::from_statements(statements.clone(), self.level(), true, "".to_owned());
+                let mut function_scope = Scope::from_statements(
+                    statements.clone(),
+                    self.level(),
+                    true,
+                    self.module.clone(),
+                );
 
                 for (key, function) in &self.functions {
                     function_scope
@@ -559,11 +568,14 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
+                let mut name = name.clone();
+
+                if let Some(module) = &self.module {
+                    name = module.resolve(&name);
+                }
+
                 // TODO: This does not allow for function definitions in functions
-                self.functions.insert(
-                    format!("{}{}", self.prefix, name.to_owned()),
-                    Function { instructions },
-                );
+                self.functions.insert(name, Function { instructions });
             }
             Expression::Block(Block { block, info, .. }) => {
                 self.compile_expression(&definition.value);
@@ -713,25 +725,23 @@ impl Scope {
 
         match fn_call.info.source() {
             Some(source) => {
-                if !source.is_wildcard {
-                    let fn_name = name.split("::").last().unwrap();
-                    name = format!("{}_{}", source.name, fn_name);
-                } else {
-                    let fn_name = name.split("::").last().unwrap();
-                    name = fn_name.to_string();
-                }
-                self.externals.push(name.clone());
-                self.instructions.push(Call(name));
+                let fn_name = name.split("::").last().unwrap();
+                let fn_name = source.resolve(&fn_name.to_string());
+                self.externals.push(fn_name.clone());
+                self.instructions.push(Call(fn_name));
             }
             None => {
-                self.instructions.push(Call(name));
+                let mut fn_name = name;
+                if let Some(module) = &self.module {
+                    fn_name = module.resolve(&fn_name);
+                }
+                self.instructions.push(Call(fn_name));
             }
         }
     }
 
     fn add_string_constant(&mut self, name: Option<String>, value: &str) -> String {
         let var_name = self.var(&name.clone().unwrap_or_else(|| "c".to_owned()));
-        // let var_name = name.unwrap_or_else(|| self.var("c"));
         let con = Constant {
             name: var_name.to_owned(),
             value: value.to_owned(),
