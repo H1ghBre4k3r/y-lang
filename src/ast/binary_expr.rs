@@ -12,7 +12,12 @@ pub struct BinaryExpr<T> {
 }
 
 impl BinaryExpr<()> {
-    pub fn from_lhs_op_rhs(lhs: Expression<()>, op_pair: Pair<Rule>, rhs: Expression<()>, file: &str) -> BinaryExpr<()> {
+    pub fn from_lhs_op_rhs(
+        lhs: Expression<()>,
+        op_pair: Pair<Rule>,
+        rhs: Expression<()>,
+        file: &str,
+    ) -> BinaryExpr<()> {
         let (line, col) = op_pair.line_col();
 
         let op = BinaryOp::from(op_pair.as_rule());

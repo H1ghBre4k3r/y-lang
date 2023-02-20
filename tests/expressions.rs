@@ -9,10 +9,7 @@ fn interpret_expressions() -> Result<(), Box<dyn Error>> {
         .args(["-f", FILE_NAME, "-r"])
         .output()?;
 
-    assert_eq!(
-        std::str::from_utf8(&output.stdout)?,
-        EXPECTED_OUTPUT
-    );
+    assert_eq!(std::str::from_utf8(&output.stdout)?, EXPECTED_OUTPUT);
     assert_eq!(std::str::from_utf8(&output.stderr)?, "");
 
     Ok(())
@@ -29,10 +26,7 @@ fn compile_and_run_expressions() -> Result<(), Box<dyn Error>> {
 
     let output = Command::new("./output/expressions").output()?;
 
-    assert_eq!(
-        std::str::from_utf8(&output.stdout)?,
-        EXPECTED_OUTPUT
-    );
+    assert_eq!(std::str::from_utf8(&output.stdout)?, EXPECTED_OUTPUT);
     assert_eq!(std::str::from_utf8(&output.stderr)?, "");
     Ok(())
 }

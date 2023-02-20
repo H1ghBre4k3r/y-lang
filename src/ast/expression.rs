@@ -1,5 +1,8 @@
 use once_cell::sync::Lazy;
-use pest::{iterators::Pair, pratt_parser::{PrattParser, Assoc, Op}};
+use pest::{
+    iterators::Pair,
+    pratt_parser::{Assoc, Op, PrattParser},
+};
 
 use super::{BinaryExpr, Block, Boolean, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
 
@@ -18,10 +21,9 @@ pub enum Expression<T> {
 
 static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
     PrattParser::new()
-        .op(
-            Op::infix(Rule::lessThan, Assoc::Left)
-          | Op::infix(Rule::greaterThan, Assoc::Left)
-          | Op::infix(Rule::equal, Assoc::Left))
+        .op(Op::infix(Rule::lessThan, Assoc::Left)
+            | Op::infix(Rule::greaterThan, Assoc::Left)
+            | Op::infix(Rule::equal, Assoc::Left))
         .op(Op::infix(Rule::plus, Assoc::Left) | Op::infix(Rule::minus, Assoc::Left))
         .op(Op::infix(Rule::times, Assoc::Left) | Op::infix(Rule::dividedBy, Assoc::Left))
 });
@@ -42,7 +44,9 @@ impl Expression<()> {
             })
             // TODO: Add map_prefix and map_postfix once such operators are added to the grammar
             // See https://github.com/pest-parser/pest/blob/18ca64fb/derive/examples/calc.rs#L44
-            .map_infix(|lhs, op, rhs| Expression::Binary(BinaryExpr::from_lhs_op_rhs(lhs, op, rhs, file)))
+            .map_infix(|lhs, op, rhs| {
+                Expression::Binary(BinaryExpr::from_lhs_op_rhs(lhs, op, rhs, file))
+            })
             .parse(pair.into_inner())
     }
 }
