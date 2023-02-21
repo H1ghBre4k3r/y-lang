@@ -9,11 +9,11 @@ const EXPECTED: Expected = Expected {
 };
 
 #[test]
-fn interpret_fib() -> Result<(), Box<dyn Error>> {
+fn interpret_mutable() -> Result<(), Box<dyn Error>> {
     check_interpretation(Path::new(SRC_PATH), EXPECTED)
 }
 
 #[test]
-fn compile_and_run_fib() -> Result<(), Box<dyn Error>> {
+fn compile_and_run_mutable() -> Result<(), Box<dyn Error>> {
     check_compilation(Path::new(SRC_PATH), EXPECTED)
 }
