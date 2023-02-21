@@ -4,7 +4,10 @@ use pest::{
     pratt_parser::{Assoc, Op, PrattParser},
 };
 
-use super::{BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, Rule, Str, PrefixExpr, PostfixExpr};
+use super::{
+    BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, PostfixExpr, PrefixExpr, Rule,
+    Str,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expression<T> {

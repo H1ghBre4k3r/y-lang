@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use super::{PrefixOp, Expression, Position, Rule};
+use super::{Expression, Position, PrefixOp, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PrefixExpr<T> {
@@ -11,11 +11,7 @@ pub struct PrefixExpr<T> {
 }
 
 impl PrefixExpr<()> {
-    pub fn from_op_rhs(
-        op_pair: Pair<Rule>,
-        rhs: Expression<()>,
-        file: &str,
-    ) -> PrefixExpr<()> {
+    pub fn from_op_rhs(op_pair: Pair<Rule>, rhs: Expression<()>, file: &str) -> PrefixExpr<()> {
         let (line, col) = op_pair.line_col();
 
         let op = PrefixOp::from(op_pair.as_rule());

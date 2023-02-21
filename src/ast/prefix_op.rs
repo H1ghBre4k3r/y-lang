@@ -18,7 +18,9 @@ impl FromStr for PrefixOp {
         match s {
             "-" => Ok(PrefixOp::UnaryMinus),
             "!" => Ok(PrefixOp::Not),
-            _ => Err(UndefinedPrefixOpError(format!("Unexpected prefix op '{s}'"))),
+            _ => Err(UndefinedPrefixOpError(format!(
+                "Unexpected prefix op '{s}'"
+            ))),
         }
     }
 }

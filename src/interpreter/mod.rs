@@ -2,8 +2,9 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Definition, Expression, Call,
-        FnDef, Ident, If, Import, Integer, Intrinsic, Statement, Str, PrefixExpr, PostfixExpr, PrefixOp, PostfixOp,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Definition, Expression, FnDef,
+        Ident, If, Import, Integer, Intrinsic, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp,
+        Statement, Str,
     },
     loader::Modules,
     typechecker::TypeInfo,
@@ -359,7 +360,12 @@ impl Interpreter {
         }
     }
 
-    fn run_fn_call(&self, fn_name: &str, fn_call: &Call<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_fn_call(
+        &self,
+        fn_name: &str,
+        fn_call: &Call<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
         scope.push();
 
         let return_value = match fn_name {

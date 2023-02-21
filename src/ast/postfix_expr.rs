@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use super::{PostfixOp, Expression, Position, Rule};
+use super::{Expression, Position, PostfixOp, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PostfixExpr<T> {
@@ -11,11 +11,7 @@ pub struct PostfixExpr<T> {
 }
 
 impl PostfixExpr<()> {
-    pub fn from_lhs_op(
-        lhs: Expression<()>,
-        op_pair: Pair<Rule>,
-        file: &str,
-    ) -> PostfixExpr<()> {
+    pub fn from_lhs_op(lhs: Expression<()>, op_pair: Pair<Rule>, file: &str) -> PostfixExpr<()> {
         let (line, col) = op_pair.line_col();
 
         let op = PostfixOp::from_pair(op_pair, file);

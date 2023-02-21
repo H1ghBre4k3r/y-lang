@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use super::{Rule, Call};
+use super::{Call, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PostfixOp<T> {
