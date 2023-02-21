@@ -1,31 +1,19 @@
-use std::{error::Error, process::Command};
+use std::{error::Error, path::Path};
 
-const FILE_NAME: &str = "./examples/import.why";
+use test_utils::{check_compilation, check_interpretation, Expected};
+
+const SRC_PATH: &str = "./examples/import.why";
+const EXPECTED: Expected = Expected {
+    stdout: "42 10",
+    stderr: "",
+};
 
 #[test]
 fn interpret_import() -> Result<(), Box<dyn Error>> {
-    let output = Command::new("./target/debug/why")
-        .args([FILE_NAME, "-r"])
-        .output()?;
-
-    assert_eq!(std::str::from_utf8(&output.stdout)?, "42 10");
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-
-    Ok(())
+    check_interpretation(Path::new(SRC_PATH), EXPECTED)
 }
 
 #[test]
 fn compile_and_run_import() -> Result<(), Box<dyn Error>> {
-    let output = Command::new("./target/debug/why")
-        .args([FILE_NAME, "-o", "./output/import"])
-        .output()?;
-
-    println!("{}", std::str::from_utf8(&output.stdout)?);
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-
-    let output = Command::new("./output/import").output()?;
-
-    assert_eq!(std::str::from_utf8(&output.stdout)?, "42 10");
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-    Ok(())
+    check_compilation(Path::new(SRC_PATH), EXPECTED)
 }

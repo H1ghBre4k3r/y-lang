@@ -1,31 +1,19 @@
-use std::{error::Error, process::Command};
+use std::{error::Error, path::Path};
 
-const FILE_NAME: &str = "./examples/ackermann.why";
+use test_utils::{check_compilation, check_interpretation, Expected};
+
+const SRC_PATH: &str = "./examples/ackermann.why";
+const EXPECTED: Expected = Expected {
+    stdout: "13",
+    stderr: "",
+};
 
 #[test]
 fn interpret_ackermann() -> Result<(), Box<dyn Error>> {
-    let output = Command::new("./target/debug/why")
-        .args([FILE_NAME, "-r"])
-        .output()?;
-
-    assert_eq!(std::str::from_utf8(&output.stdout)?, "13");
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-
-    Ok(())
+    check_interpretation(Path::new(SRC_PATH), EXPECTED)
 }
 
 #[test]
 fn compile_and_run_ackermann() -> Result<(), Box<dyn Error>> {
-    let output = Command::new("./target/debug/why")
-        .args([FILE_NAME, "-o", "./output/ackermann"])
-        .output()?;
-
-    println!("{}", std::str::from_utf8(&output.stdout)?);
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-
-    let output = Command::new("./output/ackermann").output()?;
-
-    assert_eq!(std::str::from_utf8(&output.stdout)?, "13");
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-    Ok(())
+    check_compilation(Path::new(SRC_PATH), EXPECTED)
 }
