@@ -246,7 +246,7 @@ impl Interpreter {
             Expression::Boolean(Boolean { value, .. }) => VariableValue::Bool(*value),
             Expression::Ident(Ident { value, .. }) => {
                 let Some(value) = scope.find(value) else {
-                    unreachable!()
+                    unreachable!("Could not find identifier in scope: {}", value)
                 };
 
                 value
