@@ -16,12 +16,15 @@ use y_lang::{
 #[derive(CParser, Debug)]
 #[command(author, version, about)]
 struct Cli {
+    /// The path to the why source file.
     #[arg(index = 1)]
     file: std::path::PathBuf,
 
+    /// Whether to interpret instead of compiling.
     #[arg(short, long)]
     run: bool,
 
+    /// The path to the output binary.
     #[arg(short, long)]
     output: Option<std::path::PathBuf>,
 }
