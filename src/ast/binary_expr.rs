@@ -12,27 +12,16 @@ pub struct BinaryExpr<T> {
 }
 
 impl BinaryExpr<()> {
-    pub fn from_pair(pair: Pair<Rule>, file: &str) -> BinaryExpr<()> {
-        assert_eq!(pair.as_rule(), Rule::binaryExpr);
+    pub fn from_lhs_op_rhs(
+        lhs: Expression<()>,
+        op_pair: Pair<Rule>,
+        rhs: Expression<()>,
+        file: &str,
+    ) -> BinaryExpr<()> {
+        let (line, col) = op_pair.line_col();
 
-        let (line, col) = pair.line_col();
+        let op = BinaryOp::from(op_pair.as_rule());
 
-        let mut inner = pair.clone().into_inner();
-
-        let lhs = Expression::from_pair(inner.next().unwrap(), file);
-
-        let op = inner.next().unwrap_or_else(|| {
-            panic!(
-                "Expected op in binary expression '{}' at {}:{}",
-                pair.as_str(),
-                pair.line_col().0,
-                pair.line_col().1
-            )
-        });
-
-        let op = op.as_str().parse::<BinaryOp>().expect("Invalid binary op");
-
-        let rhs = Expression::from_pair(inner.next().unwrap(), file);
         BinaryExpr {
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),

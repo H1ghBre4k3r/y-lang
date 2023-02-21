@@ -1,13 +1,20 @@
-use log::error;
-use pest::iterators::Pair;
+use once_cell::sync::Lazy;
+use pest::{
+    iterators::Pair,
+    pratt_parser::{Assoc, Op, PrattParser},
+};
 
-use super::{BinaryExpr, Block, Boolean, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
+use super::{
+    BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, PostfixExpr, PrefixExpr, Rule,
+    Str,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expression<T> {
     If(If<T>),
     Binary(BinaryExpr<T>),
-    FnCall(FnCall<T>),
+    Prefix(PrefixExpr<T>),
+    Postfix(PostfixExpr<T>),
     Integer(Integer<T>),
     Ident(Ident<T>),
     Str(Str<T>),
@@ -16,28 +23,37 @@ pub enum Expression<T> {
     Boolean(Boolean<T>),
 }
 
+static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
+    PrattParser::new()
+        .op(Op::infix(Rule::lessThan, Assoc::Left)
+            | Op::infix(Rule::greaterThan, Assoc::Left)
+            | Op::infix(Rule::equal, Assoc::Left))
+        .op(Op::infix(Rule::plus, Assoc::Left) | Op::infix(Rule::minus, Assoc::Left))
+        .op(Op::infix(Rule::times, Assoc::Left) | Op::infix(Rule::dividedBy, Assoc::Left))
+        .op(Op::prefix(Rule::unaryMinus) | Op::prefix(Rule::not))
+        .op(Op::postfix(Rule::call))
+});
+
 impl Expression<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Expression<()> {
-        match pair.as_rule() {
-            Rule::integer => Expression::Integer(Integer::from_pair(pair, file)),
-            Rule::ident => Expression::Ident(Ident::from_pair(pair, file)),
-            Rule::fnCall => Expression::FnCall(FnCall::from_pair(pair, file)),
-            Rule::string => Expression::Str(Str::from_pair(pair, file)),
-            Rule::binaryExpr => Expression::Binary(BinaryExpr::from_pair(pair, file)),
-            Rule::fnDef => Expression::FnDef(FnDef::from_pair(pair, file)),
-            Rule::ifStmt => Expression::If(If::from_pair(pair, file)),
-            Rule::block => Expression::Block(Block::from_pair(pair, file)),
-            Rule::boolean => Expression::Boolean(Boolean::from_pair(pair, file)),
-            _ => {
-                error!(
-                    "Unexpected expression '{}' at {}:{}",
-                    pair.as_str(),
-                    pair.line_col().0,
-                    pair.line_col().1
-                );
-                std::process::exit(-1)
-            }
-        }
+        PRATT_PARSER
+            .map_primary(|primary| match primary.as_rule() {
+                Rule::expr => Expression::from_pair(primary, file),
+                Rule::integer => Expression::Integer(Integer::from_pair(primary, file)),
+                Rule::ident => Expression::Ident(Ident::from_pair(primary, file)),
+                Rule::string => Expression::Str(Str::from_pair(primary, file)),
+                Rule::fnDef => Expression::FnDef(FnDef::from_pair(primary, file)),
+                Rule::ifStmt => Expression::If(If::from_pair(primary, file)),
+                Rule::block => Expression::Block(Block::from_pair(primary, file)),
+                Rule::boolean => Expression::Boolean(Boolean::from_pair(primary, file)),
+                rule => unreachable!("Unexpected rule {:?} while parsing primary", rule),
+            })
+            .map_prefix(|op, rhs| Expression::Prefix(PrefixExpr::from_op_rhs(op, rhs, file)))
+            .map_postfix(|lhs, op| Expression::Postfix(PostfixExpr::from_lhs_op(lhs, op, file)))
+            .map_infix(|lhs, op, rhs| {
+                Expression::Binary(BinaryExpr::from_lhs_op_rhs(lhs, op, rhs, file))
+            })
+            .parse(pair.into_inner())
     }
 }
 
@@ -49,7 +65,8 @@ where
         match self {
             Expression::If(If { position, .. })
             | Expression::Binary(BinaryExpr { position, .. })
-            | Expression::FnCall(FnCall { position, .. })
+            | Expression::Prefix(PrefixExpr { position, .. })
+            | Expression::Postfix(PostfixExpr { position, .. })
             | Expression::Integer(Integer { position, .. })
             | Expression::Ident(Ident { position, .. })
             | Expression::Str(Str { position, .. })
@@ -63,7 +80,8 @@ where
         match self {
             Expression::If(If { info, .. })
             | Expression::Binary(BinaryExpr { info, .. })
-            | Expression::FnCall(FnCall { info, .. })
+            | Expression::Prefix(PrefixExpr { info, .. })
+            | Expression::Postfix(PostfixExpr { info, .. })
             | Expression::Integer(Integer { info, .. })
             | Expression::Ident(Ident { info, .. })
             | Expression::Str(Str { info, .. })

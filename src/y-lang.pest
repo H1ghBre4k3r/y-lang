@@ -24,8 +24,6 @@ definition = { "let " ~ localIdent ~ ":=" ~ expr }
 
 assignment = { localIdent ~ "=" ~ expr }
 
-fnCall = { ident ~ "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
-
 typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 fnType = { "(" ~ ( variableType ~ ("," ~ variableType )* )? ~ ")" ~ "->" ~ typeName }
@@ -44,14 +42,26 @@ localIdent = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 ident = @{ localIdent ~ ("::" ~ localIdent)* }
 
-expr = _{ binaryExpr | term }
+expr = { prefix* ~ primaryExpr ~ postfix* ~ (infix ~ prefix* ~ primaryExpr ~ postfix* )* }
+    prefix = _{ unaryMinus | not }
+        unaryMinus = { "-" }
+        not = { "!" }
+    postfix = _{ call }
+        call = { "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
+    infix = _{ binaryOp }
+    binaryOp = _{ greaterThan | lessThan | equal | plus | minus | times | dividedBy }
+        greaterThan = { ">" }
+        lessThan = { "<" }
+        equal = { "==" }
+        plus = { "+" }
+        minus = { "-" }
+        times = { "*" }
+        dividedBy = { "/" }
 
-binaryExpr = { term ~ binaryOp ~ expr }
-
-term = _{ atomExpr | "(" ~ expr ~ ")" }
+primaryExpr = _{ atomExpr | "(" ~ expr ~ ")" }
 
 atomExpr = _{
-    ifStmt | fnCall | integer | boolean | ident | string | fnDef | block 
+    ifStmt | integer | boolean | ident | string | fnDef | block 
 }
 
 string = ${ "\"" ~ inner ~ "\"" }
@@ -62,11 +72,7 @@ char = {
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
-binaryOp = {
-    ">" | "<" | "==" | "+" | "-" | "*" | "/"
-}
-
-block = { "{" ~ (stmt | expr)* ~ "}"}
+block = { "{" ~ stmt* ~ "}"}
 
 integer = @{ ASCII_DIGIT+ }
 

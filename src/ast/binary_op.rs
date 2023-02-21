@@ -1,5 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
+use super::Rule;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BinaryOp {
     GreaterThan,
@@ -42,5 +44,20 @@ impl Display for BinaryOp {
             BinaryOp::Times => "*",
             BinaryOp::DividedBy => "/",
         })
+    }
+}
+
+impl From<Rule> for BinaryOp {
+    fn from(rule: Rule) -> Self {
+        match rule {
+            Rule::greaterThan => BinaryOp::GreaterThan,
+            Rule::lessThan => BinaryOp::LessThan,
+            Rule::equal => BinaryOp::Equal,
+            Rule::plus => BinaryOp::Plus,
+            Rule::minus => BinaryOp::Minus,
+            Rule::times => BinaryOp::Times,
+            Rule::dividedBy => BinaryOp::DividedBy,
+            _ => unreachable!("Unexpected rule {:?}", rule),
+        }
     }
 }

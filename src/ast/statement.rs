@@ -16,15 +16,7 @@ impl Statement<()> {
             Rule::declaration | Rule::definition | Rule::assignment => {
                 Statement::Intrinsic(Intrinsic::from_pair(pair, file))
             }
-            Rule::ifStmt
-            | Rule::binaryExpr
-            | Rule::fnDef
-            | Rule::integer
-            | Rule::ident
-            | Rule::string
-            | Rule::fnCall
-            | Rule::block
-            | Rule::boolean => Statement::Expression(Expression::from_pair(pair, file)),
+            Rule::expr => Statement::Expression(Expression::from_pair(pair, file)),
             _ => todo!(),
         }
     }

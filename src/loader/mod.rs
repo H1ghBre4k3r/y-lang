@@ -15,8 +15,12 @@ fn is_fn_declaration(pair: &Pair<Rule>) -> bool {
     match pair.as_rule() {
         Rule::definition => {
             let mut inner = pair.clone().into_inner();
+            let Some(expression) = inner.nth(1) else {
+                return false;
+            };
 
-            let Some(fn_def) = inner.nth(1) else {
+            let mut inner = expression.into_inner();
+            let Some(fn_def) = inner.next() else {
                 return false;
             };
             fn_def.as_rule() == Rule::fnDef

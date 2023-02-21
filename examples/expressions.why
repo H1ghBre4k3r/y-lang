@@ -1,0 +1,15 @@
+declare print : (str) -> void
+declare printi : (int) -> void
+
+let a := 2 + 4 * 5
+let b := 4 * 9 + 3
+
+printi(a)
+print(" ")
+
+printi(b)
+print(" ")
+
+let c := ((54) - 9 * (23 + 5) - 3)
+
+printi(c)
