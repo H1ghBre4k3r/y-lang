@@ -485,7 +485,7 @@ impl Scope {
                 self.variables.insert(name.to_owned(), variable);
 
                 self.instructions.push(Comment(format!(
-                    "{} = {:?} {} {:?}",
+                    "{} = {:?} {} {:?}",
                     name, binary_operation.lhs, binary_operation.op, binary_operation.rhs
                 )));
 
