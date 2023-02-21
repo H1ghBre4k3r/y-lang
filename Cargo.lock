@@ -383,6 +383,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "test-utils"
+version = "0.0.1"
+
+[[package]]
 name = "thiserror"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -529,5 +533,6 @@ dependencies = [
  "pest",
  "pest_derive",
  "simple_logger",
+ "test-utils",
  "unescape",
 ]

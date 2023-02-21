@@ -1,37 +1,19 @@
-use std::{error::Error, process::Command};
+use std::{error::Error, path::Path};
 
-const FILE_NAME: &str = "./examples/boolean.why";
+use test_utils::{check_compilation, check_interpretation, Expected};
+
+const SRC_PATH: &str = "./examples/boolean.why";
+const EXPECTED: Expected = Expected {
+    stdout: "456123 From Function  From Function 4",
+    stderr: "",
+};
 
 #[test]
 fn interpret_boolean() -> Result<(), Box<dyn Error>> {
-    let output = Command::new("./target/debug/why")
-        .args([FILE_NAME, "-r"])
-        .output()?;
-
-    assert_eq!(
-        std::str::from_utf8(&output.stdout)?,
-        "456123 From Function  From Function 4"
-    );
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-
-    Ok(())
+    check_interpretation(Path::new(SRC_PATH), EXPECTED)
 }
 
 #[test]
 fn compile_and_run_boolean() -> Result<(), Box<dyn Error>> {
-    let output = Command::new("./target/debug/why")
-        .args([FILE_NAME, "-o", "./output/boolean"])
-        .output()?;
-
-    println!("{}", std::str::from_utf8(&output.stdout)?);
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-
-    let output = Command::new("./output/boolean").output()?;
-
-    assert_eq!(
-        std::str::from_utf8(&output.stdout)?,
-        "456123 From Function  From Function 4"
-    );
-    assert_eq!(std::str::from_utf8(&output.stderr)?, "");
-    Ok(())
+    check_compilation(Path::new(SRC_PATH), EXPECTED)
 }

@@ -30,6 +30,7 @@ RUN target="$(cat /tmp/y-lang-rust-target)" \
 # Copy the sources
 WORKDIR /opt/y-lang
 COPY src src
+COPY test-utils test-utils
 COPY Cargo.toml Cargo.lock .
 
 # Build the `why` compiler (and make sure that cargo knows about the correct linker)
