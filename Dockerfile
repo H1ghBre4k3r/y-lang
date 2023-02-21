@@ -1,4 +1,7 @@
-FROM rust:1.67-bullseye AS builder
+ARG RUSTVERSION=1.67
+ARG DEBIANVERSION=bullseye
+
+FROM rust:${RUSTVERSION}-${DEBIANVERSION} AS builder
 
 # Copy the sources
 WORKDIR /opt/y-lang
@@ -8,7 +11,7 @@ COPY Cargo.toml Cargo.lock .
 # Build the compiler
 RUN cargo build --release
 
-FROM debian:bullseye-slim
+FROM debian:${DEBIANVERSION}-slim
 
 # Install runtime dependencies
 RUN apt-get update -y && apt-get install -y nasm
