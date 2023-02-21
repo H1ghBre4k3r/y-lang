@@ -25,7 +25,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: H1ghBre4k3r/y-lang
+        images: ghcr.io/H1ghBre4k3r/y-lang
         tags: |
           type=raw,value=latest,enable={{is_default_branch}}
           type=sha
