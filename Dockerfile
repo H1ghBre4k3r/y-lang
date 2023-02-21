@@ -22,7 +22,7 @@ COPY Cargo.toml Cargo.lock .
 
 # Build the compiler
 RUN target="$(cat /tmp/y-lang-rust-target-toolchain)" \
-  && cargo build --target "$target" \
+  && cargo build --release --target "$target" \
   && mkdir -p bin \
   && cp target/"$target"/release/why bin
 
