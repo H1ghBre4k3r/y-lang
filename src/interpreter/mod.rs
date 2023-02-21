@@ -314,9 +314,10 @@ impl Interpreter {
     fn run_prefix_expression(
         &self,
         prefix_expression: &PrefixExpr<TypeInfo>,
-        scope: &mut Scope,
+        _scope: &mut Scope,
     ) -> VariableValue {
-        let rhs = self.run_expression(&prefix_expression.rhs, scope);
+        // TODO: Use this rhs
+        // let rhs = self.run_expression(&prefix_expression.rhs, scope);
 
         match prefix_expression.op {
             PrefixOp::UnaryMinus => todo!(),
@@ -329,14 +330,17 @@ impl Interpreter {
         postfix_expression: &PostfixExpr<TypeInfo>,
         scope: &mut Scope,
     ) -> VariableValue {
-        let lhs = self.run_expression(&postfix_expression.lhs, scope);
+        // FIXME: We really ought to evaluate built-in functions such as `print` properly
+        // to a `VariableValue::Func` and then call it instead of requiring the
+        // expression to be a literal identifier.
+        // let lhs = self.run_expression(&postfix_expression.lhs, scope);
 
         match postfix_expression.op.clone() {
             PostfixOp::Call(call) => {
-                let VariableValue::Str(fn_name) = lhs else {
+                let Expression::Ident(ident) = *postfix_expression.lhs.clone() else {
                     todo!("Calling non-identifier expressions is not supported yet!");
                 };
-                self.run_fn_call(&fn_name, &call, scope)
+                self.run_fn_call(&ident.value, &call, scope)
             }
         }
     }
