@@ -40,16 +40,11 @@ impl TypeScope {
     }
 
     pub fn is_mutable(&self, name: &str) -> bool {
-        let scopes = self.scope_stack.clone();
-        if let Some(last) = scopes.last() {
-            if last.borrow().contains_key(name) {
-                return true;
-            }
-        }
-
-        for scope in &self.scope_stack {
+        for (index, scope) in self.scope_stack.iter().rev().enumerate() {
             if let Some(Variable { is_mutable, .. }) = scope.borrow().get(name) {
-                return *is_mutable;
+                if *is_mutable || index == 0 {
+                    return true;
+                }
             }
         }
 
