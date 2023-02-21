@@ -32,6 +32,7 @@ impl Expression<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Expression<()> {
         PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
+                Rule::expr => Expression::from_pair(primary, file),
                 Rule::integer => Expression::Integer(Integer::from_pair(primary, file)),
                 Rule::ident => Expression::Ident(Ident::from_pair(primary, file)),
                 Rule::fnCall => Expression::FnCall(FnCall::from_pair(primary, file)),
