@@ -9,3 +9,7 @@ print(" ")
 
 printi(b)
 print(" ")
+
+let c := ((54) - 9 * (23 + 5) - 3)
+
+printi(c)
