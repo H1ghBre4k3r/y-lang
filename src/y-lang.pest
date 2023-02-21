@@ -20,7 +20,9 @@ ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
 
 declaration = { "declare " ~ ident ~ typeAnnotation }
 
-definition = { "let " ~ localIdent ~ ":=" ~ expr }
+definition = { "let " ~ mutKeyword? ~ localIdent ~ ":=" ~ expr }
+
+mutKeyword = { "mut " }
 
 assignment = { localIdent ~ "=" ~ expr }
 

@@ -89,6 +89,7 @@ impl Typechecker {
                             )?),
                             source: None,
                         },
+                        false,
                     )
                 }
                 Intrinsic::Declaration(declaration) => {
@@ -102,7 +103,7 @@ impl Typechecker {
                         Self::get_type_def(&type_annotation.value, position.clone())?;
 
                     if let VariableType::Func { .. } = &type_annotation {
-                        scope.set(&ident.value, type_annotation);
+                        scope.set(&ident.value, type_annotation, false);
                     }
                 }
                 _ => {}
@@ -140,9 +141,13 @@ impl Typechecker {
 
         for (key, value) in imports {
             if module.is_wildcard {
-                scope.set(&key, value.set_source(module.clone()));
+                scope.set(&key, value.variable_type.set_source(module.clone()), false);
             } else {
-                scope.set(&format!("{path}::{key}"), value.set_source(module.clone()));
+                scope.set(
+                    &format!("{path}::{key}"),
+                    value.variable_type.set_source(module.clone()),
+                    false,
+                );
             }
         }
 
@@ -177,7 +182,7 @@ impl Typechecker {
         let type_def =
             Self::get_type_def(&type_annotation.value, type_annotation.position.clone())?;
 
-        scope.set(&ident.value, type_def);
+        scope.set(&ident.value, type_def, false);
         Ok(declaration.clone())
     }
 
@@ -257,7 +262,11 @@ impl Typechecker {
         let definition_rhs =
             self.check_expression(Some(&definition.ident), &definition.value, scope)?;
 
-        scope.set(&definition.ident.value, definition_rhs.info()._type);
+        scope.set(
+            &definition.ident.value,
+            definition_rhs.info()._type,
+            definition.is_mutable,
+        );
 
         let ident = &definition.ident;
 
@@ -269,6 +278,7 @@ impl Typechecker {
             },
             value: definition_rhs,
             position: definition.position.clone(),
+            is_mutable: definition.is_mutable,
             info: TypeInfo {
                 _type: VariableType::Void,
                 source: None,
@@ -290,7 +300,7 @@ impl Typechecker {
             });
         }
 
-        if !scope.is_in_current_scope(&ident.value) {
+        if !scope.is_mutable(&ident.value) {
             return Err(TypeError {
                 message: format!(
                     "Variable '{}' can not be modified, because it is not defined in current scope",
@@ -446,7 +456,7 @@ impl Typechecker {
                 param.type_annotation.position.clone(),
             )?;
 
-            scope.set(&param.ident.value, param_type.clone());
+            scope.set(&param.ident.value, param_type.clone(), false);
             params.push(param_type);
         }
 
@@ -458,6 +468,8 @@ impl Typechecker {
                     return_value: Box::new(type_annotation.clone()),
                     source: None,
                 },
+                // TODO: This should handle mutable definitions
+                false,
             )
         }
 

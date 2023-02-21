@@ -2,7 +2,13 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::{error::TypeError, variabletype::VariableType};
 
-type ScopeFrame = HashMap<String, VariableType>;
+#[derive(Debug, Clone)]
+pub struct Variable {
+    pub variable_type: VariableType,
+    pub is_mutable: bool,
+}
+
+type ScopeFrame = HashMap<String, Variable>;
 
 type ScopeFrameReference = Rc<RefCell<ScopeFrame>>;
 
@@ -26,18 +32,27 @@ impl TypeScope {
         scopes.reverse();
         for scope in scopes {
             if let Some(variable) = scope.borrow().get(name) {
-                return Some(variable.clone());
+                return Some(variable.variable_type.clone());
             }
         }
 
         None
     }
 
-    pub fn is_in_current_scope(&self, name: &str) -> bool {
+    pub fn is_mutable(&self, name: &str) -> bool {
         let scopes = self.scope_stack.clone();
         if let Some(last) = scopes.last() {
-            return last.borrow().contains_key(name);
+            if last.borrow().contains_key(name) {
+                return true;
+            }
         }
+
+        for scope in &self.scope_stack {
+            if let Some(Variable { is_mutable, .. }) = scope.borrow().get(name) {
+                return *is_mutable;
+            }
+        }
+
         false
     }
 
@@ -65,9 +80,13 @@ impl TypeScope {
     }
 
     /// Create a new variable on the current scope.
-    pub fn set(&mut self, name: &str, value: VariableType) {
+    pub fn set(&mut self, name: &str, value: VariableType, is_mutable: bool) {
         if let Some(scope) = self.scope_stack.last_mut() {
-            scope.borrow_mut().insert(name.to_owned(), value);
+            let variable = Variable {
+                variable_type: value,
+                is_mutable,
+            };
+            scope.borrow_mut().insert(name.to_owned(), variable);
         }
     }
 
@@ -83,8 +102,9 @@ impl TypeScope {
 
         for scope in &mut scopes {
             let mut scope = scope.borrow_mut();
-            if let Some(old_type) = scope.get(name) {
-                if *old_type != value {
+            if let Some(old_variable) = scope.get(name) {
+                let old_type = &old_variable.variable_type;
+                if old_type != &value {
                     return Err(TypeError {
                         message: format!(
                             "Could not assign variable '{name}' with type '{old_type}' a value of type '{value}'"
@@ -92,7 +112,9 @@ impl TypeScope {
                         position: position.to_owned(),
                     });
                 }
-                scope.insert(name.to_owned(), value);
+                let mut new_variable = old_variable.clone();
+                new_variable.variable_type = value;
+                scope.insert(name.to_owned(), new_variable);
 
                 break;
             }
@@ -104,7 +126,7 @@ impl TypeScope {
         Ok(())
     }
 
-    pub fn flatten(&self) -> HashMap<String, VariableType> {
+    pub fn flatten(&self) -> HashMap<String, Variable> {
         let mut entries = HashMap::default();
 
         for scope in &self.scope_stack {

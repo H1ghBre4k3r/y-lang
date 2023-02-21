@@ -7,6 +7,7 @@ pub struct Definition<T> {
     pub ident: Ident<T>,
     pub value: Expression<T>,
     pub position: Position,
+    pub is_mutable: bool,
     pub info: T,
 }
 
@@ -16,7 +17,19 @@ impl Definition<()> {
 
         let (line, col) = pair.line_col();
 
-        let ident = Ident::from_pair(
+        let mut is_mutable = false;
+
+        let ident_or_mut = inner.next().unwrap_or_else(|| {
+            panic!(
+                "Expected lvalue or 'mut' in definition '{}' at {}:{}",
+                pair.as_str(),
+                pair.line_col().0,
+                pair.line_col().1
+            )
+        });
+
+        let ident = if ident_or_mut.as_rule() == Rule::mutKeyword {
+            is_mutable = true;
             inner.next().unwrap_or_else(|| {
                 panic!(
                     "Expected lvalue in definition '{}' at {}:{}",
@@ -24,9 +37,12 @@ impl Definition<()> {
                     pair.line_col().0,
                     pair.line_col().1
                 )
-            }),
-            file,
-        );
+            })
+        } else {
+            ident_or_mut
+        };
+
+        let ident = Ident::from_pair(ident, file);
 
         let value = inner.next().unwrap_or_else(|| {
             panic!(
@@ -42,6 +58,7 @@ impl Definition<()> {
             ident,
             value,
             position: (file.to_owned(), line, col),
+            is_mutable,
             info: (),
         }
     }
