@@ -6,9 +6,9 @@ mod variabletype;
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Declaration, Definition, Expression,
-        Call, FnDef, Ident, If, Import, Integer, Intrinsic, Param, Position, Statement, Str,
-        Type, PrefixExpr, PrefixOp, PostfixOp, PostfixExpr,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Declaration, Definition,
+        Expression, FnDef, Ident, If, Import, Integer, Intrinsic, Param, Position, PostfixExpr,
+        PostfixOp, PrefixExpr, PrefixOp, Statement, Str, Type,
     },
     loader::Modules,
 };
@@ -365,8 +365,12 @@ impl Typechecker {
                 },
             }),
             Expression::Ident(ident) => Expression::Ident(self.check_identifier(ident, scope)?),
-            Expression::Prefix(prefix_expr) => Expression::Prefix(self.check_prefix_expression(prefix_expr, scope)?),
-            Expression::Postfix(postfix_expr) => Expression::Postfix(self.check_postfix_expression(postfix_expr, scope)?),
+            Expression::Prefix(prefix_expr) => {
+                Expression::Prefix(self.check_prefix_expression(prefix_expr, scope)?)
+            }
+            Expression::Postfix(postfix_expr) => {
+                Expression::Postfix(self.check_postfix_expression(postfix_expr, scope)?)
+            }
             Expression::FnDef(fn_def) => {
                 Expression::FnDef(self.check_fn_def(identifier, fn_def, scope)?)
             }
@@ -701,7 +705,7 @@ impl Typechecker {
                         source: None,
                     },
                 })
-            },
+            }
             PrefixOp::UnaryMinus => {
                 if r_type != VariableType::Int {
                     return Err(TypeError {
@@ -721,7 +725,7 @@ impl Typechecker {
                         source: None,
                     },
                 })
-            },
+            }
         }
     }
 
@@ -749,7 +753,7 @@ impl Typechecker {
                     position: postfix_expression.position,
                     info,
                 })
-            },
+            }
         }
     }
 }
