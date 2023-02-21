@@ -37,8 +37,8 @@ RUN arch="$(cat /tmp/y-lang-rust-target-arch)" \
   && os="$(cat /tmp/y-lang-rust-target-os)" \
   && abi="$(cat /tmp/y-lang-rust-target-abi)" \
   && target="$(cat /tmp/y-lang-rust-target)" \
-  && target_ld="$arch-$os-$abi-ld" \
-  && cargo build --release --target "$target" --config "target.$target.linker=\"$target_ld\"" \
+  && target_linker="$arch-$os-$abi-gcc" \
+  && cargo build --release --target "$target" --config "target.$target.linker=\"$target_linker\"" \
   && mkdir -p bin \
   && cp target/"$target"/release/why bin
 
