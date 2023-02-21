@@ -11,8 +11,9 @@ RUN arch=$(echo ${TARGETARCH} | sed "s/arm64/aarch64/g" | sed "s/amd64/x86_64/g"
   && vendor=unknown \
   && os=$(echo ${TARGETOS} | tr '[:upper:]' '[:lower:]') \
   && abi=gnu \
-  && echo "$arch-$vendor-$os-$abi" > /tmp/y-lang-rust-target-toolchain \
-  && rustup target add $(cat /tmp/y-lang-rust-target-toolchain)
+  && target="$arch-$vendor-$os-$abi" \
+  && echo "$target" > /tmp/y-lang-rust-target-toolchain \
+  && rustup target add "$target"
 
 # Copy the sources
 WORKDIR /opt/y-lang
@@ -20,7 +21,10 @@ COPY src src
 COPY Cargo.toml Cargo.lock .
 
 # Build the compiler
-RUN cargo build --target $(cat /tmp/y-lang-rust-target-toolchain)
+RUN target="$(cat /tmp/y-lang-rust-target-toolchain)" \
+  && cargo build --target "$target" \
+  && mkdir -p bin \
+  && cp target/"$target"/release/why bin
 
 ARG DEBIANVERSION
 
@@ -30,6 +34,6 @@ FROM debian:${DEBIANVERSION}-slim
 RUN apt-get update -y && apt-get install -y nasm
 
 # Copy the compiler
-COPY --from=builder /opt/y-lang/target/release/why /usr/local/bin/why
+COPY --from=builder /opt/y-lang/bin/why /usr/local/bin/why
 
 ENTRYPOINT ["/usr/local/bin/why"]
