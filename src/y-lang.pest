@@ -24,8 +24,6 @@ definition = { "let " ~ localIdent ~ ":=" ~ expr }
 
 assignment = { localIdent ~ "=" ~ expr }
 
-fnCall = { ident ~ "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
-
 typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 fnType = { "(" ~ ( variableType ~ ("," ~ variableType )* )? ~ ")" ~ "->" ~ typeName }
@@ -44,10 +42,12 @@ localIdent = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 ident = @{ localIdent ~ ("::" ~ localIdent)* }
 
-// TODO: Add prefix/postfix operators, see https://pest.rs/book/precedence.html
-// expr = { prefix* ~ primaryExpr ~ postfix* ~ (infix ~ prefix* ~ primaryExpr ~ postfix* )* }
-
-expr = { primaryExpr ~ (infix ~ primaryExpr )* }
+expr = { prefix* ~ primaryExpr ~ postfix* ~ (infix ~ prefix* ~ primaryExpr ~ postfix* )* }
+    prefix = _{ unaryMinus | not }
+        unaryMinus = { "-" }
+        not = { "!" }
+    postfix = _{ call }
+        call = { "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
     infix = _{ binaryOp }
     binaryOp = _{ greaterThan | lessThan | equal | plus | minus | times | dividedBy }
         greaterThan = { ">" }
@@ -61,7 +61,7 @@ expr = { primaryExpr ~ (infix ~ primaryExpr )* }
 primaryExpr = _{ atomExpr | "(" ~ expr ~ ")" }
 
 atomExpr = _{
-    ifStmt | fnCall | integer | boolean | ident | string | fnDef | block 
+    ifStmt | integer | boolean | ident | string | fnDef | block 
 }
 
 string = ${ "\"" ~ inner ~ "\"" }

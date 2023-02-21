@@ -8,8 +8,8 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Definition, Expression, FnCall, Ident, If, Integer,
-        Intrinsic, Statement,
+        Assignment, BinaryOp, Block, Boolean, Definition, Expression, Call, Ident, If, Integer,
+        Intrinsic, Statement, PostfixExpr, PostfixOp,
     },
     loader::Module,
     typechecker::TypeInfo,
@@ -209,9 +209,9 @@ impl Scope {
 
                 self.instructions.push(Label(end_label));
             }
-            Expression::Binary(binary_operation) => {
-                let lhs = &binary_operation.lhs;
-                let rhs = &binary_operation.rhs;
+            Expression::Binary(binary_expression) => {
+                let lhs = &binary_expression.lhs;
+                let rhs = &binary_expression.rhs;
                 // Compile the seconds expression. (RTL evaluation)
                 // This will store the result of this expression in RAX
                 self.compile_expression(rhs);
@@ -226,10 +226,10 @@ impl Scope {
 
                 self.instructions.push(Comment(format!(
                     "{:?} {} {:?}",
-                    lhs, binary_operation.op, rhs
+                    lhs, binary_expression.op, rhs
                 )));
 
-                match &binary_operation.op {
+                match &binary_expression.op {
                     BinaryOp::Plus => self.instructions.push(Add(
                         Register(Rax.to_sized(&lhs.info())),
                         Register(Rcx.to_sized(&rhs.info())),
@@ -271,7 +271,13 @@ impl Scope {
                     }
                 };
             }
-            Expression::FnCall(fn_call) => self.compile_fn_call(fn_call),
+            Expression::Prefix(_) => todo!("Compiling prefix expressions is not supported yet!"),
+            Expression::Postfix(PostfixExpr { lhs, op: PostfixOp::Call(call), .. }) => {
+                match **lhs {
+                    Expression::Ident(ref ident) => self.compile_fn_call(ident, call),
+                    _ => todo!("Compiling calls on non-identifier expressions is not supported yet!"),
+                }
+            },
             Expression::Integer(integer) => {
                 let value = integer.value;
                 self.instructions.push(Comment(format!("LOAD {value}")));
@@ -474,10 +480,10 @@ impl Scope {
                     Register(Rax.to_sized(info)),
                 ));
             }
-            Expression::Binary(binary_operation) => {
-                self.compile_expression(&Expression::Binary(binary_operation.to_owned()));
+            Expression::Binary(binary_expression) => {
+                self.compile_expression(&Expression::Binary(binary_expression.to_owned()));
 
-                let info = &binary_operation.info;
+                let info = &binary_expression.info;
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
@@ -486,7 +492,7 @@ impl Scope {
 
                 self.instructions.push(Comment(format!(
                     "{} = {:?} {} {:?}",
-                    name, binary_operation.lhs, binary_operation.op, binary_operation.rhs
+                    name, binary_expression.lhs, binary_expression.op, binary_expression.rhs
                 )));
 
                 self.instructions.push(Mov(
@@ -497,10 +503,13 @@ impl Scope {
                     Register(Rax.to_sized(info)),
                 ));
             }
-            Expression::FnCall(FnCall { info, .. }) => {
+            Expression::Prefix(_) => todo!("Definitions cannot be generated from prefix expressions yet"),
+            Expression::Postfix(postfix_expr) => {
+                let PostfixOp::Call(call) = postfix_expr.op.clone();
+
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += info.var_size();
+                self.stack_offset += call.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
                 };
@@ -511,10 +520,10 @@ impl Scope {
 
                 self.instructions.push(Mov(
                     Memory(
-                        InstructionSize::from(info.clone()),
+                        InstructionSize::from(call.info.clone()),
                         format!("{}-{}", Rbp, self.stack_offset),
                     ),
-                    Register(Rax.to_sized(info)),
+                    Register(Rax.to_sized(&call.info)),
                 ));
             }
             Expression::Ident(Ident { value, info, .. }) => {
@@ -626,14 +635,14 @@ impl Scope {
         }
     }
 
-    fn compile_fn_call(&mut self, fn_call: &FnCall<TypeInfo>) {
-        let mut name = fn_call.ident.value.to_owned();
+    fn compile_fn_call(&mut self, ident: &Ident<TypeInfo>, call: &Call<TypeInfo>) {
+        let mut name = ident.value.to_owned();
 
         self.instructions
-            .push(Comment(format!("CALL {name} ({:?})", fn_call.params)));
+            .push(Comment(format!("CALL {name} ({:?})", call.params)));
 
         if name.as_str() == "print" {
-            let param = fn_call.params[0].to_owned();
+            let param = call.params[0].to_owned();
             match param {
                 Expression::Ident(Ident {
                     value, position, ..
@@ -678,7 +687,8 @@ impl Scope {
                 }
                 Expression::If(_) => todo!(),
                 Expression::Binary(_) => todo!(),
-                Expression::FnCall(_) => todo!(),
+                Expression::Prefix(_) => todo!(),
+                Expression::Postfix(_) => todo!(),
                 Expression::Integer(_) => todo!(),
                 Expression::Boolean(_) => todo!(),
                 Expression::FnDef(_) => todo!(),
@@ -686,11 +696,12 @@ impl Scope {
             };
             return;
         } else if name.as_str() == "printi" {
-            let param = fn_call.params[0].to_owned();
+            let param = call.params[0].to_owned();
             match param {
                 Expression::If(_)
                 | Expression::Binary(_)
-                | Expression::FnCall(_)
+                | Expression::Prefix(_)
+                | Expression::Postfix(_)
                 | Expression::Block(_)
                 | Expression::Integer(_)
                 | Expression::Ident(_) => {
@@ -710,26 +721,26 @@ impl Scope {
             return;
         };
 
-        for param in fn_call.params.iter() {
+        for param in call.params.iter() {
             self.compile_expression(param);
             self.instructions.push(Push(Rax));
         }
 
         if self.variables.get(&name).is_some() {
             // if we have a variable with this name, we need to load it first
-            self.compile_expression(&Expression::Ident(fn_call.ident.to_owned()));
+            self.compile_expression(&Expression::Ident(ident.to_owned()));
             name = Rax.to_string();
         }
 
-        for (index, _) in fn_call.params.iter().enumerate() {
-            match fn_call.params.len() - (index + 1) {
+        for (index, _) in call.params.iter().enumerate() {
+            match call.params.len() - (index + 1) {
                 0 => self.instructions.push(Pop(Rdi)),
                 1 => self.instructions.push(Pop(Rsi)),
                 _ => todo!(),
             }
         }
 
-        match fn_call.info.source() {
+        match call.info.source() {
             Some(source) => {
                 let fn_name = name.split("::").last().unwrap();
                 let fn_name = source.resolve(&fn_name.to_string());

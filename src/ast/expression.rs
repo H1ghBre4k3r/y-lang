@@ -4,13 +4,14 @@ use pest::{
     pratt_parser::{Assoc, Op, PrattParser},
 };
 
-use super::{BinaryExpr, Block, Boolean, FnCall, FnDef, Ident, If, Integer, Position, Rule, Str};
+use super::{BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, Rule, Str, PrefixExpr, PostfixExpr};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expression<T> {
     If(If<T>),
     Binary(BinaryExpr<T>),
-    FnCall(FnCall<T>),
+    Prefix(PrefixExpr<T>),
+    Postfix(PostfixExpr<T>),
     Integer(Integer<T>),
     Ident(Ident<T>),
     Str(Str<T>),
@@ -26,6 +27,8 @@ static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
             | Op::infix(Rule::equal, Assoc::Left))
         .op(Op::infix(Rule::plus, Assoc::Left) | Op::infix(Rule::minus, Assoc::Left))
         .op(Op::infix(Rule::times, Assoc::Left) | Op::infix(Rule::dividedBy, Assoc::Left))
+        .op(Op::prefix(Rule::unaryMinus) | Op::prefix(Rule::not))
+        .op(Op::postfix(Rule::call))
 });
 
 impl Expression<()> {
@@ -35,7 +38,6 @@ impl Expression<()> {
                 Rule::expr => Expression::from_pair(primary, file),
                 Rule::integer => Expression::Integer(Integer::from_pair(primary, file)),
                 Rule::ident => Expression::Ident(Ident::from_pair(primary, file)),
-                Rule::fnCall => Expression::FnCall(FnCall::from_pair(primary, file)),
                 Rule::string => Expression::Str(Str::from_pair(primary, file)),
                 Rule::fnDef => Expression::FnDef(FnDef::from_pair(primary, file)),
                 Rule::ifStmt => Expression::If(If::from_pair(primary, file)),
@@ -43,8 +45,8 @@ impl Expression<()> {
                 Rule::boolean => Expression::Boolean(Boolean::from_pair(primary, file)),
                 rule => unreachable!("Unexpected rule {:?} while parsing primary", rule),
             })
-            // TODO: Add map_prefix and map_postfix once such operators are added to the grammar
-            // See https://github.com/pest-parser/pest/blob/18ca64fb/derive/examples/calc.rs#L44
+            .map_prefix(|op, rhs| Expression::Prefix(PrefixExpr::from_op_rhs(op, rhs, file)))
+            .map_postfix(|lhs, op| Expression::Postfix(PostfixExpr::from_lhs_op(lhs, op, file)))
             .map_infix(|lhs, op, rhs| {
                 Expression::Binary(BinaryExpr::from_lhs_op_rhs(lhs, op, rhs, file))
             })
@@ -60,7 +62,8 @@ where
         match self {
             Expression::If(If { position, .. })
             | Expression::Binary(BinaryExpr { position, .. })
-            | Expression::FnCall(FnCall { position, .. })
+            | Expression::Prefix(PrefixExpr { position, .. })
+            | Expression::Postfix(PostfixExpr { position, .. })
             | Expression::Integer(Integer { position, .. })
             | Expression::Ident(Ident { position, .. })
             | Expression::Str(Str { position, .. })
@@ -74,7 +77,8 @@ where
         match self {
             Expression::If(If { info, .. })
             | Expression::Binary(BinaryExpr { info, .. })
-            | Expression::FnCall(FnCall { info, .. })
+            | Expression::Prefix(PrefixExpr { info, .. })
+            | Expression::Postfix(PostfixExpr { info, .. })
             | Expression::Integer(Integer { info, .. })
             | Expression::Ident(Ident { info, .. })
             | Expression::Str(Str { info, .. })

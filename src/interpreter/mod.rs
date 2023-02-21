@@ -2,8 +2,8 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Definition, Expression, FnCall,
-        FnDef, Ident, If, Import, Integer, Intrinsic, Statement, Str,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Definition, Expression, Call,
+        FnDef, Ident, If, Import, Integer, Intrinsic, Statement, Str, PrefixExpr, PostfixExpr, PrefixOp, PostfixOp,
     },
     loader::Modules,
     typechecker::TypeInfo,
@@ -251,27 +251,26 @@ impl Interpreter {
 
                 value
             }
-            Expression::Binary(binary_operation) => {
-                self.run_binary_operation(binary_operation, scope)
-            }
-            Expression::FnCall(fn_call) => self.run_fn_call(fn_call, scope),
+            Expression::Binary(binary_expr) => self.run_binary_expression(binary_expr, scope),
+            Expression::Prefix(prefix_expr) => self.run_prefix_expression(prefix_expr, scope),
+            Expression::Postfix(postfix_expr) => self.run_postfix_expression(postfix_expr, scope),
             Expression::Block(block) => self.run_block(block, scope),
             Expression::FnDef(fn_def) => self.run_fn_def(fn_def, scope),
         }
     }
 
-    fn run_binary_operation(
+    fn run_binary_expression(
         &self,
-        binary_operation: &BinaryExpr<TypeInfo>,
+        binary_expr: &BinaryExpr<TypeInfo>,
         scope: &mut Scope,
     ) -> VariableValue {
-        let lhs = &binary_operation.lhs;
-        let rhs = &binary_operation.rhs;
+        let lhs = &binary_expr.lhs;
+        let rhs = &binary_expr.rhs;
 
         let lhs = self.run_expression(lhs, scope);
         let rhs = self.run_expression(rhs, scope);
 
-        match binary_operation.op {
+        match binary_expr.op {
             BinaryOp::Equal => VariableValue::Bool(lhs == rhs),
             BinaryOp::GreaterThan => {
                 let (VariableValue::Int(lhs), VariableValue::Int(rhs)) = (lhs, rhs) else {
@@ -312,6 +311,36 @@ impl Interpreter {
         }
     }
 
+    fn run_prefix_expression(
+        &self,
+        prefix_expression: &PrefixExpr<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
+        let rhs = self.run_expression(&prefix_expression.rhs, scope);
+
+        match prefix_expression.op {
+            PrefixOp::UnaryMinus => todo!(),
+            PrefixOp::Not => todo!(),
+        }
+    }
+
+    fn run_postfix_expression(
+        &self,
+        postfix_expression: &PostfixExpr<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
+        let lhs = self.run_expression(&postfix_expression.lhs, scope);
+
+        match postfix_expression.op.clone() {
+            PostfixOp::Call(call) => {
+                let VariableValue::Str(fn_name) = lhs else {
+                    todo!("Calling non-identifier expressions is not supported yet!");
+                };
+                self.run_fn_call(&fn_name, &call, scope)
+            }
+        }
+    }
+
     fn run_fn_def(&self, fn_def: &FnDef<TypeInfo>, scope: &mut Scope) -> VariableValue {
         let mut params = vec![];
 
@@ -326,12 +355,10 @@ impl Interpreter {
         }
     }
 
-    fn run_fn_call(&self, fn_call: &FnCall<TypeInfo>, scope: &mut Scope) -> VariableValue {
+    fn run_fn_call(&self, fn_name: &str, fn_call: &Call<TypeInfo>, scope: &mut Scope) -> VariableValue {
         scope.push();
 
-        let ident = &fn_call.ident;
-
-        let return_value = match ident.value.as_str() {
+        let return_value = match fn_name {
             "print" => {
                 for param in &fn_call.params {
                     match param {
@@ -342,8 +369,8 @@ impl Interpreter {
                             print!("{value}");
                         }
                         Expression::Str(Str { value, .. }) => print!("{value}"),
-                        Expression::Binary(binary_operation) => {
-                            print!("{}", self.run_binary_operation(binary_operation, scope))
+                        Expression::Binary(binary_expression) => {
+                            print!("{}", self.run_binary_expression(binary_expression, scope))
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{value}"),
                         Expression::Boolean(Boolean { value, .. }) => print!("{value}"),
@@ -353,8 +380,11 @@ impl Interpreter {
                         Expression::Block(block) => {
                             print!("{}", self.run_block(block, scope))
                         }
-                        Expression::FnCall(fn_call) => {
-                            print!("{}", self.run_fn_call(fn_call, scope))
+                        Expression::Prefix(prefix_expr) => {
+                            print!("{}", self.run_prefix_expression(prefix_expr, scope))
+                        }
+                        Expression::Postfix(postfix_expr) => {
+                            print!("{}", self.run_postfix_expression(postfix_expr, scope))
                         }
                         Expression::FnDef(_) => todo!(),
                     }
@@ -370,8 +400,8 @@ impl Interpreter {
                             };
                             print!("{value}");
                         }
-                        Expression::Binary(binary_operation) => {
-                            print!("{}", self.run_binary_operation(binary_operation, scope))
+                        Expression::Binary(binary_expression) => {
+                            print!("{}", self.run_binary_expression(binary_expression, scope))
                         }
                         Expression::Integer(Integer { value, .. }) => print!("{value}"),
                         Expression::If(if_statement) => {
@@ -380,8 +410,11 @@ impl Interpreter {
                         Expression::Block(block) => {
                             print!("{}", self.run_block(block, scope))
                         }
-                        Expression::FnCall(fn_call) => {
-                            print!("{}", self.run_fn_call(fn_call, scope))
+                        Expression::Prefix(prefix_expr) => {
+                            print!("{}", self.run_prefix_expression(prefix_expr, scope))
+                        }
+                        Expression::Postfix(postfix_expr) => {
+                            print!("{}", self.run_postfix_expression(postfix_expr, scope))
                         }
                         _ => todo!(),
                     }

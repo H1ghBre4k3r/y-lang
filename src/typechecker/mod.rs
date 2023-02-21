@@ -7,8 +7,8 @@ mod variabletype;
 use crate::{
     ast::{
         Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Declaration, Definition, Expression,
-        FnCall, FnDef, Ident, If, Import, Integer, Intrinsic, Param, Position, Statement, Str,
-        Type,
+        Call, FnDef, Ident, If, Import, Integer, Intrinsic, Param, Position, Statement, Str,
+        Type, PrefixExpr, PrefixOp, PostfixOp, PostfixExpr,
     },
     loader::Modules,
 };
@@ -331,8 +331,8 @@ impl Typechecker {
     ) -> TResult<Expression<TypeInfo>> {
         Ok(match expression {
             Expression::If(if_statement) => Expression::If(self.check_if(if_statement, scope)?),
-            Expression::Binary(binary_op) => {
-                Expression::Binary(self.check_binary_operation(binary_op, scope)?)
+            Expression::Binary(binary_expr) => {
+                Expression::Binary(self.check_binary_expression(binary_expr, scope)?)
             }
             Expression::Integer(Integer {
                 value, position, ..
@@ -365,7 +365,8 @@ impl Typechecker {
                 },
             }),
             Expression::Ident(ident) => Expression::Ident(self.check_identifier(ident, scope)?),
-            Expression::FnCall(fn_call) => Expression::FnCall(self.check_fn_call(fn_call, scope)?),
+            Expression::Prefix(prefix_expr) => Expression::Prefix(self.check_prefix_expression(prefix_expr, scope)?),
+            Expression::Postfix(postfix_expr) => Expression::Postfix(self.check_postfix_expression(postfix_expr, scope)?),
             Expression::FnDef(fn_def) => {
                 Expression::FnDef(self.check_fn_def(identifier, fn_def, scope)?)
             }
@@ -516,12 +517,13 @@ impl Typechecker {
 
     fn check_fn_call(
         &self,
-        fn_call: &FnCall<()>,
+        ident: &Ident<()>,
+        fn_call: &Call<()>,
         scope: &mut TypeScope,
-    ) -> TResult<FnCall<TypeInfo>> {
+    ) -> TResult<Call<TypeInfo>> {
         scope.push();
 
-        let ident = &fn_call.ident.value;
+        let ident = &ident.value;
 
         let Some(fn_def) = scope.find(ident) else {
             return Err(TypeError {
@@ -568,15 +570,7 @@ impl Typechecker {
 
         scope.pop();
 
-        Ok(FnCall {
-            ident: Ident {
-                value: fn_call.ident.value.clone(),
-                position: fn_call.ident.position.clone(),
-                info: TypeInfo {
-                    _type: fn_def.clone(),
-                    source: None,
-                },
-            },
+        Ok(Call {
             params: new_params,
             position: fn_call.position.clone(),
             info: TypeInfo {
@@ -586,15 +580,15 @@ impl Typechecker {
         })
     }
 
-    fn check_binary_operation(
+    fn check_binary_expression(
         &self,
-        binary_operation: &BinaryExpr<()>,
+        binary_expression: &BinaryExpr<()>,
         scope: &mut TypeScope,
     ) -> TResult<BinaryExpr<TypeInfo>> {
-        let position = binary_operation.position.clone();
+        let position = binary_expression.position.clone();
 
-        let lhs = &binary_operation.lhs;
-        let rhs = &binary_operation.rhs;
+        let lhs = &binary_expression.lhs;
+        let rhs = &binary_expression.rhs;
 
         let lhs = self.check_expression(None, lhs, scope)?;
         let l_type = lhs.info()._type;
@@ -602,7 +596,7 @@ impl Typechecker {
         let rhs = self.check_expression(None, rhs, scope)?;
         let r_type = rhs.info()._type;
 
-        match binary_operation.op {
+        match binary_expression.op {
             BinaryOp::Equal => {
                 if l_type != r_type {
                     return Err(TypeError {
@@ -613,10 +607,10 @@ impl Typechecker {
                     });
                 }
                 Ok(BinaryExpr {
-                    op: binary_operation.op,
+                    op: binary_expression.op,
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
-                    position: binary_operation.position.clone(),
+                    position: binary_expression.position.clone(),
                     info: TypeInfo {
                         _type: VariableType::Bool,
                         source: None,
@@ -628,16 +622,16 @@ impl Typechecker {
                     return Err(TypeError {
                         message: format!(
                             "Invalid types for binary operation '{}'. Got '{}' and '{}'",
-                            binary_operation.op, l_type, r_type
+                            binary_expression.op, l_type, r_type
                         ),
                         position,
                     });
                 }
                 Ok(BinaryExpr {
-                    op: binary_operation.op,
+                    op: binary_expression.op,
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
-                    position: binary_operation.position.clone(),
+                    position: binary_expression.position.clone(),
                     info: TypeInfo {
                         _type: VariableType::Bool,
                         source: None,
@@ -662,16 +656,100 @@ impl Typechecker {
                 }
 
                 Ok(BinaryExpr {
-                    op: binary_operation.op,
+                    op: binary_expression.op,
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
-                    position: binary_operation.position.clone(),
+                    position: binary_expression.position.clone(),
                     info: TypeInfo {
                         _type: VariableType::Int,
                         source: None,
                     },
                 })
             }
+        }
+    }
+
+    fn check_prefix_expression(
+        &self,
+        prefix_expression: &PrefixExpr<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<PrefixExpr<TypeInfo>> {
+        let position = prefix_expression.position.clone();
+
+        let rhs = &prefix_expression.rhs;
+
+        let rhs = self.check_expression(None, rhs, scope)?;
+        let r_type = rhs.info()._type;
+
+        match prefix_expression.op {
+            PrefixOp::Not => {
+                if r_type != VariableType::Bool {
+                    return Err(TypeError {
+                        message: format!(
+                            "Invalid type for boolean prefix operation '{}'. Got '{}'",
+                            prefix_expression.op, r_type
+                        ),
+                        position,
+                    });
+                }
+                Ok(PrefixExpr {
+                    op: prefix_expression.op,
+                    rhs: Box::new(rhs),
+                    position,
+                    info: TypeInfo {
+                        _type: VariableType::Bool,
+                        source: None,
+                    },
+                })
+            },
+            PrefixOp::UnaryMinus => {
+                if r_type != VariableType::Int {
+                    return Err(TypeError {
+                        message: format!(
+                            "Invalid type for integral prefix operation '{}'. Got '{}'",
+                            prefix_expression.op, r_type
+                        ),
+                        position,
+                    });
+                }
+                Ok(PrefixExpr {
+                    op: prefix_expression.op,
+                    rhs: Box::new(rhs),
+                    position,
+                    info: TypeInfo {
+                        _type: VariableType::Int,
+                        source: None,
+                    },
+                })
+            },
+        }
+    }
+
+    fn check_postfix_expression(
+        &self,
+        postfix_expression: &PostfixExpr<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<PostfixExpr<TypeInfo>> {
+        let postfix_expression = postfix_expression.clone();
+
+        let lhs = &postfix_expression.lhs;
+
+        let lhs = self.check_expression(None, lhs, scope)?;
+
+        match postfix_expression.op {
+            PostfixOp::Call(call) => {
+                let Expression::Ident(ident) = *postfix_expression.lhs else {
+                    todo!("Calls on non-identifier-expressions are not implemented yet")
+                };
+                let call = self.check_fn_call(&ident, &call, scope)?;
+                let info = call.info.clone();
+                Ok(PostfixExpr {
+                    op: PostfixOp::Call(call),
+                    lhs: Box::new(lhs),
+                    position: postfix_expression.position,
+                    info,
+                })
+            },
         }
     }
 }
