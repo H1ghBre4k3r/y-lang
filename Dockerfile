@@ -37,9 +37,8 @@ RUN arch="$(cat /tmp/y-lang-rust-target-arch)" \
   && os="$(cat /tmp/y-lang-rust-target-os)" \
   && abi="$(cat /tmp/y-lang-rust-target-abi)" \
   && target="$(cat /tmp/y-lang-rust-target)" \
-  && target_upper="$(echo "$target" | tr '[:lower:]' '[:upper:]' | sed 's/-/_/g')" \
-  && eval "CARGO_TARGET_${target_upper}_LINKER=/usr/bin/$arch-$os-$abi-ld" \
-  && cargo build --release --target "$target" \
+  && target_ld="$arch-$os-$abi-ld" \
+  && cargo build --release --target "$target" --config "target.$target.linker=\"$target_ld\"" \
   && mkdir -p bin \
   && cp target/"$target"/release/why bin
 
