@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     path::Path,
-    process::{Command, Output},
+    process::{Command, Output, ExitStatus},
     str,
 };
 
@@ -28,6 +28,7 @@ pub fn check_interpretation(src_path: &Path, expected: Expected) -> Result<(), B
         .output()?;
 
     expected.assert_matches(&output)?;
+    assert!(output.status.success(), "Why interpreter exited with status {:?}", output.status.code());
 
     Ok(())
 }
@@ -40,11 +41,16 @@ pub fn check_compilation(src_path: &Path, expected: Expected) -> Result<(), Box<
         .arg(src_path)
         .output()?;
 
-    println!("{}", std::str::from_utf8(&compile_output.stdout)?);
-    assert!(compile_output.stderr.is_empty());
+    let compile_stdout = std::str::from_utf8(&compile_output.stdout)?;
+    let compile_stderr = std::str::from_utf8(&compile_output.stderr)?;
+
+    println!("{}", compile_stdout);
+    assert!(compile_stderr.is_empty(), "{}", compile_stderr);
+    assert!(compile_output.status.success(), "Why compiler exited with status {:?}", compile_output.status.code());
 
     let output = Command::new(out_path).output()?;
     expected.assert_matches(&output)?;
+    assert!(output.status.success(), "Compiled program exited with status {:?}", compile_output.status.code());
 
     Ok(())
 }
