@@ -140,6 +140,32 @@ In this example, we declare a variable `foo` and assign it a function, which exp
 
 Currently, you are not able to return functions from other functions or use values which are defined in an outer scope of a function. I am currently figuring out a way to achieve that.
 
+### Modules
+
+You can split your code up into modules. Modules are just other files ending with `.why` and can be imported by their name (without the respective file ending):
+
+```why
+import foo
+
+foo::bar()
+```
+
+Here, we import a module named foo (from a file `foo.why`) and call an exported function (i.e., `bar`) by its "full name". By default, you have to specify the full resolved name to an imported function in the form of `module::function()`. If you want to directly call a function without specifying the module name, you have to import the module as a wildcard:
+
+```why
+import foo::*
+
+bar()
+```
+
+This can be useful when importing common functions from a utility module.
+
+#### ⚠️ Non-Function-Exports
+
+Please note that all non-function-members of a module (i.e., all other variables etc.) are **not** exported. They are completely "erased" from the program. Therefore, your exported functions are not allowed to use any other variables other than other exported functions.
+
+In the future, we plan to add support for exporting constants, but until then be aware of this limitation.
+
 ## Pipeline
 
 To turn a Y program into an executable (or interpret it), the compiler takes several steps.
