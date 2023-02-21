@@ -75,7 +75,7 @@ impl Display for Instruction {
             Instruction::Movzx(target, source) => format!("\tmovzx \t{target}, \t{source}"),
             Instruction::Add(target, source) => format!("\tadd \t{target}, \t{source}"),
             Instruction::Imul(target, source) => format!("\timul \t{target}, \t{source}"),
-            Instruction::Idiv(target) => format!("\tidiv \t{target}"),
+            Instruction::Idiv(source) => format!("\tidiv \t{source}"),
             Instruction::Sub(target, source) => format!("\tsub \t{target}, \t{source}"),
             Instruction::Xor(target, source) => format!("\txor \t{target}, \t{source}"),
             Instruction::Cmp(target, source) => format!("\tcmp \t{target}, \t{source}"),
