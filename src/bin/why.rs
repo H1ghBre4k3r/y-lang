@@ -4,7 +4,7 @@ extern crate y_lang;
 use std::{collections::HashMap, error::Error, fs};
 
 use clap::Parser as CParser;
-use log::error;
+use log::{error, info};
 use y_lang::{
     ast::{Ast, YParser},
     compiler::Compiler,
@@ -16,12 +16,23 @@ use y_lang::{
 #[derive(CParser, Debug)]
 #[command(author, version, about)]
 struct Cli {
+    /// The path to the why source file.
     #[arg(index = 1)]
     file: std::path::PathBuf,
 
+    /// Whether to interpret instead of compiling.
     #[arg(short, long)]
     run: bool,
 
+    /// Whether to dump the parsed AST (for debugging).
+    #[arg(long)]
+    dump_parsed: bool,
+
+    /// Whether to dump the type-checked AST (for debugging).
+    #[arg(long)]
+    dump_typed: bool,
+
+    /// The path to the output binary.
     #[arg(short, long)]
     output: Option<std::path::PathBuf>,
 }
@@ -38,6 +49,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let pairs = YParser::parse_program(&file_content);
 
     let ast = Ast::from_program(pairs.collect(), &file.to_string_lossy());
+
+    if args.dump_parsed {
+        info!("Parsed AST:\n{:#?}", ast);
+    }
 
     let modules = match load_modules(&ast, file) {
         Err(load_error) => {
@@ -88,6 +103,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             std::process::exit(-1);
         }
     };
+
+    if args.dump_typed {
+        info!("Typed AST:\n{:#?}", ast);
+    }
 
     if args.run && args.output.is_none() {
         let interpreter = Interpreter::from_ast(ast.clone(), type_safe_modules.clone());
