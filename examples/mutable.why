@@ -1,0 +1,15 @@
+declare printi : (int) -> void
+declare print : (str) -> void
+
+let mut x := 3 
+
+{
+    x = x + 1
+
+    let x := 6
+    x = x - 3
+    printi(x)
+    print(" ")
+}
+
+printi(x)
