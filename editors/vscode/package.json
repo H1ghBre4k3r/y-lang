@@ -1,0 +1,46 @@
+{
+  "private": true,
+  "name": "y-lang",
+  "displayName": "y-lang",
+  "description": "Y language support for VSCode",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/H1ghBre4k3r/y-lang.git"
+  },
+  "scripts": {
+    "compile": "echo No compilation needed!",
+    "package-extension": "vsce package"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "why",
+        "aliases": [
+          "Y (Why)",
+          "why"
+        ],
+        "extensions": [
+          "why"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "why",
+        "scopeName": "source.why",
+        "path": "./syntaxes/why.tmLanguage.json"
+      }
+    ]
+  },
+  "devDependencies": {
+    "vsce": "^2.15.0"
+  }
+}
