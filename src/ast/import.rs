@@ -11,7 +11,7 @@ pub struct Import {
 
 impl Import {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Self {
-        assert_eq!(pair.as_rule(), Rule::importStmt);
+        assert_eq!(pair.as_rule(), Rule::importDirective);
         let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();

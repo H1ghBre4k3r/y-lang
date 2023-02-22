@@ -15,7 +15,7 @@ impl Call<()> {
 
         let (line, col) = pair.line_col();
 
-        let mut inner = pair.into_inner();
+        let inner = pair.into_inner();
 
         let mut params = vec![];
 

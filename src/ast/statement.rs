@@ -12,12 +12,12 @@ pub enum Statement<T> {
 impl Statement<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Statement<()> {
         match pair.as_rule() {
-            Rule::importStmt => Statement::Import(Import::from_pair(pair, file)),
+            Rule::importDirective => Statement::Import(Import::from_pair(pair, file)),
             Rule::declaration | Rule::definition | Rule::assignment => {
                 Statement::Intrinsic(Intrinsic::from_pair(pair, file))
             }
             Rule::expr => Statement::Expression(Expression::from_pair(pair, file)),
-            _ => todo!(),
+            rule => unreachable!("Can not parse rule {rule:?} as expression"),
         }
     }
 }
