@@ -271,14 +271,18 @@ impl Scope {
                     }
                 };
             }
-            Expression::Prefix(_) => todo!("Compiling prefix expressions is not supported yet!"),
+            Expression::Prefix(_) => {
+                unimplemented!("Compiling prefix expressions is not supported yet!")
+            }
             Expression::Postfix(PostfixExpr {
                 lhs,
                 op: PostfixOp::Call(call),
                 ..
             }) => match **lhs {
                 Expression::Ident(ref ident) => self.compile_fn_call(ident, call),
-                _ => todo!("Compiling calls on non-identifier expressions is not supported yet!"),
+                _ => unimplemented!(
+                    "Compiling calls on non-identifier expressions is not supported yet!"
+                ),
             },
             Expression::Integer(integer) => {
                 let value = integer.value;
@@ -512,7 +516,7 @@ impl Scope {
                 ));
             }
             Expression::Prefix(_) => {
-                todo!("Definitions cannot be generated from prefix expressions yet")
+                unimplemented!("Definitions cannot be generated from prefix expressions yet")
             }
             Expression::Postfix(postfix_expr) => {
                 let PostfixOp::Call(call) = postfix_expr.op.clone();

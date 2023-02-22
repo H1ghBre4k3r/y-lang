@@ -321,8 +321,8 @@ impl Interpreter {
         // let rhs = self.run_expression(&prefix_expression.rhs, scope);
 
         match prefix_expression.op {
-            PrefixOp::UnaryMinus => todo!(),
-            PrefixOp::Not => todo!(),
+            PrefixOp::UnaryMinus => unimplemented!(),
+            PrefixOp::Not => unimplemented!(),
         }
     }
 
@@ -339,7 +339,7 @@ impl Interpreter {
         match postfix_expression.op.clone() {
             PostfixOp::Call(call) => {
                 let Expression::Ident(ident) = *postfix_expression.lhs.clone() else {
-                    todo!("Calling non-identifier expressions is not supported yet!");
+                    unimplemented!("Calling non-identifier expressions is not supported yet!");
                 };
                 self.run_fn_call(&ident.value, &call, scope)
             }
@@ -396,7 +396,7 @@ impl Interpreter {
                         Expression::Postfix(postfix_expr) => {
                             print!("{}", self.run_postfix_expression(postfix_expr, scope))
                         }
-                        Expression::FnDef(_) => todo!(),
+                        _ => unreachable!(),
                     }
                 }
                 VariableValue::Void
@@ -426,7 +426,7 @@ impl Interpreter {
                         Expression::Postfix(postfix_expr) => {
                             print!("{}", self.run_postfix_expression(postfix_expr, scope))
                         }
-                        _ => todo!(),
+                        _ => unreachable!(),
                     }
                 }
                 VariableValue::Void
