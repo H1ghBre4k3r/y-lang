@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Y (Why)",
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.why",
+          "match": "\\b(if|else|let)\\b"
+        },
+        {
+          "name": "keyword.declaration.why",
+          "match": "\\b(declare)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.why",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.why",
+          "match": "\\\\."
+        }
+      ]
+    }
+  },
+  "scopeName": "source.why"
+}
