@@ -27,6 +27,18 @@ if 3 < 5 {
 }
 ```
 
+You can optionally explicitly end an expression with a semicolon:
+
+```why
+if 3 < 5 {
+    "foo"
+} else {
+    "bar"
+};
+```
+
+In some situations this is required, since Y would interpret the provided expressions in a different way. See section about functions.
+
 ### Variables
 
 To store the values of expressions, you are able to declare variables:
@@ -89,11 +101,11 @@ let bar := if a > b {
 
 Y supports a couple of primitive types which are build directly into the lanuage:
 
-- `int` for numbers (current 32 bit)
-- `str` for string **constants**
-- `bool` for boolean values
-- `void` for "empty" values
-- functions (see later for information on how to declare a function type)
+-   `int` for numbers (current 32 bit)
+-   `str` for string **constants**
+-   `bool` for boolean values
+-   `void` for "empty" values
+-   functions (see later for information on how to declare a function type)
 
 More complex types are subject for futures features.
 
@@ -123,6 +135,32 @@ let add := (x : int, y : int) : int => {
 ```
 
 Function definitions work in a similar way like regular variable definitions, since functions are treated as first-class citizens in Y.
+
+#### Call-Postfix
+
+To call a function, you can postfix any expression which evaluates to a function (currently only identifiers) with `([param, [param, ...]])` to call it the given arguments.
+
+This may lead to certain pitfalls, since Y is _not_ whitespace-sensitive! For example, the following will lead to a type error:
+
+```why
+let foo := (some_condition: bool) : int => {
+    if some_condition {
+        print("Condition is true!")
+    }
+    (3 + 4)
+}
+```
+
+Here, `(3 + 4)` (although it is intended as the return expression of the function) is interpreted as a call to the result of the if expression. To prevent this, you have to explicitly terminate the if expression with a semicolon:
+
+```why
+let foo := (some_condition: bool) : int => {
+    if some_condition {
+        print("Condition is true!")
+    }; // <- semicolon to terminate expression
+    (3 + 4)
+}
+```
 
 #### Function Type
 
@@ -165,6 +203,23 @@ This can be useful when importing common functions from a utility module.
 Please note that all non-function-members of a module (i.e., all other variables etc.) are **not** exported. They are completely "erased" from the program. Therefore, your exported functions are not allowed to use any other variables other than other exported functions.
 
 In the future, we plan to add support for exporting constants, but until then be aware of this limitation.
+
+### Declarations
+
+If you want to declare a function (or a variable) which is already pre-defined (or comes from another source), you can do so via the `declare` keyword. A declaration consists of the name of the variable to declare and a corresponding type annotation. E.g.:
+
+```why
+declare print : (str) -> void
+```
+
+### Builtins
+
+Currently, Y provides two pre-defined functions: `print` (for printing strings) and `printi` (for printing numbers). To use them, you have to declare them somewhere in your program:
+
+```
+declare print : (str) -> void
+declare printi : (int) -> void
+```
 
 ## Pipeline
 
