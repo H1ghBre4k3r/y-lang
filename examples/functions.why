@@ -23,3 +23,18 @@ printi(nested(a, foo))
 
 print(" ")
 printi(nested(7, (inner : (int, int) -> int): int => { inner(41, 17) }))
+
+let triple := (a: int, b: int, c: int): int => {
+    a + b + c
+}
+print(" ")
+printi(triple(1, 2, 3))
+
+let six_params := (a: int, b: int, c: int, d: int, e: str, f: bool): int => {
+    if f {
+        print(e)
+    };
+    (a + b + c) * d
+}
+print(" ")
+printi(six_params(1, 2, 3, 4, "from_function ", true))

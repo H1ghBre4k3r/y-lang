@@ -1,0 +1,18 @@
+declare print : (str) -> void
+
+print("literal ")
+
+let foo := "variable "
+print(foo)
+
+let bar := (): str => {
+    "function "
+}
+print(bar())
+
+print({
+    "block "
+})
+
+print(if true { "if " } else { "else "})
+print(if false { "if " } else { "else "})

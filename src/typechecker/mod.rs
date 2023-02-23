@@ -755,7 +755,7 @@ impl Typechecker {
         match postfix_expression.op {
             PostfixOp::Call(call) => {
                 let Expression::Ident(ident) = *postfix_expression.lhs else {
-                    todo!("Calls on non-identifier-expressions are not implemented yet")
+                    unimplemented!("Calls on non-identifier-expressions are not implemented yet")
                 };
                 let call = self.check_fn_call(&ident, &call, scope)?;
                 let info = call.info.clone();

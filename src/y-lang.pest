@@ -1,17 +1,17 @@
-program = _{ SOI ~ (importStmt)* ~ (stmt)* ~ EOI }
+program = _{ SOI ~ (importDirective)* ~ (stmt)* ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
 COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ( "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE ) }
 
-importStmt = {
+importDirective = {
     "import " ~ importPath
 }
 
 importPath = @{ ident ~ ("::*")? }
 
 stmt = _{ 
-    intrinsics | expr
+    (intrinsics | expr) ~ ";"?
 }
 
 intrinsics = _{ declaration | definition | assignment }

@@ -271,14 +271,18 @@ impl Scope {
                     }
                 };
             }
-            Expression::Prefix(_) => todo!("Compiling prefix expressions is not supported yet!"),
+            Expression::Prefix(_) => {
+                unimplemented!("Compiling prefix expressions is not supported yet!")
+            }
             Expression::Postfix(PostfixExpr {
                 lhs,
                 op: PostfixOp::Call(call),
                 ..
             }) => match **lhs {
                 Expression::Ident(ref ident) => self.compile_fn_call(ident, call),
-                _ => todo!("Compiling calls on non-identifier expressions is not supported yet!"),
+                _ => unimplemented!(
+                    "Compiling calls on non-identifier expressions is not supported yet!"
+                ),
             },
             Expression::Integer(integer) => {
                 let value = integer.value;
@@ -353,7 +357,13 @@ impl Scope {
                     let source = match index {
                         0 => InstructionOperand::Register(Rdi.to_sized(info)),
                         1 => InstructionOperand::Register(Rsi.to_sized(info)),
-                        _ => todo!(),
+                        2 => InstructionOperand::Register(Rdx.to_sized(info)),
+                        3 => InstructionOperand::Register(Rcx.to_sized(info)),
+                        4 => InstructionOperand::Register(R8.to_sized(info)),
+                        5 => InstructionOperand::Register(R9.to_sized(info)),
+                        _ => unimplemented!(
+                            "More than 6 function parameters are currently not supported"
+                        ),
                     };
 
                     function_scope.add_param(&identifier.value, info.clone(), source);
@@ -506,7 +516,7 @@ impl Scope {
                 ));
             }
             Expression::Prefix(_) => {
-                todo!("Definitions cannot be generated from prefix expressions yet")
+                unimplemented!("Definitions cannot be generated from prefix expressions yet")
             }
             Expression::Postfix(postfix_expr) => {
                 let PostfixOp::Call(call) = postfix_expr.op.clone();
@@ -571,7 +581,13 @@ impl Scope {
                     let source = match index {
                         0 => InstructionOperand::Register(Rdi.to_sized(info)),
                         1 => InstructionOperand::Register(Rsi.to_sized(info)),
-                        _ => todo!(),
+                        2 => InstructionOperand::Register(Rdx.to_sized(info)),
+                        3 => InstructionOperand::Register(Rcx.to_sized(info)),
+                        4 => InstructionOperand::Register(R8.to_sized(info)),
+                        5 => InstructionOperand::Register(R9.to_sized(info)),
+                        _ => unimplemented!(
+                            "More than 6 function parameters are currently not supported"
+                        ),
                     };
 
                     function_scope.add_param(&identifier.value, info.clone(), source);
@@ -689,14 +705,20 @@ impl Scope {
                         Call("print".to_owned()),
                     ])
                 }
-                Expression::If(_) => todo!(),
-                Expression::Binary(_) => todo!(),
-                Expression::Prefix(_) => todo!(),
-                Expression::Postfix(_) => todo!(),
-                Expression::Integer(_) => todo!(),
-                Expression::Boolean(_) => todo!(),
-                Expression::FnDef(_) => todo!(),
-                Expression::Block(_) => todo!(),
+                Expression::If(_)
+                | Expression::Binary(_)
+                | Expression::Block(_)
+                | Expression::Postfix(_) => {
+                    self.compile_expression(&param);
+                    self.instructions.append(&mut vec![
+                        Mov(Register(Rsi), Register(Rax)),
+                        Mov(Register(Rdi), Register(Rsi)),
+                        Call("str_len".to_owned()),
+                        Mov(Register(Rdx), Register(Rax)),
+                        Call("print".to_owned()),
+                    ]);
+                }
+                _ => unreachable!(),
             };
             return;
         } else if name.as_str() == "printi" {
@@ -740,7 +762,11 @@ impl Scope {
             match call.params.len() - (index + 1) {
                 0 => self.instructions.push(Pop(Rdi)),
                 1 => self.instructions.push(Pop(Rsi)),
-                _ => todo!(),
+                2 => self.instructions.push(Pop(Rdx)),
+                3 => self.instructions.push(Pop(Rcx)),
+                4 => self.instructions.push(Pop(R8)),
+                5 => self.instructions.push(Pop(R9)),
+                _ => unimplemented!("More than 6 function parameters are currently not supported"),
             }
         }
 
