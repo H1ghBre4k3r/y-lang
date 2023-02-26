@@ -391,13 +391,15 @@ impl Interpreter {
                 let syscall_param_2 = self.run_expression(&params[2], scope);
                 let _syscall_param_3 = self.run_expression(&params[3], scope);
 
-                match syscall_type {
-                    VariableValue::Int(33554436) => match syscall_param_1 {
-                        VariableValue::Int(1) => {
-                            print!("{syscall_param_2}")
+                match (std::env::consts::OS, syscall_type) {
+                    ("macos", VariableValue::Int(33554436)) | ("linux", VariableValue::Int(1)) => {
+                        match syscall_param_1 {
+                            VariableValue::Int(1) => {
+                                print!("{syscall_param_2}")
+                            }
+                            _ => unreachable!(),
                         }
-                        _ => unreachable!(),
-                    },
+                    }
                     _ => unreachable!(),
                 }
 
