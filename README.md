@@ -222,6 +222,8 @@ declare syscall_4 : (int, any, any, any) -> any
 
 Note: The first parameter is the identifier for this syscall.
 
+If you want to have an overview of currentl available syscall abstractions, have a look at `std.why` in the examples folder.
+
 ### Compiler Directives
 
 Y support (more or less) conditional compilation depending on the current operating system. To declare something is "OS"-dependant, you have to annotate it accordingly:
@@ -230,7 +232,7 @@ Y support (more or less) conditional compilation depending on the current operat
 #[os == "linux"]
 let value := "We are on linux"
 
-#[os == "maco"]
+#[os == "macos"]
 let value := "We are on macOS"
 ```
 
