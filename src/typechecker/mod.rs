@@ -13,7 +13,7 @@ use crate::{
     loader::Modules,
 };
 
-pub use self::fn_extractor::extract_function_declarations;
+pub use self::fn_extractor::extract_exports;
 pub use self::info::TypeInfo;
 pub use self::typescope::TypeScope;
 
@@ -45,7 +45,7 @@ impl Typechecker {
         Ok(Ast::from_nodes(statements))
     }
 
-    pub fn extract_function_types(ast: &Ast<()>) -> Result<TypeScope, TypeError> {
+    pub fn extract_exports(ast: &Ast<()>) -> Result<TypeScope, TypeError> {
         let nodes = ast.nodes();
 
         let mut scope = setup_scope();

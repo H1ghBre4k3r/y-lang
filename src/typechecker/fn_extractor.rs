@@ -2,6 +2,6 @@ use crate::ast::Ast;
 
 use super::{error::TypeError, typescope::TypeScope, Typechecker};
 
-pub fn extract_function_declarations(ast: &Ast<()>) -> Result<TypeScope, TypeError> {
-    Typechecker::extract_function_types(ast)
+pub fn extract_exports(ast: &Ast<()>) -> Result<TypeScope, TypeError> {
+    Typechecker::extract_exports(ast)
 }

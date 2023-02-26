@@ -6,7 +6,7 @@ use pest::iterators::Pair;
 
 use crate::{
     ast::{Ast, Rule, Statement, YParser},
-    typechecker::{extract_function_declarations, TypeScope},
+    typechecker::{extract_exports, TypeScope},
 };
 
 use self::loaderror::FileLoadError;
@@ -108,7 +108,7 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box
             .collect::<Vec<_>>();
         let ast = Ast::from_program(fns.clone(), &file);
 
-        let function_declarations = extract_function_declarations(&ast)?;
+        let function_declarations = extract_exports(&ast)?;
 
         // let ast = Ast::from_program(pairs.collect(), &file);
 
