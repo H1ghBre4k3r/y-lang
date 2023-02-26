@@ -31,6 +31,7 @@ impl FromStr for VariableType {
             "bool" => Ok(Self::Bool),
             "str" => Ok(Self::Str),
             "int" => Ok(Self::Int),
+            "any" => Ok(Self::Any),
             _ => Err(VariableParseError(format!("Invalid type '{s}'"))),
         }
     }

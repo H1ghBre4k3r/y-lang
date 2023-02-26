@@ -6,9 +6,9 @@ mod variabletype;
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Declaration, Definition,
-        Expression, FnDef, Ident, If, Import, Integer, Intrinsic, Param, Position, PostfixExpr,
-        PostfixOp, PrefixExpr, PrefixOp, Statement, Str, Type,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective,
+        Declaration, Definition, Expression, FnDef, Ident, If, Import, Integer, Intrinsic, Param,
+        Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp, Statement, Str, Type,
     },
     loader::Modules,
 };
@@ -125,7 +125,55 @@ impl Typechecker {
                 Statement::Intrinsic(self.check_intrinsic(intrinsic, scope)?)
             }
             Statement::Import(import) => Statement::Import(self.check_import(import, scope)?),
+            Statement::CompilerDirective(compiler_directive) => Statement::CompilerDirective(
+                self.check_compiler_directive(compiler_directive, scope)?,
+            ),
         })
+    }
+
+    fn check_compiler_directive(
+        &self,
+        CompilerDirective {
+            directive,
+            statement,
+            position,
+        }: &CompilerDirective<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<CompilerDirective<TypeInfo>> {
+        let Expression::Binary(directive) = directive.clone() else {
+            unimplemented!("Currently only compiler directives in the form of binary expressions are supported!");
+        };
+        let Some(statement) = statement.clone() else {
+            return Ok(CompilerDirective {
+                directive: Expression::Binary(directive),
+                statement: None,
+                position: position.to_owned()
+            });
+        };
+
+        let is_valid = match (directive.lhs.as_ref(), directive.rhs.as_ref()) {
+            (Expression::Ident(ident), Expression::Str(rhs)) => match ident.value.as_str() {
+                "os" => std::env::consts::OS == rhs.value,
+                _ => false,
+            },
+            _ => unimplemented!(
+                "Currently only compiler directives in the form of 'ident == str' are supported!"
+            ),
+        };
+
+        if is_valid {
+            Ok(CompilerDirective {
+                directive: Expression::Binary(directive),
+                statement: Some(Box::new(self.check_statement(&statement, scope)?)),
+                position: position.clone(),
+            })
+        } else {
+            Ok(CompilerDirective {
+                directive: Expression::Binary(directive),
+                statement: None,
+                position: position.clone(),
+            })
+        }
     }
 
     fn check_import(&self, import: &Import, scope: &mut TypeScope) -> TResult<Import> {
@@ -414,7 +462,7 @@ impl Typechecker {
     fn get_type_def(type_: &Type, position: Position) -> Result<VariableType, TypeError> {
         match type_ {
             Type::Literal(literal) => literal.parse().map_err(|_| TypeError {
-                message: format!("Unexpected type annotatiot '{type_:?}'"),
+                message: format!("Unexpected type annotation '{type_:?}'"),
                 position,
             }),
             Type::Function {

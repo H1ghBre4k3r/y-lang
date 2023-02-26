@@ -1,7 +1,6 @@
+import std::*
 import foo::*
 import bar
-
-declare print : (str) -> void
 
 printi(a())
 print(" ")

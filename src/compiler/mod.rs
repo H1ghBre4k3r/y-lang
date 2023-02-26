@@ -11,7 +11,7 @@ use Reg::*;
 use log::{error, info};
 
 use crate::{
-    asm::{Instruction, InstructionOperand, InstructionSize, Reg, EXIT_SYSCALL, WRITE_SYSCALL},
+    asm::{Instruction, InstructionOperand, InstructionSize, Reg, EXIT_SYSCALL},
     ast::Ast,
     loader::{Module, Modules},
     typechecker::TypeInfo,
@@ -44,11 +44,6 @@ impl Compiler {
             Inc(Rax),
             Jmp(".str_len_loop".to_owned()),
             Label(".str_len_end".to_owned()),
-            Ret,
-            Label("print".to_owned()),
-            Mov(Register(Rdi), Immediate(1)),
-            Mov(Register(Rax), WRITE_SYSCALL),
-            Syscall,
             Ret,
             Literal(INT_TO_STR.to_owned()),
         ]
@@ -99,6 +94,9 @@ impl Compiler {
 
         #[cfg(target_os = "linux")]
         file.write_all("\tglobal main\n".as_bytes())?;
+
+        file.write_all("\tglobal str_len\n".as_bytes())?;
+        file.write_all("\tglobal int_to_str\n".as_bytes())?;
 
         Ok(())
     }
@@ -262,6 +260,8 @@ impl Compiler {
         for export in module.exports.flatten().keys() {
             file.write_all(format!("global {}\n", module.resolve(export)).as_bytes())?;
         }
+
+        self.write_external_symbols(&mut file, &scope)?;
 
         self.write_data_from_scope(&mut file, &scope)?;
         self.write_functions(&mut file, &scope)?;

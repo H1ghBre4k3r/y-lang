@@ -1,4 +1,4 @@
-declare print : (str) -> void
+import std::*
 
 let main := () : void => {
     print("Hello, World!\n")

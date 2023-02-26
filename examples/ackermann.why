@@ -1,4 +1,4 @@
-declare printi : (int) -> void
+import std::*
 
 let f := (x : int, y : int) : int => {
     if x == 0 {
