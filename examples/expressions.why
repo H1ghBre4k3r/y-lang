@@ -1,5 +1,4 @@
-declare print : (str) -> void
-declare printi : (int) -> void
+import std::*
 
 let a := 2 + 4 * 5
 let b := 4 * 9 + 3

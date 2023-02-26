@@ -1,5 +1,4 @@
-declare printi : (int) -> void
-declare print : (str) -> void
+import std::*
 
 let mut x := 3 
 

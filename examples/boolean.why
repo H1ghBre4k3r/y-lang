@@ -1,5 +1,4 @@
-declare print : (str) -> void
-declare printi : (int) -> void
+import std::*
 
 let a := 456
 
@@ -13,7 +12,7 @@ printi(c)
 
 let d := true
 
-let foo := () : void => {
+let foo := () : any => {
     print(" From Function ")
 }
 

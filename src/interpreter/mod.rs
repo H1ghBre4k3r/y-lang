@@ -369,67 +369,38 @@ impl Interpreter {
         scope.push();
 
         let return_value = match fn_name {
-            "print" => {
-                for param in &fn_call.params {
-                    match param {
-                        Expression::Ident(Ident { value: name, .. }) => {
-                            let Some(value) = scope.find(name) else {
-                                unreachable!();
-                            };
-                            print!("{value}");
-                        }
-                        Expression::Str(Str { value, .. }) => print!("{value}"),
-                        Expression::Binary(binary_expression) => {
-                            print!("{}", self.run_binary_expression(binary_expression, scope))
-                        }
-                        Expression::Integer(Integer { value, .. }) => print!("{value}"),
-                        Expression::Boolean(Boolean { value, .. }) => print!("{value}"),
-                        Expression::If(if_statement) => {
-                            print!("{}", self.run_if(if_statement, scope))
-                        }
-                        Expression::Block(block) => {
-                            print!("{}", self.run_block(block, scope))
-                        }
-                        Expression::Prefix(prefix_expr) => {
-                            print!("{}", self.run_prefix_expression(prefix_expr, scope))
-                        }
-                        Expression::Postfix(postfix_expr) => {
-                            print!("{}", self.run_postfix_expression(postfix_expr, scope))
+            "syscall_4" => {
+                let params = &fn_call.params;
+                let syscall_type = self.run_expression(&params[0], scope);
+                let syscall_param_1 = self.run_expression(&params[1], scope);
+                let syscall_param_2 = self.run_expression(&params[2], scope);
+                let _syscall_param_3 = self.run_expression(&params[3], scope);
+
+                match syscall_type {
+                    VariableValue::Int(33554436) => match syscall_param_1 {
+                        VariableValue::Int(1) => {
+                            print!("{syscall_param_2}")
                         }
                         _ => unreachable!(),
-                    }
+                    },
+                    _ => unreachable!(),
                 }
+
                 VariableValue::Void
             }
-            "printi" => {
-                for param in &fn_call.params {
-                    match param {
-                        Expression::Ident(Ident { value: name, .. }) => {
-                            let Some(value) = scope.find(name) else {
-                                unreachable!();
-                            };
-                            print!("{value}");
-                        }
-                        Expression::Binary(binary_expression) => {
-                            print!("{}", self.run_binary_expression(binary_expression, scope))
-                        }
-                        Expression::Integer(Integer { value, .. }) => print!("{value}"),
-                        Expression::If(if_statement) => {
-                            print!("{}", self.run_if(if_statement, scope))
-                        }
-                        Expression::Block(block) => {
-                            print!("{}", self.run_block(block, scope))
-                        }
-                        Expression::Prefix(prefix_expr) => {
-                            print!("{}", self.run_prefix_expression(prefix_expr, scope))
-                        }
-                        Expression::Postfix(postfix_expr) => {
-                            print!("{}", self.run_postfix_expression(postfix_expr, scope))
-                        }
-                        _ => unreachable!(),
-                    }
+            "str_len" => {
+                let value = self.run_expression(&fn_call.params[0], scope);
+                match value {
+                    VariableValue::Str(value) => VariableValue::Int(value.len() as i64),
+                    _ => unreachable!(),
                 }
-                VariableValue::Void
+            }
+            "int_to_str" => {
+                let value = self.run_expression(&fn_call.params[0], scope);
+                match value {
+                    VariableValue::Int(value) => VariableValue::Str(format!("{value}")),
+                    _ => unreachable!(),
+                }
             }
             ident => {
                 let Some(fn_def) = scope.find(ident) else {

@@ -1,5 +1,4 @@
-declare print : (str) -> void
-declare printi : (int) -> void
+import std::* 
 
 let foo := 42
 

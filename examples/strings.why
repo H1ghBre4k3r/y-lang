@@ -1,4 +1,4 @@
-declare print : (str) -> void
+import std::*
 
 let test := "This is a test"
 

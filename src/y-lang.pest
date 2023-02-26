@@ -76,6 +76,10 @@ char = {
 
 block = { "{" ~ stmt* ~ "}"}
 
-integer = @{ ASCII_DIGIT+ }
+integer = _{ hexNumber | decimalNumber } 
+
+decimalNumber = @{ ASCII_DIGIT+ }
+
+hexNumber = @{ "0x" ~ ASCII_HEX_DIGIT+ }
 
 boolean = { "true" | "false" }

@@ -39,7 +39,9 @@ impl Expression<()> {
         PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 Rule::expr => Expression::from_pair(primary, file),
-                Rule::integer => Expression::Integer(Integer::from_pair(primary, file)),
+                Rule::decimalNumber | Rule::hexNumber => {
+                    Expression::Integer(Integer::from_pair(primary, file))
+                }
                 Rule::ident => Expression::Ident(Ident::from_pair(primary, file)),
                 Rule::string => Expression::Str(Str::from_pair(primary, file)),
                 Rule::fnDef => Expression::FnDef(FnDef::from_pair(primary, file)),

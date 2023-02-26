@@ -1,7 +1,6 @@
-declare print : (str) -> void
-declare printi : (int) -> void
+import std::*
 
-let bar := (foo : str) : void => {
+let bar := (foo : str) : any => {
     print(foo)
     print(" ")
 }
@@ -43,7 +42,7 @@ if 3 < 2 {
 
 bar("foo")
 
-let test := () : void => {
+let test := () : any => {
     bar("foo")
     let foo := 13
     printi(foo)

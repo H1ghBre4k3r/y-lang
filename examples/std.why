@@ -1,0 +1,19 @@
+declare str_len : (str) -> int
+declare int_to_str : (int) -> str 
+declare int_to_str_val : str
+
+declare syscall_4 : (int, any, any, any) -> any 
+
+let write := (fd: int, string: str, len: int) : any => {
+    syscall_4(0x2000004, fd, string, len)
+}
+
+let print := (value: str) : any => {
+    let len := str_len(value);
+    write(1, value, len)
+}
+
+let printi := (val: int) : any => {
+    let value := int_to_str(val)
+    print(value)
+}

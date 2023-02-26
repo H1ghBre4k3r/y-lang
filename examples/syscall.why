@@ -1,0 +1,3 @@
+import std::*
+
+print("Hello, World! This thing is supposed to be very long :)\n");

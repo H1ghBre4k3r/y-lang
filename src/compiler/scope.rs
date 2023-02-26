@@ -379,6 +379,8 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
+                self.externals.append(&mut function_scope.externals);
+
                 let fn_name = self.var("fn");
 
                 self.functions
@@ -409,6 +411,7 @@ impl Scope {
                     self.constants
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
+                self.externals.append(&mut scope.externals);
 
                 self.stack_offset = scope.stack_offset;
             }
@@ -603,6 +606,8 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
+                self.externals.append(&mut function_scope.externals);
+
                 let mut name = name.clone();
 
                 if let Some(module) = &self.module {
@@ -661,67 +666,39 @@ impl Scope {
         self.instructions
             .push(Comment(format!("CALL {name} ({:?})", call.params)));
 
-        if name.as_str() == "print" {
+        if name.as_str() == "syscall_4" {
+            let params = &call.params;
+
+            for expression in params.iter().take(4) {
+                self.compile_expression(expression);
+                self.instructions.push(Push(Rax));
+            }
+
+            self.instructions
+                .append(&mut vec![Pop(Rdx), Pop(Rsi), Pop(Rdi), Pop(Rax), Syscall]);
+            return;
+        } else if name.as_str() == "str_len" {
             let param = call.params[0].to_owned();
             match param {
-                Expression::Ident(Ident {
-                    value, position, ..
-                }) => {
-                    if let Some(constant) = self.constants.get(&value) {
-                        self.instructions.append(&mut vec![
-                            Lea(Register(Rsi), Identifier(constant.name.to_owned())),
-                            Mov(Register(Rdi), Register(Rsi)),
-                            Call("str_len".to_owned()),
-                            Mov(Register(Rdx), Register(Rax)),
-                            Call("print".to_owned()),
-                        ]);
-                        return;
-                    } else if let Some(variable) = self.variables.get(&value) {
-                        self.instructions.append(&mut vec![
-                            Mov(
-                                Register(Rsi),
-                                Memory(Qword, format!("{}-{}", Rbp, variable.offset)),
-                            ),
-                            Mov(Register(Rdi), Register(Rsi)),
-                            Call("str_len".to_owned()),
-                            Mov(Register(Rdx), Register(Rax)),
-                            Call("print".to_owned()),
-                        ]);
-                    } else {
-                        unreachable!(
-                            "Could not find variable or constant '{value}' ({}:{})",
-                            position.0, position.1
-                        );
-                    }
-                }
-                Expression::Str(string) => {
-                    let value = string.value;
-                    let var_name = self.add_string_constant(None, &value);
-                    self.instructions.append(&mut vec![
-                        Lea(Register(Rsi), Identifier(var_name)),
-                        Mov(Register(Rdi), Register(Rsi)),
-                        Call("str_len".to_owned()),
-                        Mov(Register(Rdx), Register(Rax)),
-                        Call("print".to_owned()),
-                    ])
-                }
                 Expression::If(_)
                 | Expression::Binary(_)
+                | Expression::Prefix(_)
+                | Expression::Postfix(_)
                 | Expression::Block(_)
-                | Expression::Postfix(_) => {
+                | Expression::Integer(_)
+                | Expression::Ident(_) => {
                     self.compile_expression(&param);
                     self.instructions.append(&mut vec![
-                        Mov(Register(Rsi), Register(Rax)),
-                        Mov(Register(Rdi), Register(Rsi)),
+                        Mov(Register(Rdi), Register(Rax)),
                         Call("str_len".to_owned()),
-                        Mov(Register(Rdx), Register(Rax)),
-                        Call("print".to_owned()),
-                    ]);
+                    ])
                 }
                 _ => unreachable!(),
-            };
+            }
+
+            self.externals.push("str_len".to_owned());
             return;
-        } else if name.as_str() == "printi" {
+        } else if name.as_str() == "int_to_str" {
             let param = call.params[0].to_owned();
             match param {
                 Expression::If(_)
@@ -735,17 +712,14 @@ impl Scope {
                     self.instructions.append(&mut vec![
                         Mov(Register(Rdi), Register(Rax)),
                         Call("int_to_str".to_owned()),
-                        Lea(Register(Rsi), Identifier("int_to_str_val".to_owned())),
-                        Mov(Register(Rdi), Register(Rsi)),
-                        Call("str_len".to_owned()),
-                        Mov(Register(Rdx), Register(Rax)),
-                        Call("print".to_owned()),
-                    ]);
+                    ])
                 }
                 _ => unreachable!(),
-            };
+            }
+
+            self.externals.push("int_to_str".to_owned());
             return;
-        };
+        }
 
         for param in call.params.iter() {
             self.compile_expression(param);

@@ -107,4 +107,5 @@ int_to_str:
         jl      .L11
 .L1:
         pop     rbp
+        lea     rax, int_to_str_val
         ret";

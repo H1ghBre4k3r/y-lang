@@ -1,4 +1,4 @@
-declare printi : (int) -> void
+import std::*
 
 let foo := () : int => {
     42

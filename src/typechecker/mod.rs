@@ -414,7 +414,7 @@ impl Typechecker {
     fn get_type_def(type_: &Type, position: Position) -> Result<VariableType, TypeError> {
         match type_ {
             Type::Literal(literal) => literal.parse().map_err(|_| TypeError {
-                message: format!("Unexpected type annotatiot '{type_:?}'"),
+                message: format!("Unexpected type annotation '{type_:?}'"),
                 position,
             }),
             Type::Function {
