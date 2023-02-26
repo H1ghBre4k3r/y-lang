@@ -214,11 +214,24 @@ declare print : (str) -> void
 
 ### Builtins
 
-Currently, Y provides two pre-defined functions: `print` (for printing strings) and `printi` (for printing numbers). To use them, you have to declare them somewhere in your program:
+Currently, Y provides a single builtin function: `syscall_4` (for calling syscalls with 4 arguments). To use it, you have to declare it somewhere in your program:
 
+```why
+declare syscall_4 : (int, any, any, any) -> any
 ```
-declare print : (str) -> void
-declare printi : (int) -> void
+
+Note: The first parameter is the identifier for this syscall.
+
+### Compiler Directives
+
+Y support (more or less) conditional compilation depending on the current operating system. To declare something is "OS"-dependant, you have to annotate it accordingly:
+
+```why
+#[os == "linux"]
+let value := "We are on linux"
+
+#[os == "maco"]
+let value := "We are on macOS"
 ```
 
 ## Pipeline
