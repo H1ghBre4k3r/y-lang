@@ -2,9 +2,9 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Definition, Expression, FnDef,
-        Ident, If, Import, Integer, Intrinsic, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp,
-        Statement, Str,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition,
+        Expression, FnDef, Ident, If, Import, Integer, Intrinsic, PostfixExpr, PostfixOp,
+        PrefixExpr, PrefixOp, Statement, Str,
     },
     loader::Modules,
     typechecker::TypeInfo,
@@ -136,7 +136,22 @@ impl Interpreter {
             Statement::Expression(expression) => self.run_expression(expression, scope),
             Statement::Intrinsic(intrinsic) => self.run_intrinsic(intrinsic, scope),
             Statement::Import(import) => self.run_import(import, scope),
+            Statement::CompilerDirective(compiler_directive) => {
+                self.run_compiler_directive(compiler_directive, scope)
+            }
         }
+    }
+
+    fn run_compiler_directive(
+        &self,
+        CompilerDirective { statement, .. }: &CompilerDirective<TypeInfo>,
+        scope: &mut Scope,
+    ) -> VariableValue {
+        if let Some(statement) = statement {
+            return self.run_statement(statement, scope);
+        };
+
+        VariableValue::Void
     }
 
     fn run_import(&self, import: &Import, scope: &mut Scope) -> VariableValue {

@@ -2,14 +2,13 @@ use std::collections::HashMap;
 
 use Instruction::*;
 use InstructionOperand::*;
-use InstructionSize::*;
 use Reg::*;
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Call, Definition, Expression, Ident, If, Integer,
-        Intrinsic, PostfixExpr, PostfixOp, Statement,
+        Assignment, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition, Expression,
+        Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
     },
     loader::Module,
     typechecker::TypeInfo,
@@ -172,6 +171,18 @@ impl Scope {
             Statement::Expression(expression) => self.compile_expression(expression),
             Statement::Intrinsic(intrinsic) => self.compile_intrinsic(intrinsic),
             Statement::Import(_) => {}
+            Statement::CompilerDirective(compiler_directive) => {
+                self.compiler_compiler_directive(compiler_directive)
+            }
+        }
+    }
+
+    fn compiler_compiler_directive(
+        &mut self,
+        CompilerDirective { statement, .. }: &CompilerDirective<TypeInfo>,
+    ) {
+        if let Some(statement) = statement {
+            self.compile_statement(statement);
         }
     }
 

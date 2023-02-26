@@ -11,7 +11,7 @@ importDirective = {
 importPath = @{ ident ~ ("::*")? }
 
 stmt = _{ 
-    (intrinsics | expr) ~ ";"?
+    (intrinsics | expr | compiler_directive) ~ ";"?
 }
 
 intrinsics = _{ declaration | definition | assignment }
@@ -83,3 +83,5 @@ decimalNumber = @{ ASCII_DIGIT+ }
 hexNumber = @{ "0x" ~ ASCII_HEX_DIGIT+ }
 
 boolean = { "true" | "false" }
+
+compiler_directive = { "#[" ~ expr ~ "]" ~ stmt }
