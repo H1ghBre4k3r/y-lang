@@ -94,7 +94,7 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box
             }));
         };
 
-        let pairs = YParser::parse_program(&file_content);
+        let pairs = YParser::parse_program(&file, &file_content)?;
 
         let fns = pairs
             .clone()

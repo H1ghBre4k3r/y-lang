@@ -46,7 +46,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file_content = std::fs::read_to_string(&file)
         .unwrap_or_else(|_| panic!("Could not read file: '{}'", file.to_string_lossy()));
 
-    let pairs = YParser::parse_program(&file_content);
+    let pairs = match YParser::parse_program(file.to_string_lossy(), &file_content) {
+        Ok(pairs) => pairs,
+        Err(parse_error) => {
+            error!("{parse_error}");
+            std::process::exit(-1);
+        }
+    };
 
     let ast = Ast::from_program(pairs.collect(), &file.to_string_lossy());
 
