@@ -9,7 +9,7 @@ readme = "README.md"
 repository = "https://github.com/H1ghBre4k3r/y-lang"
 
 [dependencies]
-clap = { version = "4.1.7", features = ["derive"]}
+clap = { version = "4.1.8", features = ["derive"]}
 log = "0.4.17"
 pest = "2.5"
 pest_derive = "2.5"
