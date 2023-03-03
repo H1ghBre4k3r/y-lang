@@ -12,8 +12,19 @@ pub struct ParseError {
     pub position: Position,
 }
 
-impl ParseError {
-    pub fn from_file_and_parse_error(file: impl ToString, value: Error<Rule>) -> Self {
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{}{}", self.position.0, self.message))
+    }
+}
+
+impl std::error::Error for ParseError {}
+
+impl<T> From<(Error<Rule>, T)> for ParseError
+where
+    T: ToString,
+{
+    fn from((value, file): (Error<Rule>, T)) -> Self {
         match value.line_col {
             pest::error::LineColLocation::Pos((line, col)) => ParseError {
                 message: format!("{value}"),
@@ -23,14 +34,6 @@ impl ParseError {
         }
     }
 }
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("{}{}", self.position.0, self.message))
-    }
-}
-
-impl std::error::Error for ParseError {}
 
 /// The result of parsing a pair.
 pub type ParseResult<T> = Result<T, ParseError>;
