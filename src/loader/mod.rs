@@ -2,6 +2,7 @@ mod loaderror;
 
 use std::{collections::HashMap, error::Error, path::PathBuf};
 
+use log::error;
 use pest::iterators::Pair;
 
 use crate::{
@@ -94,7 +95,13 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box
             }));
         };
 
-        let pairs = YParser::parse_program(&file, &file_content)?;
+        let pairs = match YParser::parse_program(&file, &file_content) {
+            Ok(pairs) => pairs,
+            Err(parse_error) => {
+                error!("{parse_error}");
+                std::process::exit(-1);
+            }
+        };
 
         let fns = pairs
             .clone()
