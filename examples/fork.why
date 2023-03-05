@@ -1,0 +1,10 @@
+import std::*
+
+let fd := fork()
+
+printi(fd)
+if fd == 0 {
+    print("\nHello from child!\n")
+} else {
+    print("\nHello from parent!\n")
+}

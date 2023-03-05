@@ -2,6 +2,7 @@ declare str_len : (str) -> int
 declare int_to_str : (int) -> str 
 declare int_to_str_val : str
 
+declare syscall_1 : (int) -> unknown 
 declare syscall_4 : (int, any, any, any) -> unknown 
 
 let write := (fd: int, string: str, len: int) : void => {
@@ -20,4 +21,12 @@ let print := (value: str) : void => {
 
 let printi := (val: int) : void => {
     print(int_to_str(val))
+}
+
+let fork := () : int => {
+    #[os == "macos"]
+    syscall_1(0x2000002); 
+
+    #[os == "linux"]
+    syscall_1(0x2); 
 }

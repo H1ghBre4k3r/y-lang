@@ -227,13 +227,13 @@ impl Scope {
                 // This will store the result of this expression in RAX
                 self.compile_expression(rhs);
                 // Save value on stack
-                self.instructions.push(Push(Rax.to_sized(&rhs.info())));
+                self.instructions.push(Push(Rax));
 
                 // Evaluate second expression
                 self.compile_expression(lhs);
 
                 // Get value from first expression
-                self.instructions.push(Pop(Rcx.to_sized(&rhs.info())));
+                self.instructions.push(Pop(Rcx));
 
                 self.instructions.push(Comment(format!(
                     "{:?} {} {:?}",
@@ -677,7 +677,16 @@ impl Scope {
         self.instructions
             .push(Comment(format!("CALL {name} ({:?})", call.params)));
 
-        if name.as_str() == "syscall_4" {
+        if name.as_str() == "syscall_1" {
+            let params = &call.params;
+
+            self.compile_expression(&params[0]);
+            self.instructions.push(Syscall);
+            // TODO: This is...not ideal
+            // It only applies for the fork syscall on macOS
+            self.instructions.push(Mov(Register(Eax), Register(Edx)));
+            return;
+        } else if name.as_str() == "syscall_4" {
             let params = &call.params;
 
             for expression in params.iter().take(4) {
