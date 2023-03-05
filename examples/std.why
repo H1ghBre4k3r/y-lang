@@ -2,9 +2,9 @@ declare str_len : (str) -> int
 declare int_to_str : (int) -> str 
 declare int_to_str_val : str
 
-declare syscall_4 : (int, any, any, any) -> any 
+declare syscall_4 : (int, any, any, any) -> unknown 
 
-let write := (fd: int, string: str, len: int) : any => {
+let write := (fd: int, string: str, len: int) : void => {
     #[os == "macos"]
     let ident := 0x2000004;
 
@@ -14,10 +14,10 @@ let write := (fd: int, string: str, len: int) : any => {
     syscall_4(ident, fd, string, len)
 }
 
-let print := (value: str) : any => {
+let print := (value: str) : void => {
     write(1, value, str_len(value))
 }
 
-let printi := (val: int) : any => {
+let printi := (val: int) : void => {
     print(int_to_str(val))
 }

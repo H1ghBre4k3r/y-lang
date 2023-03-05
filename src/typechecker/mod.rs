@@ -83,7 +83,7 @@ impl Typechecker {
                         &ident.value,
                         VariableType::Func {
                             params: param_types,
-                            return_value: Box::new(Self::get_type_def(
+                            return_type: Box::new(Self::get_type_def(
                                 &type_annotation.value,
                                 position.clone(),
                             )?),
@@ -476,7 +476,7 @@ impl Typechecker {
 
                 let return_type = Self::get_type_def(return_type, position)?;
                 Ok(VariableType::Func {
-                    return_value: Box::new(return_type),
+                    return_type: Box::new(return_type),
                     params: fn_params,
                     source: None,
                 })
@@ -513,7 +513,7 @@ impl Typechecker {
                 &ident.value,
                 VariableType::Func {
                     params: params.clone(),
-                    return_value: Box::new(type_annotation.clone()),
+                    return_type: Box::new(type_annotation.clone()),
                     source: None,
                 },
                 // TODO: This should handle mutable definitions
@@ -523,27 +523,26 @@ impl Typechecker {
 
         let block = self.check_block(&fn_def.block, scope)?;
 
-        if block.info._type != type_annotation {
+        let Ok(return_type) = block.info._type.convert_to(&type_annotation) else {
             return Err(TypeError {
                 message: format!(
-                    "Expected return type of '{type_annotation}' but got '{}'",
-                    block.info._type
+                    "Expected return type of '{type_annotation}' but got '{}'", block.info._type
                 ),
                 position: fn_def.position.clone(),
             });
-        }
+        };
 
         scope.pop();
 
         Ok(FnDef {
             params: self.check_fn_params(&fn_def.params)?,
             type_annotation: fn_def.type_annotation.clone(),
-            block: block.clone(),
+            block,
             position: fn_def.position.clone(),
             info: TypeInfo {
                 _type: VariableType::Func {
                     params,
-                    return_value: Box::new(block.info._type),
+                    return_type: Box::new(return_type),
                     source: None,
                 },
                 source: None,
@@ -596,7 +595,7 @@ impl Typechecker {
             });
         };
 
-        let VariableType::Func { params, return_value, .. } = fn_def.clone() else {
+        let VariableType::Func { params, return_type, .. } = fn_def.clone() else {
             return Err(TypeError {
                 message: format!("Trying to call an invalid function '{ident}'"),
                 position: fn_call.position.clone(),
@@ -620,7 +619,7 @@ impl Typechecker {
             let call_param = self.check_expression(None, &fn_call.params[i], scope)?;
             let call_param_type = call_param.info()._type;
 
-            if param != &call_param_type && param != &VariableType::Any {
+            if call_param_type.convert_to(param).is_err() {
                 return Err(TypeError {
                     message: format!(
                         "Invalid type of parameter! Expected '{param}' but got '{call_param_type}'"
@@ -638,7 +637,7 @@ impl Typechecker {
             params: new_params,
             position: fn_call.position.clone(),
             info: TypeInfo {
-                _type: *return_value,
+                _type: *return_type,
                 source: fn_def.get_source(),
             },
         })

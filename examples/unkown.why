@@ -1,0 +1,9 @@
+declare bar : () -> unknown
+
+let a := 3 
+
+let foo := (i : int) : void => {
+
+}
+
+foo(bar())

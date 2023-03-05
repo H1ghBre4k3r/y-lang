@@ -13,9 +13,10 @@ pub enum VariableType {
     Int,
     // TODO: Maybe just dont use
     Any,
+    Unknown,
     Func {
         params: Vec<VariableType>,
-        return_value: Box<VariableType>,
+        return_type: Box<VariableType>,
         source: Option<Module<TypeInfo>>,
     },
 }
@@ -32,6 +33,7 @@ impl FromStr for VariableType {
             "str" => Ok(Self::Str),
             "int" => Ok(Self::Int),
             "any" => Ok(Self::Any),
+            "unknown" => Ok(Self::Unknown),
             _ => Err(VariableParseError(format!("Invalid type '{s}'"))),
         }
     }
@@ -47,9 +49,10 @@ impl Display for VariableType {
             Int => "int".to_owned(),
             Str => "str".to_owned(),
             Any => "any".to_owned(),
+            Unknown => "unknown".to_owned(),
             Func {
                 params,
-                return_value,
+                return_type: return_value,
                 ..
             } => format!("{params:?} -> {return_value:?}"),
         };
@@ -66,6 +69,7 @@ impl VariableType {
             VariableType::Str => 8,
             VariableType::Int => 8,
             VariableType::Any => 8,
+            VariableType::Unknown => 8,
             VariableType::Func { .. } => 8,
         }
     }
@@ -74,11 +78,11 @@ impl VariableType {
         match self {
             VariableType::Func {
                 params,
-                return_value,
+                return_type: return_value,
                 ..
             } => VariableType::Func {
                 params,
-                return_value,
+                return_type: return_value,
                 source: Some(source),
             },
             _ => self,
@@ -89,6 +93,21 @@ impl VariableType {
         match self {
             VariableType::Func { source, .. } => source.clone(),
             _ => None,
+        }
+    }
+
+    pub fn convert_to(&self, to_convert_to: &Self) -> Result<Self, ()> {
+        use VariableType::*;
+        match (self, to_convert_to) {
+            (Unknown, other) => Ok(other.clone()),
+            (_, Any) => Ok(Any),
+            (left, right) => {
+                if left == right {
+                    Ok(right.clone())
+                } else {
+                    Err(())
+                }
+            }
         }
     }
 }
