@@ -22,6 +22,10 @@ impl<'a> Expected<'a> {
     }
 }
 
+fn run_type_checker(src_path: &Path) -> Result<Output, io::Error> {
+    Command::new(WHY_PATH).arg(src_path).output()
+}
+
 fn run_interpreter(src_path: &Path) -> Result<Output, io::Error> {
     Command::new(WHY_PATH).arg("-r").arg(src_path).output()
 }
@@ -69,6 +73,18 @@ pub fn check_compilation(src_path: &Path, expected: Expected) -> Result<(), Box<
         output.status.success(),
         "Compiled program exited with status {:?}",
         compile_output.status.code()
+    );
+
+    Ok(())
+}
+
+pub fn check_failing_type_checking(src_path: &Path) -> Result<(), Box<dyn Error>> {
+    let type_check_output = run_type_checker(src_path)?;
+
+    println!("{type_check_output:?}");
+    assert!(
+        !type_check_output.status.success(),
+        "Why type checker should exit with status -1"
     );
 
     Ok(())
