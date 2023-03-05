@@ -144,13 +144,16 @@ impl Interpreter {
 
     fn run_compiler_directive(
         &self,
-        CompilerDirective { statement, .. }: &CompilerDirective<TypeInfo>,
+        CompilerDirective {
+            statement,
+            is_valid,
+            ..
+        }: &CompilerDirective<TypeInfo>,
         scope: &mut Scope,
     ) -> VariableValue {
-        if let Some(statement) = statement {
+        if *is_valid {
             return self.run_statement(statement, scope);
-        };
-
+        }
         VariableValue::Void
     }
 

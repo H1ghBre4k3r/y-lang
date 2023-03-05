@@ -179,9 +179,13 @@ impl Scope {
 
     fn compiler_compiler_directive(
         &mut self,
-        CompilerDirective { statement, .. }: &CompilerDirective<TypeInfo>,
+        CompilerDirective {
+            statement,
+            is_valid,
+            ..
+        }: &CompilerDirective<TypeInfo>,
     ) {
-        if let Some(statement) = statement {
+        if *is_valid {
             self.compile_statement(statement);
         }
     }

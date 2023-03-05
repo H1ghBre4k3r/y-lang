@@ -4,8 +4,9 @@ use pest::iterators::Pair;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CompilerDirective<T> {
     pub directive: Expression<()>,
-    pub statement: Option<Box<Statement<T>>>,
+    pub statement: Box<Statement<T>>,
     pub position: Position,
+    pub is_valid: bool,
 }
 
 impl CompilerDirective<()> {
@@ -23,8 +24,9 @@ impl CompilerDirective<()> {
 
         CompilerDirective {
             directive,
-            statement: Some(Box::new(statement)),
+            statement: Box::new(statement),
             position: (file.to_owned(), line, col),
+            is_valid: true,
         }
     }
 }
@@ -34,9 +36,6 @@ where
     T: Clone + Default,
 {
     pub fn info(&self) -> T {
-        match &self.statement {
-            Some(statement) => statement.info(),
-            _ => T::default(),
-        }
+        self.statement.info()
     }
 }

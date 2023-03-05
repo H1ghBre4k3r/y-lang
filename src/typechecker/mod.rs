@@ -137,18 +137,12 @@ impl Typechecker {
             directive,
             statement,
             position,
+            ..
         }: &CompilerDirective<()>,
         scope: &mut TypeScope,
     ) -> TResult<CompilerDirective<TypeInfo>> {
         let Expression::Binary(directive) = directive.clone() else {
             unimplemented!("Currently only compiler directives in the form of binary expressions are supported!");
-        };
-        let Some(statement) = statement.clone() else {
-            return Ok(CompilerDirective {
-                directive: Expression::Binary(directive),
-                statement: None,
-                position: position.to_owned()
-            });
         };
 
         let is_valid = match (directive.lhs.as_ref(), directive.rhs.as_ref()) {
@@ -161,19 +155,12 @@ impl Typechecker {
             ),
         };
 
-        if is_valid {
-            Ok(CompilerDirective {
-                directive: Expression::Binary(directive),
-                statement: Some(Box::new(self.check_statement(&statement, scope)?)),
-                position: position.clone(),
-            })
-        } else {
-            Ok(CompilerDirective {
-                directive: Expression::Binary(directive),
-                statement: None,
-                position: position.clone(),
-            })
-        }
+        Ok(CompilerDirective {
+            directive: Expression::Binary(directive),
+            statement: Box::new(self.check_statement(&statement, scope)?),
+            position: position.clone(),
+            is_valid,
+        })
     }
 
     fn check_import(&self, import: &Import, scope: &mut TypeScope) -> TResult<Import> {
