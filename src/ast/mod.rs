@@ -15,6 +15,7 @@ mod import;
 mod integer;
 mod intrinsic;
 mod param;
+mod parse_error;
 mod parser;
 mod postfix_expr;
 mod postfix_op;
@@ -24,8 +25,6 @@ mod statement;
 mod str;
 mod type_annotation;
 mod types;
-
-use std::fmt::Display;
 
 pub use self::assignment::*;
 pub use self::binary_expr::*;
@@ -92,24 +91,3 @@ where
         self.nodes.clone()
     }
 }
-
-/// Struct representing an error which happened while parsing the code.
-#[derive(Clone, Debug)]
-pub struct ParseError {
-    /// Error message of this parse error
-    pub message: String,
-    /// Position where this error occured
-    pub position: Position,
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!(
-            "{} ({}:{}:{})",
-            self.message, self.position.0, self.position.1, self.position.2
-        ))
-    }
-}
-
-/// The result of parsing a pair.
-pub type ParseResult<T> = Result<T, ParseError>;
