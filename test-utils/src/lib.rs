@@ -23,14 +23,11 @@ impl<'a> Expected<'a> {
 }
 
 fn run_interpreter(src_path: &Path) -> Result<Output, io::Error> {
-    Command::new(WHY_PATH.clone())
-        .arg("-r")
-        .arg(src_path)
-        .output()
+    Command::new(WHY_PATH).arg("-r").arg(src_path).output()
 }
 
 fn run_compiler(src_path: &Path, out_path: &Path) -> Result<Output, io::Error> {
-    Command::new(WHY_PATH.clone())
+    Command::new(WHY_PATH)
         .arg("-o")
         .arg(out_path)
         .arg(src_path)
@@ -57,7 +54,7 @@ pub fn check_compilation(src_path: &Path, expected: Expected) -> Result<(), Box<
     let compile_stdout = std::str::from_utf8(&compile_output.stdout)?;
     let compile_stderr = std::str::from_utf8(&compile_output.stderr)?;
 
-    println!("{}", compile_stdout);
+    println!("{compile_stdout}");
     assert!(compile_stderr.is_empty(), "{}", compile_stderr);
     assert!(
         compile_output.status.success(),
