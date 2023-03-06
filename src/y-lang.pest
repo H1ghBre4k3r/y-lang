@@ -1,4 +1,4 @@
-program = _{ SOI ~ (importDirective)* ~ (stmt)* ~ EOI }
+program = _{ SOI ~ (import)* ~ (stmt)* ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
@@ -6,9 +6,13 @@ COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ( "//" ~ (!NEWLINE ~ ANY)* ~ NEWLI
 
 compiler_directive = _{ "#[" ~ expr ~ "]" }
 
+import = _{ importDirective | conditional_import }
+
 importDirective = {
     "import " ~ importPath
 }
+
+conditional_import = { compiler_directive ~ importDirective }
 
 importPath = @{ ident ~ ("::*")? }
 
