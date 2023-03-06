@@ -9,6 +9,7 @@ pub enum Type {
         params: Vec<Type>,
         return_type: Box<Type>,
     },
+    Array(Box<Type>),
 }
 
 impl Type {
@@ -34,6 +35,13 @@ impl Type {
             Rule::typeName => {
                 let type_name = pair.as_str();
                 Self::Literal(type_name.to_owned())
+            }
+            Rule::arrayType => {
+                let mut inner = pair.into_inner();
+
+                let type_name = inner.next().unwrap();
+                let type_name = Type::from_pair(type_name);
+                Self::Array(Box::new(type_name))
             }
             _ => unreachable!(),
         }

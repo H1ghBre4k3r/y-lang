@@ -359,6 +359,7 @@ impl Interpreter {
                 };
                 self.run_fn_call(&ident.value, &call, scope)
             }
+            PostfixOp::Indexing(_) => todo!(),
         }
     }
 

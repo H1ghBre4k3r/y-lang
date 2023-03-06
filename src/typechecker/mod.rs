@@ -482,6 +482,7 @@ impl Typechecker {
                     source: None,
                 })
             }
+            Type::Array(_) => todo!(),
         }
     }
 
@@ -814,6 +815,7 @@ impl Typechecker {
                     info,
                 })
             }
+            PostfixOp::Indexing(_) => todo!(),
         }
     }
 }

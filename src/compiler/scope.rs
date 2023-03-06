@@ -295,6 +295,10 @@ impl Scope {
                     "Compiling calls on non-identifier expressions is not supported yet!"
                 ),
             },
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Indexing(_),
+                ..
+            }) => todo!(),
             Expression::Integer(integer) => {
                 let value = integer.value;
                 self.instructions.push(Comment(format!("LOAD {value}")));
@@ -534,7 +538,9 @@ impl Scope {
                 unimplemented!("Definitions cannot be generated from prefix expressions yet")
             }
             Expression::Postfix(postfix_expr) => {
-                let PostfixOp::Call(call) = postfix_expr.op.clone();
+                let PostfixOp::Call(call) = postfix_expr.op.clone() else {
+                    todo!()
+                };
 
                 self.compile_expression(&definition.value);
 
