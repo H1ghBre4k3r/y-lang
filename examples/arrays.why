@@ -1,0 +1,5 @@
+let foo := [0; 10]
+
+let bar := (array : [int]) : void => {
+    printi(array[0])
+}
