@@ -1,13 +1,13 @@
 use pest::iterators::Pair;
 
-use super::{CompilerDirective, Expression, Import, Intrinsic, Rule};
+use super::{ConditionalStatement, Expression, Import, Intrinsic, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Statement<T> {
     Import(Import),
     Expression(Expression<T>),
     Intrinsic(Intrinsic<T>),
-    CompilerDirective(CompilerDirective<T>),
+    ConditionalStatement(ConditionalStatement<T>),
 }
 
 impl Statement<()> {
@@ -18,8 +18,8 @@ impl Statement<()> {
                 Statement::Intrinsic(Intrinsic::from_pair(pair, file))
             }
             Rule::expr => Statement::Expression(Expression::from_pair(pair, file)),
-            Rule::compiler_directive => {
-                Statement::CompilerDirective(CompilerDirective::from_pair(pair, file))
+            Rule::conditional_statement => {
+                Statement::ConditionalStatement(ConditionalStatement::from_pair(pair, file))
             }
             rule => unreachable!("Can not parse rule {rule:?} as expression"),
         }
@@ -34,7 +34,7 @@ where
         match self {
             Statement::Expression(expression) => expression.info(),
             Statement::Intrinsic(intrinsic) => intrinsic.info(),
-            Statement::CompilerDirective(compiler_directive) => compiler_directive.info(),
+            Statement::ConditionalStatement(conditional_statement) => conditional_statement.info(),
             _ => unreachable!(),
         }
     }

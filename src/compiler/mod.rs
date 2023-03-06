@@ -95,6 +95,7 @@ impl Compiler {
         #[cfg(target_os = "linux")]
         file.write_all("\tglobal main\n".as_bytes())?;
 
+        // TODO: this is just a temporary work around
         file.write_all("\tglobal str_len\n".as_bytes())?;
         file.write_all("\tglobal int_to_str\n".as_bytes())?;
 

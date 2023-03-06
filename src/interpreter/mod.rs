@@ -2,9 +2,9 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition,
-        Expression, FnDef, Ident, If, Import, Integer, Intrinsic, PostfixExpr, PostfixOp,
-        PrefixExpr, PrefixOp, Statement, Str,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, ConditionalStatement,
+        Definition, Expression, FnDef, Ident, If, Import, Integer, Intrinsic, PostfixExpr,
+        PostfixOp, PrefixExpr, PrefixOp, Statement, Str,
     },
     loader::Modules,
     typechecker::TypeInfo,
@@ -136,19 +136,19 @@ impl Interpreter {
             Statement::Expression(expression) => self.run_expression(expression, scope),
             Statement::Intrinsic(intrinsic) => self.run_intrinsic(intrinsic, scope),
             Statement::Import(import) => self.run_import(import, scope),
-            Statement::CompilerDirective(compiler_directive) => {
-                self.run_compiler_directive(compiler_directive, scope)
+            Statement::ConditionalStatement(conditional_statement) => {
+                self.run_conditional_statement(conditional_statement, scope)
             }
         }
     }
 
-    fn run_compiler_directive(
+    fn run_conditional_statement(
         &self,
-        CompilerDirective {
+        ConditionalStatement {
             statement,
             is_valid,
             ..
-        }: &CompilerDirective<TypeInfo>,
+        }: &ConditionalStatement<TypeInfo>,
         scope: &mut Scope,
     ) -> VariableValue {
         if *is_valid {

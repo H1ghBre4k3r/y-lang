@@ -7,7 +7,7 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition, Expression,
+        Assignment, BinaryOp, Block, Boolean, Call, ConditionalStatement, Definition, Expression,
         Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
     },
     loader::Module,
@@ -171,19 +171,19 @@ impl Scope {
             Statement::Expression(expression) => self.compile_expression(expression),
             Statement::Intrinsic(intrinsic) => self.compile_intrinsic(intrinsic),
             Statement::Import(_) => {}
-            Statement::CompilerDirective(compiler_directive) => {
-                self.compiler_compiler_directive(compiler_directive)
+            Statement::ConditionalStatement(conditional_statement) => {
+                self.compile_conditional_statement(conditional_statement)
             }
         }
     }
 
-    fn compiler_compiler_directive(
+    fn compile_conditional_statement(
         &mut self,
-        CompilerDirective {
+        ConditionalStatement {
             statement,
             is_valid,
             ..
-        }: &CompilerDirective<TypeInfo>,
+        }: &ConditionalStatement<TypeInfo>,
     ) {
         if *is_valid {
             self.compile_statement(statement);
