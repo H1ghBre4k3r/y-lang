@@ -76,7 +76,7 @@ primitive = _{
 }
 
 array = {
-    "[" ~ primitive ~ ";" ~ integer ~ "]"
+    "[" ~ expr ~ ";" ~ integer ~ "]"
 }
 
 string = ${ "\"" ~ inner ~ "\"" }

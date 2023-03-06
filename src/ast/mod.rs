@@ -1,3 +1,4 @@
+mod array;
 mod assignment;
 mod binary_expr;
 mod binary_op;
@@ -26,6 +27,7 @@ mod str;
 mod type_annotation;
 mod types;
 
+pub use self::array::*;
 pub use self::assignment::*;
 pub use self::binary_expr::*;
 pub use self::binary_op::*;

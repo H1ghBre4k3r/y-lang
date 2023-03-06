@@ -5,8 +5,8 @@ use pest::{
 };
 
 use super::{
-    BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, PostfixExpr, PrefixExpr, Rule,
-    Str,
+    Array, BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, PostfixExpr,
+    PrefixExpr, Rule, Str,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -21,6 +21,7 @@ pub enum Expression<T> {
     FnDef(FnDef<T>),
     Block(Block<T>),
     Boolean(Boolean<T>),
+    Array(Array<T>),
 }
 
 static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
@@ -32,6 +33,7 @@ static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
         .op(Op::infix(Rule::times, Assoc::Left) | Op::infix(Rule::dividedBy, Assoc::Left))
         .op(Op::prefix(Rule::unaryMinus) | Op::prefix(Rule::not))
         .op(Op::postfix(Rule::call))
+        .op(Op::postfix(Rule::indexing))
 });
 
 impl Expression<()> {
@@ -48,6 +50,7 @@ impl Expression<()> {
                 Rule::ifStmt => Expression::If(If::from_pair(primary, file)),
                 Rule::block => Expression::Block(Block::from_pair(primary, file)),
                 Rule::boolean => Expression::Boolean(Boolean::from_pair(primary, file)),
+                Rule::array => Expression::Array(Array::from_pair(primary, file)),
                 rule => unreachable!("Unexpected rule {:?} while parsing primary", rule),
             })
             .map_prefix(|op, rhs| Expression::Prefix(PrefixExpr::from_op_rhs(op, rhs, file)))
@@ -74,7 +77,8 @@ where
             | Expression::Str(Str { position, .. })
             | Expression::FnDef(FnDef { position, .. })
             | Expression::Block(Block { position, .. })
-            | Expression::Boolean(Boolean { position, .. }) => position.to_owned(),
+            | Expression::Boolean(Boolean { position, .. })
+            | Expression::Array(Array { position, .. }) => position.to_owned(),
         }
     }
 
@@ -89,7 +93,8 @@ where
             | Expression::Str(Str { info, .. })
             | Expression::FnDef(FnDef { info, .. })
             | Expression::Block(Block { info, .. })
-            | Expression::Boolean(Boolean { info, .. }) => info.clone(),
+            | Expression::Boolean(Boolean { info, .. })
+            | Expression::Array(Array { info, .. }) => info.clone(),
         }
     }
 }

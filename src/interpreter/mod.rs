@@ -272,6 +272,7 @@ impl Interpreter {
             Expression::Postfix(postfix_expr) => self.run_postfix_expression(postfix_expr, scope),
             Expression::Block(block) => self.run_block(block, scope),
             Expression::FnDef(fn_def) => self.run_fn_def(fn_def, scope),
+            Expression::Array(_) => todo!(),
         }
     }
 

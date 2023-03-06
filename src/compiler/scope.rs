@@ -426,6 +426,7 @@ impl Scope {
 
                 self.stack_offset = scope.stack_offset;
             }
+            Expression::Array(_) => todo!(),
         }
     }
 
@@ -648,6 +649,7 @@ impl Scope {
                     Register(Rax),
                 ));
             }
+            Expression::Array(_) => todo!(),
         };
     }
 

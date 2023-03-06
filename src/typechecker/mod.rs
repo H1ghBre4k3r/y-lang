@@ -433,6 +433,7 @@ impl Typechecker {
                 Expression::FnDef(self.check_fn_def(identifier, fn_def, scope)?)
             }
             Expression::Block(block) => Expression::Block(self.check_block(block, scope)?),
+            Expression::Array(_) => todo!(),
         })
     }
 
