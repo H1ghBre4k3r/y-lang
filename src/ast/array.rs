@@ -20,9 +20,7 @@ impl Array<()> {
         let initializer = inner.next().unwrap();
         let initializer = Expression::from_pair(initializer, file);
 
-        // println!("{initializer:#?}");
         let size = inner.next().unwrap();
-        // println!("{size:#?}");
         let size = Integer::from_pair(size, file);
 
         Array {

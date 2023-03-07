@@ -482,7 +482,8 @@ impl Typechecker {
                     source: None,
                 })
             }
-            Type::Array(_) => todo!(),
+            Type::ArraySlice(_) => todo!(),
+            Type::TupleArray { item_type, size } => todo!(),
         }
     }
 

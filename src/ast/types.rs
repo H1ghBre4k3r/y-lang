@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use super::Rule;
+use super::{Integer, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Type {
@@ -9,7 +9,11 @@ pub enum Type {
         params: Vec<Type>,
         return_type: Box<Type>,
     },
-    Array(Box<Type>),
+    ArraySlice(Box<Type>),
+    TupleArray {
+        item_type: Box<Type>,
+        size: Integer<()>,
+    },
 }
 
 impl Type {
@@ -36,12 +40,26 @@ impl Type {
                 let type_name = pair.as_str();
                 Self::Literal(type_name.to_owned())
             }
-            Rule::arrayType => {
+            Rule::arraySlice => {
                 let mut inner = pair.into_inner();
 
                 let type_name = inner.next().unwrap();
                 let type_name = Type::from_pair(type_name);
-                Self::Array(Box::new(type_name))
+                Self::ArraySlice(Box::new(type_name))
+            }
+            Rule::tupleArray => {
+                let mut inner = pair.into_inner();
+
+                let item_type = inner.next().unwrap();
+                let item_type = Type::from_pair(item_type);
+
+                let size = inner.next().unwrap();
+                let size = Integer::from_pair(size, "");
+
+                Self::TupleArray {
+                    item_type: Box::new(item_type),
+                    size,
+                }
             }
             _ => unreachable!(),
         }
