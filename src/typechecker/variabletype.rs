@@ -19,6 +19,11 @@ pub enum VariableType {
         return_type: Box<VariableType>,
         source: Option<Module<TypeInfo>>,
     },
+    ArraySlice(Box<VariableType>),
+    TupleArray {
+        item_type: Box<VariableType>,
+        size: usize,
+    },
 }
 
 pub struct VariableParseError(String);
@@ -55,6 +60,8 @@ impl Display for VariableType {
                 return_type: return_value,
                 ..
             } => format!("{params:?} -> {return_value:?}"),
+            ArraySlice(item_type) => format!("&[{item_type}]"),
+            TupleArray { item_type, size } => format!("[{item_type}; {size}]"),
         };
 
         f.write_str(value)
@@ -71,6 +78,8 @@ impl VariableType {
             VariableType::Any => 8,
             VariableType::Unknown => 8,
             VariableType::Func { .. } => 8,
+            VariableType::ArraySlice(_) => 8,
+            VariableType::TupleArray { .. } => 8,
         }
     }
 
@@ -110,6 +119,9 @@ impl VariableType {
         match (self, to_convert_to) {
             (Unknown, other) => Ok(other.clone()),
             (_, Any) => Ok(Any),
+            (TupleArray { item_type, .. }, ArraySlice(other_item_type)) => {
+                Ok(ArraySlice(Box::new(item_type.convert_to(other_item_type)?)))
+            }
             (left, right) => {
                 if left == right {
                     Ok(right.clone())

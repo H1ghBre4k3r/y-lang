@@ -6,9 +6,10 @@ mod variabletype;
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective,
-        Declaration, Definition, Expression, FnDef, Ident, If, Import, Integer, Intrinsic, Param,
-        Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp, Statement, Str, Type,
+        Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective,
+        Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing, Integer,
+        Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp, Statement, Str,
+        Type,
     },
     loader::Modules,
 };
@@ -433,7 +434,40 @@ impl Typechecker {
                 Expression::FnDef(self.check_fn_def(identifier, fn_def, scope)?)
             }
             Expression::Block(block) => Expression::Block(self.check_block(block, scope)?),
-            Expression::Array(_) => todo!(),
+            Expression::Array(array) => Expression::Array(self.check_array(array, scope)?),
+        })
+    }
+
+    fn check_array(
+        &self,
+        Array {
+            initializer,
+            size,
+            position,
+            ..
+        }: &Array<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<Array<TypeInfo>> {
+        let initializer = self.check_expression(None, initializer, scope)?;
+
+        Ok(Array {
+            initializer: Box::new(initializer.clone()),
+            size: size.to_owned(),
+            position: position.to_owned(),
+            info: TypeInfo {
+                _type: VariableType::TupleArray {
+                    item_type: Box::new(initializer.info()._type),
+                    size: if size.value >= 0 {
+                        size.value as usize
+                    } else {
+                        return Err(TypeError {
+                            message: "Negative length arrays are not supported!".to_string(),
+                            position: position.clone(),
+                        });
+                    },
+                },
+                source: initializer.info()._type.get_source(),
+            },
         })
     }
 
@@ -482,8 +516,26 @@ impl Typechecker {
                     source: None,
                 })
             }
-            Type::ArraySlice(_) => todo!(),
-            Type::TupleArray { item_type, size } => todo!(),
+            Type::ArraySlice(item_type) => {
+                let item_type = Self::get_type_def(item_type, position)?;
+
+                Ok(VariableType::ArraySlice(Box::new(item_type)))
+            }
+            Type::TupleArray { item_type, size } => {
+                let item_type = Self::get_type_def(item_type, position.clone())?;
+
+                Ok(VariableType::TupleArray {
+                    item_type: Box::new(item_type),
+                    size: if size.value >= 0 {
+                        size.value as usize
+                    } else {
+                        return Err(TypeError {
+                            message: "Negative length arrays are not supported!".to_string(),
+                            position,
+                        });
+                    },
+                })
+            }
         }
     }
 
@@ -816,7 +868,50 @@ impl Typechecker {
                     info,
                 })
             }
-            PostfixOp::Indexing(_) => todo!(),
+            PostfixOp::Indexing(indexing) => {
+                let lhs = self.check_expression(None, &postfix_expression.lhs, scope)?;
+                let indexing = self.check_indexing(&lhs, &indexing, scope)?;
+
+                Ok(PostfixExpr {
+                    op: PostfixOp::Indexing(indexing.clone()),
+                    lhs: Box::new(lhs),
+                    position: postfix_expression.position,
+                    info: indexing.info,
+                })
+            }
+        }
+    }
+
+    fn check_indexing(
+        &self,
+        lhs: &Expression<TypeInfo>,
+        Indexing {
+            index, position, ..
+        }: &Indexing<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<Indexing<TypeInfo>> {
+        let Expression::Integer(index) = self.check_expression(None, index, scope)? else {
+            unimplemented!("Indexing with a non-numeric index is currently not supported")
+        };
+
+        match lhs.info()._type {
+            VariableType::ArraySlice(item_type) => Ok(Indexing {
+                index: Box::new(Expression::Integer(index)),
+                position: position.to_owned(),
+                info: TypeInfo {
+                    _type: *item_type.clone(),
+                    source: item_type.get_source(),
+                },
+            }),
+            VariableType::TupleArray { item_type, .. } => Ok(Indexing {
+                index: Box::new(Expression::Integer(index)),
+                position: position.to_owned(),
+                info: TypeInfo {
+                    _type: *item_type.clone(),
+                    source: item_type.get_source(),
+                },
+            }),
+            _ => unimplemented!("Indexing on non-array types is currently not supported"),
         }
     }
 }

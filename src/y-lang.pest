@@ -36,9 +36,9 @@ primtiveType = _{ typeName | fnType }
 
 arrayType = _{ tupleArray | arraySlice }
 
-tupleArray = { "[" ~ primtiveType ~ ";" ~ integer ~ "]" }
+tupleArray = { "[" ~ variableType ~ ";" ~ integer ~ "]" }
 
-arraySlice = { "&[" ~ primtiveType ~ "]" }
+arraySlice = { "&[" ~ variableType ~ "]" }
 
 typeAnnotation = { ":" ~ variableType }
 

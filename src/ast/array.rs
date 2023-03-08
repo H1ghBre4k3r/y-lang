@@ -5,7 +5,7 @@ use super::{Expression, Integer, Position, Rule};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Array<T> {
     pub initializer: Box<Expression<T>>,
-    pub size: Integer<T>,
+    pub size: Integer<()>,
     pub position: Position,
     pub info: T,
 }

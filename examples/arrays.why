@@ -1,3 +1,5 @@
+import std::*
+
 let mut index := 0;
 
 let foo := [0; 10]
@@ -9,3 +11,6 @@ let bar := (array : &[int]) : void => {
 let baz := (array: [int; 10]) : void => {
     printi(array[0])
 }
+
+bar(foo);
+baz(foo);
