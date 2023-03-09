@@ -79,7 +79,7 @@ impl VariableType {
             VariableType::Unknown => 8,
             VariableType::Func { .. } => 8,
             VariableType::ArraySlice(_) => 8,
-            VariableType::TupleArray { .. } => 8,
+            VariableType::TupleArray { item_type, size } => 8,
         }
     }
 

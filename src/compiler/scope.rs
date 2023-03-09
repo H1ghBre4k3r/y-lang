@@ -7,8 +7,8 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition, Expression,
-        Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
+        Array, Assignment, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition,
+        Expression, Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
     },
     loader::Module,
     typechecker::TypeInfo,
@@ -296,9 +296,13 @@ impl Scope {
                 ),
             },
             Expression::Postfix(PostfixExpr {
-                op: PostfixOp::Indexing(_),
+                lhs,
+                op: PostfixOp::Indexing(indexing),
                 ..
-            }) => todo!(),
+            }) => {
+                self.compile_expression(lhs);
+                todo!();
+            }
             Expression::Integer(integer) => {
                 let value = integer.value;
                 self.instructions.push(Comment(format!("LOAD {value}")));
@@ -655,7 +659,37 @@ impl Scope {
                     Register(Rax),
                 ));
             }
-            Expression::Array(_) => todo!(),
+            Expression::Array(Array {
+                initializer,
+                size,
+                info,
+                ..
+            }) => {
+                self.compile_expression(initializer);
+
+                self.stack_offset += info.var_size() * size.value as usize;
+                let variable = Variable {
+                    offset: self.stack_offset,
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{name} = [{initializer:?}; {size:?}]")));
+
+                for i in 0..size.value {
+                    self.instructions.push(Mov(
+                        Memory(
+                            InstructionSize::from(initializer.info().clone()),
+                            format!(
+                                "{}-{}",
+                                Rbp,
+                                self.stack_offset as i64 - i * initializer.info().var_size() as i64
+                            ),
+                        ),
+                        Register(Rax),
+                    ));
+                }
+            }
         };
     }
 

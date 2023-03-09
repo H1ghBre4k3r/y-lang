@@ -4,13 +4,15 @@ let mut index := 0;
 
 let foo := [0; 10]
 
-let bar := (array : &[int]) : void => {
-    printi(array[0])
-}
+printi(foo[0])
 
-let baz := (array: [int; 10]) : void => {
-    printi(array[0])
-}
-
-bar(foo);
-baz(foo);
+/* let bar := (array : &[int]) : void => { */
+/*     printi(array[0]) */
+/* } */
+/**/
+/* let baz := (array: [int; 10]) : void => { */
+/*     printi(array[0]) */
+/* } */
+/**/
+/* bar(foo); */
+/* baz(foo); */
