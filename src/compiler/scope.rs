@@ -111,24 +111,66 @@ impl Scope {
     pub fn compile(&mut self) {
         let statements = self.statements.clone();
 
+        // TODO: This here has to handle arrays/structs differently
         for Parameter { name, info, source } in &self.params {
-            self.stack_offset += info.var_size();
+            match info._type.clone() {
+                VariableType::Void => todo!(),
+                VariableType::Bool
+                | VariableType::Str
+                | VariableType::Int
+                | VariableType::Any
+                | VariableType::Unknown
+                | VariableType::Func { .. }
+                | VariableType::ArraySlice(_) => {
+                    self.stack_offset += info.var_size();
 
-            let variable = Variable {
-                offset: self.stack_offset,
-                _type: info._type.clone(),
-            };
-            self.variables.insert(name.to_owned(), variable);
-            self.instructions
-                .push(Comment(format!("{name} = {source}")));
+                    let variable = Variable {
+                        offset: self.stack_offset,
+                        _type: info._type.clone(),
+                    };
+                    self.variables.insert(name.to_owned(), variable);
+                    self.instructions
+                        .push(Comment(format!("{name} = {source}")));
 
-            self.instructions.push(Mov(
-                Memory(
-                    InstructionSize::from(info.clone()),
-                    format!("{}-{}", Rbp, self.stack_offset),
-                ),
-                source.to_owned(),
-            ));
+                    self.instructions.push(Mov(
+                        Memory(
+                            InstructionSize::from(info.clone()),
+                            format!("{}-{}", Rbp, self.stack_offset),
+                        ),
+                        source.to_owned(),
+                    ));
+                }
+                VariableType::TupleArray { item_type, size } => {
+                    self.stack_offset += item_type.size() * size;
+                    let variable = Variable {
+                        offset: self.stack_offset,
+                        _type: info._type.clone(),
+                    };
+                    self.variables.insert(name.to_owned(), variable);
+                    self.instructions
+                        .push(Comment(format!("{name} = {source}")));
+                    for i in 0..size {
+                        self.instructions.push(Mov(
+                            Register(Rax.to_sized(info)),
+                            Memory(
+                                InstructionSize::from(info.clone()),
+                                format!("{}+{}", source, i as i64 * item_type.size() as i64),
+                            ),
+                        ));
+                        self.instructions.push(Mov(
+                            Memory(
+                                InstructionSize::from(info.clone()),
+                                format!(
+                                    "{}-{}",
+                                    Rbp,
+                                    self.stack_offset as i64 - i as i64 * item_type.size() as i64
+                                ),
+                            ),
+                            Register(Rax.to_sized(info)),
+                        ));
+                    }
+                }
+            }
         }
 
         for node in statements {
@@ -341,7 +383,7 @@ impl Scope {
                 if let Some(variable) = self.variables.get(identifier) {
                     let offset = variable.offset;
                     match variable._type {
-                        VariableType::ArraySlice(_) | VariableType::TupleArray { .. } => {
+                        VariableType::TupleArray { .. } => {
                             self.instructions.push(Mov(Register(Rax), Register(Rbp)));
                             self.instructions
                                 .push(Sub(Register(Rax), Immediate(offset as i64)));

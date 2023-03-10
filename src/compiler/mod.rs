@@ -29,7 +29,7 @@ pub struct Compiler {
 impl Compiler {
     pub fn from_ast(ast: Ast<TypeInfo>, modules: Modules<TypeInfo>) -> Self {
         Self {
-            scope: Scope::from_statements(ast.nodes(), 0, true, None),
+            scope: Scope::from_statements(ast.nodes(), 0, true, Option::None),
             modules,
         }
     }

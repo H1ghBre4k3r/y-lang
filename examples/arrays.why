@@ -2,17 +2,21 @@ import std::*
 
 let mut index := 0;
 
-let foo := [42; 1000]
+let foo := [42; 10]
 
 printi(foo[0])
 
-/* let bar := (array : &[int]) : void => { */
-/*     printi(array[0]) */
-/* } */
-/**/
-/* let baz := (array: [int; 10]) : void => { */
-/*     printi(array[0]) */
-/* } */
-/**/
-/* bar(foo); */
-/* baz(foo); */
+print(" ")
+let bar := (array : &[int]) : void => {
+    printi(array[0])
+}
+bar(foo)
+print(" ")
+
+/* foo[0] = 13; */
+
+let baz := (array: [int; 10]) : void => {
+    printi(array[0])
+}
+
+baz(foo)
