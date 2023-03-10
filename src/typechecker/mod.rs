@@ -17,8 +17,9 @@ use crate::{
 pub use self::fn_extractor::extract_exports;
 pub use self::info::TypeInfo;
 pub use self::typescope::TypeScope;
+pub use self::variabletype::VariableType;
 
-use self::{error::TypeError, typescope::setup_scope, variabletype::VariableType};
+use self::{error::TypeError, typescope::setup_scope};
 
 type TResult<T> = Result<T, TypeError>;
 

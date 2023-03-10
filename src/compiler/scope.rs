@@ -11,12 +11,13 @@ use crate::{
         Expression, Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
     },
     loader::Module,
-    typechecker::TypeInfo,
+    typechecker::{TypeInfo, VariableType},
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Variable {
     offset: usize,
+    _type: VariableType,
 }
 
 #[derive(Debug, Clone)]
@@ -115,6 +116,7 @@ impl Scope {
 
             let variable = Variable {
                 offset: self.stack_offset,
+                _type: info._type.clone(),
             };
             self.variables.insert(name.to_owned(), variable);
             self.instructions
@@ -300,8 +302,19 @@ impl Scope {
                 op: PostfixOp::Indexing(indexing),
                 ..
             }) => {
+                self.compile_expression(&indexing.index);
+                self.instructions.push(Push(Rax));
+
                 self.compile_expression(lhs);
-                todo!();
+
+                self.instructions.push(Pop(Rcx));
+                self.instructions.push(Mov(
+                    Register(Rax.to_sized(&indexing.info)),
+                    Memory(
+                        InstructionSize::from(indexing.info.clone()),
+                        format!("{Rax} + {Rcx} * {}", indexing.info.var_size()),
+                    ),
+                ))
             }
             Expression::Integer(integer) => {
                 let value = integer.value;
@@ -327,13 +340,22 @@ impl Scope {
                     .push(Comment(format!("LOAD {identifier}")));
                 if let Some(variable) = self.variables.get(identifier) {
                     let offset = variable.offset;
-                    self.instructions.push(Mov(
-                        Register(Rax.to_sized(info)),
-                        Memory(
-                            InstructionSize::from(info.clone()),
-                            format!("{Rbp}-{offset}"),
-                        ),
-                    ));
+                    match variable._type {
+                        VariableType::ArraySlice(_) | VariableType::TupleArray { .. } => {
+                            self.instructions.push(Mov(Register(Rax), Register(Rbp)));
+                            self.instructions
+                                .push(Sub(Register(Rax), Immediate(offset as i64)));
+                        }
+                        _ => {
+                            self.instructions.push(Mov(
+                                Register(Rax.to_sized(info)),
+                                Memory(
+                                    InstructionSize::from(info.clone()),
+                                    format!("{Rbp}-{offset}"),
+                                ),
+                            ));
+                        }
+                    }
                 } else if let Some(constant) = self.constants.get(identifier) {
                     self.instructions.push(Lea(
                         Register(Rax.to_sized(info)),
@@ -458,6 +480,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -475,6 +498,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -500,6 +524,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -522,6 +547,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -545,12 +571,14 @@ impl Scope {
                 let PostfixOp::Call(call) = postfix_expr.op.clone() else {
                     todo!()
                 };
+                let info = postfix_expr.info.clone();
 
                 self.compile_expression(&definition.value);
 
                 self.stack_offset += call.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type,
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -570,6 +598,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -645,6 +674,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -670,12 +700,14 @@ impl Scope {
                 self.stack_offset += info.var_size() * size.value as usize;
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
                 self.instructions
                     .push(Comment(format!("{name} = [{initializer:?}; {size:?}]")));
 
+                // TODO: Maybe introduce an ASM loop for that
                 for i in 0..size.value {
                     self.instructions.push(Mov(
                         Memory(

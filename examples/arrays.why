@@ -2,7 +2,7 @@ import std::*
 
 let mut index := 0;
 
-let foo := [0; 10]
+let foo := [42; 1000]
 
 printi(foo[0])
 
