@@ -26,29 +26,12 @@ fn run_type_checker(src_path: &Path) -> Result<Output, io::Error> {
     Command::new(WHY_PATH).arg(src_path).output()
 }
 
-fn run_interpreter(src_path: &Path) -> Result<Output, io::Error> {
-    Command::new(WHY_PATH).arg("-r").arg(src_path).output()
-}
-
 fn run_compiler(src_path: &Path, out_path: &Path) -> Result<Output, io::Error> {
     Command::new(WHY_PATH)
         .arg("-o")
         .arg(out_path)
         .arg(src_path)
         .output()
-}
-
-pub fn check_interpretation(src_path: &Path, expected: Expected) -> Result<(), Box<dyn Error>> {
-    let output = run_interpreter(src_path)?;
-
-    expected.assert_matches(&output)?;
-    assert!(
-        output.status.success(),
-        "Why interpreter exited with status {:?}",
-        output.status.code()
-    );
-
-    Ok(())
 }
 
 pub fn check_compilation(src_path: &Path, expected: Expected) -> Result<(), Box<dyn Error>> {

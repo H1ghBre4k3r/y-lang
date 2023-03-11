@@ -8,7 +8,6 @@ use log::{error, info};
 use y_lang::{
     ast::{Ast, YParser},
     compiler::Compiler,
-    interpreter::Interpreter,
     loader::{load_modules, Module},
     typechecker::Typechecker,
 };
@@ -19,10 +18,6 @@ struct Cli {
     /// The path to the why source file.
     #[arg(index = 1)]
     file: std::path::PathBuf,
-
-    /// Whether to interpret instead of compiling.
-    #[arg(short, long)]
-    run: bool,
 
     /// Whether to dump the parsed AST (for debugging).
     #[arg(long)]
@@ -112,12 +107,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if args.dump_typed {
         info!("Typed AST:\n{:#?}", ast);
-    }
-
-    if args.run && args.output.is_none() {
-        let interpreter = Interpreter::from_ast(ast.clone(), type_safe_modules.clone());
-
-        interpreter.run();
     }
 
     if let Some(output) = args.output {

@@ -1,17 +1,12 @@
 use std::{error::Error, path::Path};
 
-use test_utils::{check_compilation, check_interpretation, Expected};
+use test_utils::{check_compilation, Expected};
 
 const SRC_PATH: &str = "./examples/fib.why";
 const EXPECTED: Expected = Expected {
     stdout: "6765",
     stderr: "",
 };
-
-#[test]
-fn interpret_fib() -> Result<(), Box<dyn Error>> {
-    check_interpretation(Path::new(SRC_PATH), EXPECTED)
-}
 
 #[test]
 fn compile_and_run_fib() -> Result<(), Box<dyn Error>> {
