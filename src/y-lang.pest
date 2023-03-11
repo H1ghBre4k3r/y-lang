@@ -1,17 +1,23 @@
-program = _{ SOI ~ (importDirective)* ~ (stmt)* ~ EOI }
+program = _{ SOI ~ (import)* ~ (stmt)* ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
 COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ( "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE ) }
 
+compiler_directive = _{ "#[" ~ expr ~ "]" }
+
+import = _{ importDirective | conditional_import }
+
 importDirective = {
     "import " ~ importPath
 }
 
+conditional_import = { compiler_directive ~ importDirective }
+
 importPath = @{ ident ~ ("::*")? }
 
 stmt = _{ 
-    (intrinsics | expr | compiler_directive) ~ ";"?
+    (intrinsics | expr | conditional_statement) ~ ";"?
 }
 
 intrinsics = _{ declaration | definition | assignment }
@@ -84,4 +90,4 @@ hexNumber = @{ "0x" ~ ASCII_HEX_DIGIT+ }
 
 boolean = { "true" | "false" }
 
-compiler_directive = { "#[" ~ expr ~ "]" ~ stmt }
+conditional_statement = { compiler_directive ~ stmt }

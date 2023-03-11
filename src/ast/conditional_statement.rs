@@ -2,15 +2,16 @@ use super::{Expression, Position, Rule, Statement};
 use pest::iterators::Pair;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CompilerDirective<T> {
+pub struct ConditionalStatement<T> {
     pub directive: Expression<()>,
-    pub statement: Option<Box<Statement<T>>>,
+    pub statement: Box<Statement<T>>,
     pub position: Position,
+    pub is_valid: bool,
 }
 
-impl CompilerDirective<()> {
-    pub fn from_pair(pair: Pair<Rule>, file: &str) -> CompilerDirective<()> {
-        assert_eq!(pair.as_rule(), Rule::compiler_directive);
+impl ConditionalStatement<()> {
+    pub fn from_pair(pair: Pair<Rule>, file: &str) -> ConditionalStatement<()> {
+        assert_eq!(pair.as_rule(), Rule::conditional_statement);
 
         let (line, col) = pair.line_col();
 
@@ -21,22 +22,20 @@ impl CompilerDirective<()> {
         let statement = inner.next().unwrap();
         let statement = Statement::from_pair(statement, file);
 
-        CompilerDirective {
+        ConditionalStatement {
             directive,
-            statement: Some(Box::new(statement)),
+            statement: Box::new(statement),
             position: (file.to_owned(), line, col),
+            is_valid: true,
         }
     }
 }
 
-impl<T> CompilerDirective<T>
+impl<T> ConditionalStatement<T>
 where
     T: Clone + Default,
 {
     pub fn info(&self) -> T {
-        match &self.statement {
-            Some(statement) => statement.info(),
-            _ => T::default(),
-        }
+        self.statement.info()
     }
 }

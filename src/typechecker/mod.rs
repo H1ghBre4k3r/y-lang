@@ -6,7 +6,7 @@ mod variabletype;
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective,
+        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, ConditionalStatement,
         Declaration, Definition, Expression, FnDef, Ident, If, Import, Integer, Intrinsic, Param,
         Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp, Statement, Str, Type,
     },
@@ -125,30 +125,26 @@ impl Typechecker {
                 Statement::Intrinsic(self.check_intrinsic(intrinsic, scope)?)
             }
             Statement::Import(import) => Statement::Import(self.check_import(import, scope)?),
-            Statement::CompilerDirective(compiler_directive) => Statement::CompilerDirective(
-                self.check_compiler_directive(compiler_directive, scope)?,
-            ),
+            Statement::ConditionalStatement(conditional_statement) => {
+                Statement::ConditionalStatement(
+                    self.check_conditional_statement(conditional_statement, scope)?,
+                )
+            }
         })
     }
 
-    fn check_compiler_directive(
+    fn check_conditional_statement(
         &self,
-        CompilerDirective {
+        ConditionalStatement {
             directive,
             statement,
             position,
-        }: &CompilerDirective<()>,
+            ..
+        }: &ConditionalStatement<()>,
         scope: &mut TypeScope,
-    ) -> TResult<CompilerDirective<TypeInfo>> {
+    ) -> TResult<ConditionalStatement<TypeInfo>> {
         let Expression::Binary(directive) = directive.clone() else {
             unimplemented!("Currently only compiler directives in the form of binary expressions are supported!");
-        };
-        let Some(statement) = statement.clone() else {
-            return Ok(CompilerDirective {
-                directive: Expression::Binary(directive),
-                statement: None,
-                position: position.to_owned()
-            });
         };
 
         let is_valid = match (directive.lhs.as_ref(), directive.rhs.as_ref()) {
@@ -161,19 +157,12 @@ impl Typechecker {
             ),
         };
 
-        if is_valid {
-            Ok(CompilerDirective {
-                directive: Expression::Binary(directive),
-                statement: Some(Box::new(self.check_statement(&statement, scope)?)),
-                position: position.clone(),
-            })
-        } else {
-            Ok(CompilerDirective {
-                directive: Expression::Binary(directive),
-                statement: None,
-                position: position.clone(),
-            })
-        }
+        Ok(ConditionalStatement {
+            directive: Expression::Binary(directive),
+            statement: Box::new(self.check_statement(statement, scope)?),
+            position: position.clone(),
+            is_valid,
+        })
     }
 
     fn check_import(&self, import: &Import, scope: &mut TypeScope) -> TResult<Import> {

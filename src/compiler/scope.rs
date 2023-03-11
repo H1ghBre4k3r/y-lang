@@ -7,7 +7,7 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition, Expression,
+        Assignment, BinaryOp, Block, Boolean, Call, ConditionalStatement, Definition, Expression,
         Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
     },
     loader::Module,
@@ -171,17 +171,21 @@ impl Scope {
             Statement::Expression(expression) => self.compile_expression(expression),
             Statement::Intrinsic(intrinsic) => self.compile_intrinsic(intrinsic),
             Statement::Import(_) => {}
-            Statement::CompilerDirective(compiler_directive) => {
-                self.compiler_compiler_directive(compiler_directive)
+            Statement::ConditionalStatement(conditional_statement) => {
+                self.compile_conditional_statement(conditional_statement)
             }
         }
     }
 
-    fn compiler_compiler_directive(
+    fn compile_conditional_statement(
         &mut self,
-        CompilerDirective { statement, .. }: &CompilerDirective<TypeInfo>,
+        ConditionalStatement {
+            statement,
+            is_valid,
+            ..
+        }: &ConditionalStatement<TypeInfo>,
     ) {
-        if let Some(statement) = statement {
+        if *is_valid {
             self.compile_statement(statement);
         }
     }
@@ -227,13 +231,13 @@ impl Scope {
                 // This will store the result of this expression in RAX
                 self.compile_expression(rhs);
                 // Save value on stack
-                self.instructions.push(Push(Rax.to_sized(&rhs.info())));
+                self.instructions.push(Push(Rax));
 
                 // Evaluate second expression
                 self.compile_expression(lhs);
 
                 // Get value from first expression
-                self.instructions.push(Pop(Rcx.to_sized(&rhs.info())));
+                self.instructions.push(Pop(Rcx));
 
                 self.instructions.push(Comment(format!(
                     "{:?} {} {:?}",
@@ -677,7 +681,16 @@ impl Scope {
         self.instructions
             .push(Comment(format!("CALL {name} ({:?})", call.params)));
 
-        if name.as_str() == "syscall_4" {
+        if name.as_str() == "syscall_1" {
+            let params = &call.params;
+
+            self.compile_expression(&params[0]);
+            self.instructions.push(Syscall);
+            // TODO: This is...not ideal
+            // It only applies for the fork syscall on macOS
+            self.instructions.push(Mov(Register(Eax), Register(Edx)));
+            return;
+        } else if name.as_str() == "syscall_4" {
             let params = &call.params;
 
             for expression in params.iter().take(4) {

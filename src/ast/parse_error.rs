@@ -13,7 +13,7 @@ pub struct ParseError {
     pub position: Position,
     /// The "inner error" which caused this parse error. It is only used when trying to pretty
     /// print a ParseError
-    error: Error<Rule>,
+    error: Box<Error<Rule>>,
 }
 
 impl Display for ParseError {
@@ -33,7 +33,7 @@ where
             pest::error::LineColLocation::Pos((line, col)) => ParseError {
                 message: value.variant.message().to_string(),
                 position: (file.to_string(), line, col),
-                error: value,
+                error: Box::new(value),
             },
             pest::error::LineColLocation::Span(_, _) => todo!(),
         }
