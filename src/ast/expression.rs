@@ -5,7 +5,7 @@ use pest::{
 };
 
 use super::{
-    Array, BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, PostfixExpr,
+    Array, BinaryExpr, Block, Boolean, Character, FnDef, Ident, If, Integer, Position, PostfixExpr,
     PrefixExpr, Rule, Str,
 };
 
@@ -16,6 +16,7 @@ pub enum Expression<T> {
     Prefix(PrefixExpr<T>),
     Postfix(PostfixExpr<T>),
     Integer(Integer<T>),
+    Character(Character<T>),
     Ident(Ident<T>),
     Str(Str<T>),
     FnDef(FnDef<T>),
@@ -44,6 +45,7 @@ impl Expression<()> {
                 Rule::decimalNumber | Rule::hexNumber => {
                     Expression::Integer(Integer::from_pair(primary, file))
                 }
+                Rule::character => Expression::Character(Character::from_pair(primary, file)),
                 Rule::ident => Expression::Ident(Ident::from_pair(primary, file)),
                 Rule::string => Expression::Str(Str::from_pair(primary, file)),
                 Rule::fnDef => Expression::FnDef(FnDef::from_pair(primary, file)),
@@ -73,6 +75,7 @@ where
             | Expression::Prefix(PrefixExpr { position, .. })
             | Expression::Postfix(PostfixExpr { position, .. })
             | Expression::Integer(Integer { position, .. })
+            | Expression::Character(Character { position, .. })
             | Expression::Ident(Ident { position, .. })
             | Expression::Str(Str { position, .. })
             | Expression::FnDef(FnDef { position, .. })
@@ -89,6 +92,7 @@ where
             | Expression::Prefix(PrefixExpr { info, .. })
             | Expression::Postfix(PostfixExpr { info, .. })
             | Expression::Integer(Integer { info, .. })
+            | Expression::Character(Character { info, .. })
             | Expression::Ident(Ident { info, .. })
             | Expression::Str(Str { info, .. })
             | Expression::FnDef(FnDef { info, .. })

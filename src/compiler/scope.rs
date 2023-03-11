@@ -7,8 +7,8 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Array, Assignment, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition,
-        Expression, Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
+        Array, Assignment, BinaryOp, Block, Boolean, Call, Character, CompilerDirective,
+        Definition, Expression, Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
     },
     loader::Module,
     typechecker::{TypeInfo, VariableType},
@@ -118,6 +118,7 @@ impl Scope {
                 VariableType::Bool
                 | VariableType::Str
                 | VariableType::Int
+                | VariableType::Char
                 | VariableType::Any
                 | VariableType::Unknown
                 | VariableType::Func { .. }
@@ -364,6 +365,11 @@ impl Scope {
                 self.instructions
                     .push(Mov(Register(Rax.to_sized(&integer.info)), Immediate(value)));
             }
+            Expression::Character(Character { value, info, .. }) => {
+                self.instructions.push(Comment(format!("LOAD '{value}'")));
+                self.instructions
+                    .push(Mov(Register(Rax.to_sized(info)), Immediate(*value as i64)));
+            }
             Expression::Boolean(boolean) => {
                 self.instructions.push(Comment(format!("LOAD {boolean:?}")));
 
@@ -534,6 +540,25 @@ impl Scope {
                         format!("{}-{}", Rbp, self.stack_offset),
                     ),
                     Immediate(*value),
+                ));
+            }
+            Expression::Character(Character { value, info, .. }) => {
+                self.stack_offset += info.var_size();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                    _type: info._type.clone(),
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{name} = '{value}'")));
+
+                self.instructions.push(Mov(
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Immediate(*value as i64),
                 ));
             }
             Expression::Boolean(Boolean { value, info, .. }) => {
@@ -760,7 +785,7 @@ impl Scope {
                                 self.stack_offset as i64 - i * initializer.info().var_size() as i64
                             ),
                         ),
-                        Register(Rax),
+                        Register(Rax.to_sized(&initializer.info())),
                     ));
                 }
             }
@@ -809,7 +834,7 @@ impl Scope {
                         InstructionSize::from(indexing.info.clone()),
                         format!("{R8} + {Rcx} * {}", indexing.info.var_size()),
                     ),
-                    Register(Rax),
+                    Register(Rax.to_sized(&indexing.info)),
                 ));
             }
             Expression::Ident(identifier) => {

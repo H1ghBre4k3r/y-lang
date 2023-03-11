@@ -6,10 +6,10 @@ mod variabletype;
 
 use crate::{
     ast::{
-        Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective,
-        Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing, Integer,
-        Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp, Statement, Str,
-        Type,
+        Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Character,
+        CompilerDirective, Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing,
+        Integer, Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp,
+        Statement, Str, Type,
     },
     loader::Modules,
 };
@@ -486,6 +486,16 @@ impl Typechecker {
             }
             Expression::Block(block) => Expression::Block(self.check_block(block, scope)?),
             Expression::Array(array) => Expression::Array(self.check_array(array, scope)?),
+            Expression::Character(Character {
+                value, position, ..
+            }) => Expression::Character(Character {
+                value: *value,
+                position: position.clone(),
+                info: TypeInfo {
+                    _type: VariableType::Char,
+                    source: None,
+                },
+            }),
         })
     }
 

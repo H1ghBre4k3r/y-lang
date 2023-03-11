@@ -34,3 +34,17 @@ let baz := (array: [int; 10]) : void => {
 
 baz(foo)
 printi(foo[0])
+print(" ")
+
+let lol := (var : &[char]) : void => {
+    var[1] = 'O'
+}
+
+let test := "Hehe "
+print(test)
+lol(test)
+print(test)
+
+let hello_world := ['O'; 10]
+hello_world[9] = 0
+print(hello_world)

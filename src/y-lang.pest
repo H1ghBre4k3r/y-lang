@@ -76,7 +76,7 @@ atomExpr = _{
 }
 
 primitive = _{
-    integer | boolean | string
+    integer | boolean | string | character 
 }
 
 array = {
@@ -90,6 +90,9 @@ char = {
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
+
+character = ${ "'" ~ inner_char ~ "'" }
+inner_char = { ANY }
 
 block = { "{" ~ stmt* ~ "}"}
 

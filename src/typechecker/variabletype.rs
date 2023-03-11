@@ -11,6 +11,7 @@ pub enum VariableType {
     Bool,
     Str,
     Int,
+    Char,
     // TODO: Maybe just dont use
     Any,
     Unknown,
@@ -38,6 +39,7 @@ impl FromStr for VariableType {
             "str" => Ok(Self::Str),
             "int" => Ok(Self::Int),
             "any" => Ok(Self::Any),
+            "char" => Ok(Self::Char),
             "unknown" => Ok(Self::Unknown),
             _ => Err(VariableParseError(format!("Invalid type '{s}'"))),
         }
@@ -54,6 +56,7 @@ impl Display for VariableType {
             Int => "int".to_owned(),
             Str => "str".to_owned(),
             Any => "any".to_owned(),
+            Char => "char".to_owned(),
             Unknown => "unknown".to_owned(),
             Func {
                 params,
@@ -75,6 +78,7 @@ impl VariableType {
             VariableType::Bool => 1,
             VariableType::Str => 8,
             VariableType::Int => 8,
+            VariableType::Char => 1,
             VariableType::Any => 8,
             VariableType::Unknown => 8,
             VariableType::Func { .. } => 8,
@@ -121,6 +125,22 @@ impl VariableType {
             (_, Any) => Ok(Any),
             (TupleArray { item_type, .. }, ArraySlice(other_item_type)) => {
                 Ok(ArraySlice(Box::new(item_type.convert_to(other_item_type)?)))
+            }
+            (Str, ArraySlice(other_item_type)) => {
+                if *other_item_type == Box::new(Char) {
+                    Ok(ArraySlice(Box::new(Char)))
+                } else {
+                    Err(())
+                }
+            }
+            (Char, Int) => Ok(Int),
+            (Int, Char) => Ok(Char),
+            (TupleArray { item_type, .. }, Str) => {
+                if *item_type == Box::new(Char) {
+                    Ok(Str)
+                } else {
+                    Err(())
+                }
             }
             (left, right) => {
                 if left == right {
