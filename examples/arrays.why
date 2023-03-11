@@ -1,7 +1,5 @@
 import std::*
 
-let mut index := 0;
-
 let foo := [42; 10]
 
 printi(foo[0])
@@ -45,6 +43,19 @@ print(test)
 lol(test)
 print(test)
 
-let hello_world := ['O'; 10]
-hello_world[9] = 0
+let hello_world := [' '; 13]
+hello_world[0] = 'H'
+hello_world[1] = 'e'
+hello_world[2] = 'l'
+hello_world[3] = 'l'
+hello_world[4] = 'o'
+hello_world[5] = ' '
+hello_world[6] = 'W'
+hello_world[7] = 'o'
+hello_world[8] = 'r'
+hello_world[9] = 'l'
+hello_world[10] = 'd'
+hello_world[11] = '!'
+hello_world[12] = 0
 print(hello_world)
+
