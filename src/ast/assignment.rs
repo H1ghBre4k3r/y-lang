@@ -1,10 +1,10 @@
 use pest::iterators::Pair;
 
-use super::{Expression, Ident, Position, Rule};
+use super::{Expression, Position, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Assignment<T> {
-    pub ident: Ident<T>,
+    pub lhs: Expression<T>,
     pub value: Expression<T>,
     pub position: Position,
     pub info: T,
@@ -16,7 +16,7 @@ impl Assignment<()> {
 
         let (line, col) = pair.line_col();
 
-        let ident = Ident::from_pair(
+        let ident = Expression::from_pair(
             inner.next().unwrap_or_else(|| {
                 panic!(
                     "Expected lvalue in assignment '{}' at {}:{}",
@@ -39,7 +39,7 @@ impl Assignment<()> {
         let value = Expression::from_pair(value, file);
 
         Assignment {
-            ident,
+            lhs: ident,
             value,
             position: (file.to_owned(), line, col),
             info: (),

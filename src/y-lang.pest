@@ -24,7 +24,7 @@ definition = { "let " ~ mutKeyword? ~ localIdent ~ ":=" ~ expr }
 
 mutKeyword = { "mut " }
 
-assignment = { localIdent ~ "=" ~ expr }
+assignment = { (expr | localIdent) ~ "=" ~ expr }
 
 typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 

@@ -246,7 +246,7 @@ impl Interpreter {
     ) -> VariableValue {
         let value = self.run_expression(&assignment.value, scope);
 
-        scope.update(&assignment.ident.value, value);
+        // scope.update(&assignment.lhs.value, value);
         VariableValue::Void
     }
 

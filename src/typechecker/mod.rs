@@ -341,46 +341,96 @@ impl Typechecker {
         assignment: &Assignment<()>,
         scope: &mut TypeScope,
     ) -> TResult<Assignment<TypeInfo>> {
-        let ident = &assignment.ident;
+        let lhs = &assignment.lhs;
 
-        if !scope.contains(&ident.value) {
-            return Err(TypeError {
-                message: format!("Undefined identifier '{}'", ident.value),
-                position: ident.position.clone(),
-            });
-        }
+        match lhs {
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Indexing(indexing),
+                lhs: indexing_lhs,
+                position,
+                ..
+            }) => {
+                let indexing_lhs = self.check_expression(None, indexing_lhs, scope)?;
+                let indexing = self.check_indexing(&indexing_lhs, indexing, scope)?;
 
-        if !scope.is_mutable(&ident.value) {
-            return Err(TypeError {
-                message: format!(
+                let assignment_rhs = self.check_expression(None, &assignment.value, scope)?;
+
+                if assignment_rhs
+                    .info()
+                    ._type
+                    .convert_to(&indexing.info._type)
+                    .is_err()
+                {
+                    return Err(TypeError {
+                        message: format!(
+                            "Can not assign value of type '{}' to indexed variable of type '{}'",
+                            assignment_rhs.info()._type,
+                            indexing.info._type
+                        ),
+                        position: assignment.position.clone(),
+                    });
+                }
+
+                Ok(Assignment {
+                    lhs: Expression::Postfix(PostfixExpr {
+                        op: PostfixOp::Indexing(indexing),
+                        lhs: Box::new(indexing_lhs),
+                        position: position.clone(),
+                        info: assignment_rhs.info(),
+                    }),
+                    value: assignment_rhs,
+                    position: assignment.position.clone(),
+                    info: TypeInfo {
+                        source: None,
+                        _type: VariableType::Void,
+                    },
+                })
+            }
+            Expression::Ident(lhs) => {
+                if !scope.contains(&lhs.value) {
+                    return Err(TypeError {
+                        message: format!("Undefined identifier '{}'", lhs.value),
+                        position: lhs.position.clone(),
+                    });
+                }
+
+                if !scope.is_mutable(&lhs.value) {
+                    return Err(TypeError {
+                        message: format!(
                     "Variable '{}' can not be modified, because it is not defined in current scope",
-                    ident.value
+                    lhs.value
                 ),
-                position: ident.position.clone(),
-            });
+                        position: lhs.position.clone(),
+                    });
+                }
+
+                let assignment_rhs = self.check_expression(Some(lhs), &assignment.value, scope)?;
+
+                scope.update(
+                    &lhs.value,
+                    assignment_rhs.info()._type,
+                    &assignment.position,
+                )?;
+
+                Ok(Assignment {
+                    lhs: Expression::Ident(Ident {
+                        position: lhs.position.clone(),
+                        value: lhs.value.clone(),
+                        info: assignment_rhs.info(),
+                    }),
+                    value: assignment_rhs,
+                    position: assignment.position.clone(),
+                    info: TypeInfo {
+                        source: None,
+                        _type: VariableType::Void,
+                    },
+                })
+            }
+            _ => Err(TypeError {
+                message: format!("Invalid lvalue of assignment '{lhs:?}'"),
+                position: lhs.position(),
+            }),
         }
-
-        let assignment_rhs = self.check_expression(Some(ident), &assignment.value, scope)?;
-
-        scope.update(
-            &ident.value,
-            assignment_rhs.info()._type,
-            &assignment.position,
-        )?;
-
-        Ok(Assignment {
-            ident: Ident {
-                position: ident.position.clone(),
-                value: ident.value.clone(),
-                info: assignment_rhs.info(),
-            },
-            value: assignment_rhs,
-            position: assignment.position.clone(),
-            info: TypeInfo {
-                source: None,
-                _type: VariableType::Void,
-            },
-        })
     }
 
     fn check_expression(

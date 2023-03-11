@@ -771,19 +771,62 @@ impl Scope {
         let value = &assignment.value;
         self.compile_expression(value);
 
-        let identifier = &assignment.ident;
-        let info = &identifier.info;
+        let lhs = &assignment.lhs;
 
-        if let Some(variable) = self.variables.get(&identifier.value) {
-            self.instructions
-                .push(Comment(format!("{} = {value:?}", identifier.value)));
-            self.instructions.push(Mov(
-                Memory(
-                    InstructionSize::from(info.clone()),
-                    format!("{}-{}", Rbp, variable.offset),
-                ),
-                Register(Rax.to_sized(info)),
-            ));
+        match lhs {
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Indexing(indexing),
+                lhs,
+                ..
+            }) => {
+                self.instructions
+                    .push(Comment(format!("{lhs:?} = {value:?}")));
+
+                // rvalue -> stack
+                self.instructions.push(Push(Rax));
+
+                // index -> rax
+                self.compile_expression(&indexing.index);
+
+                // index -> stack
+                self.instructions.push(Push(Rax));
+
+                // lvalue -> rax
+                self.compile_expression(lhs);
+
+                // lvalue -> R8
+                self.instructions.push(Mov(Register(R8), Register(Rax)));
+
+                // index -> Rcx
+                self.instructions.push(Pop(Rcx));
+
+                // rvalue -> Rax
+                self.instructions.push(Pop(Rax));
+
+                // rvalue -> lvalue[index]
+                self.instructions.push(Mov(
+                    Memory(
+                        InstructionSize::from(indexing.info.clone()),
+                        format!("{R8} + {Rcx} * {}", indexing.info.var_size()),
+                    ),
+                    Register(Rax),
+                ));
+            }
+            Expression::Ident(identifier) => {
+                let info = &identifier.info;
+                if let Some(variable) = self.variables.get(&identifier.value) {
+                    self.instructions
+                        .push(Comment(format!("{} = {value:?}", identifier.value)));
+                    self.instructions.push(Mov(
+                        Memory(
+                            InstructionSize::from(info.clone()),
+                            format!("{}-{}", Rbp, variable.offset),
+                        ),
+                        Register(Rax.to_sized(info)),
+                    ));
+                }
+            }
+            _ => {}
         }
     }
 

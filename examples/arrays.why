@@ -9,14 +9,28 @@ printi(foo[0])
 print(" ")
 let bar := (array : &[int]) : void => {
     printi(array[0])
+    print(" ")
+
+    array[1] = 17
+    printi(array[1])
+    print(" ")
 }
 bar(foo)
+
+printi(foo[1])
 print(" ")
 
-/* foo[0] = 13; */
+foo[0] = 13;
 
 let baz := (array: [int; 10]) : void => {
     printi(array[0])
+
+    array[0] = 1337
+
+    print(" ")
+    printi(array[0])
+    print(" ")
 }
 
 baz(foo)
+printi(foo[0])
