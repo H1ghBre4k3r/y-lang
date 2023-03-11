@@ -972,6 +972,14 @@ impl Typechecker {
                     source: item_type.get_source(),
                 },
             }),
+            VariableType::Str => Ok(Indexing {
+                index: Box::new(Expression::Integer(index)),
+                position: position.to_owned(),
+                info: TypeInfo {
+                    _type: VariableType::Char,
+                    source: lhs.info()._type.get_source(),
+                },
+            }),
             _ => unimplemented!("Indexing on non-array types is currently not supported"),
         }
     }

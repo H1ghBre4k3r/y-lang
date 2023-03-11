@@ -642,23 +642,67 @@ impl Scope {
 
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += call.info.var_size();
-                let variable = Variable {
-                    offset: self.stack_offset,
-                    _type: info._type,
-                };
-                self.variables.insert(name.to_owned(), variable);
+                match call.info._type.clone() {
+                    VariableType::Void
+                    | VariableType::Bool
+                    | VariableType::Str
+                    | VariableType::Int
+                    | VariableType::Char
+                    | VariableType::Any
+                    | VariableType::Unknown
+                    | VariableType::Func { .. }
+                    | VariableType::ArraySlice(_) => {
+                        self.stack_offset += call.info.var_size();
+                        let variable = Variable {
+                            offset: self.stack_offset,
+                            _type: info._type,
+                        };
+                        self.variables.insert(name.to_owned(), variable);
 
-                self.instructions
-                    .push(Comment(format!("{name} = {:?}", definition.value)));
+                        self.instructions
+                            .push(Comment(format!("{name} = {:?}", definition.value)));
 
-                self.instructions.push(Mov(
-                    Memory(
-                        InstructionSize::from(call.info.clone()),
-                        format!("{}-{}", Rbp, self.stack_offset),
-                    ),
-                    Register(Rax.to_sized(&call.info)),
-                ));
+                        self.instructions.push(Mov(
+                            Memory(
+                                InstructionSize::from(call.info.clone()),
+                                format!("{}-{}", Rbp, self.stack_offset),
+                            ),
+                            Register(Rax.to_sized(&call.info)),
+                        ));
+                    }
+                    VariableType::TupleArray { item_type, size } => {
+                        self.stack_offset += item_type.size() * size;
+                        let variable = Variable {
+                            offset: self.stack_offset,
+                            _type: info._type.clone(),
+                        };
+                        self.variables.insert(name.to_owned(), variable);
+
+                        self.instructions
+                            .push(Comment(format!("{name} = {:?}", definition.value)));
+                        for i in 0..size {
+                            self.instructions.push(Mov(
+                                Register(Rcx.to_sized(&info)),
+                                Memory(
+                                    InstructionSize::from(info.clone()),
+                                    format!("{}+{}", Rax, i as i64 * item_type.size() as i64),
+                                ),
+                            ));
+                            self.instructions.push(Mov(
+                                Memory(
+                                    InstructionSize::from(info.clone()),
+                                    format!(
+                                        "{}-{}",
+                                        Rbp,
+                                        self.stack_offset as i64
+                                            - i as i64 * item_type.size() as i64
+                                    ),
+                                ),
+                                Register(Rcx.to_sized(&info)),
+                            ));
+                        }
+                    }
+                }
             }
             Expression::Ident(Ident { value, info, .. }) => {
                 self.compile_expression(&definition.value);
@@ -669,8 +713,7 @@ impl Scope {
                 };
                 self.variables.insert(name.to_owned(), variable);
 
-                self.instructions
-                    .push(Comment(format!("{name} = {value}",)));
+                self.instructions.push(Comment(format!("{name} = {value}")));
                 // TODO: This does not cover booleans or other non-aligned types
                 self.instructions.push(Mov(
                     Memory(

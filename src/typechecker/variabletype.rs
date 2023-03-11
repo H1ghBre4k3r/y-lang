@@ -83,7 +83,7 @@ impl VariableType {
             VariableType::Unknown => 8,
             VariableType::Func { .. } => 8,
             VariableType::ArraySlice(_) => 8,
-            VariableType::TupleArray { item_type, size } => 8,
+            VariableType::TupleArray { .. } => 8,
         }
     }
 
@@ -142,6 +142,7 @@ impl VariableType {
                     Err(())
                 }
             }
+            (Str, TupleArray { size, .. }) => todo!(),
             (left, right) => {
                 if left == right {
                     Ok(right.clone())
