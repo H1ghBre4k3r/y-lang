@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use Instruction::*;
 use InstructionOperand::*;
@@ -46,7 +46,7 @@ type ConstantsMap = HashMap<String, Constant>;
 
 type FunctionMap = HashMap<String, Function>;
 
-type ExternSymbols = Vec<String>;
+type ExternSymbols = HashSet<String>;
 
 #[derive(Clone, Debug, Default)]
 pub struct Scope {
@@ -80,7 +80,7 @@ impl Scope {
             constants: HashMap::default(),
             functions: HashMap::default(),
             instructions: vec![],
-            externals: vec![],
+            externals: HashSet::default(),
             var_count: 0,
             stack_offset: 0,
             level_count: level,
@@ -472,7 +472,9 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
-                self.externals.append(&mut function_scope.externals);
+                function_scope.externals.into_iter().for_each(|external| {
+                    self.externals.insert(external);
+                });
 
                 let fn_name = self.var("fn");
 
@@ -504,7 +506,10 @@ impl Scope {
                     self.constants
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
-                self.externals.append(&mut scope.externals);
+
+                scope.externals.into_iter().for_each(|external| {
+                    self.externals.insert(external);
+                });
 
                 self.stack_offset = scope.stack_offset;
             }
@@ -829,7 +834,9 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
-                self.externals.append(&mut function_scope.externals);
+                function_scope.externals.into_iter().for_each(|external| {
+                    self.externals.insert(external);
+                });
 
                 let mut name = name.clone();
 
@@ -981,7 +988,7 @@ impl Scope {
                 _ => unreachable!(),
             }
 
-            self.externals.push("str_len".to_owned());
+            self.externals.insert("str_len".to_owned());
             return;
         } else if name.as_str() == "int_to_str" {
             let param = call.params[0].to_owned();
@@ -1002,7 +1009,7 @@ impl Scope {
                 _ => unreachable!(),
             }
 
-            self.externals.push("int_to_str".to_owned());
+            self.externals.insert("int_to_str".to_owned());
             return;
         }
 
@@ -1033,7 +1040,7 @@ impl Scope {
             Some(source) => {
                 let fn_name = name.split("::").last().unwrap();
                 let fn_name = source.resolve(&fn_name.to_string());
-                self.externals.push(fn_name.clone());
+                self.externals.insert(fn_name.clone());
                 self.instructions.push(Call(fn_name));
             }
             None => {
