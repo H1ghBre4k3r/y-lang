@@ -1,5 +1,7 @@
 # Y Lang
 
+![Crates.io](https://img.shields.io/crates/v/y-lang) [![CI Checks](https://github.com/H1ghBre4k3r/y-lang/actions/workflows/ci_checks.yml/badge.svg?branch=main)](https://github.com/H1ghBre4k3r/y-lang/actions/workflows/ci_checks.yml) ![Crates.io](https://img.shields.io/crates/l/y-lang) ![GitHub issues](https://img.shields.io/github/issues/H1ghBre4k3r/y-lang)
+
 Why would anyone build a new (and rather experimental) language with no real world use case.
 
 ## Design
