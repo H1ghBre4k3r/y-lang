@@ -90,6 +90,8 @@ print(" ")
 printi(b[5])
 print(" ")
 
-let other_returning := () : [char; 13] => {
-    "Hello World!"
-}
+/* let other_returning := () : [char; 13] => { */
+/*     "Hello World!" */
+/* } */
+
+baz([13; 10])

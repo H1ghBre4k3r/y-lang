@@ -111,10 +111,12 @@ impl Scope {
     pub fn compile(&mut self) {
         let statements = self.statements.clone();
 
-        // TODO: This here has to handle arrays/structs differently
         for Parameter { name, info, source } in &self.params {
             match info._type.clone() {
-                VariableType::Void => todo!(),
+                VariableType::Void => {
+                    unimplemented!("Parameters of type void are currently not supported")
+                }
+                // for basic types, we can just copy the value from the register into the stack
                 VariableType::Bool
                 | VariableType::Str
                 | VariableType::Int
@@ -141,6 +143,8 @@ impl Scope {
                         source.to_owned(),
                     ));
                 }
+                // for arrays on the other hand, we need to copy each element from the calling
+                // function into our own stack
                 VariableType::TupleArray { item_type, size } => {
                     self.stack_offset += item_type.size() * size;
                     let variable = Variable {
@@ -504,7 +508,42 @@ impl Scope {
 
                 self.stack_offset = scope.stack_offset;
             }
-            Expression::Array(_) => todo!(),
+            Expression::Array(array) => {
+                self.instructions.push(Comment(format!(
+                    "LOAD [{:?}; {:?}]",
+                    array.initializer, array.size
+                )));
+
+                self.store_array_on_stack(array);
+
+                self.instructions.push(Mov(Register(Rax), Register(Rbp)));
+                self.instructions
+                    .push(Sub(Register(Rax), Immediate(self.stack_offset as i64)));
+            }
+        }
+    }
+
+    fn store_array_on_stack(
+        &mut self,
+        Array {
+            initializer, size, ..
+        }: &Array<TypeInfo>,
+    ) {
+        self.compile_expression(initializer);
+
+        // TODO: Maybe introduce an ASM loop for that
+        for i in 0..size.value {
+            self.instructions.push(Mov(
+                Memory(
+                    InstructionSize::from(initializer.info().clone()),
+                    format!(
+                        "{}-{}",
+                        Rbp,
+                        self.stack_offset as i64 - i * initializer.info().var_size() as i64
+                    ),
+                ),
+                Register(Rax.to_sized(&initializer.info())),
+            ));
         }
     }
 
@@ -714,7 +753,6 @@ impl Scope {
                 self.variables.insert(name.to_owned(), variable);
 
                 self.instructions.push(Comment(format!("{name} = {value}")));
-                // TODO: This does not cover booleans or other non-aligned types
                 self.instructions.push(Mov(
                     Memory(
                         InstructionSize::from(info.clone()),
@@ -799,13 +837,9 @@ impl Scope {
                     Register(Rax),
                 ));
             }
-            Expression::Array(Array {
-                initializer,
-                size,
-                info,
-                ..
-            }) => {
-                self.compile_expression(initializer);
+            Expression::Array(array) => {
+                let info = &array.info;
+                let size = &array.size;
 
                 self.stack_offset += info.var_size() * size.value as usize;
                 let variable = Variable {
@@ -814,23 +848,12 @@ impl Scope {
                 };
                 self.variables.insert(name.to_owned(), variable);
 
-                self.instructions
-                    .push(Comment(format!("{name} = [{initializer:?}; {size:?}]")));
+                self.instructions.push(Comment(format!(
+                    "{name} = [{:?}; {size:?}]",
+                    array.initializer
+                )));
 
-                // TODO: Maybe introduce an ASM loop for that
-                for i in 0..size.value {
-                    self.instructions.push(Mov(
-                        Memory(
-                            InstructionSize::from(initializer.info().clone()),
-                            format!(
-                                "{}-{}",
-                                Rbp,
-                                self.stack_offset as i64 - i * initializer.info().var_size() as i64
-                            ),
-                        ),
-                        Register(Rax.to_sized(&initializer.info())),
-                    ));
-                }
+                self.store_array_on_stack(array);
             }
         };
     }

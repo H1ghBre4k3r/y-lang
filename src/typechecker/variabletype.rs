@@ -71,6 +71,9 @@ impl Display for VariableType {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct VariableConversionError;
+
 impl VariableType {
     pub fn size(&self) -> usize {
         match self {
@@ -110,7 +113,7 @@ impl VariableType {
     }
 
     /// Try to convert this variable type to another. If the conversion is successful, it returns
-    /// the new variable type. If it is not successful, it returns Err(()).
+    /// the new variable type. If it is not successful, it returns Err(VariableConversionError).
     ///
     /// Note the rules:
     ///     - `unknown` can be converted to anything
@@ -118,7 +121,7 @@ impl VariableType {
     ///     - everything can be converted to `any`
     ///     - `any` can not be converted to anything else
     ///     - every basic type can be converted to itself
-    pub fn convert_to(&self, to_convert_to: &Self) -> Result<Self, ()> {
+    pub fn convert_to(&self, to_convert_to: &Self) -> Result<Self, VariableConversionError> {
         use VariableType::*;
         match (self, to_convert_to) {
             (Unknown, other) => Ok(other.clone()),
@@ -130,7 +133,7 @@ impl VariableType {
                 if *other_item_type == Box::new(Char) {
                     Ok(ArraySlice(Box::new(Char)))
                 } else {
-                    Err(())
+                    Err(VariableConversionError)
                 }
             }
             (Char, Int) => Ok(Int),
@@ -139,15 +142,16 @@ impl VariableType {
                 if *item_type == Box::new(Char) {
                     Ok(Str)
                 } else {
-                    Err(())
+                    Err(VariableConversionError)
                 }
             }
-            (Str, TupleArray { size, .. }) => todo!(),
+            // TODO: Allow conversion of same-sized strings to tuple arrays
+            // (Str, TupleArray { size, .. }) => todo!(),
             (left, right) => {
                 if left == right {
                     Ok(right.clone())
                 } else {
-                    Err(())
+                    Err(VariableConversionError)
                 }
             }
         }
@@ -156,7 +160,7 @@ impl VariableType {
 
 #[cfg(test)]
 mod tests {
-    use super::VariableType::*;
+    use super::{VariableConversionError, VariableType::*};
 
     #[test]
     fn test_convert_to_any() {
@@ -167,9 +171,9 @@ mod tests {
 
     #[test]
     fn test_convert_from_any() {
-        assert_eq!(Any.convert_to(&Void), Err(()));
-        assert_eq!(Any.convert_to(&Int), Err(()));
-        assert_eq!(Any.convert_to(&Str), Err(()));
+        assert_eq!(Any.convert_to(&Void), Err(VariableConversionError));
+        assert_eq!(Any.convert_to(&Int), Err(VariableConversionError));
+        assert_eq!(Any.convert_to(&Str), Err(VariableConversionError));
     }
 
     #[test]
@@ -181,8 +185,8 @@ mod tests {
 
     #[test]
     fn test_conver_to_unknown() {
-        assert_eq!(Int.convert_to(&Unknown), Err(()));
-        assert_eq!(Any.convert_to(&Unknown), Err(()));
-        assert_eq!(Void.convert_to(&Unknown), Err(()));
+        assert_eq!(Int.convert_to(&Unknown), Err(VariableConversionError));
+        assert_eq!(Any.convert_to(&Unknown), Err(VariableConversionError));
+        assert_eq!(Void.convert_to(&Unknown), Err(VariableConversionError));
     }
 }
