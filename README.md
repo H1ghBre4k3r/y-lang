@@ -101,7 +101,8 @@ let bar := if a > b {
 
 Y supports a couple of primitive types which are build directly into the lanuage:
 
--   `int` for numbers (current 32 bit)
+-   `int` for numbers (currently 64 bit)
+-   `char` for characters (8 bit values, therefore, small `ints` can be used)
 -   `str` for string **constants**
 -   `bool` for boolean values
 -   `void` for "empty" values
@@ -177,6 +178,61 @@ In this example, we declare a variable `foo` and assign it a function, which exp
 #### ⚠️ Known Limitations
 
 Currently, you are not able to return functions from other functions or use values which are defined in an outer scope of a function. I am currently figuring out a way to achieve that.
+
+#### Arrays & Indexing
+
+Y contains different ways of working with array-like structures: `TupleArray` and `ArraySlice`.
+
+##### TupleArray
+
+`TupleArray` is the standard array type from other languages. Length and type of the contained elements need to be known at compile time:
+
+```why
+// this creates an array of 10 integers, filled with all 0
+let foo := [0; 10]
+```
+
+Symmetric to this, you can define a type for this:
+
+```why
+let bar := (some_array: [int; 10]): void => { ... }
+```
+
+Accessing an element in this array works by providing an index:
+
+```why
+// get the value at index 5 (i.e., the 6th position)
+let a := some_array[5]
+
+// the the value at index 3
+some_array[3] = 42
+```
+
+##### ArraySlice
+
+On the other hand, `ArraySlice` represents an array of undefined (or unknown) size. Therefore, you can not directly define one, but you can specify it as a type for a function parameter:
+
+```why
+let baz := (some_slice: &[int]): void => { ... }
+```
+
+Indexing works the same as for `TupleArray`.
+
+**Note:** Y (at the point of writing this) does not perform any reliable bounds checks.
+
+##### Indexing Strings
+
+In Y, strings and arrays are (to some extend) convertible to one another. You can index strings the same way as arrays:
+
+```why
+let foo := "Hello, World!"
+foo[2] = 'n'
+print(foo) // "Henlo, World!"
+```
+
+##### Type Conversion
+
+Some types are convertible into other. For example, a `TupleArray` can be converted to an `ArraySlice`, but not the other way around. `ArraySlice` and `TupleArray` of type `char` can be converted into `str` (**you** have to ensure that the last byte is `0`). And, last but not least, `str` can be converted to `ArraySlice` of type `char`.
 
 ### Modules
 
