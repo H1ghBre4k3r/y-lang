@@ -6,9 +6,10 @@ mod variabletype;
 
 use crate::{
     ast::{
-        Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, CompilerDirective,
-        Declaration, Definition, Expression, FnDef, Ident, If, Import, Integer, Intrinsic, Param,
-        Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp, Statement, Str, Type,
+        Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Character,
+        CompilerDirective, Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing,
+        Integer, Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp,
+        Statement, Str, Type,
     },
     loader::Modules,
 };
@@ -16,8 +17,9 @@ use crate::{
 pub use self::fn_extractor::extract_exports;
 pub use self::info::TypeInfo;
 pub use self::typescope::TypeScope;
+pub use self::variabletype::VariableType;
 
-use self::{error::TypeError, typescope::setup_scope, variabletype::VariableType};
+use self::{error::TypeError, typescope::setup_scope};
 
 type TResult<T> = Result<T, TypeError>;
 
@@ -339,46 +341,96 @@ impl Typechecker {
         assignment: &Assignment<()>,
         scope: &mut TypeScope,
     ) -> TResult<Assignment<TypeInfo>> {
-        let ident = &assignment.ident;
+        let lhs = &assignment.lhs;
 
-        if !scope.contains(&ident.value) {
-            return Err(TypeError {
-                message: format!("Undefined identifier '{}'", ident.value),
-                position: ident.position.clone(),
-            });
-        }
+        match lhs {
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Indexing(indexing),
+                lhs: indexing_lhs,
+                position,
+                ..
+            }) => {
+                let indexing_lhs = self.check_expression(None, indexing_lhs, scope)?;
+                let indexing = self.check_indexing(&indexing_lhs, indexing, scope)?;
 
-        if !scope.is_mutable(&ident.value) {
-            return Err(TypeError {
-                message: format!(
+                let assignment_rhs = self.check_expression(None, &assignment.value, scope)?;
+
+                if assignment_rhs
+                    .info()
+                    ._type
+                    .convert_to(&indexing.info._type)
+                    .is_err()
+                {
+                    return Err(TypeError {
+                        message: format!(
+                            "Can not assign value of type '{}' to indexed variable of type '{}'",
+                            assignment_rhs.info()._type,
+                            indexing.info._type
+                        ),
+                        position: assignment.position.clone(),
+                    });
+                }
+
+                Ok(Assignment {
+                    lhs: Expression::Postfix(PostfixExpr {
+                        op: PostfixOp::Indexing(indexing),
+                        lhs: Box::new(indexing_lhs),
+                        position: position.clone(),
+                        info: assignment_rhs.info(),
+                    }),
+                    value: assignment_rhs,
+                    position: assignment.position.clone(),
+                    info: TypeInfo {
+                        source: None,
+                        _type: VariableType::Void,
+                    },
+                })
+            }
+            Expression::Ident(lhs) => {
+                if !scope.contains(&lhs.value) {
+                    return Err(TypeError {
+                        message: format!("Undefined identifier '{}'", lhs.value),
+                        position: lhs.position.clone(),
+                    });
+                }
+
+                if !scope.is_mutable(&lhs.value) {
+                    return Err(TypeError {
+                        message: format!(
                     "Variable '{}' can not be modified, because it is not defined in current scope",
-                    ident.value
+                    lhs.value
                 ),
-                position: ident.position.clone(),
-            });
+                        position: lhs.position.clone(),
+                    });
+                }
+
+                let assignment_rhs = self.check_expression(Some(lhs), &assignment.value, scope)?;
+
+                scope.update(
+                    &lhs.value,
+                    assignment_rhs.info()._type,
+                    &assignment.position,
+                )?;
+
+                Ok(Assignment {
+                    lhs: Expression::Ident(Ident {
+                        position: lhs.position.clone(),
+                        value: lhs.value.clone(),
+                        info: assignment_rhs.info(),
+                    }),
+                    value: assignment_rhs,
+                    position: assignment.position.clone(),
+                    info: TypeInfo {
+                        source: None,
+                        _type: VariableType::Void,
+                    },
+                })
+            }
+            _ => Err(TypeError {
+                message: format!("Invalid lvalue of assignment '{lhs:?}'"),
+                position: lhs.position(),
+            }),
         }
-
-        let assignment_rhs = self.check_expression(Some(ident), &assignment.value, scope)?;
-
-        scope.update(
-            &ident.value,
-            assignment_rhs.info()._type,
-            &assignment.position,
-        )?;
-
-        Ok(Assignment {
-            ident: Ident {
-                position: ident.position.clone(),
-                value: ident.value.clone(),
-                info: assignment_rhs.info(),
-            },
-            value: assignment_rhs,
-            position: assignment.position.clone(),
-            info: TypeInfo {
-                source: None,
-                _type: VariableType::Void,
-            },
-        })
     }
 
     fn check_expression(
@@ -433,6 +485,50 @@ impl Typechecker {
                 Expression::FnDef(self.check_fn_def(identifier, fn_def, scope)?)
             }
             Expression::Block(block) => Expression::Block(self.check_block(block, scope)?),
+            Expression::Array(array) => Expression::Array(self.check_array(array, scope)?),
+            Expression::Character(Character {
+                value, position, ..
+            }) => Expression::Character(Character {
+                value: *value,
+                position: position.clone(),
+                info: TypeInfo {
+                    _type: VariableType::Char,
+                    source: None,
+                },
+            }),
+        })
+    }
+
+    fn check_array(
+        &self,
+        Array {
+            initializer,
+            size,
+            position,
+            ..
+        }: &Array<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<Array<TypeInfo>> {
+        let initializer = self.check_expression(None, initializer, scope)?;
+
+        Ok(Array {
+            initializer: Box::new(initializer.clone()),
+            size: size.to_owned(),
+            position: position.to_owned(),
+            info: TypeInfo {
+                _type: VariableType::TupleArray {
+                    item_type: Box::new(initializer.info()._type),
+                    size: if size.value >= 0 {
+                        size.value as usize
+                    } else {
+                        return Err(TypeError {
+                            message: "Negative length arrays are not supported!".to_string(),
+                            position: position.clone(),
+                        });
+                    },
+                },
+                source: initializer.info()._type.get_source(),
+            },
         })
     }
 
@@ -479,6 +575,26 @@ impl Typechecker {
                     return_type: Box::new(return_type),
                     params: fn_params,
                     source: None,
+                })
+            }
+            Type::ArraySlice(item_type) => {
+                let item_type = Self::get_type_def(item_type, position)?;
+
+                Ok(VariableType::ArraySlice(Box::new(item_type)))
+            }
+            Type::TupleArray { item_type, size } => {
+                let item_type = Self::get_type_def(item_type, position.clone())?;
+
+                Ok(VariableType::TupleArray {
+                    item_type: Box::new(item_type),
+                    size: if size.value >= 0 {
+                        size.value as usize
+                    } else {
+                        return Err(TypeError {
+                            message: "Negative length arrays are not supported!".to_string(),
+                            position,
+                        });
+                    },
                 })
             }
         }
@@ -813,6 +929,58 @@ impl Typechecker {
                     info,
                 })
             }
+            PostfixOp::Indexing(indexing) => {
+                let lhs = self.check_expression(None, &postfix_expression.lhs, scope)?;
+                let indexing = self.check_indexing(&lhs, &indexing, scope)?;
+
+                Ok(PostfixExpr {
+                    op: PostfixOp::Indexing(indexing.clone()),
+                    lhs: Box::new(lhs),
+                    position: postfix_expression.position,
+                    info: indexing.info,
+                })
+            }
+        }
+    }
+
+    fn check_indexing(
+        &self,
+        lhs: &Expression<TypeInfo>,
+        Indexing {
+            index, position, ..
+        }: &Indexing<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<Indexing<TypeInfo>> {
+        let Expression::Integer(index) = self.check_expression(None, index, scope)? else {
+            unimplemented!("Indexing with a non-numeric index is currently not supported")
+        };
+
+        match lhs.info()._type {
+            VariableType::ArraySlice(item_type) => Ok(Indexing {
+                index: Box::new(Expression::Integer(index)),
+                position: position.to_owned(),
+                info: TypeInfo {
+                    _type: *item_type.clone(),
+                    source: item_type.get_source(),
+                },
+            }),
+            VariableType::TupleArray { item_type, .. } => Ok(Indexing {
+                index: Box::new(Expression::Integer(index)),
+                position: position.to_owned(),
+                info: TypeInfo {
+                    _type: *item_type.clone(),
+                    source: item_type.get_source(),
+                },
+            }),
+            VariableType::Str => Ok(Indexing {
+                index: Box::new(Expression::Integer(index)),
+                position: position.to_owned(),
+                info: TypeInfo {
+                    _type: VariableType::Char,
+                    source: lhs.info()._type.get_source(),
+                },
+            }),
+            _ => unimplemented!("Indexing on non-array types is currently not supported"),
         }
     }
 }

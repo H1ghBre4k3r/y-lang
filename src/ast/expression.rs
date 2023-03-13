@@ -5,8 +5,8 @@ use pest::{
 };
 
 use super::{
-    BinaryExpr, Block, Boolean, FnDef, Ident, If, Integer, Position, PostfixExpr, PrefixExpr, Rule,
-    Str,
+    Array, BinaryExpr, Block, Boolean, Character, FnDef, Ident, If, Integer, Position, PostfixExpr,
+    PrefixExpr, Rule, Str,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -16,11 +16,13 @@ pub enum Expression<T> {
     Prefix(PrefixExpr<T>),
     Postfix(PostfixExpr<T>),
     Integer(Integer<T>),
+    Character(Character<T>),
     Ident(Ident<T>),
     Str(Str<T>),
     FnDef(FnDef<T>),
     Block(Block<T>),
     Boolean(Boolean<T>),
+    Array(Array<T>),
 }
 
 static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
@@ -32,6 +34,7 @@ static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
         .op(Op::infix(Rule::times, Assoc::Left) | Op::infix(Rule::dividedBy, Assoc::Left))
         .op(Op::prefix(Rule::unaryMinus) | Op::prefix(Rule::not))
         .op(Op::postfix(Rule::call))
+        .op(Op::postfix(Rule::indexing))
 });
 
 impl Expression<()> {
@@ -42,12 +45,14 @@ impl Expression<()> {
                 Rule::decimalNumber | Rule::hexNumber => {
                     Expression::Integer(Integer::from_pair(primary, file))
                 }
+                Rule::character => Expression::Character(Character::from_pair(primary, file)),
                 Rule::ident => Expression::Ident(Ident::from_pair(primary, file)),
                 Rule::string => Expression::Str(Str::from_pair(primary, file)),
                 Rule::fnDef => Expression::FnDef(FnDef::from_pair(primary, file)),
                 Rule::ifStmt => Expression::If(If::from_pair(primary, file)),
                 Rule::block => Expression::Block(Block::from_pair(primary, file)),
                 Rule::boolean => Expression::Boolean(Boolean::from_pair(primary, file)),
+                Rule::array => Expression::Array(Array::from_pair(primary, file)),
                 rule => unreachable!("Unexpected rule {:?} while parsing primary", rule),
             })
             .map_prefix(|op, rhs| Expression::Prefix(PrefixExpr::from_op_rhs(op, rhs, file)))
@@ -70,11 +75,13 @@ where
             | Expression::Prefix(PrefixExpr { position, .. })
             | Expression::Postfix(PostfixExpr { position, .. })
             | Expression::Integer(Integer { position, .. })
+            | Expression::Character(Character { position, .. })
             | Expression::Ident(Ident { position, .. })
             | Expression::Str(Str { position, .. })
             | Expression::FnDef(FnDef { position, .. })
             | Expression::Block(Block { position, .. })
-            | Expression::Boolean(Boolean { position, .. }) => position.to_owned(),
+            | Expression::Boolean(Boolean { position, .. })
+            | Expression::Array(Array { position, .. }) => position.to_owned(),
         }
     }
 
@@ -85,11 +92,13 @@ where
             | Expression::Prefix(PrefixExpr { info, .. })
             | Expression::Postfix(PostfixExpr { info, .. })
             | Expression::Integer(Integer { info, .. })
+            | Expression::Character(Character { info, .. })
             | Expression::Ident(Ident { info, .. })
             | Expression::Str(Str { info, .. })
             | Expression::FnDef(FnDef { info, .. })
             | Expression::Block(Block { info, .. })
-            | Expression::Boolean(Boolean { info, .. }) => info.clone(),
+            | Expression::Boolean(Boolean { info, .. })
+            | Expression::Array(Array { info, .. }) => info.clone(),
         }
     }
 }

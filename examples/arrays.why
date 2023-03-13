@@ -1,0 +1,100 @@
+import std::*
+
+let foo := [42; 10]
+
+printi(foo[0])
+
+print(" ")
+let bar := (array : &[int]) : void => {
+    printi(array[0])
+    print(" ")
+
+    array[1] = 17
+    printi(array[1])
+    print(" ")
+}
+bar(foo)
+
+printi(foo[1])
+print(" ")
+
+foo[0] = 13;
+
+let baz := (array: [int; 10]) : void => {
+    printi(array[0])
+
+    array[0] = 1337
+
+    print(" ")
+    printi(array[0])
+    print(" ")
+}
+
+baz(foo)
+printi(foo[0])
+print(" ")
+
+let lol := (var : &[char]) : void => {
+    var[1] = 'O'
+}
+
+let test := "Hehe "
+test[3] = 'l'
+
+print(test)
+lol(test)
+print(test)
+
+
+let hello_world := [' '; 13]
+hello_world[0] = 'H'
+hello_world[1] = 'e'
+hello_world[2] = 'l'
+hello_world[3] = 'l'
+hello_world[4] = 'o'
+hello_world[5] = ' '
+hello_world[6] = 'W'
+hello_world[7] = 'o'
+hello_world[8] = 'r'
+hello_world[9] = 'l'
+hello_world[10] = 'd'
+hello_world[11] = '!'
+hello_world[12] = 0
+print(hello_world)
+print(" ")
+
+let returning := () : [int; 10] => {
+    let a := [0; 10]
+    a[1] = 1
+    a[2] = 2
+    a[3] = 3
+    a[4] = 4
+    a[5] = 5
+    a[6] = 6
+    a[7] = 7
+    a[8] = 8
+    a[9] = 9
+    a
+}
+
+let a := returning()
+
+printi(a[5])
+print(" ")
+a[5] = 10
+
+let b := returning()
+
+printi(a[5])
+print(" ")
+printi(b[5])
+print(" ")
+
+/* TODO: str should be able to converted to TupleArray */
+/* let other_returning := () : [char; 13] => { */
+/*     "Hello World!" */
+/* } */
+
+baz([13; 10])
+
+let asd := test[0]

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use Instruction::*;
 use InstructionOperand::*;
@@ -7,16 +7,17 @@ use Reg::*;
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
-        Assignment, BinaryOp, Block, Boolean, Call, CompilerDirective, Definition, Expression,
-        Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
+        Array, Assignment, BinaryOp, Block, Boolean, Call, Character, CompilerDirective,
+        Definition, Expression, Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
     },
     loader::Module,
-    typechecker::TypeInfo,
+    typechecker::{TypeInfo, VariableType},
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Variable {
     offset: usize,
+    _type: VariableType,
 }
 
 #[derive(Debug, Clone)]
@@ -45,7 +46,7 @@ type ConstantsMap = HashMap<String, Constant>;
 
 type FunctionMap = HashMap<String, Function>;
 
-type ExternSymbols = Vec<String>;
+type ExternSymbols = HashSet<String>;
 
 #[derive(Clone, Debug, Default)]
 pub struct Scope {
@@ -79,7 +80,7 @@ impl Scope {
             constants: HashMap::default(),
             functions: HashMap::default(),
             instructions: vec![],
-            externals: vec![],
+            externals: HashSet::default(),
             var_count: 0,
             stack_offset: 0,
             level_count: level,
@@ -111,22 +112,70 @@ impl Scope {
         let statements = self.statements.clone();
 
         for Parameter { name, info, source } in &self.params {
-            self.stack_offset += info.var_size();
+            match info._type.clone() {
+                VariableType::Void => {
+                    unimplemented!("Parameters of type void are currently not supported")
+                }
+                // for basic types, we can just copy the value from the register into the stack
+                VariableType::Bool
+                | VariableType::Str
+                | VariableType::Int
+                | VariableType::Char
+                | VariableType::Any
+                | VariableType::Unknown
+                | VariableType::Func { .. }
+                | VariableType::ArraySlice(_) => {
+                    self.stack_offset += info.var_size();
 
-            let variable = Variable {
-                offset: self.stack_offset,
-            };
-            self.variables.insert(name.to_owned(), variable);
-            self.instructions
-                .push(Comment(format!("{name} = {source}")));
+                    let variable = Variable {
+                        offset: self.stack_offset,
+                        _type: info._type.clone(),
+                    };
+                    self.variables.insert(name.to_owned(), variable);
+                    self.instructions
+                        .push(Comment(format!("{name} = {source}")));
 
-            self.instructions.push(Mov(
-                Memory(
-                    InstructionSize::from(info.clone()),
-                    format!("{}-{}", Rbp, self.stack_offset),
-                ),
-                source.to_owned(),
-            ));
+                    self.instructions.push(Mov(
+                        Memory(
+                            InstructionSize::from(info.clone()),
+                            format!("{}-{}", Rbp, self.stack_offset),
+                        ),
+                        source.to_owned(),
+                    ));
+                }
+                // for arrays on the other hand, we need to copy each element from the calling
+                // function into our own stack
+                VariableType::TupleArray { item_type, size } => {
+                    self.stack_offset += item_type.size() * size;
+                    let variable = Variable {
+                        offset: self.stack_offset,
+                        _type: info._type.clone(),
+                    };
+                    self.variables.insert(name.to_owned(), variable);
+                    self.instructions
+                        .push(Comment(format!("{name} = {source}")));
+                    for i in 0..size {
+                        self.instructions.push(Mov(
+                            Register(Rax.to_sized(info)),
+                            Memory(
+                                InstructionSize::from(info.clone()),
+                                format!("{}+{}", source, i as i64 * item_type.size() as i64),
+                            ),
+                        ));
+                        self.instructions.push(Mov(
+                            Memory(
+                                InstructionSize::from(info.clone()),
+                                format!(
+                                    "{}-{}",
+                                    Rbp,
+                                    self.stack_offset as i64 - i as i64 * item_type.size() as i64
+                                ),
+                            ),
+                            Register(Rax.to_sized(info)),
+                        ));
+                    }
+                }
+            }
         }
 
         for node in statements {
@@ -295,11 +344,35 @@ impl Scope {
                     "Compiling calls on non-identifier expressions is not supported yet!"
                 ),
             },
+            Expression::Postfix(PostfixExpr {
+                lhs,
+                op: PostfixOp::Indexing(indexing),
+                ..
+            }) => {
+                self.compile_expression(&indexing.index);
+                self.instructions.push(Push(Rax));
+
+                self.compile_expression(lhs);
+
+                self.instructions.push(Pop(Rcx));
+                self.instructions.push(Mov(
+                    Register(Rax.to_sized(&indexing.info)),
+                    Memory(
+                        InstructionSize::from(indexing.info.clone()),
+                        format!("{Rax} + {Rcx} * {}", indexing.info.var_size()),
+                    ),
+                ))
+            }
             Expression::Integer(integer) => {
                 let value = integer.value;
                 self.instructions.push(Comment(format!("LOAD {value}")));
                 self.instructions
                     .push(Mov(Register(Rax.to_sized(&integer.info)), Immediate(value)));
+            }
+            Expression::Character(Character { value, info, .. }) => {
+                self.instructions.push(Comment(format!("LOAD '{value}'")));
+                self.instructions
+                    .push(Mov(Register(Rax.to_sized(info)), Immediate(*value as i64)));
             }
             Expression::Boolean(boolean) => {
                 self.instructions.push(Comment(format!("LOAD {boolean:?}")));
@@ -319,13 +392,22 @@ impl Scope {
                     .push(Comment(format!("LOAD {identifier}")));
                 if let Some(variable) = self.variables.get(identifier) {
                     let offset = variable.offset;
-                    self.instructions.push(Mov(
-                        Register(Rax.to_sized(info)),
-                        Memory(
-                            InstructionSize::from(info.clone()),
-                            format!("{Rbp}-{offset}"),
-                        ),
-                    ));
+                    match variable._type {
+                        VariableType::TupleArray { .. } => {
+                            self.instructions.push(Mov(Register(Rax), Register(Rbp)));
+                            self.instructions
+                                .push(Sub(Register(Rax), Immediate(offset as i64)));
+                        }
+                        _ => {
+                            self.instructions.push(Mov(
+                                Register(Rax.to_sized(info)),
+                                Memory(
+                                    InstructionSize::from(info.clone()),
+                                    format!("{Rbp}-{offset}"),
+                                ),
+                            ));
+                        }
+                    }
                 } else if let Some(constant) = self.constants.get(identifier) {
                     self.instructions.push(Lea(
                         Register(Rax.to_sized(info)),
@@ -390,7 +472,9 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
-                self.externals.append(&mut function_scope.externals);
+                function_scope.externals.into_iter().for_each(|external| {
+                    self.externals.insert(external);
+                });
 
                 let fn_name = self.var("fn");
 
@@ -422,10 +506,49 @@ impl Scope {
                     self.constants
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
-                self.externals.append(&mut scope.externals);
+
+                scope.externals.into_iter().for_each(|external| {
+                    self.externals.insert(external);
+                });
 
                 self.stack_offset = scope.stack_offset;
             }
+            Expression::Array(array) => {
+                self.instructions.push(Comment(format!(
+                    "LOAD [{:?}; {:?}]",
+                    array.initializer, array.size
+                )));
+
+                self.store_array_on_stack(array);
+
+                self.instructions.push(Mov(Register(Rax), Register(Rbp)));
+                self.instructions
+                    .push(Sub(Register(Rax), Immediate(self.stack_offset as i64)));
+            }
+        }
+    }
+
+    fn store_array_on_stack(
+        &mut self,
+        Array {
+            initializer, size, ..
+        }: &Array<TypeInfo>,
+    ) {
+        self.compile_expression(initializer);
+
+        // TODO: Maybe introduce an ASM loop for that
+        for i in 0..size.value {
+            self.instructions.push(Mov(
+                Memory(
+                    InstructionSize::from(initializer.info().clone()),
+                    format!(
+                        "{}-{}",
+                        Rbp,
+                        self.stack_offset as i64 - i * initializer.info().var_size() as i64
+                    ),
+                ),
+                Register(Rax.to_sized(&initializer.info())),
+            ));
         }
     }
 
@@ -449,6 +572,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -462,10 +586,30 @@ impl Scope {
                     Immediate(*value),
                 ));
             }
+            Expression::Character(Character { value, info, .. }) => {
+                self.stack_offset += info.var_size();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                    _type: info._type.clone(),
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{name} = '{value}'")));
+
+                self.instructions.push(Mov(
+                    Memory(
+                        InstructionSize::from(info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Immediate(*value as i64),
+                ));
+            }
             Expression::Boolean(Boolean { value, info, .. }) => {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -491,6 +635,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -513,6 +658,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -532,14 +678,86 @@ impl Scope {
             Expression::Prefix(_) => {
                 unimplemented!("Definitions cannot be generated from prefix expressions yet")
             }
-            Expression::Postfix(postfix_expr) => {
-                let PostfixOp::Call(call) = postfix_expr.op.clone();
-
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Call(call),
+                info,
+                ..
+            }) => {
                 self.compile_expression(&definition.value);
 
-                self.stack_offset += call.info.var_size();
+                match call.info._type.clone() {
+                    VariableType::Void
+                    | VariableType::Bool
+                    | VariableType::Str
+                    | VariableType::Int
+                    | VariableType::Char
+                    | VariableType::Any
+                    | VariableType::Unknown
+                    | VariableType::Func { .. }
+                    | VariableType::ArraySlice(_) => {
+                        self.stack_offset += call.info.var_size();
+                        let variable = Variable {
+                            offset: self.stack_offset,
+                            _type: info._type.clone(),
+                        };
+                        self.variables.insert(name.to_owned(), variable);
+
+                        self.instructions
+                            .push(Comment(format!("{name} = {:?}", definition.value)));
+
+                        self.instructions.push(Mov(
+                            Memory(
+                                InstructionSize::from(call.info.clone()),
+                                format!("{}-{}", Rbp, self.stack_offset),
+                            ),
+                            Register(Rax.to_sized(&call.info)),
+                        ));
+                    }
+                    VariableType::TupleArray { item_type, size } => {
+                        self.stack_offset += item_type.size() * size;
+                        let variable = Variable {
+                            offset: self.stack_offset,
+                            _type: info._type.clone(),
+                        };
+                        self.variables.insert(name.to_owned(), variable);
+
+                        self.instructions
+                            .push(Comment(format!("{name} = {:?}", definition.value)));
+                        for i in 0..size {
+                            self.instructions.push(Mov(
+                                Register(Rcx.to_sized(info)),
+                                Memory(
+                                    InstructionSize::from(info.clone()),
+                                    format!("{}+{}", Rax, i as i64 * item_type.size() as i64),
+                                ),
+                            ));
+                            self.instructions.push(Mov(
+                                Memory(
+                                    InstructionSize::from(info.clone()),
+                                    format!(
+                                        "{}-{}",
+                                        Rbp,
+                                        self.stack_offset as i64
+                                            - i as i64 * item_type.size() as i64
+                                    ),
+                                ),
+                                Register(Rcx.to_sized(info)),
+                            ));
+                        }
+                    }
+                }
+            }
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Indexing(indexing),
+                info,
+                ..
+            }) => {
+                self.compile_expression(&definition.value);
+
+                self.stack_offset += indexing.info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -548,10 +766,10 @@ impl Scope {
 
                 self.instructions.push(Mov(
                     Memory(
-                        InstructionSize::from(call.info.clone()),
+                        InstructionSize::from(indexing.info.clone()),
                         format!("{}-{}", Rbp, self.stack_offset),
                     ),
-                    Register(Rax.to_sized(&call.info)),
+                    Register(Rax.to_sized(&indexing.info)),
                 ));
             }
             Expression::Ident(Ident { value, info, .. }) => {
@@ -559,12 +777,11 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
-                self.instructions
-                    .push(Comment(format!("{name} = {value}",)));
-                // TODO: This does not cover booleans or other non-aligned types
+                self.instructions.push(Comment(format!("{name} = {value}")));
                 self.instructions.push(Mov(
                     Memory(
                         InstructionSize::from(info.clone()),
@@ -617,7 +834,9 @@ impl Scope {
                         .insert(identifier.to_owned(), constant.to_owned());
                 }
 
-                self.externals.append(&mut function_scope.externals);
+                function_scope.externals.into_iter().for_each(|external| {
+                    self.externals.insert(external);
+                });
 
                 let mut name = name.clone();
 
@@ -634,6 +853,7 @@ impl Scope {
                 self.stack_offset += info.var_size();
                 let variable = Variable {
                     offset: self.stack_offset,
+                    _type: info._type.clone(),
                 };
                 self.variables.insert(name.to_owned(), variable);
 
@@ -648,6 +868,24 @@ impl Scope {
                     Register(Rax),
                 ));
             }
+            Expression::Array(array) => {
+                let info = &array.info;
+                let size = &array.size;
+
+                self.stack_offset += info.var_size() * size.value as usize;
+                let variable = Variable {
+                    offset: self.stack_offset,
+                    _type: info._type.clone(),
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions.push(Comment(format!(
+                    "{name} = [{:?}; {size:?}]",
+                    array.initializer
+                )));
+
+                self.store_array_on_stack(array);
+            }
         };
     }
 
@@ -655,19 +893,62 @@ impl Scope {
         let value = &assignment.value;
         self.compile_expression(value);
 
-        let identifier = &assignment.ident;
-        let info = &identifier.info;
+        let lhs = &assignment.lhs;
 
-        if let Some(variable) = self.variables.get(&identifier.value) {
-            self.instructions
-                .push(Comment(format!("{} = {value:?}", identifier.value)));
-            self.instructions.push(Mov(
-                Memory(
-                    InstructionSize::from(info.clone()),
-                    format!("{}-{}", Rbp, variable.offset),
-                ),
-                Register(Rax.to_sized(info)),
-            ));
+        match lhs {
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Indexing(indexing),
+                lhs,
+                ..
+            }) => {
+                self.instructions
+                    .push(Comment(format!("{lhs:?} = {value:?}")));
+
+                // rvalue -> stack
+                self.instructions.push(Push(Rax));
+
+                // index -> rax
+                self.compile_expression(&indexing.index);
+
+                // index -> stack
+                self.instructions.push(Push(Rax));
+
+                // lvalue -> rax
+                self.compile_expression(lhs);
+
+                // lvalue -> R8
+                self.instructions.push(Mov(Register(R8), Register(Rax)));
+
+                // index -> Rcx
+                self.instructions.push(Pop(Rcx));
+
+                // rvalue -> Rax
+                self.instructions.push(Pop(Rax));
+
+                // rvalue -> lvalue[index]
+                self.instructions.push(Mov(
+                    Memory(
+                        InstructionSize::from(indexing.info.clone()),
+                        format!("{R8} + {Rcx} * {}", indexing.info.var_size()),
+                    ),
+                    Register(Rax.to_sized(&indexing.info)),
+                ));
+            }
+            Expression::Ident(identifier) => {
+                let info = &identifier.info;
+                if let Some(variable) = self.variables.get(&identifier.value) {
+                    self.instructions
+                        .push(Comment(format!("{} = {value:?}", identifier.value)));
+                    self.instructions.push(Mov(
+                        Memory(
+                            InstructionSize::from(info.clone()),
+                            format!("{}-{}", Rbp, variable.offset),
+                        ),
+                        Register(Rax.to_sized(info)),
+                    ));
+                }
+            }
+            _ => {}
         }
     }
 
@@ -707,7 +988,7 @@ impl Scope {
                 _ => unreachable!(),
             }
 
-            self.externals.push("str_len".to_owned());
+            self.externals.insert("str_len".to_owned());
             return;
         } else if name.as_str() == "int_to_str" {
             let param = call.params[0].to_owned();
@@ -728,7 +1009,7 @@ impl Scope {
                 _ => unreachable!(),
             }
 
-            self.externals.push("int_to_str".to_owned());
+            self.externals.insert("int_to_str".to_owned());
             return;
         }
 
@@ -759,7 +1040,7 @@ impl Scope {
             Some(source) => {
                 let fn_name = name.split("::").last().unwrap();
                 let fn_name = source.resolve(&fn_name.to_string());
-                self.externals.push(fn_name.clone());
+                self.externals.insert(fn_name.clone());
                 self.instructions.push(Call(fn_name));
             }
             None => {

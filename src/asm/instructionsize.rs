@@ -5,6 +5,7 @@ use crate::typechecker::TypeInfo;
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum InstructionSize {
+    None = 0,
     /// size for working with 1 byte
     Byte = 1,
 
@@ -21,6 +22,7 @@ pub enum InstructionSize {
 impl Display for InstructionSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
+            InstructionSize::None => "",
             InstructionSize::Byte => "byte",
             InstructionSize::Word => "word",
             InstructionSize::Dword => "dword",

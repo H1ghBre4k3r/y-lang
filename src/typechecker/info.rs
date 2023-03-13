@@ -4,7 +4,7 @@ use super::variabletype::VariableType;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct TypeInfo {
-    pub(super) _type: VariableType,
+    pub _type: VariableType,
     pub source: Option<Module<TypeInfo>>,
 }
 

@@ -24,13 +24,21 @@ definition = { "let " ~ mutKeyword? ~ localIdent ~ ":=" ~ expr }
 
 mutKeyword = { "mut " }
 
-assignment = { localIdent ~ "=" ~ expr }
+assignment = { (expr | localIdent) ~ "=" ~ expr }
 
 typeName = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 fnType = { "(" ~ ( variableType ~ ("," ~ variableType )* )? ~ ")" ~ "->" ~ typeName }
 
-variableType = _{ typeName | fnType }
+variableType = _{ arrayType | primtiveType }
+
+primtiveType = _{ typeName | fnType }
+
+arrayType = _{ tupleArray | arraySlice }
+
+tupleArray = { "[" ~ variableType ~ ";" ~ integer ~ "]" }
+
+arraySlice = { "&[" ~ variableType ~ "]" }
 
 typeAnnotation = { ":" ~ variableType }
 
@@ -48,8 +56,9 @@ expr = { prefix* ~ primaryExpr ~ postfix* ~ (infix ~ prefix* ~ primaryExpr ~ pos
     prefix = _{ unaryMinus | not }
         unaryMinus = { "-" }
         not = { "!" }
-    postfix = _{ call }
+    postfix = _{ call | indexing }
         call = { "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
+        indexing = { "[" ~ expr ~ "]" }
     infix = _{ binaryOp }
     binaryOp = _{ greaterThan | lessThan | equal | plus | minus | times | dividedBy }
         greaterThan = { ">" }
@@ -63,7 +72,15 @@ expr = { prefix* ~ primaryExpr ~ postfix* ~ (infix ~ prefix* ~ primaryExpr ~ pos
 primaryExpr = _{ atomExpr | "(" ~ expr ~ ")" }
 
 atomExpr = _{
-    ifStmt | integer | boolean | ident | string | fnDef | block 
+    primitive | ifStmt | ident | fnDef | block | array
+}
+
+primitive = _{
+    integer | boolean | string | character 
+}
+
+array = {
+    "[" ~ expr ~ ";" ~ integer ~ "]"
 }
 
 string = ${ "\"" ~ inner ~ "\"" }
@@ -73,6 +90,9 @@ char = {
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
+
+character = ${ "'" ~ inner_char ~ "'" }
+inner_char = { ANY }
 
 block = { "{" ~ stmt* ~ "}"}
 
