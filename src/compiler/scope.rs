@@ -673,12 +673,11 @@ impl Scope {
             Expression::Prefix(_) => {
                 unimplemented!("Definitions cannot be generated from prefix expressions yet")
             }
-            Expression::Postfix(postfix_expr) => {
-                let PostfixOp::Call(call) = postfix_expr.op.clone() else {
-                    todo!()
-                };
-                let info = postfix_expr.info.clone();
-
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Call(call),
+                info,
+                ..
+            }) => {
                 self.compile_expression(&definition.value);
 
                 match call.info._type.clone() {
@@ -694,7 +693,7 @@ impl Scope {
                         self.stack_offset += call.info.var_size();
                         let variable = Variable {
                             offset: self.stack_offset,
-                            _type: info._type,
+                            _type: info._type.clone(),
                         };
                         self.variables.insert(name.to_owned(), variable);
 
@@ -721,7 +720,7 @@ impl Scope {
                             .push(Comment(format!("{name} = {:?}", definition.value)));
                         for i in 0..size {
                             self.instructions.push(Mov(
-                                Register(Rcx.to_sized(&info)),
+                                Register(Rcx.to_sized(info)),
                                 Memory(
                                     InstructionSize::from(info.clone()),
                                     format!("{}+{}", Rax, i as i64 * item_type.size() as i64),
@@ -737,11 +736,36 @@ impl Scope {
                                             - i as i64 * item_type.size() as i64
                                     ),
                                 ),
-                                Register(Rcx.to_sized(&info)),
+                                Register(Rcx.to_sized(info)),
                             ));
                         }
                     }
                 }
+            }
+            Expression::Postfix(PostfixExpr {
+                op: PostfixOp::Indexing(indexing),
+                info,
+                ..
+            }) => {
+                self.compile_expression(&definition.value);
+
+                self.stack_offset += indexing.info.var_size();
+                let variable = Variable {
+                    offset: self.stack_offset,
+                    _type: info._type.clone(),
+                };
+                self.variables.insert(name.to_owned(), variable);
+
+                self.instructions
+                    .push(Comment(format!("{name} = {:?}", definition.value)));
+
+                self.instructions.push(Mov(
+                    Memory(
+                        InstructionSize::from(indexing.info.clone()),
+                        format!("{}-{}", Rbp, self.stack_offset),
+                    ),
+                    Register(Rax.to_sized(&indexing.info)),
+                ));
             }
             Expression::Ident(Ident { value, info, .. }) => {
                 self.compile_expression(&definition.value);
