@@ -90,6 +90,7 @@ print(" ")
 printi(b[5])
 print(" ")
 
+/* TODO: str should be able to converted to TupleArray */
 /* let other_returning := () : [char; 13] => { */
 /*     "Hello World!" */
 /* } */
