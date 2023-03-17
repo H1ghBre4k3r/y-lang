@@ -120,6 +120,11 @@ impl VariableType {
     ///     - nothing can be converted to `unknown` (except `unknown` itself)
     ///     - everything can be converted to `any`
     ///     - `any` can not be converted to anything else
+    ///     - `[type; X]` can be converted to `&[type]`
+    ///     - `str` -> `&[char]`
+    ///     - `[char; X]` -> `str`
+    ///     - `char` -> `int`
+    ///     - `int` -> `char` (careful - there are no bound checks)
     ///     - every basic type can be converted to itself
     pub fn convert_to(&self, to_convert_to: &Self) -> Result<Self, VariableConversionError> {
         use VariableType::*;

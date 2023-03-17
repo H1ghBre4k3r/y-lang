@@ -14,8 +14,11 @@
     "type": "git",
     "url": "https://github.com/H1ghBre4k3r/y-lang.git"
   },
+  "main": "./out/extension",
   "scripts": {
-    "compile": "echo No compilation needed!",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b",
+    "watch": "tsc -b -w",
     "package-extension": "vsce package"
   },
   "contributes": {
@@ -41,6 +44,12 @@
     ]
   },
   "devDependencies": {
+    "@types/node": "^18.15.2",
+    "@types/vscode": "^1.76.0",
+    "typescript": "^4.9.5",
     "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
   }
 }
