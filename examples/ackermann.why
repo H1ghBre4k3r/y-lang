@@ -14,4 +14,4 @@ let f := (x : int, y : int) : int => {
 
 let val := f(3, 1)
 
-printi(val)
+printi()
