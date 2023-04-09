@@ -9,6 +9,7 @@ use crate::{
     ast::{
         Array, Assignment, BinaryOp, Block, Boolean, Call, Character, CompilerDirective,
         Definition, Expression, Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
+        WhileLoop,
     },
     loader::Module,
     typechecker::{TypeInfo, VariableType},
@@ -556,10 +557,31 @@ impl Scope {
         match intrinsic {
             Intrinsic::Definition(definition) => self.compile_definition(definition),
             Intrinsic::Assignment(assignment) => self.compile_assignment(assignment),
-            Intrinsic::WhileLoop(while_loop) => todo!(),
+            Intrinsic::WhileLoop(while_loop) => self.compile_while_loop(while_loop),
             // TODO: Maybe compile as "extern"
             Intrinsic::Declaration(_) => (),
         }
+    }
+
+    fn compile_while_loop(&mut self, while_loop: &WhileLoop<TypeInfo>) {
+        let condition = &while_loop.condition;
+        let block = &while_loop.block;
+
+        let while_label = self.var("while");
+        let end_label = format!(".{while_label}_end");
+
+        self.instructions.push(Label(while_label.clone()));
+
+        self.compile_expression(condition);
+
+        self.instructions
+            .push(Cmp(Register(Rax.to_sized(&condition.info())), Immediate(0)));
+        self.instructions.push(Je(end_label.clone()));
+
+        self.compile_expression(&Expression::Block(block.to_owned()));
+
+        self.instructions.push(Jmp(while_label));
+        self.instructions.push(Label(end_label));
     }
 
     fn compile_definition(&mut self, definition: &Definition<TypeInfo>) {
