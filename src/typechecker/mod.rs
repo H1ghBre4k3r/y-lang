@@ -219,6 +219,7 @@ impl Typechecker {
             Intrinsic::Declaration(declaration) => {
                 Intrinsic::Declaration(self.check_declaration(declaration, scope)?)
             }
+            Intrinsic::WhileLoop(while_loop) => todo!(),
         })
     }
 

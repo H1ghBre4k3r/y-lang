@@ -556,6 +556,7 @@ impl Scope {
         match intrinsic {
             Intrinsic::Definition(definition) => self.compile_definition(definition),
             Intrinsic::Assignment(assignment) => self.compile_assignment(assignment),
+            Intrinsic::WhileLoop(while_loop) => todo!(),
             // TODO: Maybe compile as "extern"
             Intrinsic::Declaration(_) => (),
         }
