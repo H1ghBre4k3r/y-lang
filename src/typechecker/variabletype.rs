@@ -23,6 +23,7 @@ pub enum VariableType {
         item_type: Box<VariableType>,
         size: usize,
     },
+    Reference(Box<VariableType>),
 }
 
 pub struct VariableParseError(String);
@@ -63,6 +64,7 @@ impl Display for VariableType {
             } => format!("{params:?} -> {return_value:?}"),
             ArraySlice(item_type) => format!("&[{item_type}]"),
             TupleArray { item_type, size } => format!("[{item_type}; {size}]"),
+            Reference(item_type) => format!("&{item_type}"),
         };
 
         f.write_str(value)
@@ -85,6 +87,7 @@ impl VariableType {
             VariableType::Func { .. } => 8,
             VariableType::ArraySlice(_) => 8,
             VariableType::TupleArray { .. } => 8,
+            VariableType::Reference(_) => 8,
         }
     }
 
@@ -143,6 +146,8 @@ impl VariableType {
                     Err(VariableConversionError)
                 }
             }
+            (Reference(inner), right) => inner.convert_to(right),
+            (left, Reference(inner)) => left.convert_to(inner),
             // TODO: Allow conversion of same-sized strings to tuple arrays
             // (Str, TupleArray { size, .. }) => todo!(),
             (left, right) => {

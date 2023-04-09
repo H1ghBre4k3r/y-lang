@@ -38,7 +38,9 @@ fnType = { "(" ~ ( variableType ~ ("," ~ variableType )* )? ~ ")" ~ "->" ~ typeN
 
 variableType = _{ arrayType | primtiveType }
 
-primtiveType = _{ typeName | fnType }
+primtiveType = _{ typeName | fnType | reference }
+
+reference = { "&" ~ typeName }
 
 arrayType = _{ tupleArray | arraySlice }
 

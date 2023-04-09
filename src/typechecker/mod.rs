@@ -665,6 +665,9 @@ impl Typechecker {
                     },
                 })
             }
+            Type::Reference(type_) => Ok(VariableType::Reference(Box::new(Self::get_type_def(
+                type_, position,
+            )?))),
         }
     }
 
@@ -688,7 +691,7 @@ impl Typechecker {
                 param.type_annotation.position.clone(),
             )?;
 
-            scope.set(&param.ident.value, param_type.clone(), false);
+            scope.set(&param.ident.value, param_type.clone(), true);
             params.push(param_type);
         }
 
@@ -845,7 +848,7 @@ impl Typechecker {
 
         match binary_expression.op {
             BinaryOp::Equal => {
-                if l_type != r_type {
+                if l_type.convert_to(&r_type).is_err() {
                     return Err(TypeError {
                         message: format!(
                         "Left and right value of binary operation do not match! ('{l_type}' and '{r_type}')"
@@ -865,7 +868,9 @@ impl Typechecker {
                 })
             }
             BinaryOp::LessThan | BinaryOp::GreaterThan => {
-                if l_type != VariableType::Int || r_type != VariableType::Int {
+                if l_type.convert_to(&VariableType::Int).is_err()
+                    || r_type.convert_to(&VariableType::Int).is_err()
+                {
                     return Err(TypeError {
                         message: format!(
                             "Invalid types for binary operation '{}'. Got '{}' and '{}'",
@@ -886,14 +891,14 @@ impl Typechecker {
                 })
             }
             BinaryOp::Plus | BinaryOp::Minus | BinaryOp::Times | BinaryOp::DividedBy => {
-                if l_type != VariableType::Int {
+                if l_type.convert_to(&VariableType::Int).is_err() {
                     return Err(TypeError {
                         message: format!(
                         "Left value of numeric binary operation has to be of type Int. Found '{l_type}'"
                     ),
                         position: lhs.position(),
                     });
-                } else if r_type != VariableType::Int {
+                } else if r_type.convert_to(&VariableType::Int).is_err() {
                     return Err(TypeError {
                         message: format!(
                         "Right value of numeric binary operation has to be of type Int. Found '{r_type}'"

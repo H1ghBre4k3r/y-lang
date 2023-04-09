@@ -1,0 +1,10 @@
+/* import std::* */
+
+let addTwo := (x: &int): void => {
+    x = x + 2
+}
+
+let a := 2
+addTwo(a)
+
+/* printi(a) */

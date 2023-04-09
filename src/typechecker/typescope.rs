@@ -107,7 +107,7 @@ impl TypeScope {
             let mut scope = scope.borrow_mut();
             if let Some(old_variable) = scope.get(name) {
                 let old_type = &old_variable.variable_type;
-                if old_type != &value {
+                if old_type.convert_to(&value).is_err() {
                     return Err(TypeError {
                         message: format!(
                             "Could not assign variable '{name}' with type '{old_type}' a value of type '{value}'"

@@ -125,7 +125,8 @@ impl Scope {
                 | VariableType::Any
                 | VariableType::Unknown
                 | VariableType::Func { .. }
-                | VariableType::ArraySlice(_) => {
+                | VariableType::ArraySlice(_)
+                | VariableType::Reference(_) => {
                     self.stack_offset += info.var_size();
 
                     let variable = Variable {
@@ -409,6 +410,19 @@ impl Scope {
                             self.instructions.push(Mov(Register(Rax), Register(Rbp)));
                             self.instructions
                                 .push(Sub(Register(Rax), Immediate(offset as i64)));
+                        }
+                        VariableType::Reference(_) => {
+                            self.instructions.push(Mov(
+                                Register(Rax.to_sized(info)),
+                                Memory(
+                                    InstructionSize::from(info.clone()),
+                                    format!("{Rbp}-{offset}"),
+                                ),
+                            ));
+                            self.instructions.push(Mov(
+                                Register(Rax.to_sized(info)),
+                                Memory(InstructionSize::from(info.clone()), format!("{Rax}")),
+                            ));
                         }
                         _ => {
                             self.instructions.push(Mov(
@@ -728,7 +742,8 @@ impl Scope {
                     | VariableType::Any
                     | VariableType::Unknown
                     | VariableType::Func { .. }
-                    | VariableType::ArraySlice(_) => {
+                    | VariableType::ArraySlice(_)
+                    | VariableType::Reference(_) => {
                         self.stack_offset += call.info.var_size();
                         let variable = Variable {
                             offset: self.stack_offset,
@@ -1048,6 +1063,7 @@ impl Scope {
         }
 
         for param in call.params.iter() {
+            println!("{param:#?}");
             self.compile_expression(param);
             self.instructions.push(Push(Rax));
         }
