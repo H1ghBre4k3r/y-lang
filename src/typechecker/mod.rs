@@ -9,7 +9,7 @@ use crate::{
         Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Character,
         CompilerDirective, Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing,
         Integer, Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp,
-        Statement, Str, Type,
+        Statement, Str, Type, WhileLoop,
     },
     loader::Modules,
 };
@@ -219,7 +219,40 @@ impl Typechecker {
             Intrinsic::Declaration(declaration) => {
                 Intrinsic::Declaration(self.check_declaration(declaration, scope)?)
             }
-            Intrinsic::WhileLoop(while_loop) => todo!(),
+            Intrinsic::WhileLoop(while_loop) => {
+                Intrinsic::WhileLoop(self.check_while_loop(while_loop, scope)?)
+            }
+        })
+    }
+
+    fn check_while_loop(
+        &self,
+        WhileLoop {
+            condition,
+            block,
+            position,
+            ..
+        }: &WhileLoop<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<WhileLoop<TypeInfo>> {
+        let condition = self.check_expression(None, condition, scope)?;
+        if condition.info()._type != VariableType::Bool {
+            return Err(TypeError {
+                message: format!("Invalid type of condition '{}'", condition.info()._type),
+                position: position.to_owned(),
+            });
+        }
+
+        let block = self.check_block(block, scope)?;
+
+        Ok(WhileLoop {
+            condition,
+            block,
+            position: position.to_owned(),
+            info: TypeInfo {
+                _type: VariableType::Void,
+                source: None,
+            },
         })
     }
 
