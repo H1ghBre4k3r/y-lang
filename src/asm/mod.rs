@@ -55,6 +55,7 @@ pub enum Instruction {
     Call(String),
     Push(Reg),
     Pop(Reg),
+    Raw(String),
     /// NOTE: Do never really use this, except for looooong literal assembly
     Literal(String),
 }
@@ -85,6 +86,7 @@ impl Display for Instruction {
             Instruction::Push(source) => format!("\tpush \t{source}"),
             Instruction::Pop(target) => format!("\tpop \t{target}"),
             Instruction::Literal(string) => string.to_owned(),
+            Instruction::Raw(string) => format!("\t{string}"),
         };
         f.write_str(&value)
     }
