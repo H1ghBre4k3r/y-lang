@@ -130,6 +130,7 @@ impl Typechecker {
             Statement::CompilerDirective(compiler_directive) => Statement::CompilerDirective(
                 self.check_compiler_directive(compiler_directive, scope)?,
             ),
+            Statement::InlineAssembly(_) => todo!(),
         })
     }
 
@@ -580,12 +581,10 @@ impl Typechecker {
                     source: None,
                 },
             }),
-            None => {
-                return Err(TypeError {
-                    message: format!("Undefined identifier '{}'", identifier.value),
-                    position: identifier.position.clone(),
-                });
-            }
+            None => Err(TypeError {
+                message: format!("Undefined identifier '{}'", identifier.value),
+                position: identifier.position.clone(),
+            }),
         }
     }
 

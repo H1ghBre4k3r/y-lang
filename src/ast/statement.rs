@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use super::{CompilerDirective, Expression, Import, Intrinsic, Rule};
+use super::{CompilerDirective, Expression, Import, InlineAssembly, Intrinsic, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Statement<T> {
@@ -8,6 +8,7 @@ pub enum Statement<T> {
     Expression(Expression<T>),
     Intrinsic(Intrinsic<T>),
     CompilerDirective(CompilerDirective<T>),
+    InlineAssembly(InlineAssembly<T>),
 }
 
 impl Statement<()> {
@@ -21,6 +22,7 @@ impl Statement<()> {
             Rule::compiler_directive => {
                 Statement::CompilerDirective(CompilerDirective::from_pair(pair, file))
             }
+            Rule::inlineAsm => Statement::InlineAssembly(InlineAssembly::from_pair(pair, file)),
             rule => unreachable!("Can not parse rule {rule:?} as expression"),
         }
     }

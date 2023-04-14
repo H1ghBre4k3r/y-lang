@@ -224,6 +224,7 @@ impl Scope {
             Statement::CompilerDirective(compiler_directive) => {
                 self.compiler_compiler_directive(compiler_directive)
             }
+            Statement::InlineAssembly(_) => todo!(),
         }
     }
 

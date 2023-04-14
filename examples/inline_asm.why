@@ -1,0 +1,6 @@
+let foo := () : int => {
+    asm {
+        mov rax 5
+        add rax 6
+    }
+}
