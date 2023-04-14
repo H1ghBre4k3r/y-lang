@@ -1,0 +1,8 @@
+import std::*
+
+let mut x := 0;
+
+while x < 10 {
+    printi(x)
+    x = x + 1
+}

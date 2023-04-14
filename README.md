@@ -127,6 +127,35 @@ if a > b {
 }
 ```
 
+### Control Flow
+
+Y supports different types of control flow statements.
+
+#### Loops
+
+If you want to repeat instructions multiple times, you can bundle them in a loop. Currently, there is only one kind of loop: `while` loops, e.g.:
+
+```why
+let mut x := 0
+while x < 5 {
+    doSomething()
+    x = x + 1
+}
+```
+
+The head of the while loop must contain an expression which evaluates to a boolean value, while the body of the loop may contain anything. Therefore, a construct like this is valid Y:
+
+```why
+while {
+    let foo := bar()
+    foo < 5
+} {
+    doSomething()
+}
+```
+
+**Note:** By default, loops in Y evaluate to the type `void`. Using the return value of a loop is, therefore, undefined behaviour.
+
 ### Functions
 
 You can encapsulate behaviour in functions. Functions are (currently) the only place in Y where you need to explicitly annotate types (for parameters and return type):

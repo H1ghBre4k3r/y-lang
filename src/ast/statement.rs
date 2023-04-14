@@ -14,7 +14,7 @@ impl Statement<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Statement<()> {
         match pair.as_rule() {
             Rule::importDirective => Statement::Import(Import::from_pair(pair, file)),
-            Rule::declaration | Rule::definition | Rule::assignment => {
+            Rule::declaration | Rule::definition | Rule::assignment | Rule::whileLoop => {
                 Statement::Intrinsic(Intrinsic::from_pair(pair, file))
             }
             Rule::expr => Statement::Expression(Expression::from_pair(pair, file)),

@@ -28,6 +28,7 @@ mod statement;
 mod str;
 mod type_annotation;
 mod types;
+mod while_loop;
 
 pub use self::array::*;
 pub use self::assignment::*;
@@ -58,6 +59,7 @@ pub use self::statement::*;
 pub use self::str::*;
 pub use self::type_annotation::*;
 pub use self::types::*;
+pub use self::while_loop::*;
 
 use pest::iterators::Pair;
 

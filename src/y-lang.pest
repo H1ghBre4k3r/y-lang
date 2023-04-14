@@ -14,9 +14,11 @@ stmt = _{
     (intrinsics | expr | compiler_directive) ~ ";"?
 }
 
-intrinsics = _{ declaration | definition | assignment }
+intrinsics = _{ declaration | definition | assignment | whileLoop }
 
 ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
+
+whileLoop = { "while" ~ expr ~ block }
 
 declaration = { "declare " ~ ident ~ typeAnnotation }
 
