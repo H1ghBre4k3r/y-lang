@@ -31,3 +31,12 @@ impl InlineAssembly<()> {
         }
     }
 }
+
+impl<T> InlineAssembly<T>
+where
+    T: Clone,
+{
+    pub fn info(&self) -> T {
+        return self.info.clone();
+    }
+}

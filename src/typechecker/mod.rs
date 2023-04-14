@@ -8,8 +8,8 @@ use crate::{
     ast::{
         Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Character,
         CompilerDirective, Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing,
-        Integer, Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr, PrefixOp,
-        Statement, Str, Type, WhileLoop,
+        InlineAssembly, Integer, Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr,
+        PrefixOp, Statement, Str, Type, WhileLoop,
     },
     loader::Modules,
 };
@@ -130,7 +130,28 @@ impl Typechecker {
             Statement::CompilerDirective(compiler_directive) => Statement::CompilerDirective(
                 self.check_compiler_directive(compiler_directive, scope)?,
             ),
-            Statement::InlineAssembly(_) => todo!(),
+            Statement::InlineAssembly(inline_assembly) => {
+                Statement::InlineAssembly(self.check_inline_assembly(inline_assembly, scope)?)
+            }
+        })
+    }
+
+    fn check_inline_assembly(
+        &self,
+        InlineAssembly {
+            statements,
+            position,
+            ..
+        }: &InlineAssembly<()>,
+        _: &mut TypeScope,
+    ) -> TResult<InlineAssembly<TypeInfo>> {
+        Ok(InlineAssembly {
+            statements: statements.clone(),
+            position: position.clone(),
+            info: TypeInfo {
+                source: None,
+                _type: VariableType::Unknown,
+            },
         })
     }
 

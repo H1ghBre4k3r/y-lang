@@ -37,6 +37,7 @@ where
             Statement::Expression(expression) => expression.info(),
             Statement::Intrinsic(intrinsic) => intrinsic.info(),
             Statement::CompilerDirective(compiler_directive) => compiler_directive.info(),
+            Statement::InlineAssembly(inline_assembly) => inline_assembly.info(),
             _ => unreachable!(),
         }
     }
