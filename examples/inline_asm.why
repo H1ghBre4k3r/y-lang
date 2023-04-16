@@ -1,8 +1,9 @@
 import std::*
 
 let foo := () : int => {
+    6
     asm {
-        mov rax, 5
+        add rax, 5
     }
 }
 
