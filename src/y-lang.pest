@@ -14,9 +14,13 @@ stmt = _{
     (intrinsics | expr | compiler_directive) ~ ";"?
 }
 
-intrinsics = _{ declaration | definition | assignment | whileLoop }
+intrinsics = _{ declaration | definition | assignment | whileLoop | inlineAsm }
 
 ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
+
+inlineAsm = { "asm" ~ "{" ~ assemblyLiteral ~ "}" }
+
+assemblyLiteral = { (!"}" ~ ANY)* }
 
 whileLoop = { "while" ~ expr ~ block }
 

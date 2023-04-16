@@ -1,0 +1,10 @@
+import std::*
+
+let foo := () : int => {
+    6
+    asm {
+        add rax, 5
+    }
+}
+
+printi(foo())

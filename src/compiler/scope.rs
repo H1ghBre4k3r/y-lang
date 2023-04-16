@@ -8,8 +8,8 @@ use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg},
     ast::{
         Array, Assignment, BinaryOp, Block, Boolean, Call, Character, CompilerDirective,
-        Definition, Expression, Ident, If, Integer, Intrinsic, PostfixExpr, PostfixOp, Statement,
-        WhileLoop,
+        Definition, Expression, Ident, If, InlineAssembly, Integer, Intrinsic, PostfixExpr,
+        PostfixOp, Statement, WhileLoop,
     },
     loader::Module,
     typechecker::{TypeInfo, VariableType},
@@ -224,6 +224,17 @@ impl Scope {
             Statement::CompilerDirective(compiler_directive) => {
                 self.compiler_compiler_directive(compiler_directive)
             }
+            Statement::InlineAssembly(inline_assembly) => {
+                self.compile_inline_assembly(inline_assembly)
+            }
+        }
+    }
+
+    fn compile_inline_assembly(&mut self, inline_assembly: &InlineAssembly<TypeInfo>) {
+        let statements = &inline_assembly.statements;
+
+        for statement in statements {
+            self.instructions.push(Raw(statement.to_owned()));
         }
     }
 
