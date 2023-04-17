@@ -64,6 +64,14 @@ impl TypeScope {
         false
     }
 
+    /// Check, if a variable is present in the current scope.
+    pub fn contains_in_current_scope(&self, name: &str) -> bool {
+        let Some(last) = self.scope_stack.last() else {
+            return false;
+        };
+        return last.borrow().contains_key(name);
+    }
+
     /// Push a new scope frame.
     pub fn push(&mut self) {
         self.scope_stack.push(Rc::new(RefCell::new(HashMap::new())))

@@ -12,7 +12,8 @@ use crate::{
 
 use self::loaderror::FileLoadError;
 
-fn is_fn_declaration(pair: &Pair<Rule>) -> bool {
+// TODO: include imports aswell
+fn should_be_exported(pair: &Pair<Rule>) -> bool {
     match pair.as_rule() {
         Rule::definition => {
             let mut inner = pair.clone().into_inner();
@@ -40,6 +41,7 @@ fn is_fn_declaration(pair: &Pair<Rule>) -> bool {
 
             fn_type.as_rule() == Rule::fnType
         }
+        Rule::compiler_directive => true,
         _ => false,
     }
 }
@@ -106,7 +108,7 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box
         let fns = pairs
             .clone()
             .filter_map(|pair| {
-                if is_fn_declaration(&pair) {
+                if should_be_exported(&pair) {
                     Some(pair)
                 } else {
                     None
@@ -115,16 +117,14 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box
             .collect::<Vec<_>>();
         let ast = Ast::from_program(fns.clone(), &file);
 
-        let function_declarations = extract_exports(&ast)?;
-
-        // let ast = Ast::from_program(pairs.collect(), &file);
+        let exports = extract_exports(&ast)?;
 
         modules.insert(
             import.path.to_owned(),
             Module {
                 name: path.to_owned(),
                 ast,
-                exports: function_declarations,
+                exports,
                 is_wildcard,
             },
         );

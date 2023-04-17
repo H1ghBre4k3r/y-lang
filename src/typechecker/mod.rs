@@ -52,15 +52,9 @@ impl Typechecker {
 
         let mut scope = setup_scope();
 
-        for intrinsic in nodes.iter().filter_map(|statement| match statement {
-            Statement::Intrinsic(intrinsic) => match intrinsic {
-                Intrinsic::Declaration(_) | Intrinsic::Definition(_) => Some(intrinsic),
-                _ => None,
-            },
-            _ => None,
-        }) {
+        for intrinsic in nodes.iter() {
             match intrinsic {
-                Intrinsic::Definition(definition) => {
+                Statement::Intrinsic(Intrinsic::Definition(definition)) => {
                     let Definition { value, ident, .. } = definition;
 
                     let Expression::FnDef(FnDef { params, type_annotation , position, ..}) = value else {
@@ -94,7 +88,7 @@ impl Typechecker {
                         false,
                     )
                 }
-                Intrinsic::Declaration(declaration) => {
+                Statement::Intrinsic(Intrinsic::Declaration(declaration)) => {
                     let Declaration {
                         ident,
                         type_annotation,
@@ -107,6 +101,9 @@ impl Typechecker {
                     if let VariableType::Func { .. } = &type_annotation {
                         scope.set(&ident.value, type_annotation, false);
                     }
+                }
+                Statement::CompilerDirective(compiler_directive) => {
+                    todo!()
                 }
                 _ => {}
             }
@@ -367,6 +364,16 @@ impl Typechecker {
     ) -> TResult<Definition<TypeInfo>> {
         let definition_rhs =
             self.check_expression(Some(&definition.ident), &definition.value, scope)?;
+
+        if scope.contains_in_current_scope(&definition.ident.value) {
+            return Err(TypeError {
+                message: format!(
+                    "Variable '{}' has already been defined!",
+                    definition.ident.value
+                ),
+                position: definition.position.clone(),
+            });
+        }
 
         scope.set(
             &definition.ident.value,
