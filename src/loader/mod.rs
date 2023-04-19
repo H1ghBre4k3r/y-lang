@@ -41,6 +41,7 @@ fn should_be_exported(pair: &Pair<Rule>) -> bool {
 
             fn_type.as_rule() == Rule::fnType
         }
+        Rule::importDirective => true,
         Rule::compiler_directive => true,
         _ => false,
     }
@@ -51,7 +52,6 @@ pub struct Module<T> {
     pub name: String,
     pub ast: Ast<T>,
     pub exports: TypeScope,
-    pub is_wildcard: bool,
 }
 
 pub type Modules<T> = HashMap<String, Module<T>>;
@@ -125,7 +125,6 @@ pub fn load_modules(ast: &Ast<()>, mut file: PathBuf) -> Result<Modules<()>, Box
                 name: path.to_owned(),
                 ast,
                 exports,
-                is_wildcard,
             },
         );
     }

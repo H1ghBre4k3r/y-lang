@@ -25,11 +25,11 @@ type TResult<T> = Result<T, TypeError>;
 
 pub struct Typechecker {
     ast: Ast<()>,
-    modules: Modules<TypeInfo>,
+    modules: Modules<()>,
 }
 
 impl Typechecker {
-    pub fn from_ast(ast: Ast<()>, modules: Modules<TypeInfo>) -> Self {
+    pub fn from_ast(ast: Ast<()>, modules: Modules<()>) -> Self {
         Self { ast, modules }
     }
 
@@ -198,7 +198,7 @@ impl Typechecker {
     }
 
     fn check_import(&self, import: &Import, scope: &mut TypeScope) -> TResult<Import> {
-        let Import { path, position } = import;
+        let Import { position, path } = import;
         let Some(module) = self.modules.get(path) else {
            return Err(TypeError {
                message: format!("Could not import module '{path}'"),
@@ -209,7 +209,7 @@ impl Typechecker {
         let imports = module.exports.flatten();
 
         for (key, value) in imports {
-            if module.is_wildcard {
+            if import.is_wildcard() {
                 scope.set(&key, value.variable_type.set_source(module.clone()), false);
             } else {
                 scope.set(

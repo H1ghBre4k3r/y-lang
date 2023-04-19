@@ -18,7 +18,7 @@ pub enum VariableType {
     Func {
         params: Vec<VariableType>,
         return_type: Box<VariableType>,
-        source: Option<Module<TypeInfo>>,
+        source: Option<Module<()>>,
     },
     ArraySlice(Box<VariableType>),
     TupleArray {
@@ -90,7 +90,7 @@ impl VariableType {
         }
     }
 
-    pub fn set_source(self, source: Module<TypeInfo>) -> Self {
+    pub fn set_source(self, source: Module<()>) -> Self {
         match self {
             VariableType::Func {
                 params,
@@ -105,7 +105,7 @@ impl VariableType {
         }
     }
 
-    pub fn get_source(&self) -> Option<Module<TypeInfo>> {
+    pub fn get_source(&self) -> Option<Module<()>> {
         match self {
             VariableType::Func { source, .. } => source.clone(),
             _ => None,

@@ -5,7 +5,7 @@ use super::variabletype::VariableType;
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct TypeInfo {
     pub _type: VariableType,
-    pub source: Option<Module<TypeInfo>>,
+    pub source: Option<Module<()>>,
 }
 
 impl TypeInfo {
@@ -13,7 +13,7 @@ impl TypeInfo {
         self._type.size()
     }
 
-    pub fn source(&self) -> Option<Module<TypeInfo>> {
+    pub fn source(&self) -> Option<Module<()>> {
         self.source.clone()
     }
 }

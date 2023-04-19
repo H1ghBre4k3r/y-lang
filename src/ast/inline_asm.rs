@@ -37,6 +37,6 @@ where
     T: Clone,
 {
     pub fn info(&self) -> T {
-        return self.info.clone();
+        self.info.clone()
     }
 }

@@ -65,17 +65,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut type_safe_modules = HashMap::default();
 
-    for (
-        key,
-        Module {
-            ast,
-            name,
-            exports,
-            is_wildcard,
-        },
-    ) in modules
-    {
-        let typechecker = Typechecker::from_ast(ast.clone(), HashMap::default());
+    for (key, Module { ast, name, exports }) in &modules {
+        let typechecker = Typechecker::from_ast(ast.clone(), modules.clone());
         let ast = match typechecker.check() {
             Ok(ast) => ast,
             Err(type_error) => {
@@ -85,17 +76,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         type_safe_modules.insert(
-            key,
+            key.to_owned(),
             Module {
                 ast,
-                name,
-                exports,
-                is_wildcard,
+                name: name.clone(),
+                exports: exports.clone(),
             },
         );
     }
 
-    let typechecker = Typechecker::from_ast(ast, type_safe_modules.clone());
+    let typechecker = Typechecker::from_ast(ast, modules.clone());
 
     let ast = match typechecker.check() {
         Ok(ast) => ast,
