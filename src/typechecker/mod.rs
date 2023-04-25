@@ -102,9 +102,6 @@ impl Typechecker {
                         scope.set(&ident.value, type_annotation, false);
                     }
                 }
-                Statement::CompilerDirective(compiler_directive) => {
-                    todo!()
-                }
                 _ => {}
             }
         }

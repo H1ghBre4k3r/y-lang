@@ -6,9 +6,8 @@ use std::{collections::HashMap, error::Error, fs};
 use clap::Parser as CParser;
 use log::{error, info};
 use y_lang::{
-    ast::{Ast, YParser},
     compiler::Compiler,
-    loader::{load_modules, Module},
+    loader::{load_module, load_modules, Module, Modules},
     typechecker::Typechecker,
 };
 
@@ -38,24 +37,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let file = fs::canonicalize(&args.file)?;
 
-    let file_content = std::fs::read_to_string(&file)
-        .unwrap_or_else(|_| panic!("Could not read file: '{}'", file.to_string_lossy()));
-
-    let pairs = match YParser::parse_program(file.to_string_lossy(), &file_content) {
-        Ok(pairs) => pairs,
-        Err(parse_error) => {
-            error!("{parse_error}");
-            std::process::exit(-1);
-        }
-    };
-
-    let ast = Ast::from_program(pairs.collect(), &file.to_string_lossy());
+    let Module { ast, imports, .. } = load_module(file.clone())?;
 
     if args.dump_parsed {
         info!("Parsed AST:\n{:#?}", ast);
     }
 
-    let modules = match load_modules(&ast, file) {
+    let modules = match load_modules(&ast, file, Modules::default()) {
         Err(load_error) => {
             error!("{}", load_error);
             std::process::exit(-1);
@@ -65,8 +53,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut type_safe_modules = HashMap::default();
 
-    for (key, Module { ast, name, exports }) in &modules {
-        let typechecker = Typechecker::from_ast(ast.clone(), modules.clone());
+    for (
+        key,
+        Module {
+            ast,
+            name,
+            exports,
+            imports,
+            file_path,
+        },
+    ) in &modules
+    {
+        let local_modules = convert_imports_to_local_names(imports, &modules);
+
+        let typechecker = Typechecker::from_ast(ast.clone(), local_modules);
         let ast = match typechecker.check() {
             Ok(ast) => ast,
             Err(type_error) => {
@@ -81,11 +81,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ast,
                 name: name.clone(),
                 exports: exports.clone(),
+                imports: imports.clone(),
+                file_path: file_path.clone(),
             },
         );
     }
 
-    let typechecker = Typechecker::from_ast(ast, modules.clone());
+    let local_modules = convert_imports_to_local_names(&imports, &modules);
+
+    let typechecker = Typechecker::from_ast(ast, local_modules);
 
     let ast = match typechecker.check() {
         Ok(ast) => ast,
@@ -106,4 +110,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+fn convert_imports_to_local_names(
+    imports: &[(String, String)],
+    modules: &Modules<()>,
+) -> Modules<()> {
+    let mut local_modules = Modules::default();
+
+    for (import_path, real_path) in imports {
+        local_modules.insert(
+            import_path.to_owned(),
+            modules.get(real_path).unwrap().to_owned(),
+        );
+    }
+    local_modules
 }

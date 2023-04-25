@@ -2,8 +2,6 @@ use std::{fmt::Display, str::FromStr};
 
 use crate::loader::Module;
 
-use super::TypeInfo;
-
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum VariableType {
     #[default]

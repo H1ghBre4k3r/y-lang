@@ -5,3 +5,4 @@ import bar
 printi(a())
 print(" ")
 printi(bar::b(3, 4))
+lol()
