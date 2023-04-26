@@ -37,13 +37,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let file = fs::canonicalize(&args.file)?;
 
-    let Module { ast, imports, .. } = load_module(file.clone())?;
+    let main_module = load_module(file.clone())?;
 
     if args.dump_parsed {
-        info!("Parsed AST:\n{:#?}", ast);
+        info!("Parsed AST:\n{:#?}", main_module.ast);
     }
 
-    let modules = match load_modules(&ast, file, Modules::default()) {
+    let modules = match load_modules(&main_module.ast, file, Modules::default()) {
         Err(load_error) => {
             error!("{}", load_error);
             std::process::exit(-1);
@@ -53,18 +53,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut type_safe_modules = HashMap::default();
 
-    for (
-        key,
-        Module {
-            ast,
+    for (key, module) in &modules {
+        let local_modules = module.convert_imports_to_local_names(&modules);
+
+        let Module {
             name,
+            file_path,
             exports,
             imports,
-            file_path,
-        },
-    ) in &modules
-    {
-        let local_modules = convert_imports_to_local_names(imports, &modules);
+            ast,
+        } = module;
 
         let typechecker = Typechecker::from_ast(ast.clone(), local_modules);
         let ast = match typechecker.check() {
@@ -87,9 +85,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
     }
 
-    let local_modules = convert_imports_to_local_names(&imports, &modules);
+    let local_modules = main_module.convert_imports_to_local_names(&modules);
 
-    let typechecker = Typechecker::from_ast(ast, local_modules);
+    let typechecker = Typechecker::from_ast(main_module.ast, local_modules);
 
     let ast = match typechecker.check() {
         Ok(ast) => ast,
@@ -110,19 +108,4 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
-}
-
-fn convert_imports_to_local_names(
-    imports: &[(String, String)],
-    modules: &Modules<()>,
-) -> Modules<()> {
-    let mut local_modules = Modules::default();
-
-    for (import_path, real_path) in imports {
-        local_modules.insert(
-            import_path.to_owned(),
-            modules.get(real_path).unwrap().to_owned(),
-        );
-    }
-    local_modules
 }

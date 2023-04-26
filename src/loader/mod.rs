@@ -50,17 +50,41 @@ fn should_be_exported(pair: &Pair<Rule>) -> bool {
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Module<T> {
     pub name: String,
+
+    /// The absolute path of this module in the file system.
     pub file_path: PathBuf,
     pub ast: Ast<T>,
+
+    /// A TypeScope containing all exported members of this module.
     pub exports: TypeScope,
+
+    /// A list of imported module. The first item in each tuple is the path under which imported module
+    /// is specified in this module, the second item specifies the absolute path of the imported
+    /// module in the file system. This is used to convert absolute modules to relative imports.
     pub imports: Vec<(String, String)>,
 }
 
 pub type Modules<T> = HashMap<String, Module<T>>;
 
 impl<T> Module<T> {
+    /// Resolve a variable name from this module.
     pub fn resolve(&self, var_name: &impl ToString) -> String {
         format!("{}_{}", self.name, var_name.to_string())
+    }
+
+    /// Convert the modules currently stored with their absolute path to modules stored with a
+    /// relative path (relative to _this_ module). This is needed to determine the correct module
+    /// to import while typechecking.
+    pub fn convert_imports_to_local_names(&self, modules: &Modules<()>) -> Modules<()> {
+        let mut local_modules = Modules::default();
+
+        for (import_path, real_path) in &self.imports {
+            local_modules.insert(
+                import_path.to_owned(),
+                modules.get(real_path).unwrap().to_owned(),
+            );
+        }
+        local_modules
     }
 }
 
