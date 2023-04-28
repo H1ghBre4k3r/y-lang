@@ -11,7 +11,7 @@ repository = "https://github.com/H1ghBre4k3r/y-lang"
 [dependencies]
 clap = { version = "4.2.4", features = ["derive"]}
 log = "0.4.17"
-pest = "2.5"
+pest = "2.6"
 pest_derive = "2.5"
 simple_logger = { version = "4.1.0", default-features = false, features = ["colored", "colors"]}
 unescape = "0.1.0"
