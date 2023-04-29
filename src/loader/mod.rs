@@ -229,7 +229,10 @@ fn convert_to_path(folder: &str, import_path: &str) -> String {
         import_path.len() - 3
     } else {
         import_path.len()
-    }];
+    }]
+        .split("::")
+        .collect::<Vec<_>>()
+        .join("/");
 
     format!("{folder}/{path}.why")
 }
