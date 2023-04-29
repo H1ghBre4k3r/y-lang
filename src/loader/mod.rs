@@ -1,6 +1,11 @@
 mod loaderror;
 
-use std::{collections::HashMap, error::Error, path::PathBuf};
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    error::Error,
+    hash::{Hash, Hasher},
+    path::PathBuf,
+};
 
 use log::error;
 use pest::iterators::Pair;
@@ -146,7 +151,6 @@ pub fn load_modules(
 
     let folder = file.to_string_lossy();
 
-    let mut module_num = modules.len();
     for import in &imports {
         let file = convert_to_path(&folder, &import.path);
         if modules.contains_key(&file) {
@@ -194,10 +198,17 @@ pub fn load_modules(
 
         let file_path = PathBuf::from(file.clone());
 
+        let mut s = DefaultHasher::new();
+        file_content.hash(&mut s);
+        let file_hash = s.finish();
+
         modules.insert(
             file,
             Module {
-                name: format!("mod_{module_num}"),
+                name: format!(
+                    "{}_{file_hash:x}",
+                    file_path.file_stem().unwrap().to_string_lossy()
+                ),
                 ast: ast.clone(),
                 file_path: file_path.clone(),
                 exports,
@@ -206,7 +217,6 @@ pub fn load_modules(
         );
 
         modules = load_modules(&ast, file_path, modules)?;
-        module_num = modules.len();
     }
 
     Ok(modules)
