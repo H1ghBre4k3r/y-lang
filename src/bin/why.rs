@@ -8,7 +8,6 @@ use log::{error, info};
 use y_lang::{
     compiler::Compiler,
     loader::{load_module, load_modules, Module, Modules},
-    typechecker::Typechecker,
 };
 
 #[derive(CParser, Debug)]
