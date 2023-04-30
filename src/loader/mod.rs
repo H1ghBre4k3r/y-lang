@@ -12,12 +12,11 @@ use pest::iterators::Pair;
 
 use crate::{
     ast::{Ast, Import, Rule, Statement, YParser},
-    typechecker::{extract_exports, TypeScope},
+    typechecker::{extract_exports, TypeInfo, TypeScope, Typechecker},
 };
 
 use self::loaderror::FileLoadError;
 
-// TODO: include imports aswell
 fn should_be_exported(pair: &Pair<Rule>) -> bool {
     match pair.as_rule() {
         Rule::definition => {
@@ -90,6 +89,40 @@ impl<T> Module<T> {
             );
         }
         local_modules
+    }
+}
+
+impl Module<()> {
+    pub fn type_check(
+        &self,
+        other_modules: &Modules<()>,
+    ) -> Result<Module<TypeInfo>, Box<dyn Error>> {
+        let modules = self.convert_imports_to_local_names(other_modules);
+
+        let Module {
+            name,
+            file_path,
+            exports,
+            imports,
+            ast,
+        } = self;
+
+        let typechecker = Typechecker::from_ast(ast.clone(), modules);
+        let ast = match typechecker.check() {
+            Ok(ast) => ast,
+            Err(type_error) => {
+                error!("{}", type_error);
+                std::process::exit(-1);
+            }
+        };
+
+        Ok(Module {
+            ast,
+            name: name.clone(),
+            exports: exports.clone(),
+            imports: imports.clone(),
+            file_path: file_path.clone(),
+        })
     }
 }
 

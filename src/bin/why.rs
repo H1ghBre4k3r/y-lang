@@ -54,48 +54,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut type_safe_modules = HashMap::default();
 
     for (key, module) in &modules {
-        let local_modules = module.convert_imports_to_local_names(&modules);
-
-        let Module {
-            name,
-            file_path,
-            exports,
-            imports,
-            ast,
-        } = module;
-
-        let typechecker = Typechecker::from_ast(ast.clone(), local_modules);
-        let ast = match typechecker.check() {
-            Ok(ast) => ast,
-            Err(type_error) => {
-                error!("{}", type_error);
-                std::process::exit(-1);
-            }
-        };
-
-        type_safe_modules.insert(
-            key.to_owned(),
-            Module {
-                ast,
-                name: name.clone(),
-                exports: exports.clone(),
-                imports: imports.clone(),
-                file_path: file_path.clone(),
-            },
-        );
+        type_safe_modules.insert(key.to_owned(), module.type_check(&modules)?);
     }
 
-    let local_modules = main_module.convert_imports_to_local_names(&modules);
-
-    let typechecker = Typechecker::from_ast(main_module.ast, local_modules);
-
-    let ast = match typechecker.check() {
-        Ok(ast) => ast,
-        Err(type_error) => {
-            error!("{}", type_error);
-            std::process::exit(-1);
-        }
-    };
+    let Module { ast, .. } = main_module.type_check(&modules)?;
 
     if args.dump_typed {
         info!("Typed AST:\n{:#?}", ast);
