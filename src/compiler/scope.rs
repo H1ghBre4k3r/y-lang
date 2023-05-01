@@ -1062,9 +1062,17 @@ impl Scope {
             return;
         }
 
-        for param in call.params.iter() {
-            println!("{param:#?}");
-            self.compile_expression(param);
+        let VariableType::Func { params, .. }= &ident.info._type else {
+            panic!();
+        };
+
+        for (index, param) in call.params.iter().enumerate() {
+            if let VariableType::Reference(_) = params[index] {
+                todo!();
+            } else {
+                self.compile_expression(param);
+            }
+
             self.instructions.push(Push(Rax));
         }
 
