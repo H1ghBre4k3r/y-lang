@@ -275,7 +275,17 @@ import foo
 foo::bar()
 ```
 
-Here, we import a module named foo (from a file `foo.why`) and call an exported function (i.e., `bar`) by its "full name". By default, you have to specify the full resolved name to an imported function in the form of `module::function()`. If you want to directly call a function without specifying the module name, you have to import the module as a wildcard:
+Here, we import a module named foo (from a file `foo.why`) and call an exported function (i.e., `bar`) by its "full name". By default, you have to specify the full resolved name to an imported function in the form of `module::function()`.
+
+You can also import modules from other directories:
+
+```why
+import some::dir::foo
+
+some::dir::foo::bar()
+```
+
+If you want to directly call a function without specifying the module name, you have to import the module as a wildcard:
 
 ```why
 import foo::*
@@ -284,6 +294,8 @@ bar()
 ```
 
 This can be useful when importing common functions from a utility module.
+
+Imports are traversed recursively. So if you import module `foo`, which imports module `bar`, both modules are parsed, type checked and compiled. However, if you want to use module `bar` in your root module, you have to import it there aswell. To avoid double parsing and checking of modules, the loader keeps track of already loaded modules and just references them (if already present).
 
 #### ⚠️ Non-Function-Exports
 

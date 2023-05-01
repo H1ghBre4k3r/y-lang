@@ -1,3 +1,7 @@
+//! Compiler for the Y programming language.
+//!
+//! This module provides capabilities for compiling type correct Y programs. Therefore, you should
+//! utilize the type checker beforehand.
 mod scope;
 mod ystd;
 

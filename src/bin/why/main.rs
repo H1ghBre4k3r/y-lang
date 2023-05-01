@@ -1,38 +1,26 @@
+//! # Why
+//!
+//! This binary is the compiler of Y. It combines parser, type checker, and compiler into a single
+//! application.
 extern crate pest;
 extern crate y_lang;
 
+mod cli;
+
+use cli::*;
+
 use std::{collections::HashMap, error::Error, fs};
 
-use clap::Parser as CParser;
 use log::{error, info};
 use y_lang::{
     compiler::Compiler,
     loader::{load_module, load_modules, Module, Modules},
 };
 
-#[derive(CParser, Debug)]
-#[command(author, version, about)]
-struct Cli {
-    /// The path to the why source file.
-    #[arg(index = 1)]
-    file: std::path::PathBuf,
-
-    /// Whether to dump the parsed AST (for debugging).
-    #[arg(long)]
-    dump_parsed: bool,
-
-    /// Whether to dump the type-checked AST (for debugging).
-    #[arg(long)]
-    dump_typed: bool,
-
-    /// The path to the output binary.
-    #[arg(short, long)]
-    output: Option<std::path::PathBuf>,
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
-    simple_logger::init_with_level(log::Level::Info).unwrap();
-    let args = Cli::parse();
+    let args = Cli::init();
+
+    simple_logger::init_with_level(args.verbosity.into()).unwrap();
 
     let file = fs::canonicalize(&args.file)?;
 
