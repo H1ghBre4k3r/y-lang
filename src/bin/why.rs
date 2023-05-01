@@ -3,7 +3,7 @@ extern crate y_lang;
 
 use std::{collections::HashMap, error::Error, fs};
 
-use clap::Parser as CParser;
+use clap::{Parser as CParser, ValueEnum};
 use log::{error, info};
 use y_lang::{
     compiler::Compiler,
@@ -28,11 +28,43 @@ struct Cli {
     /// The path to the output binary.
     #[arg(short, long)]
     output: Option<std::path::PathBuf>,
+
+    /// Specify the log level of the compiler.
+    #[arg(value_enum, short, long, default_value_t = LogLevel::default())]
+    verbosity: LogLevel,
+}
+
+#[derive(ValueEnum, Clone, Default, Debug)]
+enum LogLevel {
+    #[default]
+    #[value(alias("0"))]
+    Error,
+
+    #[value(alias("1"))]
+    Warn,
+
+    #[value(alias("2"))]
+    Info,
+
+    #[value(alias("3"))]
+    Debug,
+}
+
+impl From<LogLevel> for log::Level {
+    fn from(value: LogLevel) -> Self {
+        match value {
+            LogLevel::Error => log::Level::Error,
+            LogLevel::Warn => log::Level::Warn,
+            LogLevel::Info => log::Level::Info,
+            LogLevel::Debug => log::Level::Debug,
+        }
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    simple_logger::init_with_level(log::Level::Info).unwrap();
     let args = Cli::parse();
+
+    simple_logger::init_with_level(args.verbosity.into()).unwrap();
 
     let file = fs::canonicalize(&args.file)?;
 
