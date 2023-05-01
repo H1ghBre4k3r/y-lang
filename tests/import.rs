@@ -4,7 +4,7 @@ use test_utils::{check_compilation, Expected};
 
 const SRC_PATH: &str = "./examples/import.why";
 const EXPECTED: Expected = Expected {
-    stdout: "42 10",
+    stdout: "42 10 looool ",
     stderr: "",
 };
 

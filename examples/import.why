@@ -1,7 +1,8 @@
 import std::*
 import foo::*
-import bar
+import system::bar
 
 printi(a())
 print(" ")
-printi(bar::b(3, 4))
+printi(system::bar::b(3, 4))
+lol()

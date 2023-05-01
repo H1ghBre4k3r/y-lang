@@ -6,7 +6,6 @@ use super::{Position, Rule};
 pub struct Import {
     pub path: String,
     pub position: Position,
-    // pub document: Option<Box<>>,
 }
 
 impl Import {
@@ -26,5 +25,9 @@ impl Import {
             path: path.to_owned(),
             position: (file.to_owned(), line, col),
         }
+    }
+
+    pub fn is_wildcard(&self) -> bool {
+        self.path.ends_with("::*")
     }
 }

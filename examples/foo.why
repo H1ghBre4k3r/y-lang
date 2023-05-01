@@ -7,3 +7,7 @@ let foo := () : int => {
 let a := () : int => {
     foo()
 } 
+
+let lol := () : void => {
+    print(" looool ")
+}

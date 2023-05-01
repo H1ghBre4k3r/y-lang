@@ -25,11 +25,11 @@ type TResult<T> = Result<T, TypeError>;
 
 pub struct Typechecker {
     ast: Ast<()>,
-    modules: Modules<TypeInfo>,
+    modules: Modules<()>,
 }
 
 impl Typechecker {
-    pub fn from_ast(ast: Ast<()>, modules: Modules<TypeInfo>) -> Self {
+    pub fn from_ast(ast: Ast<()>, modules: Modules<()>) -> Self {
         Self { ast, modules }
     }
 
@@ -52,15 +52,9 @@ impl Typechecker {
 
         let mut scope = setup_scope();
 
-        for intrinsic in nodes.iter().filter_map(|statement| match statement {
-            Statement::Intrinsic(intrinsic) => match intrinsic {
-                Intrinsic::Declaration(_) | Intrinsic::Definition(_) => Some(intrinsic),
-                _ => None,
-            },
-            _ => None,
-        }) {
+        for intrinsic in nodes.iter() {
             match intrinsic {
-                Intrinsic::Definition(definition) => {
+                Statement::Intrinsic(Intrinsic::Definition(definition)) => {
                     let Definition { value, ident, .. } = definition;
 
                     let Expression::FnDef(FnDef { params, type_annotation , position, ..}) = value else {
@@ -94,7 +88,7 @@ impl Typechecker {
                         false,
                     )
                 }
-                Intrinsic::Declaration(declaration) => {
+                Statement::Intrinsic(Intrinsic::Declaration(declaration)) => {
                     let Declaration {
                         ident,
                         type_annotation,
@@ -201,7 +195,7 @@ impl Typechecker {
     }
 
     fn check_import(&self, import: &Import, scope: &mut TypeScope) -> TResult<Import> {
-        let Import { path, position } = import;
+        let Import { position, path } = import;
         let Some(module) = self.modules.get(path) else {
            return Err(TypeError {
                message: format!("Could not import module '{path}'"),
@@ -212,7 +206,7 @@ impl Typechecker {
         let imports = module.exports.flatten();
 
         for (key, value) in imports {
-            if module.is_wildcard {
+            if import.is_wildcard() {
                 scope.set(&key, value.variable_type.set_source(module.clone()), false);
             } else {
                 scope.set(
@@ -367,6 +361,16 @@ impl Typechecker {
     ) -> TResult<Definition<TypeInfo>> {
         let definition_rhs =
             self.check_expression(Some(&definition.ident), &definition.value, scope)?;
+
+        if scope.contains_in_current_scope(&definition.ident.value) {
+            return Err(TypeError {
+                message: format!(
+                    "Variable '{}' has already been defined!",
+                    definition.ident.value
+                ),
+                position: definition.position.clone(),
+            });
+        }
 
         scope.set(
             &definition.ident.value,
