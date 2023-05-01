@@ -1,3 +1,7 @@
+//! # Why
+//!
+//! This binary is the compiler of Y. It combines parser, type checker, and compiler into a single
+//! application.
 extern crate pest;
 extern crate y_lang;
 

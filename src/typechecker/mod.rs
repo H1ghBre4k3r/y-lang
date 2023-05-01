@@ -1,3 +1,6 @@
+//! Type checker for Y.
+//!
+//! This module provides type checking capabilities for ASt's.
 mod error;
 mod fn_extractor;
 mod info;
@@ -21,8 +24,10 @@ pub use self::variabletype::VariableType;
 
 use self::{error::TypeError, typescope::setup_scope};
 
+/// Result of type checking a node within the AST.
 type TResult<T> = Result<T, TypeError>;
 
+/// Struct for type checking an AST.
 pub struct Typechecker {
     ast: Ast<()>,
     modules: Modules<()>,
@@ -33,6 +38,8 @@ impl Typechecker {
         Self { ast, modules }
     }
 
+    /// Type check the contained AST and return the type correct AST with type information attached
+    /// to each node.
     pub fn check(&self) -> Result<Ast<TypeInfo>, TypeError> {
         let nodes = self.ast.nodes();
 
@@ -47,6 +54,9 @@ impl Typechecker {
         Ok(Ast::from_nodes(statements))
     }
 
+    /// Extract the exports of a given AST. In particular, the exports are only the type
+    /// information of the defined functions.
+    /// Note: The exports are _not_ type checked.
     pub fn extract_exports(ast: &Ast<()>) -> Result<TypeScope, TypeError> {
         let nodes = ast.nodes();
 

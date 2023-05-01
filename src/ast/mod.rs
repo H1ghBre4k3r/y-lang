@@ -1,3 +1,6 @@
+//! Module for parsing Y programs.
+//!
+//! It contains all structs for the internal representation of Y (i.e., the AST).
 mod array;
 mod assignment;
 mod binary_expr;
@@ -69,14 +72,19 @@ pub use self::parser::Rule;
 
 pub use self::parser::*;
 
+/// A position within a file (i.e., line and column)
 pub type Position = (String, usize, usize);
 
+/// AST, representing a single Y program.
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ast<T> {
+    /// Nodes within this AST.
     nodes: Vec<Statement<T>>,
 }
 
 impl Ast<()> {
+    /// Create a new AST from a given pair of rules.
+    /// Note: This AST is not type-correct by default.
     pub fn from_program(program: Vec<Pair<Rule>>, file: &str) -> Ast<()> {
         let mut ast = vec![];
 
