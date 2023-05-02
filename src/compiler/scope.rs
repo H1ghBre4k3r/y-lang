@@ -1034,18 +1034,7 @@ impl Scope {
         self.instructions
             .push(Comment(format!("CALL {name} ({:?})", call.params)));
 
-        if name.as_str() == "syscall_4" {
-            let params = &call.params;
-
-            for expression in params.iter().take(4) {
-                self.compile_expression(expression);
-                self.instructions.push(Push(Rax));
-            }
-
-            self.instructions
-                .append(&mut vec![Pop(Rdx), Pop(Rsi), Pop(Rdi), Pop(Rax), Syscall]);
-            return;
-        } else if name.as_str() == "str_len" {
+        if name.as_str() == "str_len" {
             let param = call.params[0].to_owned();
             match param {
                 Expression::If(_)
