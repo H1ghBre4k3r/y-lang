@@ -14,6 +14,7 @@ pub enum Type {
         item_type: Box<Type>,
         size: Integer<()>,
     },
+    Reference(Box<Type>),
 }
 
 impl Type {
@@ -60,6 +61,14 @@ impl Type {
                     item_type: Box::new(item_type),
                     size,
                 }
+            }
+            Rule::reference => {
+                let mut inner = pair.into_inner();
+
+                let item_type = inner.next().unwrap();
+                let item_type = Type::from_pair(item_type);
+
+                Self::Reference(Box::new(item_type))
             }
             _ => unreachable!(),
         }

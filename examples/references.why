@@ -1,0 +1,12 @@
+import std::*
+
+let foo := (x: &int): void => {
+    x = x * 3
+    x = (x + 2) * x
+}
+
+let a := 3 
+
+foo(a)
+
+printi(a)

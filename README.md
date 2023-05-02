@@ -110,6 +110,21 @@ Y supports a couple of primitive types which are build directly into the lanuage
 -   `void` for "empty" values
 -   functions (see later for information on how to declare a function type)
 
+Furthermore, you can specify references as function parameters. References work like regular variables (or rather like their "underlying" variable), but they also effect their "source":
+
+```why
+// declare function with parameter of type integer-reference
+let foo := (a: &int): void => {
+    a = a * 2 // <- this assigns a new value to the underlying variable of `a`
+}
+
+let bar := 2
+
+foo(bar) // pass `bar` as a parameter, which will automatically be converted to a reference
+```
+
+Currently, you can only pass identifiers as references.
+
 More complex types are subject for futures features.
 
 ### Mutablity

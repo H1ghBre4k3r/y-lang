@@ -38,7 +38,9 @@ fnType = { "(" ~ ( variableType ~ ("," ~ variableType )* )? ~ ")" ~ "->" ~ typeN
 
 variableType = _{ arrayType | primtiveType }
 
-primtiveType = _{ typeName | fnType }
+primtiveType = _{ typeName | fnType | reference }
+
+reference = { "&" ~ typeName }
 
 arrayType = _{ tupleArray | arraySlice }
 
@@ -62,6 +64,7 @@ expr = { prefix* ~ primaryExpr ~ postfix* ~ (infix ~ prefix* ~ primaryExpr ~ pos
     prefix = _{ unaryMinus | not }
         unaryMinus = { "-" }
         not = { "!" }
+        ref = { "?" }
     postfix = _{ call | indexing }
         call = { "(" ~ ( expr ~ ("," ~ expr)* )? ~ ")" }
         indexing = { "[" ~ expr ~ "]" }
