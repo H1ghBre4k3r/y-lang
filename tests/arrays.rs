@@ -9,6 +9,6 @@ const EXPECTED: Expected = Expected {
 };
 
 #[test]
-fn compile_and_run_assignment() -> Result<(), Box<dyn Error>> {
+fn compile_and_run_arrays() -> Result<(), Box<dyn Error>> {
     check_compilation(Path::new(SRC_PATH), EXPECTED)
 }
