@@ -1,11 +1,12 @@
 import std::*
 
-let addTwo := (x: &int): int => {
-    x;
-    2
+let addTwo := (x: &int): void => {
+    x = x * 3
+    x = (x + 2) * x
 }
 
-let a := 2
-printi(addTwo(a))
+let a := 3 
 
-/* printi(a) */
+addTwo(a)
+
+printi(a)

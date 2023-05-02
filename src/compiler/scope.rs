@@ -985,16 +985,43 @@ impl Scope {
             }
             Expression::Ident(identifier) => {
                 let info = &identifier.info;
-                if let Some(variable) = self.variables.get(&identifier.value) {
-                    self.instructions
-                        .push(Comment(format!("{} = {value:?}", identifier.value)));
-                    self.instructions.push(Mov(
-                        Memory(
-                            InstructionSize::from(info.clone()),
-                            format!("{}-{}", Rbp, variable.offset),
-                        ),
-                        Register(Rax.to_sized(info)),
-                    ));
+                let Some(variable) = self.variables.get(&identifier.value) else {
+                    unreachable!();
+                };
+
+                match &variable._type {
+                    // if we have a reference as an lvalue, we first need to load the address of it
+                    VariableType::Reference(var_type) => {
+                        let info = TypeInfo {
+                            _type: var_type.as_ref().clone(),
+                            source: None,
+                        };
+                        self.instructions
+                            .push(Comment(format!("{} = {value:?}", identifier.value)));
+                        self.instructions.push(Mov(
+                            Register(Rcx),
+                            Memory(
+                                InstructionSize::from(info.clone()),
+                                format!("{}-{}", Rbp, variable.offset),
+                            ),
+                        ));
+                        self.instructions.push(Mov(
+                            Memory(InstructionSize::from(info.clone()), format!("{}", Rcx)),
+                            Register(Rax.to_sized(&info)),
+                        ));
+                    }
+                    // in every other case, we can just store it on the stack
+                    _ => {
+                        self.instructions
+                            .push(Comment(format!("{} = {value:?}", identifier.value)));
+                        self.instructions.push(Mov(
+                            Memory(
+                                InstructionSize::from(info.clone()),
+                                format!("{}-{}", Rbp, variable.offset),
+                            ),
+                            Register(Rax.to_sized(info)),
+                        ));
+                    }
                 }
             }
             _ => {}
@@ -1063,12 +1090,23 @@ impl Scope {
         }
 
         let VariableType::Func { params, .. }= &ident.info._type else {
-            panic!();
+            unreachable!("Trying to call a non-function expression");
         };
 
         for (index, param) in call.params.iter().enumerate() {
+            // if the type of the parameter is a reference, we need to load the address of it
             if let VariableType::Reference(_) = params[index] {
-                todo!();
+                let Expression::Ident(Ident { value, .. }) = &call.params[index] else {
+                    unimplemented!("Passing non-identifiers as references is currently not supported!");
+                };
+
+                let Some(Variable { offset, ..}) = self.variables.get(value) else {
+                    unreachable!()
+                };
+
+                self.instructions.push(Mov(Register(Rax), Register(Rbp)));
+                self.instructions
+                    .push(Sub(Register(Rax), Immediate(*offset as i64)));
             } else {
                 self.compile_expression(param);
             }
