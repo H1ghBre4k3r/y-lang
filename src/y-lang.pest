@@ -89,7 +89,15 @@ primitive = _{
 }
 
 array = {
-    "[" ~ expr ~ ";" ~ integer ~ "]"
+    "[" ~ expr ~ (defaultArrayInitialization | explicitArrayInitialization)  ~ "]"
+}
+
+defaultArrayInitialization = {
+    ";" ~ integer
+}
+
+explicitArrayInitialization = {
+    ("," ~ expr)+
 }
 
 string = ${ "\"" ~ inner ~ "\"" }
