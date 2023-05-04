@@ -63,6 +63,7 @@ pub use self::prefix_expr::*;
 pub use self::prefix_op::*;
 pub use self::statement::*;
 pub use self::str::*;
+pub use self::struct_declaration::*;
 pub use self::type_annotation::*;
 pub use self::types::*;
 pub use self::while_loop::*;

@@ -12,7 +12,7 @@ use crate::{
         Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Character,
         CompilerDirective, Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing,
         InlineAssembly, Integer, Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr,
-        PrefixOp, Statement, Str, Type, WhileLoop,
+        PrefixOp, Statement, Str, StructDeclaration, Type, WhileLoop,
     },
     loader::Modules,
 };
@@ -248,8 +248,19 @@ impl Typechecker {
             Intrinsic::WhileLoop(while_loop) => {
                 Intrinsic::WhileLoop(self.check_while_loop(while_loop, scope)?)
             }
-            Intrinsic::StructDeclaration(_) => todo!(),
+            Intrinsic::StructDeclaration(struct_declaration) => Intrinsic::StructDeclaration(
+                self.checkout_struct_declaration(struct_declaration, scope)?,
+            ),
         })
+    }
+
+    fn checkout_struct_declaration(
+        &self,
+        struct_declaration: &StructDeclaration<()>,
+        scope: &mut TypeScope,
+    ) -> TResult<StructDeclaration<TypeInfo>> {
+        println!("{struct_declaration:#?}");
+        todo!()
     }
 
     fn check_while_loop(
