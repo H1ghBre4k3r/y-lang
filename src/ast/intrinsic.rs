@@ -1,4 +1,4 @@
-use super::{Declaration, Rule, WhileLoop};
+use super::{struct_declaration::StructDeclaration, Declaration, Rule, WhileLoop};
 
 use pest::iterators::Pair;
 
@@ -10,6 +10,7 @@ pub enum Intrinsic<T> {
     Definition(Definition<T>),
     Assignment(Assignment<T>),
     WhileLoop(WhileLoop<T>),
+    StructDeclaration(StructDeclaration<T>),
 }
 
 impl Intrinsic<()> {
@@ -19,6 +20,9 @@ impl Intrinsic<()> {
             Rule::definition => Intrinsic::Definition(Definition::from_pair(pair, file)),
             Rule::assignment => Intrinsic::Assignment(Assignment::from_pair(pair, file)),
             Rule::whileLoop => Intrinsic::WhileLoop(WhileLoop::from_pair(pair, file)),
+            Rule::structDeclaration => {
+                Intrinsic::StructDeclaration(StructDeclaration::from_pair(pair, file))
+            }
             _ => panic!("Unexpected intrinsic '{pair:#?}'"),
         }
     }

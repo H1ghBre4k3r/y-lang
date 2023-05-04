@@ -14,7 +14,7 @@ stmt = _{
     (intrinsics | expr | compiler_directive) ~ ";"?
 }
 
-intrinsics = _{ declaration | definition | assignment | whileLoop | inlineAsm }
+intrinsics = _{ declaration | structDeclaration | definition | assignment | whileLoop | inlineAsm }
 
 ifStmt = { "if" ~ expr ~ block ~ ("else" ~ block)? }
 
@@ -90,6 +90,16 @@ primitive = _{
 
 array = {
     "[" ~ expr ~ ";" ~ integer ~ "]"
+}
+
+structDeclaration = {
+    "struct" ~ localIdent ~ "{" ~ 
+        (structField ~ ",")* ~
+    "}"
+}
+
+structField = {
+    (localIdent ~ typeAnnotation)
 }
 
 string = ${ "\"" ~ inner ~ "\"" }

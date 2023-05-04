@@ -30,6 +30,7 @@ mod prefix_expr;
 mod prefix_op;
 mod statement;
 mod str;
+mod struct_declaration;
 mod type_annotation;
 mod types;
 mod while_loop;

@@ -1,0 +1,6 @@
+struct Test {
+    name: str, 
+    age: int,
+} 
+
+
