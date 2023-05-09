@@ -3,4 +3,6 @@ struct Test {
     age: int,
 } 
 
-
+struct Foo {
+    bar: Test,
+}

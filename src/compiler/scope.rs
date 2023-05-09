@@ -177,6 +177,11 @@ impl Scope {
                         ));
                     }
                 }
+                VariableType::Struct {
+                    name,
+                    fields,
+                    position,
+                } => todo!(),
             }
         }
 
@@ -794,6 +799,11 @@ impl Scope {
                             ));
                         }
                     }
+                    VariableType::Struct {
+                        name,
+                        fields,
+                        position,
+                    } => todo!(),
                 }
             }
             Expression::Postfix(PostfixExpr {

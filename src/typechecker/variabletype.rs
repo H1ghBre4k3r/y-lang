@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::loader::Module;
+use crate::{ast::Position, loader::Module};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum VariableType {
@@ -24,6 +24,11 @@ pub enum VariableType {
         size: usize,
     },
     Reference(Box<VariableType>),
+    Struct {
+        name: String,
+        fields: Vec<(String, VariableType)>,
+        position: Position,
+    },
 }
 
 pub struct VariableParseError(String);
@@ -65,6 +70,7 @@ impl Display for VariableType {
             ArraySlice(item_type) => format!("&[{item_type}]"),
             TupleArray { item_type, size } => format!("[{item_type}; {size}]"),
             Reference(item_type) => format!("&{item_type}"),
+            Struct { name, .. } => format!("{name} {{ .. }}"),
         };
 
         f.write_str(value)
@@ -88,6 +94,9 @@ impl VariableType {
             VariableType::ArraySlice(_) => 8,
             VariableType::TupleArray { .. } => 8,
             VariableType::Reference(_) => 8,
+            VariableType::Struct { fields, .. } => fields
+                .iter()
+                .fold(0, |memo, (_, variable)| variable.size() + memo),
         }
     }
 

@@ -12,7 +12,7 @@ use crate::{
         Array, Assignment, Ast, BinaryExpr, BinaryOp, Block, Boolean, Call, Character,
         CompilerDirective, Declaration, Definition, Expression, FnDef, Ident, If, Import, Indexing,
         InlineAssembly, Integer, Intrinsic, Param, Position, PostfixExpr, PostfixOp, PrefixExpr,
-        PrefixOp, Statement, Str, StructDeclaration, Type, WhileLoop,
+        PrefixOp, Statement, Str, StructDeclaration, StructMember, Type, TypeAnnotation, WhileLoop,
     },
     loader::Modules,
 };
@@ -82,16 +82,18 @@ impl Typechecker {
                         param_types.push(Self::get_type_def(
                             &type_annotation.value,
                             position.clone(),
+                            &scope,
                         )?);
                     }
 
-                    scope.set(
+                    scope.set_variable(
                         &ident.value,
                         VariableType::Func {
                             params: param_types,
                             return_type: Box::new(Self::get_type_def(
                                 &type_annotation.value,
                                 position.clone(),
+                                &scope,
                             )?),
                             source: None,
                         },
@@ -106,10 +108,10 @@ impl Typechecker {
                         ..
                     } = declaration;
                     let type_annotation =
-                        Self::get_type_def(&type_annotation.value, position.clone())?;
+                        Self::get_type_def(&type_annotation.value, position.clone(), &scope)?;
 
                     if let VariableType::Func { .. } = &type_annotation {
-                        scope.set(&ident.value, type_annotation, false);
+                        scope.set_variable(&ident.value, type_annotation, false);
                     }
                 }
                 _ => {}
@@ -217,9 +219,9 @@ impl Typechecker {
 
         for (key, value) in imports {
             if import.is_wildcard() {
-                scope.set(&key, value.variable_type.set_source(module.clone()), false);
+                scope.set_variable(&key, value.variable_type.set_source(module.clone()), false);
             } else {
-                scope.set(
+                scope.set_variable(
                     &format!("{path}::{key}"),
                     value.variable_type.set_source(module.clone()),
                     false,
@@ -249,18 +251,95 @@ impl Typechecker {
                 Intrinsic::WhileLoop(self.check_while_loop(while_loop, scope)?)
             }
             Intrinsic::StructDeclaration(struct_declaration) => Intrinsic::StructDeclaration(
-                self.checkout_struct_declaration(struct_declaration, scope)?,
+                self.check_struct_declaration(struct_declaration, scope)?,
             ),
         })
     }
 
-    fn checkout_struct_declaration(
+    fn check_struct_declaration(
         &self,
-        struct_declaration: &StructDeclaration<()>,
+        StructDeclaration {
+            ident,
+            members,
+            position,
+            ..
+        }: &StructDeclaration<()>,
         scope: &mut TypeScope,
     ) -> TResult<StructDeclaration<TypeInfo>> {
-        println!("{struct_declaration:#?}");
-        todo!()
+        let Ident {
+            value: struct_ident,
+            position: struct_ident_position,
+            ..
+        } = ident;
+
+        let mut typed_struct_members = vec![];
+
+        let mut fields = vec![];
+
+        for StructMember {
+            ident,
+            _type,
+            position: member_position,
+            ..
+        } in members
+        {
+            let Ident {
+                value: member_ident,
+                position: member_ident_position,
+                ..
+            } = ident;
+
+            let TypeAnnotation {
+                value: type_annotation,
+                position: type_position,
+            } = _type;
+
+            let member_type = Self::get_type_def(type_annotation, type_position.clone(), scope)?;
+
+            fields.push((member_ident.to_owned(), member_type.clone()));
+
+            typed_struct_members.push(StructMember {
+                ident: Ident {
+                    value: member_ident.to_owned(),
+                    position: member_ident_position.to_owned(),
+                    info: TypeInfo {
+                        _type: member_type.clone(),
+                        source: None,
+                    },
+                },
+                _type: _type.clone(),
+                info: TypeInfo {
+                    _type: member_type,
+                    source: None,
+                },
+                position: member_position.clone(),
+            });
+        }
+
+        let struct_type = VariableType::Struct {
+            name: struct_ident.to_owned(),
+            fields,
+            position: position.to_owned(),
+        };
+
+        scope.add_type_def(struct_ident, struct_type.clone(), position)?;
+
+        Ok(StructDeclaration {
+            ident: Ident {
+                value: struct_ident.to_owned(),
+                position: struct_ident_position.to_owned(),
+                info: TypeInfo {
+                    _type: struct_type.clone(),
+                    source: None,
+                },
+            },
+            members: typed_struct_members,
+            info: TypeInfo {
+                _type: struct_type,
+                source: None,
+            },
+            position: position.to_owned(),
+        })
     }
 
     fn check_while_loop(
@@ -301,10 +380,13 @@ impl Typechecker {
     ) -> TResult<Declaration> {
         let ident = &declaration.ident;
         let type_annotation = &declaration.type_annotation;
-        let type_def =
-            Self::get_type_def(&type_annotation.value, type_annotation.position.clone())?;
+        let type_def = Self::get_type_def(
+            &type_annotation.value,
+            type_annotation.position.clone(),
+            scope,
+        )?;
 
-        scope.set(&ident.value, type_def, false);
+        scope.set_variable(&ident.value, type_def, false);
         Ok(declaration.clone())
     }
 
@@ -394,7 +476,7 @@ impl Typechecker {
             });
         }
 
-        scope.set(
+        scope.set_variable(
             &definition.ident.value,
             definition_rhs.info()._type,
             definition.is_mutable,
@@ -469,14 +551,14 @@ impl Typechecker {
                 })
             }
             Expression::Ident(lhs) => {
-                if !scope.contains(&lhs.value) {
+                if !scope.contains_variable(&lhs.value) {
                     return Err(TypeError {
                         message: format!("Undefined identifier '{}'", lhs.value),
                         position: lhs.position.clone(),
                     });
                 }
 
-                if !scope.is_mutable(&lhs.value) {
+                if !scope.is_variable_mutable(&lhs.value) {
                     return Err(TypeError {
                         message: format!(
                     "Variable '{}' can not be modified, because it is not defined in current scope",
@@ -488,7 +570,7 @@ impl Typechecker {
 
                 let assignment_rhs = self.check_expression(Some(lhs), &assignment.value, scope)?;
 
-                scope.update(
+                scope.update_variable(
                     &lhs.value,
                     assignment_rhs.info()._type,
                     &assignment.position,
@@ -619,7 +701,7 @@ impl Typechecker {
         identifier: &Ident<()>,
         scope: &mut TypeScope,
     ) -> TResult<Ident<TypeInfo>> {
-        match scope.find(&identifier.value) {
+        match scope.find_variable(&identifier.value) {
             Some(identifier_type) => Ok(Ident {
                 value: identifier.value.clone(),
                 position: identifier.position.clone(),
@@ -635,22 +717,29 @@ impl Typechecker {
         }
     }
 
-    fn get_type_def(type_: &Type, position: Position) -> Result<VariableType, TypeError> {
+    fn get_type_def(
+        type_: &Type,
+        position: Position,
+        scope: &TypeScope,
+    ) -> Result<VariableType, TypeError> {
         match type_ {
-            Type::Literal(literal) => literal.parse().map_err(|_| TypeError {
-                message: format!("Unexpected type annotation '{type_:?}'"),
-                position,
-            }),
+            Type::Literal(literal) => scope.determine_type_literal(literal).map_or(
+                Err(TypeError {
+                    message: format!("Unexpected type annotation '{type_:?}'"),
+                    position,
+                }),
+                Ok,
+            ),
             Type::Function {
                 params,
                 return_type,
             } => {
                 let mut fn_params = vec![];
                 for param in params {
-                    fn_params.push(Self::get_type_def(param, position.clone())?);
+                    fn_params.push(Self::get_type_def(param, position.clone(), scope)?);
                 }
 
-                let return_type = Self::get_type_def(return_type, position)?;
+                let return_type = Self::get_type_def(return_type, position, scope)?;
                 Ok(VariableType::Func {
                     return_type: Box::new(return_type),
                     params: fn_params,
@@ -658,12 +747,12 @@ impl Typechecker {
                 })
             }
             Type::ArraySlice(item_type) => {
-                let item_type = Self::get_type_def(item_type, position)?;
+                let item_type = Self::get_type_def(item_type, position, scope)?;
 
                 Ok(VariableType::ArraySlice(Box::new(item_type)))
             }
             Type::TupleArray { item_type, size } => {
-                let item_type = Self::get_type_def(item_type, position.clone())?;
+                let item_type = Self::get_type_def(item_type, position.clone(), scope)?;
 
                 Ok(VariableType::TupleArray {
                     item_type: Box::new(item_type),
@@ -678,7 +767,7 @@ impl Typechecker {
                 })
             }
             Type::Reference(type_) => Ok(VariableType::Reference(Box::new(Self::get_type_def(
-                type_, position,
+                type_, position, scope,
             )?))),
         }
     }
@@ -692,6 +781,7 @@ impl Typechecker {
         let type_annotation = Self::get_type_def(
             &fn_def.type_annotation.value,
             fn_def.type_annotation.position.clone(),
+            scope,
         )?;
         scope.push();
 
@@ -701,14 +791,15 @@ impl Typechecker {
             let param_type = Self::get_type_def(
                 &param.type_annotation.value,
                 param.type_annotation.position.clone(),
+                scope,
             )?;
 
-            scope.set(&param.ident.value, param_type.clone(), true);
+            scope.set_variable(&param.ident.value, param_type.clone(), true);
             params.push(param_type);
         }
 
         if let Some(ident) = identifier {
-            scope.set(
+            scope.set_variable(
                 &ident.value,
                 VariableType::Func {
                     params: params.clone(),
@@ -734,7 +825,7 @@ impl Typechecker {
         scope.pop();
 
         Ok(FnDef {
-            params: self.check_fn_params(&fn_def.params)?,
+            params: self.check_fn_params(&fn_def.params, scope)?,
             type_annotation: fn_def.type_annotation.clone(),
             block,
             position: fn_def.position.clone(),
@@ -749,7 +840,11 @@ impl Typechecker {
         })
     }
 
-    fn check_fn_params(&self, params: &Vec<Param<()>>) -> TResult<Vec<Param<TypeInfo>>> {
+    fn check_fn_params(
+        &self,
+        params: &Vec<Param<()>>,
+        scope: &TypeScope,
+    ) -> TResult<Vec<Param<TypeInfo>>> {
         let mut new_params = vec![];
 
         for param in params {
@@ -757,8 +852,11 @@ impl Typechecker {
                 value, position, ..
             } = &param.ident;
             let type_annotation = &param.type_annotation;
-            let param_type =
-                Self::get_type_def(&type_annotation.value, type_annotation.position.clone())?;
+            let param_type = Self::get_type_def(
+                &type_annotation.value,
+                type_annotation.position.clone(),
+                scope,
+            )?;
 
             new_params.push(Param {
                 ident: Ident {
@@ -787,7 +885,7 @@ impl Typechecker {
 
         let ident = &ident.value;
 
-        let Some(fn_def) = scope.find(ident) else {
+        let Some(fn_def) = scope.find_variable(ident) else {
             return Err(TypeError {
                 message: format!("Call to undefined function '{ident}'"),
                 position: fn_call.position.clone(),
