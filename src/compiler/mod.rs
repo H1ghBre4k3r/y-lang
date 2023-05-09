@@ -261,7 +261,9 @@ impl Compiler {
 
         file.write_all("default rel\n\n".as_bytes())?;
 
-        for export in module.exports.flatten().keys() {
+        let (exports, _) = module.exports.flatten();
+
+        for export in exports.keys() {
             file.write_all(format!("global {}\n", module.resolve(export)).as_bytes())?;
         }
 

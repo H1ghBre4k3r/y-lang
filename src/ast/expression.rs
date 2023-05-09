@@ -53,6 +53,10 @@ impl Expression<()> {
                 Rule::block => Expression::Block(Block::from_pair(primary, file)),
                 Rule::boolean => Expression::Boolean(Boolean::from_pair(primary, file)),
                 Rule::array => Expression::Array(Array::from_pair(primary, file)),
+                Rule::structInitialization => {
+                    println!("{primary:#?}");
+                    todo!()
+                }
                 rule => unreachable!("Unexpected rule {:?} while parsing primary", rule),
             })
             .map_prefix(|op, rhs| Expression::Prefix(PrefixExpr::from_op_rhs(op, rhs, file)))

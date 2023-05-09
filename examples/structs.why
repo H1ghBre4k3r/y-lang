@@ -1,8 +1,12 @@
 struct Test {
-    name: str, 
     age: int,
+    favourite_number: int,
 } 
 
 struct Foo {
     bar: Test,
+}
+
+let foo := (arg: Test): void => {
+            
 }

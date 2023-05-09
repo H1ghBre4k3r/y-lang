@@ -185,7 +185,7 @@ impl TypeScope {
         name.parse::<VariableType>().ok()
     }
 
-    pub fn flatten(&self) -> HashMap<String, Variable> {
+    pub fn flatten(&self) -> (HashMap<String, Variable>, HashMap<String, VariableType>) {
         // TODO: include type defs aswell?
         let mut entries = HashMap::default();
 
@@ -197,7 +197,16 @@ impl TypeScope {
             }
         }
 
-        entries
+        let mut type_defs = HashMap::default();
+
+        for scope in &self.scope_stack {
+            let scope = scope.borrow();
+
+            for (key, value) in scope.type_defs.iter() {
+                type_defs.insert(key.to_owned(), value.to_owned());
+            }
+        }
+        (entries, type_defs)
     }
 }
 

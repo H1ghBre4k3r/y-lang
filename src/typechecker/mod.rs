@@ -114,6 +114,41 @@ impl Typechecker {
                         scope.set_variable(&ident.value, type_annotation, false);
                     }
                 }
+                Statement::Intrinsic(Intrinsic::StructDeclaration(StructDeclaration {
+                    ident,
+                    members,
+                    position,
+                    ..
+                })) => {
+                    let Ident { value: ident, .. } = ident;
+
+                    let mut fields = vec![];
+
+                    for StructMember { ident, _type, .. } in members {
+                        let Ident {
+                            value: member_ident,
+                            ..
+                        } = ident;
+
+                        let TypeAnnotation {
+                            value: type_annotation,
+                            position: type_position,
+                        } = _type;
+
+                        let member_type =
+                            Self::get_type_def(type_annotation, type_position.clone(), &scope)?;
+
+                        fields.push((member_ident.to_owned(), member_type.clone()));
+                    }
+
+                    let struct_type = VariableType::Struct {
+                        name: ident.to_owned(),
+                        fields,
+                        position: position.to_owned(),
+                    };
+
+                    scope.add_type_def(ident, struct_type.clone(), position)?;
+                }
                 _ => {}
             }
         }
@@ -215,7 +250,7 @@ impl Typechecker {
            });
         };
 
-        let imports = module.exports.flatten();
+        let (imports, type_defs) = module.exports.flatten();
 
         for (key, value) in imports {
             if import.is_wildcard() {
@@ -226,6 +261,18 @@ impl Typechecker {
                     value.variable_type.set_source(module.clone()),
                     false,
                 );
+            }
+        }
+
+        for (key, value) in type_defs {
+            if import.is_wildcard() {
+                scope.add_type_def(&key, value.set_source(module.clone()), &Default::default())?;
+            } else {
+                scope.add_type_def(
+                    &format!("{path}::{key}"),
+                    value.set_source(module.clone()),
+                    &Default::default(),
+                )?;
             }
         }
 
