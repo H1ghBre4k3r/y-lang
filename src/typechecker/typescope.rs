@@ -186,7 +186,6 @@ impl TypeScope {
     }
 
     pub fn flatten(&self) -> (HashMap<String, Variable>, HashMap<String, VariableType>) {
-        // TODO: include type defs aswell?
         let mut entries = HashMap::default();
 
         for scope in &self.scope_stack {
