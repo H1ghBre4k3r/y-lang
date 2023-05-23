@@ -1,4 +1,4 @@
-import std::*
+import std::io::*
 
 let main := () : void => {
     print("Hello, World!\n")

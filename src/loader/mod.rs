@@ -4,7 +4,7 @@ use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     error::Error,
     hash::{Hash, Hasher},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use log::error;
@@ -186,6 +186,11 @@ pub fn load_modules(
 
     for import in &imports {
         let file = convert_to_path(&folder, &import.path);
+
+        let mut folder = PathBuf::from(&file);
+        folder.pop();
+        let folder = folder.to_string_lossy();
+
         if modules.contains_key(&file) {
             continue;
         }
@@ -264,10 +269,17 @@ fn convert_to_path(folder: &str, import_path: &str) -> String {
         import_path.len()
     }]
         .split("::")
+        .map(|part| if part == "super" { ".." } else { part })
         .collect::<Vec<_>>()
         .join("/");
 
-    format!("{folder}/{path}.why")
+    let path = format!("{folder}/{path}.why");
+
+    Path::new(&path)
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .to_string()
 }
 
 pub fn extract_imports(ast: &Ast<()>) -> Vec<String> {

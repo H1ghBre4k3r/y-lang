@@ -1085,7 +1085,7 @@ impl Scope {
         for (index, param) in call.params.iter().enumerate() {
             // if the type of the parameter is a reference, we need to load the address of it
             if let VariableType::Reference(_) = params[index] {
-                let Expression::Ident(Ident { value, .. }) = &call.params[index] else {
+                let Expression::Ident(Ident { value, info, ..}) = &call.params[index] else {
                     unimplemented!("Passing non-identifiers as references is currently not supported!");
                 };
 
@@ -1093,9 +1093,20 @@ impl Scope {
                     unreachable!()
                 };
 
-                self.instructions.push(Mov(Register(Rax), Register(Rbp)));
-                self.instructions
-                    .push(Sub(Register(Rax), Immediate(*offset as i64)));
+                if let VariableType::Reference(_) = &info._type {
+                    // if our parameter is a reference itself, it needs some extra cuddling
+                    self.instructions.push(Mov(
+                        Register(Rax),
+                        Memory(
+                            InstructionSize::from(info.clone()),
+                            format!("{Rbp}-{offset}"),
+                        ),
+                    ));
+                } else {
+                    self.instructions.push(Mov(Register(Rax), Register(Rbp)));
+                    self.instructions
+                        .push(Sub(Register(Rax), Immediate(*offset as i64)));
+                }
             } else {
                 self.compile_expression(param);
             }
@@ -1110,6 +1121,7 @@ impl Scope {
         }
 
         for (index, _) in call.params.iter().enumerate() {
+            println!("{}", call.params.len() - (index + 1));
             match call.params.len() - (index + 1) {
                 0 => self.instructions.push(Pop(Rdi)),
                 1 => self.instructions.push(Pop(Rsi)),

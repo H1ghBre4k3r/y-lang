@@ -1,4 +1,4 @@
-import std::* 
+import std::io::* 
 
 let foo := 42
 

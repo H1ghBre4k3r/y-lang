@@ -1,4 +1,4 @@
-import core::*
+import super::core::syscall::*
 
 declare str_len : (str) -> int
 declare int_to_str : (int) -> str 
@@ -11,7 +11,7 @@ let write := (fd: int, string: str, len: int) : void => {
     #[os == "linux"]
     let ident := 1;
 
-    syscall_4(ident, fd, string, len)
+    syscall4(ident, fd, string, len)
 }
 
 let print := (value: str) : void => {

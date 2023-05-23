@@ -1,4 +1,4 @@
-import std::*
+import std::io::*
 
 let bar := (foo : str) : any => {
     print(foo)

@@ -1,4 +1,4 @@
-import std::*
+import std::io::*
 import foo::*
 import system::bar
 

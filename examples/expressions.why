@@ -1,4 +1,4 @@
-import std::*
+import std::io::*
 
 let a := 2 + 4 * 5
 let b := 4 * 9 + 3

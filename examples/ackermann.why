@@ -1,4 +1,4 @@
-import std::*
+import std::io::*
 
 let f := (x : int, y : int) : int => {
     if x == 0 {

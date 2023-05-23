@@ -1,4 +1,4 @@
-import std::*
+import std::io::*
 
 let foo := ( bar : (int, int) -> int ): int => {
     bar(3, 4)

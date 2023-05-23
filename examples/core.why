@@ -1,9 +1,0 @@
-let syscall_4 := (ident: int, arg1: any, arg2: any, arg3: any): unknown => {
-    asm {
-        mov 	rax, qword [rbp-8]
-        mov 	rdi, qword [rbp-16]
-        mov 	rsi, qword [rbp-24]
-        mov 	rdx, qword [rbp-32]
-        syscall
-    }
-}
