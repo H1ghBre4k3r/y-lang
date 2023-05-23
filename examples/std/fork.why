@@ -13,5 +13,5 @@ let fork := (): int => {
     __fork()
 
     #[os == "linux"]
-    syscall(0x2) 
+    syscall(57) 
 }

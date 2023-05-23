@@ -302,42 +302,44 @@ impl Scope {
                     lhs, binary_expression.op, rhs
                 )));
 
+                let info = lhs.info().min(&rhs.info());
+
                 match &binary_expression.op {
                     BinaryOp::Plus => self.instructions.push(Add(
-                        Register(Rax.to_sized(&lhs.info())),
-                        Register(Rcx.to_sized(&rhs.info())),
+                        Register(Rax.to_sized(&info)),
+                        Register(Rcx.to_sized(&info)),
                     )),
                     BinaryOp::Minus => self.instructions.push(Sub(
-                        Register(Rax.to_sized(&lhs.info())),
-                        Register(Rcx.to_sized(&rhs.info())),
+                        Register(Rax.to_sized(&info)),
+                        Register(Rcx.to_sized(&info)),
                     )),
                     BinaryOp::Times => self.instructions.push(Imul(
-                        Register(Rax.to_sized(&lhs.info())),
-                        Register(Rcx.to_sized(&rhs.info())),
+                        Register(Rax.to_sized(&info)),
+                        Register(Rcx.to_sized(&info)),
                     )),
-                    BinaryOp::DividedBy => self
-                        .instructions
-                        .push(Idiv(Register(Rcx.to_sized(&rhs.info())))),
+                    BinaryOp::DividedBy => {
+                        self.instructions.push(Idiv(Register(Rcx.to_sized(&info))))
+                    }
                     BinaryOp::GreaterThan => {
                         self.instructions.push(Cmp(
-                            Register(Rax.to_sized(&lhs.info())),
-                            Register(Rcx.to_sized(&rhs.info())),
+                            Register(Rax.to_sized(&info)),
+                            Register(Rcx.to_sized(&info)),
                         ));
                         self.instructions.push(Setg(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryOp::LessThan => {
                         self.instructions.push(Cmp(
-                            Register(Rax.to_sized(&lhs.info())),
-                            Register(Rcx.to_sized(&rhs.info())),
+                            Register(Rax.to_sized(&info)),
+                            Register(Rcx.to_sized(&info)),
                         ));
                         self.instructions.push(Setl(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryOp::Equal => {
                         self.instructions.push(Cmp(
-                            Register(Rax.to_sized(&lhs.info())),
-                            Register(Rcx.to_sized(&rhs.info())),
+                            Register(Rax.to_sized(&info)),
+                            Register(Rcx.to_sized(&info)),
                         ));
                         self.instructions.push(Sete(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
