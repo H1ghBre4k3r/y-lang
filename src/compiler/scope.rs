@@ -1121,7 +1121,6 @@ impl Scope {
         }
 
         for (index, _) in call.params.iter().enumerate() {
-            println!("{}", call.params.len() - (index + 1));
             match call.params.len() - (index + 1) {
                 0 => self.instructions.push(Pop(Rdi)),
                 1 => self.instructions.push(Pop(Rsi)),

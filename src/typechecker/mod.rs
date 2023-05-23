@@ -355,7 +355,13 @@ impl Typechecker {
 
         for statement in &block.block {
             let statement = self.check_statement(statement, scope)?;
-            new_block.info._type = statement.info()._type;
+            if let Statement::CompilerDirective(compiler_directive) = &statement {
+                if compiler_directive.statement.is_some() {
+                    new_block.info._type = statement.info()._type;
+                }
+            } else {
+                new_block.info._type = statement.info()._type;
+            }
             new_block.block.push(statement);
         }
 

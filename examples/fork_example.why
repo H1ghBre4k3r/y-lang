@@ -1,0 +1,11 @@
+import std::io::*
+import std::fork::*
+
+ let fd := fork()
+
+ printi(fd)
+ if fd == 0 {
+     print("\nHello from child!\n")
+ } else {
+     print("\nHello from parent!\n")
+ }
