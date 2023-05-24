@@ -13,7 +13,7 @@ use log::error;
 use pest::iterators::Pair;
 
 use crate::{
-    ast::{Ast, Import, Rule, Statement, YParser},
+    ast::{Ast, Import, Position, Rule, Statement, YParser},
     typechecker::{extract_exports, TypeInfo, TypeScope, Typechecker},
 };
 
@@ -129,11 +129,29 @@ impl Module<()> {
 }
 
 #[derive(Debug)]
-struct ImportError;
+struct ImportError {
+    path: String,
+    position: Position,
+}
+
+impl From<(&String, &Position)> for ImportError {
+    fn from((path, position): (&String, &Position)) -> Self {
+        Self {
+            path: path.to_owned(),
+            position: position.to_owned(),
+        }
+    }
+}
 
 impl Display for ImportError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        f.write_str(&format!(
+            "Failed to resolve import '{path}' at {file}:{col}:{row}",
+            path = self.path,
+            file = self.position.0,
+            col = self.position.1,
+            row = self.position.2
+        ))
     }
 }
 
@@ -161,10 +179,11 @@ pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
 
     let mut imports = vec![];
 
-    for import_path in &extract_imports(&ast) {
+    for (import_path, position) in &extract_imports(&ast) {
         imports.push((
             import_path.to_owned(),
-            convert_to_path(&folder, import_path).map_err(|_| ImportError)?,
+            convert_to_path(&folder, import_path)
+                .map_err(|_| ImportError::from((import_path, position)))?,
         ))
     }
 
@@ -197,7 +216,8 @@ pub fn load_modules(
     let folder = file.to_string_lossy();
 
     for import in &imports {
-        let file = convert_to_path(&folder, &import.path).map_err(|_| ImportError)?;
+        let file = convert_to_path(&folder, &import.path)
+            .map_err(|_| ImportError::from((&import.path, &import.position)))?;
 
         let mut folder = PathBuf::from(&file);
         folder.pop();
@@ -238,10 +258,11 @@ pub fn load_modules(
 
         let mut imports = vec![];
 
-        for import_path in &extract_imports(&ast) {
+        for (import_path, position) in &extract_imports(&ast) {
             imports.push((
                 import_path.to_owned(),
-                convert_to_path(&folder, import_path).map_err(|_| ImportError)?,
+                convert_to_path(&folder, import_path)
+                    .map_err(|_| ImportError::from((import_path, position)))?,
             ))
         }
 
@@ -289,11 +310,13 @@ fn convert_to_path(folder: &str, import_path: &str) -> Result<String, Box<dyn Er
     Ok(fs::canonicalize(path)?.to_string_lossy().to_string())
 }
 
-pub fn extract_imports(ast: &Ast<()>) -> Vec<String> {
+pub fn extract_imports(ast: &Ast<()>) -> Vec<(String, Position)> {
     ast.nodes()
         .iter()
         .filter_map(|statement| match statement {
-            Statement::Import(Import { path, .. }) => Some(path.clone()),
+            Statement::Import(Import { path, position, .. }) => {
+                Some((path.clone(), position.clone()))
+            }
             _ => None,
         })
         .collect()
