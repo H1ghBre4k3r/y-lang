@@ -17,6 +17,7 @@ simple_logger = { version = "4.2.0", default-features = false, features = ["colo
 unescape = "0.1.0"
 once_cell = "1.18"
 home = "0.5.5"
+include_dir = "0.7.3"
 
 [dev-dependencies]
 test-utils = { path = "test-utils" }

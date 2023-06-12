@@ -61,6 +61,9 @@ impl From<&LogLevel> for log::Level {
 pub enum Commands {
     /// Build a Y executable from source files.
     Build(BuildArgs),
+
+    /// Setup the buildin library (i.e., std and core) on your machine
+    Setup,
 }
 
 #[derive(Args, Debug, Clone)]
