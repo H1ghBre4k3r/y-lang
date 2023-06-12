@@ -131,13 +131,15 @@ impl Module<()> {
 #[derive(Debug)]
 struct ImportError {
     path: String,
+    import_statement: String,
     position: Position,
 }
 
-impl From<(&String, &Position)> for ImportError {
-    fn from((path, position): (&String, &Position)) -> Self {
+impl From<(&String, &String, &Position)> for ImportError {
+    fn from((path, import_statement, position): (&String, &String, &Position)) -> Self {
         Self {
             path: path.to_owned(),
+            import_statement: import_statement.to_owned(),
             position: position.to_owned(),
         }
     }
@@ -146,8 +148,9 @@ impl From<(&String, &Position)> for ImportError {
 impl Display for ImportError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!(
-            "Failed to resolve import '{path}' at {file}:{col}:{row}",
+            "Failed to load file '{path}' from import '{import_statement}' at {file}:{col}:{row}",
             path = self.path,
+            import_statement = self.import_statement,
             file = self.position.0,
             col = self.position.1,
             row = self.position.2
@@ -182,8 +185,9 @@ pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
     for (import_path, position) in &extract_imports(&ast) {
         imports.push((
             import_path.to_owned(),
-            convert_to_path(&folder, import_path)
-                .map_err(|_| ImportError::from((import_path, position)))?,
+            convert_to_path(&folder, import_path).map_err(|PathConversionError { path }| {
+                ImportError::from((&path, import_path, position))
+            })?,
         ))
     }
 
@@ -216,8 +220,10 @@ pub fn load_modules(
     let folder = file.to_string_lossy();
 
     for import in &imports {
-        let file = convert_to_path(&folder, &import.path)
-            .map_err(|_| ImportError::from((&import.path, &import.position)))?;
+        let file =
+            convert_to_path(&folder, &import.path).map_err(|PathConversionError { path }| {
+                ImportError::from((&path, &import.path, &import.position))
+            })?;
 
         let mut folder = PathBuf::from(&file);
         folder.pop();
@@ -261,8 +267,9 @@ pub fn load_modules(
         for (import_path, position) in &extract_imports(&ast) {
             imports.push((
                 import_path.to_owned(),
-                convert_to_path(&folder, import_path)
-                    .map_err(|_| ImportError::from((import_path, position)))?,
+                convert_to_path(&folder, import_path).map_err(|PathConversionError { path }| {
+                    ImportError::from((&path, import_path, position))
+                })?,
             ))
         }
 
@@ -292,7 +299,11 @@ pub fn load_modules(
     Ok(modules)
 }
 
-fn convert_to_path(folder: &str, import_path: &str) -> Result<String, Box<dyn Error>> {
+struct PathConversionError {
+    path: String,
+}
+
+fn convert_to_path(folder: &str, import_path: &str) -> Result<String, PathConversionError> {
     let is_wildcard = import_path.ends_with("::*");
 
     let path = &import_path[0..if is_wildcard {
@@ -301,13 +312,31 @@ fn convert_to_path(folder: &str, import_path: &str) -> Result<String, Box<dyn Er
         import_path.len()
     }]
         .split("::")
-        .map(|part| if part == "super" { ".." } else { part })
+        .map(|part| match part {
+            "super" | "@super" => "..".to_owned(),
+            "@std" => format!(
+                "{}/.why/lib/std",
+                home::home_dir().unwrap_or(".".into()).to_string_lossy()
+            ),
+            "@core" => format!(
+                "{}/.why/lib/core",
+                home::home_dir().unwrap_or(".".into()).to_string_lossy()
+            ),
+            x => x.to_owned(),
+        })
         .collect::<Vec<_>>()
         .join("/");
 
-    let path = format!("{folder}/{path}.why");
+    let path = if import_path.starts_with('@') && !import_path.starts_with("@super") {
+        format!("{path}.why")
+    } else {
+        format!("{folder}/{path}.why")
+    };
 
-    Ok(fs::canonicalize(path)?.to_string_lossy().to_string())
+    Ok(fs::canonicalize(&path)
+        .map_err(|_| PathConversionError { path })?
+        .to_string_lossy()
+        .to_string())
 }
 
 pub fn extract_imports(ast: &Ast<()>) -> Vec<(String, Position)> {

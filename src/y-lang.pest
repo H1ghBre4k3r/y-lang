@@ -5,14 +5,14 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ( "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE ) }
 
 importDirective = {
-    "import " ~ (importModifier)? ~ importPath
+    "import " ~ importPath
 }
+
+importPath = @{ (importModifier)* ~ ident ~ ("::*")? }
 
 importModifier = @{
-    "@" ~ (ASCII_ALPHA)* ~ " "
+    "@" ~ (ASCII_ALPHA)* ~ "::"
 }
-
-importPath = @{ ident ~ ("::*")? }
 
 stmt = _{ 
     (intrinsics | expr | compiler_directive) ~ ";"?

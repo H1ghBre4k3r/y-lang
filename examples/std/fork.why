@@ -1,4 +1,4 @@
-import @mod super::core::syscall::*
+import @super::core::syscall::*
 
 #[os == "macos"]
 let __fork := (): int => {

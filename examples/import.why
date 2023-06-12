@@ -2,6 +2,11 @@ import std::io::*
 import foo::*
 import system::bar
 
+// import @core::syscall::a::*
+
+// import @mod::foo::bar::*
+
+
 printi(a())
 print(" ")
 printi(system::bar::b(3, 4))

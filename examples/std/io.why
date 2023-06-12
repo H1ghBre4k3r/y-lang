@@ -1,4 +1,4 @@
-import super::core::syscall::*
+import @super::core::syscall::*
 
 declare str_len : (str) -> int
 declare int_to_str : (int) -> str 
