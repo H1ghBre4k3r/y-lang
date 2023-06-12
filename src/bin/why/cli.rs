@@ -2,27 +2,15 @@
 //!
 //! This module contains everything needed for parsing the CLI arguments for Why.
 
-use clap::{Parser, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 /// Struct containing the CLI configuration for Why.
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
+#[command(propagate_version = true)]
 pub struct Cli {
-    /// The path to the why source file.
-    #[arg(index = 1)]
-    pub file: std::path::PathBuf,
-
-    /// Whether to dump the parsed AST (for debugging).
-    #[arg(long)]
-    pub dump_parsed: bool,
-
-    /// Whether to dump the type-checked AST (for debugging).
-    #[arg(long)]
-    pub dump_typed: bool,
-
-    /// The path to the output binary.
-    #[arg(short, long)]
-    pub output: Option<std::path::PathBuf>,
+    #[command(subcommand)]
+    pub command: Commands,
 
     /// Specify the log level of the compiler.
     #[arg(value_enum, short, long, default_value_t = LogLevel::default())]
@@ -58,8 +46,8 @@ pub enum LogLevel {
     Debug,
 }
 
-impl From<LogLevel> for log::Level {
-    fn from(value: LogLevel) -> Self {
+impl From<&LogLevel> for log::Level {
+    fn from(value: &LogLevel) -> Self {
         match value {
             LogLevel::Error => log::Level::Error,
             LogLevel::Warn => log::Level::Warn,
@@ -67,4 +55,29 @@ impl From<LogLevel> for log::Level {
             LogLevel::Debug => log::Level::Debug,
         }
     }
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// Build a Y executable from source files.
+    Build(BuildArgs),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct BuildArgs {
+    /// The path to the why source file.
+    #[arg(index = 1)]
+    pub file: std::path::PathBuf,
+
+    /// Whether to dump the parsed AST (for debugging).
+    #[arg(long)]
+    pub dump_parsed: bool,
+
+    /// Whether to dump the type-checked AST (for debugging).
+    #[arg(long)]
+    pub dump_typed: bool,
+
+    /// The path to the output binary.
+    #[arg(short, long)]
+    pub output: Option<std::path::PathBuf>,
 }

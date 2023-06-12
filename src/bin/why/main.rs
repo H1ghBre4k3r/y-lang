@@ -20,8 +20,14 @@ use y_lang::{
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::init();
 
-    simple_logger::init_with_level(args.verbosity.into()).unwrap();
+    simple_logger::init_with_level((&args.verbosity).into()).unwrap();
 
+    match &args.command {
+        Commands::Build(args) => build_executable(args),
+    }
+}
+
+fn build_executable(args: &BuildArgs) -> Result<(), Box<dyn Error>> {
     let file = fs::canonicalize(&args.file)?;
 
     let main_module = load_module(file.clone())?;
@@ -50,10 +56,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         info!("Typed AST:\n{:#?}", ast);
     }
 
-    if let Some(output) = args.output {
+    if let Some(output) = &args.output {
         let mut compiler = Compiler::from_ast(ast, type_safe_modules.clone());
 
-        compiler.compile_program(output)?;
+        compiler.compile_program(output.clone())?;
     }
 
     Ok(())
