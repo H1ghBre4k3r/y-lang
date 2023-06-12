@@ -1,4 +1,4 @@
-import std::io::*
+import @super::lib::std::io::*
 
 print("Hello, World! This thing is supposed to be very long :) ");
 printi(5 + 8)

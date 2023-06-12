@@ -1,4 +1,4 @@
-import std::io::*
+import @super::lib::std::io::*
 
 let mut x := 0;
 

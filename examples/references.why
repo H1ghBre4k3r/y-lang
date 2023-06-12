@@ -1,4 +1,4 @@
-import std::io::*
+import @super::lib::std::io::*
 
 let foo := (x: &int): void => {
     x = x * 3

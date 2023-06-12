@@ -1,4 +1,4 @@
-import std::io::*
+import @super::lib::std::io::*
 
 let main := () : void => {
     println("Hello, World!");

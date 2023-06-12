@@ -1,5 +1,5 @@
-import std::io::*
-import std::fork::*
+import @super::lib::std::io::*
+import @super::lib::std::fork::*
 
  let fd := fork()
 

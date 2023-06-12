@@ -1,4 +1,4 @@
-import std::io::*
+import @super::lib::std::io::*
 
 let fib := (n : int) : int => {
     if n < 2 {
