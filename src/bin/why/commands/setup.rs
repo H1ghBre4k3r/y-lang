@@ -10,10 +10,10 @@ pub fn setup_library() -> Result<(), Box<dyn Error>> {
         home::home_dir().unwrap_or(".".into()).to_string_lossy()
     );
 
+    // first, remove the library directory
     std::fs::remove_dir_all(&why_directory)?;
 
-    std::fs::create_dir_all(&why_directory)?;
-
+    // now, create the library directory shipped with this compiler
     create_directory(&why_directory, &LIBRARY_DIR)?;
 
     Ok(())
@@ -21,6 +21,8 @@ pub fn setup_library() -> Result<(), Box<dyn Error>> {
 
 fn create_directory(parent: &str, directory: &Dir) -> Result<(), Box<dyn Error>> {
     let path = format!("{parent}/{}", directory.path().to_string_lossy());
+
+    println!("[SETUP] Creating '{path}'");
 
     std::fs::create_dir_all(&path)?;
 
