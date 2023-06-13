@@ -1,6 +1,7 @@
 use std::{error::Error, io::Write};
 
 use include_dir::{Dir, File};
+use log::trace;
 
 use crate::LIBRARY_DIR;
 
@@ -11,7 +12,9 @@ pub fn setup_library() -> Result<(), Box<dyn Error>> {
     );
 
     // first, remove the library directory
-    std::fs::remove_dir_all(&why_directory)?;
+    if std::fs::remove_dir_all(&why_directory).is_err() {
+        trace!("directory '{why_directory}' did not exist");
+    }
 
     // now, create the library directory shipped with this compiler
     create_directory(&why_directory, &LIBRARY_DIR)?;
