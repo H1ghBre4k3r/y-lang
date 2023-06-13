@@ -11,18 +11,19 @@ mod commands;
 use cli::*;
 use commands::*;
 use include_dir::{include_dir, Dir};
-
-use std::error::Error;
+use log::error;
 
 pub static LIBRARY_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/lib");
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let args = Cli::init();
 
     simple_logger::init_with_level((&args.verbosity).into()).unwrap();
 
-    match &args.command {
+    if let Err(error) = match &args.command {
         Commands::Build(args) => build_executable(args),
         Commands::Setup => setup_library(),
+    } {
+        error!("{error}");
     }
 }

@@ -14,12 +14,12 @@ pub fn build_executable(args: &BuildArgs) -> Result<(), Box<dyn Error>> {
     let main_module = load_module(file.clone())?;
 
     if args.dump_parsed {
-        info!("Parsed AST:\n{:#?}", main_module.ast);
+        println!("Parsed AST:\n{:#?}", main_module.ast);
     }
 
     let modules = match load_modules(&main_module.ast, file, Modules::default()) {
         Err(load_error) => {
-            error!("{}", load_error);
+            error!("{load_error}");
             std::process::exit(-1);
         }
         Ok(modules) => modules,
@@ -34,7 +34,7 @@ pub fn build_executable(args: &BuildArgs) -> Result<(), Box<dyn Error>> {
     let Module { ast, .. } = main_module.type_check(&modules)?;
 
     if args.dump_typed {
-        info!("Typed AST:\n{:#?}", ast);
+        println!("Typed AST:\n{:#?}", ast);
     }
 
     if let Some(output) = &args.output {

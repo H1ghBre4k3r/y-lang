@@ -40,10 +40,15 @@ pub enum LogLevel {
     #[value(alias("2"))]
     Info,
 
-    /// Log everything compiler internal.
+    /// Log everything which happens internally in the compiler.
     /// Note: This output can be quite clunky, since _very much_ will be logged.
     #[value(alias("3"))]
     Debug,
+
+    /// Log extra information. This can include more precise debug output or even non-important
+    /// errors.
+    #[value(alias("4"))]
+    Trace,
 }
 
 impl From<&LogLevel> for log::Level {
@@ -53,6 +58,7 @@ impl From<&LogLevel> for log::Level {
             LogLevel::Warn => log::Level::Warn,
             LogLevel::Info => log::Level::Info,
             LogLevel::Debug => log::Level::Debug,
+            LogLevel::Trace => log::Level::Trace,
         }
     }
 }
