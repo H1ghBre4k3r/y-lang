@@ -25,7 +25,6 @@ fn create_directory(parent: &str, directory: &Dir) -> Result<(), Box<dyn Error>>
     std::fs::create_dir_all(&path)?;
 
     for entry in directory.entries() {
-        println!("{entry:#?}");
         match entry {
             include_dir::DirEntry::Dir(dir) => create_directory(parent, dir)?,
             include_dir::DirEntry::File(file) => create_file(parent, file)?,
