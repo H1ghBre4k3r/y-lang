@@ -3,6 +3,8 @@ mod loaderror;
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     error::Error,
+    fmt::Display,
+    fs,
     hash::{Hash, Hasher},
     path::PathBuf,
 };
@@ -11,7 +13,7 @@ use log::error;
 use pest::iterators::Pair;
 
 use crate::{
-    ast::{Ast, Import, Rule, Statement, YParser},
+    ast::{Ast, Import, Position, Rule, Statement, YParser},
     typechecker::{extract_exports, TypeInfo, TypeScope, Typechecker},
 };
 
@@ -126,6 +128,38 @@ impl Module<()> {
     }
 }
 
+#[derive(Debug)]
+struct ImportError {
+    path: String,
+    import_statement: String,
+    position: Position,
+}
+
+impl From<(&String, &String, &Position)> for ImportError {
+    fn from((path, import_statement, position): (&String, &String, &Position)) -> Self {
+        Self {
+            path: path.to_owned(),
+            import_statement: import_statement.to_owned(),
+            position: position.to_owned(),
+        }
+    }
+}
+
+impl Display for ImportError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
+            "Failed to load file '{path}' from import '{import_statement}' at {file}:{col}:{row}",
+            path = self.path,
+            import_statement = self.import_statement,
+            file = self.position.0,
+            col = self.position.1,
+            row = self.position.2
+        ))
+    }
+}
+
+impl Error for ImportError {}
+
 pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
     let file_content = std::fs::read_to_string(&file)
         .unwrap_or_else(|_| panic!("Could not read file: '{}'", file.to_string_lossy()));
@@ -146,15 +180,16 @@ pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
 
     let exports = extract_exports(&ast)?;
 
-    let imports = extract_imports(&ast)
-        .iter()
-        .map(|import_path| {
-            (
-                import_path.to_owned(),
-                convert_to_path(&folder, import_path),
-            )
-        })
-        .collect();
+    let mut imports = vec![];
+
+    for (import_path, position) in &extract_imports(&ast) {
+        imports.push((
+            import_path.to_owned(),
+            convert_to_path(&folder, import_path).map_err(|PathConversionError { path }| {
+                ImportError::from((&path, import_path, position))
+            })?,
+        ))
+    }
 
     Ok(Module {
         name: "_".to_owned(),
@@ -185,7 +220,15 @@ pub fn load_modules(
     let folder = file.to_string_lossy();
 
     for import in &imports {
-        let file = convert_to_path(&folder, &import.path);
+        let file =
+            convert_to_path(&folder, &import.path).map_err(|PathConversionError { path }| {
+                ImportError::from((&path, &import.path, &import.position))
+            })?;
+
+        let mut folder = PathBuf::from(&file);
+        folder.pop();
+        let folder = folder.to_string_lossy();
+
         if modules.contains_key(&file) {
             continue;
         }
@@ -219,15 +262,16 @@ pub fn load_modules(
 
         let exports = extract_exports(&ast)?;
 
-        let imports = extract_imports(&ast)
-            .iter()
-            .map(|import_path| {
-                (
-                    import_path.to_owned(),
-                    convert_to_path(&folder, import_path),
-                )
-            })
-            .collect();
+        let mut imports = vec![];
+
+        for (import_path, position) in &extract_imports(&ast) {
+            imports.push((
+                import_path.to_owned(),
+                convert_to_path(&folder, import_path).map_err(|PathConversionError { path }| {
+                    ImportError::from((&path, import_path, position))
+                })?,
+            ))
+        }
 
         let file_path = PathBuf::from(file.clone());
 
@@ -255,7 +299,11 @@ pub fn load_modules(
     Ok(modules)
 }
 
-fn convert_to_path(folder: &str, import_path: &str) -> String {
+struct PathConversionError {
+    path: String,
+}
+
+fn convert_to_path(folder: &str, import_path: &str) -> Result<String, PathConversionError> {
     let is_wildcard = import_path.ends_with("::*");
 
     let path = &import_path[0..if is_wildcard {
@@ -264,17 +312,40 @@ fn convert_to_path(folder: &str, import_path: &str) -> String {
         import_path.len()
     }]
         .split("::")
+        .map(|part| match part {
+            "super" | "@super" => "..".to_owned(),
+            "@std" => format!(
+                "{}/.why/lib/std",
+                home::home_dir().unwrap_or(".".into()).to_string_lossy()
+            ),
+            "@core" => format!(
+                "{}/.why/lib/core",
+                home::home_dir().unwrap_or(".".into()).to_string_lossy()
+            ),
+            x => x.to_owned(),
+        })
         .collect::<Vec<_>>()
         .join("/");
 
-    format!("{folder}/{path}.why")
+    let path = if import_path.starts_with('@') && !import_path.starts_with("@super") {
+        format!("{path}.why")
+    } else {
+        format!("{folder}/{path}.why")
+    };
+
+    Ok(fs::canonicalize(&path)
+        .map_err(|_| PathConversionError { path })?
+        .to_string_lossy()
+        .to_string())
 }
 
-pub fn extract_imports(ast: &Ast<()>) -> Vec<String> {
+pub fn extract_imports(ast: &Ast<()>) -> Vec<(String, Position)> {
     ast.nodes()
         .iter()
         .filter_map(|statement| match statement {
-            Statement::Import(Import { path, .. }) => Some(path.clone()),
+            Statement::Import(Import { path, position, .. }) => {
+                Some((path.clone(), position.clone()))
+            }
             _ => None,
         })
         .collect()

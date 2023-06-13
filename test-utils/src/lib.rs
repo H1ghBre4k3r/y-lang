@@ -28,6 +28,7 @@ fn run_type_checker(src_path: &Path) -> Result<Output, io::Error> {
 
 fn run_compiler(src_path: &Path, out_path: &Path) -> Result<Output, io::Error> {
     Command::new(WHY_PATH)
+        .arg("build")
         .arg("-o")
         .arg(out_path)
         .arg(src_path)

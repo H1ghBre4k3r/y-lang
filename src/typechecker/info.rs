@@ -21,4 +21,12 @@ impl TypeInfo {
     pub fn source(&self) -> Option<Module<()>> {
         self.source.clone()
     }
+
+    pub fn min(&self, rhs: &Self) -> Self {
+        if self.var_size() < rhs.var_size() {
+            self.clone()
+        } else {
+            rhs.clone()
+        }
+    }
 }

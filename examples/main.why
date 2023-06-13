@@ -1,7 +1,11 @@
-import std::*
+import @super::lib::std::io::*
 
 let main := () : void => {
-    print("Hello, World!\n")
+    println("Hello, World!");
+
+    let foo := [' '; 10];
+    read(foo, 9);
+    println(foo);
 }
 
 main()

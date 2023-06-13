@@ -8,7 +8,11 @@ importDirective = {
     "import " ~ importPath
 }
 
-importPath = @{ ident ~ ("::*")? }
+importPath = @{ (importModifier)* ~ ident ~ ("::*")? }
+
+importModifier = @{
+    "@" ~ (ASCII_ALPHA)* ~ "::"
+}
 
 stmt = _{ 
     (intrinsics | expr | compiler_directive) ~ ";"?
@@ -56,7 +60,7 @@ paramList = { ( "(" ~ ")" | "(" ~ parameter ~ ("," ~ parameter )* ~ ")" ) }
 
 fnDef = {  paramList ~ typeAnnotation ~ "=>" ~ block }
 
-localIdent = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+localIdent = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
 ident = @{ localIdent ~ ("::" ~ localIdent)* }
 

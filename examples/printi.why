@@ -1,4 +1,4 @@
-import std::*
+import @super::lib::std::io::*
 
 printi(3)
 print(" ")

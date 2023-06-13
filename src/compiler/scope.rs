@@ -302,42 +302,44 @@ impl Scope {
                     lhs, binary_expression.op, rhs
                 )));
 
+                let info = lhs.info().min(&rhs.info());
+
                 match &binary_expression.op {
                     BinaryOp::Plus => self.instructions.push(Add(
-                        Register(Rax.to_sized(&lhs.info())),
-                        Register(Rcx.to_sized(&rhs.info())),
+                        Register(Rax.to_sized(&info)),
+                        Register(Rcx.to_sized(&info)),
                     )),
                     BinaryOp::Minus => self.instructions.push(Sub(
-                        Register(Rax.to_sized(&lhs.info())),
-                        Register(Rcx.to_sized(&rhs.info())),
+                        Register(Rax.to_sized(&info)),
+                        Register(Rcx.to_sized(&info)),
                     )),
                     BinaryOp::Times => self.instructions.push(Imul(
-                        Register(Rax.to_sized(&lhs.info())),
-                        Register(Rcx.to_sized(&rhs.info())),
+                        Register(Rax.to_sized(&info)),
+                        Register(Rcx.to_sized(&info)),
                     )),
-                    BinaryOp::DividedBy => self
-                        .instructions
-                        .push(Idiv(Register(Rcx.to_sized(&rhs.info())))),
+                    BinaryOp::DividedBy => {
+                        self.instructions.push(Idiv(Register(Rcx.to_sized(&info))))
+                    }
                     BinaryOp::GreaterThan => {
                         self.instructions.push(Cmp(
-                            Register(Rax.to_sized(&lhs.info())),
-                            Register(Rcx.to_sized(&rhs.info())),
+                            Register(Rax.to_sized(&info)),
+                            Register(Rcx.to_sized(&info)),
                         ));
                         self.instructions.push(Setg(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryOp::LessThan => {
                         self.instructions.push(Cmp(
-                            Register(Rax.to_sized(&lhs.info())),
-                            Register(Rcx.to_sized(&rhs.info())),
+                            Register(Rax.to_sized(&info)),
+                            Register(Rcx.to_sized(&info)),
                         ));
                         self.instructions.push(Setl(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
                     }
                     BinaryOp::Equal => {
                         self.instructions.push(Cmp(
-                            Register(Rax.to_sized(&lhs.info())),
-                            Register(Rcx.to_sized(&rhs.info())),
+                            Register(Rax.to_sized(&info)),
+                            Register(Rcx.to_sized(&info)),
                         ));
                         self.instructions.push(Sete(Register(Al)));
                         self.instructions.push(Movzx(Register(Eax), Register(Al)));
@@ -1034,18 +1036,7 @@ impl Scope {
         self.instructions
             .push(Comment(format!("CALL {name} ({:?})", call.params)));
 
-        if name.as_str() == "syscall_4" {
-            let params = &call.params;
-
-            for expression in params.iter().take(4) {
-                self.compile_expression(expression);
-                self.instructions.push(Push(Rax));
-            }
-
-            self.instructions
-                .append(&mut vec![Pop(Rdx), Pop(Rsi), Pop(Rdi), Pop(Rax), Syscall]);
-            return;
-        } else if name.as_str() == "str_len" {
+        if name.as_str() == "str_len" {
             let param = call.params[0].to_owned();
             match param {
                 Expression::If(_)
@@ -1096,7 +1087,7 @@ impl Scope {
         for (index, param) in call.params.iter().enumerate() {
             // if the type of the parameter is a reference, we need to load the address of it
             if let VariableType::Reference(_) = params[index] {
-                let Expression::Ident(Ident { value, .. }) = &call.params[index] else {
+                let Expression::Ident(Ident { value, info, ..}) = &call.params[index] else {
                     unimplemented!("Passing non-identifiers as references is currently not supported!");
                 };
 
@@ -1104,9 +1095,20 @@ impl Scope {
                     unreachable!()
                 };
 
-                self.instructions.push(Mov(Register(Rax), Register(Rbp)));
-                self.instructions
-                    .push(Sub(Register(Rax), Immediate(*offset as i64)));
+                if let VariableType::Reference(_) = &info._type {
+                    // if our parameter is a reference itself, it needs some extra cuddling
+                    self.instructions.push(Mov(
+                        Register(Rax),
+                        Memory(
+                            InstructionSize::from(info.clone()),
+                            format!("{Rbp}-{offset}"),
+                        ),
+                    ));
+                } else {
+                    self.instructions.push(Mov(Register(Rax), Register(Rbp)));
+                    self.instructions
+                        .push(Sub(Register(Rax), Immediate(*offset as i64)));
+                }
             } else {
                 self.compile_expression(param);
             }

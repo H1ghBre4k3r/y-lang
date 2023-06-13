@@ -1,4 +1,4 @@
-import std::*
+import @super::lib::std::*
 
 let test := "This is a test"
 

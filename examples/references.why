@@ -1,12 +1,16 @@
-import std::*
+import @super::lib::std::io::*
 
 let foo := (x: &int): void => {
     x = x * 3
     x = (x + 2) * x
 }
 
+let bar := (y: &int): void => {
+    foo(y);
+}
+
 let a := 3 
 
-foo(a)
+bar(a)
 
 printi(a)
