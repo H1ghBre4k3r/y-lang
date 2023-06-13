@@ -30,6 +30,7 @@ RUN target="$(cat /tmp/y-lang-rust-target)" \
 # Copy the sources
 WORKDIR /opt/y-lang
 COPY src src
+COPY lib lib
 COPY test-utils test-utils
 COPY Cargo.toml Cargo.lock .
 
