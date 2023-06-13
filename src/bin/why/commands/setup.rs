@@ -69,7 +69,7 @@ fn create_file(base: &str, file: &File) -> Result<(), SetupError> {
 
     debug!("creating file '{path}'");
 
-    let Ok(mut file_to_write) = std::fs::File::create(path) else {
+    let Ok(mut file_to_write) = std::fs::File::create(&path) else {
         return Err(SetupError::FileError(format!("Failed to create file '{path}'")));
     };
 
