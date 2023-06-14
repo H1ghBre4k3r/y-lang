@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Ident, Position, Rule, TypeAnnotation};
@@ -12,6 +13,7 @@ pub struct Declaration {
 impl Declaration {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Declaration {
         assert_eq!(pair.as_rule(), Rule::declaration);
+        trace!("creating Declaration from pair '{pair:?}'");
 
         let (line, col) = pair.line_col();
 

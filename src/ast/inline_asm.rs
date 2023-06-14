@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Position, Rule};
@@ -11,6 +12,8 @@ pub struct InlineAssembly<T> {
 
 impl InlineAssembly<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> InlineAssembly<()> {
+        trace!("creating InlineAssembly from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();

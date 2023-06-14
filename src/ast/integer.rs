@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Position, Rule};
@@ -11,6 +12,8 @@ pub struct Integer<T> {
 
 impl Integer<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Integer<()> {
+        trace!("creating Integer from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
 
         match pair.as_rule() {

@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Expression, Position, Rule};
@@ -12,6 +13,7 @@ pub struct Indexing<T> {
 impl Indexing<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Indexing<()> {
         assert_eq!(pair.as_rule(), Rule::indexing);
+        trace!("creating Indexing from pair '{pair:?}'");
 
         let (line, col) = pair.line_col();
 

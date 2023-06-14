@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, trace};
 use pest::iterators::Pair;
 
 use super::{Block, Param, Position, Rule, TypeAnnotation};
@@ -15,6 +15,7 @@ pub struct FnDef<T> {
 impl FnDef<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> FnDef<()> {
         assert_eq!(pair.as_rule(), Rule::fnDef);
+        trace!("creating FnDef form pair '{pair:?}'");
 
         let (line, col) = pair.line_col();
 

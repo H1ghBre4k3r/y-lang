@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Position, Rule};
@@ -11,6 +12,8 @@ pub struct Import {
 impl Import {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Self {
         assert_eq!(pair.as_rule(), Rule::importDirective);
+        trace!("creating Import from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();

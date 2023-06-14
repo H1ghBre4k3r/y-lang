@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Ident, Position, Rule, TypeAnnotation};
@@ -11,6 +12,8 @@ pub struct Param<T> {
 
 impl Param<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Param<()> {
+        trace!("creating Param from pair '{pair:?}'");
+
         assert_eq!(pair.as_rule(), Rule::parameter);
 
         let (line, col) = pair.line_col();

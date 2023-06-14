@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{BinaryOp, Expression, Position, Rule};
@@ -18,6 +19,8 @@ impl BinaryExpr<()> {
         rhs: Expression<()>,
         file: &str,
     ) -> BinaryExpr<()> {
+        trace!("creating BinaryExpr from lhs '{lhs:?}', op_pair '{op_pair:?}' and rhs '{rhs:?}'");
+
         let (line, col) = op_pair.line_col();
 
         let op = BinaryOp::from(op_pair.as_rule());

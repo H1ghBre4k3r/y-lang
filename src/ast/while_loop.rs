@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Block, Expression, Position, Rule};
@@ -12,6 +13,8 @@ pub struct WhileLoop<T> {
 
 impl WhileLoop<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> WhileLoop<()> {
+        trace!("creating WhileLoop from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();

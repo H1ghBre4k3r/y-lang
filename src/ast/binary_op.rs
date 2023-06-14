@@ -1,5 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
+use log::trace;
+
 use super::Rule;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -49,6 +51,7 @@ impl Display for BinaryOp {
 
 impl From<Rule> for BinaryOp {
     fn from(rule: Rule) -> Self {
+        trace!("creating BinaryOp from rule '{rule:?}'");
         match rule {
             Rule::greaterThan => BinaryOp::GreaterThan,
             Rule::lessThan => BinaryOp::LessThan,

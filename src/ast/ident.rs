@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Position, Rule};
@@ -11,6 +12,8 @@ pub struct Ident<T> {
 
 impl Ident<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Ident<()> {
+        trace!("creating Ident from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
         Ident {
             value: pair.as_str().to_owned(),

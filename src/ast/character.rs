@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Position, Rule};
@@ -12,6 +13,8 @@ pub struct Character<T> {
 impl Character<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Character<()> {
         assert_eq!(pair.as_rule(), Rule::character);
+        trace!("creating Character from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
 
         Character {

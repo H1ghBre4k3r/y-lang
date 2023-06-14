@@ -66,6 +66,7 @@ pub use self::type_annotation::*;
 pub use self::types::*;
 pub use self::while_loop::*;
 
+use log::trace;
 use pest::iterators::Pair;
 
 pub use self::parser::Rule;
@@ -86,6 +87,7 @@ impl Ast<()> {
     /// Create a new AST from a given pair of rules.
     /// Note: This AST is not type-correct by default.
     pub fn from_program(program: Vec<Pair<Rule>>, file: &str) -> Ast<()> {
+        trace!("creating Ast from programm '{program:?}'");
         let mut ast = vec![];
 
         for statement in program {

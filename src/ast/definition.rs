@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Expression, Ident, Position, Rule};
@@ -13,6 +14,7 @@ pub struct Definition<T> {
 
 impl Definition<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Definition<()> {
+        trace!("creating Definition from pair '{pair:?}'");
         let mut inner = pair.clone().into_inner();
 
         let (line, col) = pair.line_col();

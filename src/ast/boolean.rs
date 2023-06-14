@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Position, Rule};
@@ -12,6 +13,8 @@ pub struct Boolean<T> {
 impl Boolean<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Boolean<()> {
         assert_eq!(pair.as_rule(), Rule::boolean);
+        trace!("creating Boolean from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
         Boolean {
             value: pair.as_str().parse::<bool>().unwrap(),

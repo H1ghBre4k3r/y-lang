@@ -1,4 +1,5 @@
 use super::{Expression, Position, Rule, Statement};
+use log::trace;
 use pest::iterators::Pair;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -11,6 +12,7 @@ pub struct CompilerDirective<T> {
 impl CompilerDirective<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> CompilerDirective<()> {
         assert_eq!(pair.as_rule(), Rule::compiler_directive);
+        trace!("creating CompilerDirective from pair '{pair:?}'");
 
         let (line, col) = pair.line_col();
 

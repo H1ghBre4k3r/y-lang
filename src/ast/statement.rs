@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{CompilerDirective, Expression, Import, InlineAssembly, Intrinsic, Rule};
@@ -13,6 +14,7 @@ pub enum Statement<T> {
 
 impl Statement<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Statement<()> {
+        trace!("creating statement from pair '{pair:?}'");
         match pair.as_rule() {
             Rule::importDirective => Statement::Import(Import::from_pair(pair, file)),
             Rule::declaration | Rule::definition | Rule::assignment | Rule::whileLoop => {

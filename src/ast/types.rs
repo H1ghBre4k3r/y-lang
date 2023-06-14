@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Integer, Rule};
@@ -19,6 +20,7 @@ pub enum Type {
 
 impl Type {
     pub fn from_pair(pair: Pair<Rule>) -> Type {
+        trace!("creating Type from pair '{pair:?}'");
         match pair.as_rule() {
             Rule::fnType => {
                 let mut inner = pair.into_inner().peekable();

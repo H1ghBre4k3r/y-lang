@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Expression, Position, PrefixOp, Rule};
@@ -12,6 +13,8 @@ pub struct PrefixExpr<T> {
 
 impl PrefixExpr<()> {
     pub fn from_op_rhs(op_pair: Pair<Rule>, rhs: Expression<()>, file: &str) -> PrefixExpr<()> {
+        trace!("creating PrefixExpr from op_pair '{op_pair:?}' and rhs '{rhs:?}'");
+
         let (line, col) = op_pair.line_col();
 
         let op = PrefixOp::from(op_pair.as_rule());

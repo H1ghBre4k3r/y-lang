@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Position, Rule, Type};
@@ -10,6 +11,8 @@ pub struct TypeAnnotation {
 
 impl TypeAnnotation {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> TypeAnnotation {
+        trace!("creating TypeAnnotation from pair '{pair:?}'");
+
         let (line, col) = pair.line_col();
 
         let mut inner = pair.into_inner();

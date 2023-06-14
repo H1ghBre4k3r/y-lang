@@ -1,3 +1,4 @@
+use log::trace;
 use pest::iterators::Pair;
 
 use super::{Call, Indexing, Rule};
@@ -10,6 +11,7 @@ pub enum PostfixOp<T> {
 
 impl PostfixOp<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> PostfixOp<()> {
+        trace!("creating PostfixOp from pair '{pair:?}'");
         match pair.as_rule() {
             Rule::call => PostfixOp::Call(Call::from_pair(pair, file)),
             Rule::indexing => PostfixOp::Indexing(Indexing::from_pair(pair, file)),
