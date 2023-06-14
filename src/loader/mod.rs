@@ -3,13 +3,14 @@ mod loaderror;
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     error::Error,
+    ffi::OsStr,
     fmt::Display,
     fs,
     hash::{Hash, Hasher},
     path::PathBuf,
 };
 
-use log::error;
+use log::{debug, error, trace};
 use pest::iterators::Pair;
 
 use crate::{
@@ -20,6 +21,7 @@ use crate::{
 use self::loaderror::FileLoadError;
 
 fn should_be_exported(pair: &Pair<Rule>) -> bool {
+    trace!("checking if pair '{pair:?}' should be exported");
     match pair.as_rule() {
         Rule::definition => {
             let mut inner = pair.clone().into_inner();
@@ -75,6 +77,11 @@ pub type Modules<T> = HashMap<String, Module<T>>;
 impl<T> Module<T> {
     /// Resolve a variable name from this module.
     pub fn resolve(&self, var_name: &impl ToString) -> String {
+        trace!(
+            "resolving variable '{var}' for module '{module}'",
+            var = var_name.to_string(),
+            module = self.name
+        );
         format!("{}_{}", self.name, var_name.to_string())
     }
 
@@ -82,9 +89,15 @@ impl<T> Module<T> {
     /// relative path (relative to _this_ module). This is needed to determine the correct module
     /// to import while typechecking.
     pub fn convert_imports_to_local_names(&self, modules: &Modules<()>) -> Modules<()> {
+        debug!("converting imports to local names for module '{mod}'", mod = self.name);
         let mut local_modules = Modules::default();
 
         for (import_path, real_path) in &self.imports {
+            trace!(
+                "converting import '{import}' to local name '{real}'",
+                import = import_path,
+                real = real_path
+            );
             local_modules.insert(
                 import_path.to_owned(),
                 modules.get(real_path).unwrap().to_owned(),
@@ -95,10 +108,12 @@ impl<T> Module<T> {
 }
 
 impl Module<()> {
+    /// Type check this module and return a type correct version of it.
     pub fn type_check(
         &self,
         other_modules: &Modules<()>,
     ) -> Result<Module<TypeInfo>, Box<dyn Error>> {
+        debug!("type checking module '{mod}'", mod = self.name);
         let modules = self.convert_imports_to_local_names(other_modules);
 
         let Module {
@@ -109,6 +124,7 @@ impl Module<()> {
             ast,
         } = self;
 
+        // Let the type checker have some fun
         let typechecker = Typechecker::from_ast(ast.clone(), modules);
         let ast = match typechecker.check() {
             Ok(ast) => ast,
@@ -160,10 +176,18 @@ impl Display for ImportError {
 
 impl Error for ImportError {}
 
+// Load a single module from a specified path.
 pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
+    debug!(
+        "loading module for file '{file}'",
+        file = file.to_string_lossy()
+    );
+
+    // read file
     let file_content = std::fs::read_to_string(&file)
         .unwrap_or_else(|_| panic!("Could not read file: '{}'", file.to_string_lossy()));
 
+    // parse file
     let pairs = match YParser::parse_program(&file.to_string_lossy(), &file_content) {
         Ok(pairs) => pairs,
         Err(parse_error) => {
@@ -172,7 +196,15 @@ pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
         }
     };
 
+    // build ast
     let ast = Ast::from_program(pairs.collect(), &file.to_string_lossy());
+
+    let binding = file
+        .clone()
+        .file_stem()
+        .unwrap_or(OsStr::new("_"))
+        .to_owned();
+    let file_name = binding.to_string_lossy().to_string();
 
     file.pop();
 
@@ -180,9 +212,13 @@ pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
 
     let exports = extract_exports(&ast)?;
 
+    // extract imports from this module
     let mut imports = vec![];
-
     for (import_path, position) in &extract_imports(&ast) {
+        trace!(
+            "adding import '{import_path}' for file '{file}'",
+            file = file.to_string_lossy()
+        );
         imports.push((
             import_path.to_owned(),
             convert_to_path(&folder, import_path).map_err(|PathConversionError { path }| {
@@ -192,7 +228,7 @@ pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
     }
 
     Ok(Module {
-        name: "_".to_owned(),
+        name: file_name,
         ast,
         file_path: file,
         exports,
@@ -200,11 +236,17 @@ pub fn load_module(mut file: PathBuf) -> Result<Module<()>, Box<dyn Error>> {
     })
 }
 
+/// Load all imported modules from the specified AST and insert them (if not already present) into
+/// our module map.
 pub fn load_modules(
     ast: &Ast<()>,
     mut file: PathBuf,
     mut modules: Modules<()>,
 ) -> Result<Modules<()>, Box<dyn Error>> {
+    debug!(
+        "loading modules for file '{file}'",
+        file = file.to_string_lossy()
+    );
     let nodes = ast.nodes();
 
     let imports = nodes
@@ -219,20 +261,23 @@ pub fn load_modules(
 
     let folder = file.to_string_lossy();
 
+    // recursively traverse all imports using DFS
     for import in &imports {
         let file =
             convert_to_path(&folder, &import.path).map_err(|PathConversionError { path }| {
                 ImportError::from((&path, &import.path, &import.position))
             })?;
 
-        let mut folder = PathBuf::from(&file);
-        folder.pop();
-        let folder = folder.to_string_lossy();
-
+        // if we already have this file, just go on with the next
         if modules.contains_key(&file) {
             continue;
         }
 
+        let mut folder = PathBuf::from(&file);
+        folder.pop();
+        let folder = folder.to_string_lossy();
+
+        // load contents of file
         let Ok(file_content) = std::fs::read_to_string(&file) else {
             return Err(Box::new(FileLoadError {
                 message: format!("Could not load module: '{file}'"),
@@ -240,6 +285,7 @@ pub fn load_modules(
             }));
         };
 
+        // parse the file
         let pairs = match YParser::parse_program(&file, &file_content) {
             Ok(pairs) => pairs,
             Err(parse_error) => {
@@ -248,6 +294,7 @@ pub fn load_modules(
             }
         };
 
+        // determine the exports and build an ast for them
         let fns = pairs
             .clone()
             .filter_map(|pair| {
@@ -260,11 +307,13 @@ pub fn load_modules(
             .collect::<Vec<_>>();
         let ast = Ast::from_program(fns.clone(), &file);
 
+        // extract types of exports
         let exports = extract_exports(&ast)?;
 
+        // now determine imports and convert them to their correct representation
         let mut imports = vec![];
-
         for (import_path, position) in &extract_imports(&ast) {
+            trace!("adding import '{import_path}' for file '{file}'");
             imports.push((
                 import_path.to_owned(),
                 convert_to_path(&folder, import_path).map_err(|PathConversionError { path }| {
@@ -275,10 +324,12 @@ pub fn load_modules(
 
         let file_path = PathBuf::from(file.clone());
 
+        // create hash of file contents
         let mut s = DefaultHasher::new();
         file_content.hash(&mut s);
         let file_hash = s.finish();
 
+        // insert module with absolute path as key into our module map
         modules.insert(
             file,
             Module {
@@ -293,6 +344,7 @@ pub fn load_modules(
             },
         );
 
+        // now, just continue recursively
         modules = load_modules(&ast, file_path, modules)?;
     }
 

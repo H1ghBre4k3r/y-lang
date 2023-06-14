@@ -8,6 +8,7 @@ pub struct YParser;
 
 impl YParser {
     pub fn parse_program(file: impl ToString, program: &str) -> ParseResult<Pairs<Rule>> {
-        Self::parse(Rule::program, program).map_err(|error| ParseError::from((error, file)))
+        Self::parse(Rule::program, program)
+            .map_err(|error| Box::new(ParseError::from((error, file))))
     }
 }

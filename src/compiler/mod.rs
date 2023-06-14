@@ -5,7 +5,13 @@
 mod scope;
 mod ystd;
 
-use std::{error::Error, fs::File, io::prelude::*, path::PathBuf, process::Command};
+use std::{
+    error::Error,
+    fs::File,
+    io::prelude::*,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use Instruction::*;
 use InstructionOperand::*;
@@ -172,7 +178,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn write_code(&mut self, target: PathBuf) -> Result<(), Box<dyn Error>> {
+    fn write_code(&mut self, target: &Path) -> Result<(), Box<dyn Error>> {
         let mut file = File::create(format!("{}.asm", target.to_string_lossy()))?;
 
         file.write_all("default rel\n\n".as_bytes())?;
@@ -184,7 +190,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn compile_nasm(&mut self, target: PathBuf) -> Result<(), Box<dyn Error>> {
+    fn compile_nasm(&mut self, target: &Path) -> Result<(), Box<dyn Error>> {
         info!("Compiling '{}.asm'...", target.to_string_lossy());
 
         #[cfg(target_os = "macos")]
@@ -210,7 +216,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn link_program(&mut self, target: PathBuf, files: Vec<PathBuf>) -> Result<(), Box<dyn Error>> {
+    fn link_program(&mut self, target: &Path, files: Vec<PathBuf>) -> Result<(), Box<dyn Error>> {
         info!("Linking program...");
 
         let mut args = Vec::<String>::new();
@@ -270,7 +276,7 @@ impl Compiler {
         self.write_data_from_scope(&mut file, &scope)?;
         self.write_functions(&mut file, &scope)?;
 
-        self.compile_nasm(output.clone())?;
+        self.compile_nasm(&output)?;
 
         Ok(output)
     }
@@ -291,9 +297,9 @@ impl Compiler {
             others.push(self.compile_module(module, folder.clone())?);
         }
 
-        self.write_code(target.clone())?;
-        self.compile_nasm(target.clone())?;
-        self.link_program(target, others)?;
+        self.write_code(&target)?;
+        self.compile_nasm(&target)?;
+        self.link_program(&target, others)?;
 
         Ok(())
     }
