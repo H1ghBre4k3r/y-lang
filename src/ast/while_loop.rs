@@ -13,7 +13,7 @@ pub struct WhileLoop<T> {
 
 impl WhileLoop<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> WhileLoop<()> {
-        trace!("creating WhileLoop from pair '{pair:?}'");
+        trace!("creating WhileLoop from pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

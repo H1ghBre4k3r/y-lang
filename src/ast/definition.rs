@@ -14,7 +14,7 @@ pub struct Definition<T> {
 
 impl Definition<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Definition<()> {
-        trace!("creating Definition from pair '{pair:?}'");
+        trace!("creating Definition from pair '{pair}'");
         let mut inner = pair.clone().into_inner();
 
         let (line, col) = pair.line_col();

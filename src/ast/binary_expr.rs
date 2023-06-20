@@ -19,7 +19,7 @@ impl BinaryExpr<()> {
         rhs: Expression<()>,
         file: &str,
     ) -> BinaryExpr<()> {
-        trace!("creating BinaryExpr from lhs '{lhs:?}', op_pair '{op_pair:?}' and rhs '{rhs:?}'");
+        trace!("creating BinaryExpr from lhs '{lhs:?}', op_pair '{op_pair}' and rhs '{rhs:?}'");
 
         let (line, col) = op_pair.line_col();
 

@@ -13,7 +13,7 @@ pub struct Assignment<T> {
 
 impl Assignment<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Assignment<()> {
-        trace!("creating Assignment from pair '{pair:?}'");
+        trace!("creating Assignment from pair '{pair}'");
         let mut inner = pair.clone().into_inner();
 
         let (line, col) = pair.line_col();

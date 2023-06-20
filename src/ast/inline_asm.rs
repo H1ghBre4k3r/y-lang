@@ -12,7 +12,7 @@ pub struct InlineAssembly<T> {
 
 impl InlineAssembly<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> InlineAssembly<()> {
-        trace!("creating InlineAssembly from pair '{pair:?}'");
+        trace!("creating InlineAssembly from pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

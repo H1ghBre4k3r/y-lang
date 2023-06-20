@@ -12,7 +12,7 @@ pub struct Import {
 impl Import {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Self {
         assert_eq!(pair.as_rule(), Rule::importDirective);
-        trace!("creating Import from pair '{pair:?}'");
+        trace!("creating Import from pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

@@ -15,7 +15,7 @@ pub enum Intrinsic<T> {
 
 impl Intrinsic<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Intrinsic<()> {
-        trace!("creating Intrinsic from pair '{pair:?}'");
+        trace!("creating Intrinsic from pair '{pair}'");
         match pair.as_rule() {
             Rule::declaration => Intrinsic::Declaration(Declaration::from_pair(pair, file)),
             Rule::definition => Intrinsic::Definition(Definition::from_pair(pair, file)),

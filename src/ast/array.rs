@@ -14,7 +14,7 @@ pub struct Array<T> {
 impl Array<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Array<()> {
         assert_eq!(pair.as_rule(), Rule::array);
-        trace!("creating Array from pair '{pair:?}'");
+        trace!("creating Array from pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

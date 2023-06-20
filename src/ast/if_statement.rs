@@ -15,7 +15,7 @@ pub struct If<T> {
 impl If<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> If<()> {
         assert_eq!(pair.as_rule(), Rule::ifStmt);
-        trace!("creating If from pair '{pair:?}'");
+        trace!("creating If from pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

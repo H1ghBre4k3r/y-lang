@@ -11,7 +11,7 @@ pub struct TypeAnnotation {
 
 impl TypeAnnotation {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> TypeAnnotation {
-        trace!("creating TypeAnnotation from pair '{pair:?}'");
+        trace!("creating TypeAnnotation from pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

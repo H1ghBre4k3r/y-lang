@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error, fs};
 
-use log::error;
+use log::{debug, error};
 use y_lang::{
     compiler::Compiler,
     loader::{load_module, load_modules, Module, Modules},
@@ -9,6 +9,7 @@ use y_lang::{
 use crate::cli::BuildArgs;
 
 pub fn build_executable(args: &BuildArgs) -> Result<(), Box<dyn Error>> {
+    debug!("building executable...");
     let file = fs::canonicalize(&args.file)?;
 
     let main_module = load_module(file.clone())?;

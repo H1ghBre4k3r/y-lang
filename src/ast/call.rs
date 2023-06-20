@@ -13,7 +13,7 @@ pub struct Call<T> {
 impl Call<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Call<()> {
         assert_eq!(pair.as_rule(), Rule::call);
-        trace!("creating Call from pair '{pair:?}");
+        trace!("creating Call from pair '{pair}");
 
         let (line, col) = pair.line_col();
 

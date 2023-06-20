@@ -21,7 +21,7 @@ use crate::{
 use self::loaderror::FileLoadError;
 
 fn should_be_exported(pair: &Pair<Rule>) -> bool {
-    trace!("checking if pair '{pair:?}' should be exported");
+    trace!("checking if pair '{pair}' should be exported");
     match pair.as_rule() {
         Rule::definition => {
             let mut inner = pair.clone().into_inner();

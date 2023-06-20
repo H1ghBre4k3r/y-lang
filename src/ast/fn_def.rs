@@ -15,7 +15,7 @@ pub struct FnDef<T> {
 impl FnDef<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> FnDef<()> {
         assert_eq!(pair.as_rule(), Rule::fnDef);
-        trace!("creating FnDef form pair '{pair:?}'");
+        trace!("creating FnDef form pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

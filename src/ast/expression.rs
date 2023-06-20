@@ -40,7 +40,7 @@ static PRATT_PARSER: Lazy<PrattParser<Rule>> = Lazy::new(|| {
 
 impl Expression<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Expression<()> {
-        trace!("creating Expression from pair '{pair:?}'");
+        trace!("creating Expression from pair '{pair}'");
         PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 Rule::expr => Expression::from_pair(primary, file),

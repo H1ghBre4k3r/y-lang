@@ -12,7 +12,7 @@ pub struct CompilerDirective<T> {
 impl CompilerDirective<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> CompilerDirective<()> {
         assert_eq!(pair.as_rule(), Rule::compiler_directive);
-        trace!("creating CompilerDirective from pair '{pair:?}'");
+        trace!("creating CompilerDirective from pair '{pair}'");
 
         let (line, col) = pair.line_col();
 

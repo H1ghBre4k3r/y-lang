@@ -13,7 +13,7 @@ pub struct PostfixExpr<T> {
 
 impl PostfixExpr<()> {
     pub fn from_lhs_op(lhs: Expression<()>, op_pair: Pair<Rule>, file: &str) -> PostfixExpr<()> {
-        trace!("creating PostfixExpr from lhs '{lhs:?}' and op_pair '{op_pair:?}");
+        trace!("creating PostfixExpr from lhs '{lhs:?}' and op_pair '{op_pair}");
 
         let (line, col) = op_pair.line_col();
 

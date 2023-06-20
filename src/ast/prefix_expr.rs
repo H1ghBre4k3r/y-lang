@@ -13,7 +13,7 @@ pub struct PrefixExpr<T> {
 
 impl PrefixExpr<()> {
     pub fn from_op_rhs(op_pair: Pair<Rule>, rhs: Expression<()>, file: &str) -> PrefixExpr<()> {
-        trace!("creating PrefixExpr from op_pair '{op_pair:?}' and rhs '{rhs:?}'");
+        trace!("creating PrefixExpr from op_pair '{op_pair}' and rhs '{rhs:?}'");
 
         let (line, col) = op_pair.line_col();
 

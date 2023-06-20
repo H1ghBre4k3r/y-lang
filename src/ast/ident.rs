@@ -12,7 +12,7 @@ pub struct Ident<T> {
 
 impl Ident<()> {
     pub fn from_pair(pair: Pair<Rule>, file: &str) -> Ident<()> {
-        trace!("creating Ident from pair '{pair:?}'");
+        trace!("creating Ident from pair '{pair}'");
 
         let (line, col) = pair.line_col();
         Ident {
