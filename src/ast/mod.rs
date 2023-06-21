@@ -66,8 +66,8 @@ pub use self::type_annotation::*;
 pub use self::types::*;
 pub use self::while_loop::*;
 
-use log::trace;
 use pest::iterators::Pair;
+use tracing::trace;
 
 pub use self::parser::Rule;
 

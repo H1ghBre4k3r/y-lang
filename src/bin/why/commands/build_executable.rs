@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error, fs};
 
-use log::{debug, error};
+use tracing::{debug, error};
 use y_lang::{
     compiler::Compiler,
     loader::{load_module, load_modules, Module, Modules},

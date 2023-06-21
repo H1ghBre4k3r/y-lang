@@ -28,6 +28,7 @@ use self::{error::TypeError, typescope::setup_scope};
 type TResult<T> = Result<T, TypeError>;
 
 /// Struct for type checking an AST.
+#[derive(Debug)]
 pub struct Typechecker {
     ast: Ast<()>,
     modules: Modules<()>,

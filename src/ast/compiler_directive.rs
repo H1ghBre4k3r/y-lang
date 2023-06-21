@@ -1,6 +1,6 @@
 use super::{Expression, Position, Rule, Statement};
-use log::trace;
 use pest::iterators::Pair;
+use tracing::trace;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CompilerDirective<T> {

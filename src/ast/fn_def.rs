@@ -1,5 +1,5 @@
-use log::{error, trace};
 use pest::iterators::Pair;
+use tracing::{error, trace};
 
 use super::{Block, Param, Position, Rule, TypeAnnotation};
 

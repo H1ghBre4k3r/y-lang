@@ -1,7 +1,7 @@
 use super::{Declaration, Rule, WhileLoop};
 
-use log::trace;
 use pest::iterators::Pair;
+use tracing::trace;
 
 use super::{Assignment, Definition};
 

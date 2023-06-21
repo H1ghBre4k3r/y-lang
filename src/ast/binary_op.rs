@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use log::trace;
+use tracing::trace;
 
 use super::Rule;
 

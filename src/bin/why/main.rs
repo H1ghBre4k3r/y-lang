@@ -11,14 +11,18 @@ mod commands;
 use cli::*;
 use commands::*;
 use include_dir::{include_dir, Dir};
-use log::error;
+use tracing::{error, metadata::LevelFilter};
 
 pub static LIBRARY_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/lib");
 
 fn main() {
     let args = Cli::init();
 
-    simple_logger::init_with_level((&args.verbosity).into()).unwrap();
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(LevelFilter::TRACE)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("something went wrong");
 
     if let Err(error) = match &args.command {
         Commands::Build(args) => build_executable(args),

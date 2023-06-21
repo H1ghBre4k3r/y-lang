@@ -1,5 +1,5 @@
-use log::trace;
 use pest::iterators::Pair;
+use tracing::trace;
 
 use super::{Expression, Position, Rule};
 

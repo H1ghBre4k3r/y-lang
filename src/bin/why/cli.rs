@@ -3,6 +3,7 @@
 //! This module contains everything needed for parsing the CLI arguments for Why.
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use tracing::metadata::LevelFilter;
 
 /// Struct containing the CLI configuration for Why.
 #[derive(Parser, Debug)]
@@ -51,14 +52,14 @@ pub enum LogLevel {
     Trace,
 }
 
-impl From<&LogLevel> for log::Level {
+impl From<&LogLevel> for LevelFilter {
     fn from(value: &LogLevel) -> Self {
         match value {
-            LogLevel::Error => log::Level::Error,
-            LogLevel::Warn => log::Level::Warn,
-            LogLevel::Info => log::Level::Info,
-            LogLevel::Debug => log::Level::Debug,
-            LogLevel::Trace => log::Level::Trace,
+            LogLevel::Error => LevelFilter::ERROR,
+            LogLevel::Warn => LevelFilter::WARN,
+            LogLevel::Info => LevelFilter::INFO,
+            LogLevel::Debug => LevelFilter::DEBUG,
+            LogLevel::Trace => LevelFilter::TRACE,
         }
     }
 }

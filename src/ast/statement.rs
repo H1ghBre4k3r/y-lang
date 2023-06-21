@@ -1,5 +1,5 @@
-use log::trace;
 use pest::iterators::Pair;
+use tracing::trace;
 
 use super::{CompilerDirective, Expression, Import, InlineAssembly, Intrinsic, Rule};
 

@@ -10,8 +10,8 @@ use std::{
     path::PathBuf,
 };
 
-use log::{debug, error, trace};
 use pest::iterators::Pair;
+use tracing::{debug, error, trace};
 
 use crate::{
     ast::{Ast, Import, Position, Rule, Statement, YParser},

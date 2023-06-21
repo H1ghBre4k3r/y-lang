@@ -1,6 +1,6 @@
 use super::{Position, Rule};
-use log::trace;
 use pest::iterators::Pair;
+use tracing::trace;
 use unescape::unescape;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]

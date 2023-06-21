@@ -1,9 +1,9 @@
-use log::trace;
 use once_cell::sync::Lazy;
 use pest::{
     iterators::Pair,
     pratt_parser::{Assoc, Op, PrattParser},
 };
+use tracing::trace;
 
 use super::{
     Array, BinaryExpr, Block, Boolean, Character, FnDef, Ident, If, Integer, Position, PostfixExpr,

@@ -1,7 +1,7 @@
 use std::{error::Error, fmt::Display, io::Write};
 
 use include_dir::{Dir, File};
-use log::{debug, trace};
+use tracing::{debug, trace};
 
 use crate::LIBRARY_DIR;
 

@@ -18,7 +18,7 @@ use InstructionOperand::*;
 use InstructionSize::*;
 use Reg::*;
 
-use log::{error, info};
+use tracing::{error, info};
 
 use crate::{
     asm::{Instruction, InstructionOperand, InstructionSize, Reg, EXIT_SYSCALL},
