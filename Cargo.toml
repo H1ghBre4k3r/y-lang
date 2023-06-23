@@ -12,7 +12,7 @@ repository = "https://github.com/H1ghBre4k3r/y-lang"
 clap = { version = "4.3.5", features = ["derive"]}
 log = "0.4.19"
 pest = "2.7"
-pest_derive = "2.6"
+pest_derive = "2.7"
 simple_logger = { version = "4.2.0", default-features = false, features = ["colored", "colors"]}
 unescape = "0.1.0"
 once_cell = "1.18"
