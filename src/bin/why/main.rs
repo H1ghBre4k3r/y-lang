@@ -11,7 +11,7 @@ mod commands;
 use cli::*;
 use commands::*;
 use include_dir::{include_dir, Dir};
-use tracing::{error, metadata::LevelFilter};
+use tracing::error;
 
 pub static LIBRARY_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/lib");
 
@@ -19,7 +19,7 @@ fn main() {
     let args = Cli::init();
 
     let subscriber = tracing_subscriber::fmt()
-        .with_max_level(LevelFilter::TRACE)
+        .with_max_level(&args.verbosity)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("something went wrong");

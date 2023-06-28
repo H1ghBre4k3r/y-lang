@@ -131,7 +131,7 @@ impl VariableType {
                 Ok(ArraySlice(Box::new(item_type.convert_to(other_item_type)?)))
             }
             (Str, ArraySlice(other_item_type)) => {
-                if *other_item_type == Box::new(Char) {
+                if other_item_type == &Box::new(Char) {
                     Ok(ArraySlice(Box::new(Char)))
                 } else {
                     Err(VariableConversionError)
@@ -140,7 +140,7 @@ impl VariableType {
             (Char, Int) => Ok(Int),
             (Int, Char) => Ok(Char),
             (TupleArray { item_type, .. }, Str) => {
-                if *item_type == Box::new(Char) {
+                if item_type == &Box::new(Char) {
                     Ok(Str)
                 } else {
                     Err(VariableConversionError)

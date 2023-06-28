@@ -24,6 +24,8 @@ pub use self::variabletype::VariableType;
 
 use self::{error::TypeError, typescope::setup_scope};
 
+use tracing::{error, warn};
+
 /// Result of type checking a node within the AST.
 type TResult<T> = Result<T, TypeError>;
 
@@ -41,6 +43,7 @@ impl Typechecker {
 
     /// Type check the contained AST and return the type correct AST with type information attached
     /// to each node.
+    #[tracing::instrument(level = "trace", skip_all)]
     pub fn check(&self) -> Result<Ast<TypeInfo>, TypeError> {
         let nodes = self.ast.nodes();
 
@@ -58,6 +61,7 @@ impl Typechecker {
     /// Extract the exports of a given AST. In particular, the exports are only the type
     /// information of the defined functions.
     /// Note: The exports are _not_ type checked.
+    #[tracing::instrument(level = "trace", skip_all)]
     pub fn extract_exports(ast: &Ast<()>) -> Result<TypeScope, TypeError> {
         let nodes = ast.nodes();
 
@@ -119,6 +123,7 @@ impl Typechecker {
         Ok(scope)
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_statement(
         &self,
         statement: &Statement<()>,
@@ -141,6 +146,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_inline_assembly(
         &self,
         InlineAssembly {
@@ -150,6 +156,12 @@ impl Typechecker {
         }: &InlineAssembly<()>,
         _: &mut TypeScope,
     ) -> TResult<InlineAssembly<TypeInfo>> {
+        warn!(
+            "inline assembly is highly discouraged! ({file}:{line}:{col})",
+            file = position.0,
+            line = position.1,
+            col = position.2
+        );
         Ok(InlineAssembly {
             statements: statements.clone(),
             position: position.clone(),
@@ -160,6 +172,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_compiler_directive(
         &self,
         CompilerDirective {
@@ -205,6 +218,7 @@ impl Typechecker {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_import(&self, import: &Import, scope: &mut TypeScope) -> TResult<Import> {
         let Import { position, path } = import;
         let Some(module) = self.modules.get(path) else {
@@ -231,6 +245,7 @@ impl Typechecker {
         Ok(import.clone())
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_intrinsic(
         &self,
         intrinsic: &Intrinsic<()>,
@@ -252,6 +267,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_while_loop(
         &self,
         WhileLoop {
@@ -283,6 +299,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_declaration(
         &self,
         declaration: &Declaration,
@@ -297,6 +314,7 @@ impl Typechecker {
         Ok(declaration.clone())
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_if(&self, if_statement: &If<()>, scope: &mut TypeScope) -> TResult<If<TypeInfo>> {
         let condition = self.check_expression(None, &if_statement.condition, scope)?;
         let condition_info = condition.info();
@@ -342,6 +360,7 @@ impl Typechecker {
         Ok(new_if)
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_block(&self, block: &Block<()>, scope: &mut TypeScope) -> TResult<Block<TypeInfo>> {
         scope.push();
 
@@ -371,6 +390,7 @@ impl Typechecker {
         Ok(new_block)
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_definition(
         &self,
         definition: &Definition<()>,
@@ -413,6 +433,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_assignment(
         &self,
         assignment: &Assignment<()>,
@@ -510,6 +531,7 @@ impl Typechecker {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_expression(
         &self,
         identifier: Option<&Ident<()>>,
@@ -576,6 +598,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_array(
         &self,
         Array {
@@ -609,6 +632,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_identifier(
         &self,
         identifier: &Ident<()>,
@@ -623,18 +647,24 @@ impl Typechecker {
                     source: None,
                 },
             }),
-            None => Err(TypeError {
-                message: format!("Undefined identifier '{}'", identifier.value),
-                position: identifier.position.clone(),
-            }),
+            None => {
+                let message = format!("Undefined identifier '{}'", identifier.value);
+                error!("{message}");
+                Err(TypeError {
+                    message,
+                    position: identifier.position.clone(),
+                })
+            }
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     fn get_type_def(type_: &Type, position: Position) -> Result<VariableType, TypeError> {
         match type_ {
-            Type::Literal(literal) => literal.parse().map_err(|_| TypeError {
-                message: format!("Unexpected type annotation '{type_:?}'"),
-                position,
+            Type::Literal(literal) => literal.parse().map_err(|_| {
+                let message = format!("Unexpected type annotation '{type_:?}'");
+                error!("{message}");
+                TypeError { message, position }
             }),
             Type::Function {
                 params,
@@ -678,6 +708,7 @@ impl Typechecker {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_fn_def(
         &self,
         identifier: Option<&Ident<()>>,
@@ -744,6 +775,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_fn_params(&self, params: &Vec<Param<()>>) -> TResult<Vec<Param<TypeInfo>>> {
         let mut new_params = vec![];
 
@@ -772,6 +804,7 @@ impl Typechecker {
         Ok(new_params)
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_fn_call(
         &self,
         ident: &Ident<()>,
@@ -837,6 +870,7 @@ impl Typechecker {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_binary_expression(
         &self,
         binary_expression: &BinaryExpr<()>,
@@ -928,6 +962,7 @@ impl Typechecker {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_prefix_expression(
         &self,
         prefix_expression: &PrefixExpr<()>,
@@ -984,6 +1019,7 @@ impl Typechecker {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_postfix_expression(
         &self,
         postfix_expression: &PostfixExpr<()>,
@@ -1023,6 +1059,7 @@ impl Typechecker {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     fn check_indexing(
         &self,
         lhs: &Expression<TypeInfo>,
