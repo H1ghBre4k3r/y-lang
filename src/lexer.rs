@@ -12,6 +12,19 @@ pub enum Token {
     Comment { value: String, position: Position },
 }
 
+impl Token {
+    pub fn position(&self) -> Position {
+        match self {
+            Token::Eq { position } => *position,
+            Token::Let { position } => *position,
+            Token::Id { position, .. } => *position,
+            Token::Num { position, .. } => *position,
+            Token::Semicolon { position } => *position,
+            Token::Comment { position, .. } => *position,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LexError(String);
 

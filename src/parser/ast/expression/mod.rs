@@ -2,9 +2,12 @@ mod num;
 
 pub use self::num::*;
 
-use std::{error::Error, iter::Peekable};
+use std::iter::Peekable;
 
-use crate::{lexer::Token, parser::FromTokens};
+use crate::{
+    lexer::Token,
+    parser::{FromTokens, ParseError},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
@@ -12,7 +15,7 @@ pub enum Expression {
 }
 
 impl FromTokens for Expression {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, Box<dyn Error>>
+    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
     where
         I: Iterator<Item = Token>,
         Self: Sized,

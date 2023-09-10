@@ -2,9 +2,12 @@ mod initialization;
 
 pub use self::initialization::*;
 
-use std::{error::Error, iter::Peekable};
+use std::iter::Peekable;
 
-use crate::{lexer::Token, parser::FromTokens};
+use crate::{
+    lexer::Token,
+    parser::{FromTokens, ParseError},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
@@ -12,7 +15,7 @@ pub enum Statement {
 }
 
 impl FromTokens for Statement {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, Box<dyn Error>>
+    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
     where
         I: Iterator<Item = Token>,
         Self: Sized,

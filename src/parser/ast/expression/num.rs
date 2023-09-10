@@ -1,12 +1,15 @@
-use std::{error::Error, iter::Peekable};
+use std::iter::Peekable;
 
-use crate::{lexer::Token, parser::FromTokens};
+use crate::{
+    lexer::Token,
+    parser::{FromTokens, ParseError},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Num(u64);
 
 impl FromTokens for Num {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, Box<dyn Error>>
+    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
     where
         I: Iterator<Item = Token>,
         Self: Sized,
