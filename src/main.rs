@@ -13,6 +13,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let lexed = lex(input)?;
 
-    parse(lexed);
+    let statements = parse(lexed)?;
+
+    println!("{statements:#?}");
     Ok(())
 }
