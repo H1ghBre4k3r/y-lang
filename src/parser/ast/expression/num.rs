@@ -11,10 +11,10 @@ impl FromTokens for Num {
         I: Iterator<Item = Token>,
         Self: Sized,
     {
-        let Some(Token::Num(num)) = tokens.next() else {
+        let Some(Token::Num { value, .. }) = tokens.next() else {
             todo!()
         };
 
-        Ok(Num(num))
+        Ok(Num(value))
     }
 }

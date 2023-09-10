@@ -17,17 +17,23 @@ impl FromTokens for Initialization {
         I: Iterator<Item = Token>,
         Self: Sized,
     {
-        assert_eq!(tokens.next(), Some(Token::Let));
-
-        let Some(Token::Id(id)) = tokens.next() else {
+        let Some(Token::Let { .. }) = tokens.next() else {
             todo!()
         };
 
-        assert_eq!(tokens.next(), Some(Token::Eq));
+        let Some(Token::Id { value: id, .. }) = tokens.next() else {
+            todo!()
+        };
+
+        let Some(Token::Eq { .. }) = tokens.next() else {
+            todo!()
+        };
 
         let value = Expression::parse(tokens)?;
 
-        assert_eq!(tokens.next(), Some(Token::Semicolon));
+        let Some(Token::Semicolon { .. }) = tokens.next() else {
+            todo!()
+        };
 
         Ok(Initialization { id, value })
     }

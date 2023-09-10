@@ -22,7 +22,7 @@ impl FromTokens for Statement {
         };
 
         match next {
-            Token::Let => Ok(Statement::Initialization(Initialization::parse(tokens)?)),
+            Token::Let { .. } => Ok(Statement::Initialization(Initialization::parse(tokens)?)),
             _ => todo!(),
         }
     }

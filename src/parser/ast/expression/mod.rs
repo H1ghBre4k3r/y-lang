@@ -22,7 +22,7 @@ impl FromTokens for Expression {
         };
 
         match next {
-            Token::Num(_) => Ok(Expression::Num(Num::parse(tokens)?)),
+            Token::Num { .. } => Ok(Expression::Num(Num::parse(tokens)?)),
             _ => todo!(),
         }
     }
