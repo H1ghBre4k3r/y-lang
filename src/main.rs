@@ -1,12 +1,18 @@
 mod lexer;
+mod parser;
 
-use self::lexer::lex;
+use std::error::Error;
 
-fn main() {
+use self::lexer::*;
+use self::parser::*;
+
+fn main() -> Result<(), Box<dyn Error>> {
     let input = r#"
-        // some comment
         let a = 3;
         "#;
 
-    println!("{:#?}", lex(input));
+    let lexed = lex(input)?;
+
+    parse(lexed);
+    Ok(())
 }
