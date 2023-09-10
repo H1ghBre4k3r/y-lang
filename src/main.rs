@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, str::Chars};
+use std::{error::Error, fmt::Display, iter::Peekable, str::Chars};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Token {
@@ -6,6 +6,8 @@ enum Token {
     Let,
     Id(String),
     Num(u64),
+    Semicolon,
+    Comment(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,7 +22,10 @@ impl Display for LexError {
 impl Error for LexError {}
 
 fn main() {
-    let input = "let a = 3";
+    let input = r#"
+        // some comment
+        let a = 3;
+        "#;
 
     println!("{:#?}", tokenize(input));
 }
@@ -28,7 +33,7 @@ fn main() {
 fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
     let mut tokens = vec![];
 
-    let mut iterator = input.chars();
+    let mut iterator = input.chars().peekable();
 
     loop {
         let Some(next) = iterator.next() else {
@@ -37,6 +42,11 @@ fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
 
         match next {
             '=' => tokens.push(Token::Eq),
+            ';' => tokens.push(Token::Semicolon),
+            '/' => {
+                let token = lex_comment(next, &mut iterator)?;
+                tokens.push(token);
+            }
             'a'..='z' | 'A'..='Z' => {
                 let token = lex_alphabetic(next, &mut iterator);
                 tokens.push(token);
@@ -52,9 +62,24 @@ fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
     Ok(tokens)
 }
 
-fn lex_alphabetic(current: char, iterator: &mut Chars) -> Token {
+fn lex_comment(current: char, iterator: &mut Peekable<Chars>) -> Result<Token, LexError> {
+    assert_eq!(current, '/');
+
+    let Some('/') = iterator.next() else {
+        return Err(LexError("Comment without second slash!".into()));
+    };
+
+    let mut read = vec![];
+
+    while let Some(next) = iterator.next_if(|item| *item != '\n') {
+        read.push(next);
+    }
+
+    Ok(Token::Comment(read.iter().collect()))
+}
+
+fn lex_alphabetic(current: char, iterator: &mut Peekable<Chars>) -> Token {
     assert!(current.is_alphabetic());
-    let mut iterator = iterator.peekable();
     let mut read = vec![current];
 
     while let Some(next) = iterator.next_if(|item| item.is_alphabetic()) {
@@ -69,9 +94,8 @@ fn lex_alphabetic(current: char, iterator: &mut Chars) -> Token {
     }
 }
 
-fn lex_numeric(current: char, iterator: &mut Chars) -> Result<Token, LexError> {
+fn lex_numeric(current: char, iterator: &mut Peekable<Chars>) -> Result<Token, LexError> {
     assert!(current.is_numeric());
-    let mut iterator = iterator.peekable();
     let mut read = vec![current];
 
     while let Some(next) = iterator.next_if(|item| item.is_numeric()) {
@@ -91,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_lex_alphabetic_keyword() {
-        let mut iterator = "let".chars();
+        let mut iterator = "let".chars().peekable();
         let next = iterator.next().unwrap();
 
         assert_eq!(Token::Let, lex_alphabetic(next, &mut iterator))
@@ -99,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_lex_alphabetic_id() {
-        let mut iterator = "letter".chars();
+        let mut iterator = "letter".chars().peekable();
         let next = iterator.next().unwrap();
 
         assert_eq!(
@@ -110,9 +134,20 @@ mod tests {
 
     #[test]
     fn test_lex_numeric() {
-        let mut iterator = "1337".chars();
+        let mut iterator = "1337".chars().peekable();
         let next = iterator.next().unwrap();
 
         assert_eq!(Ok(Token::Num(1337)), lex_numeric(next, &mut iterator))
+    }
+
+    #[test]
+    fn test_lex_comment() {
+        let mut iterator = "// some comment".chars().peekable();
+        let next = iterator.next().unwrap();
+
+        assert_eq!(
+            Ok(Token::Comment(" some comment".into())),
+            lex_comment(next, &mut iterator)
+        )
     }
 }
