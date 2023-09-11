@@ -44,11 +44,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
     let mut line = 1;
     let mut col = 1;
 
-    loop {
-        let Some(next) = iterator.next() else {
-            break;
-        };
-
+    while let Some(next) = iterator.peek() {
         match next {
             '=' => tokens.push(Token::Eq {
                 position: (line, col),
@@ -57,15 +53,15 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
                 position: (line, col),
             }),
             '/' => {
-                let token = lex_comment(next, &mut iterator, &mut line, &mut col)?;
+                let token = lex_comment(&mut iterator, &mut line, &mut col)?;
                 tokens.push(token);
             }
             'a'..='z' | 'A'..='Z' => {
-                let token = lex_alphabetic(next, &mut iterator, &mut line, &mut col);
+                let token = lex_alphabetic(&mut iterator, &mut line, &mut col);
                 tokens.push(token);
             }
             '0'..='9' => {
-                let token = lex_numeric(next, &mut iterator, &mut line, &mut col)?;
+                let token = lex_numeric(&mut iterator, &mut line, &mut col)?;
                 tokens.push(token);
             }
             ' ' => {
@@ -83,15 +79,16 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
 }
 
 fn lex_comment(
-    current: char,
     iterator: &mut Peekable<Chars>,
     line: &mut usize,
     col: &mut usize,
 ) -> Result<Token, LexError> {
-    assert_eq!(current, '/');
     let position = (*line, *col);
 
     *col += 1;
+    let Some('/') = iterator.next() else {
+        return Err(LexError("Comment without second slash!".into()));
+    };
     let Some('/') = iterator.next() else {
         return Err(LexError("Comment without second slash!".into()));
     };
@@ -109,18 +106,11 @@ fn lex_comment(
     })
 }
 
-fn lex_alphabetic(
-    current: char,
-    iterator: &mut Peekable<Chars>,
-    line: &mut usize,
-    col: &mut usize,
-) -> Token {
-    assert!(current.is_alphabetic());
-    let mut read = vec![current];
+fn lex_alphabetic(iterator: &mut Peekable<Chars>, line: &mut usize, col: &mut usize) -> Token {
+    let mut read = vec![];
 
     let position = (*line, *col);
 
-    *col += 1;
     while let Some(next) = iterator.next_if(|item| item.is_alphabetic()) {
         *col += 1;
         read.push(next)
@@ -138,13 +128,11 @@ fn lex_alphabetic(
 }
 
 fn lex_numeric(
-    current: char,
     iterator: &mut Peekable<Chars>,
     line: &mut usize,
     col: &mut usize,
 ) -> Result<Token, LexError> {
-    assert!(current.is_numeric());
-    let mut read = vec![current];
+    let mut read = vec![];
 
     let position = (*line, *col);
 
@@ -171,21 +159,19 @@ mod tests {
     #[test]
     fn test_lex_alphabetic_keyword() {
         let mut iterator = "let".chars().peekable();
-        let next = iterator.next().unwrap();
 
         let mut line = 1;
         let mut col = 1;
 
         assert_eq!(
             Token::Let { position: (1, 1) },
-            lex_alphabetic(next, &mut iterator, &mut line, &mut col)
+            lex_alphabetic(&mut iterator, &mut line, &mut col)
         )
     }
 
     #[test]
     fn test_lex_alphabetic_id() {
         let mut iterator = "letter".chars().peekable();
-        let next = iterator.next().unwrap();
 
         let mut line = 1;
         let mut col = 1;
@@ -195,14 +181,13 @@ mod tests {
                 value: "letter".into(),
                 position: (1, 1)
             },
-            lex_alphabetic(next, &mut iterator, &mut line, &mut col)
+            lex_alphabetic(&mut iterator, &mut line, &mut col)
         )
     }
 
     #[test]
     fn test_lex_numeric() {
         let mut iterator = "1337".chars().peekable();
-        let next = iterator.next().unwrap();
 
         let mut line = 1;
         let mut col = 1;
@@ -212,14 +197,13 @@ mod tests {
                 value: 1337,
                 position: (1, 1)
             }),
-            lex_numeric(next, &mut iterator, &mut line, &mut col)
+            lex_numeric(&mut iterator, &mut line, &mut col)
         )
     }
 
     #[test]
     fn test_lex_comment() {
         let mut iterator = "// some comment".chars().peekable();
-        let next = iterator.next().unwrap();
 
         let mut line = 1;
         let mut col = 1;
@@ -229,7 +213,7 @@ mod tests {
                 value: " some comment".into(),
                 position: (1, 1)
             }),
-            lex_comment(next, &mut iterator, &mut line, &mut col)
+            lex_comment(&mut iterator, &mut line, &mut col)
         )
     }
 }
