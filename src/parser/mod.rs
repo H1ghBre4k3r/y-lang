@@ -6,10 +6,19 @@ use crate::lexer::Token;
 
 use self::ast::Statement;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
     message: String,
     position: Option<(usize, usize)>,
+}
+
+impl ParseError {
+    pub fn eof(item: &str) -> ParseError {
+        ParseError {
+            message: format!("hit EOF while parsing {item}"),
+            position: None,
+        }
+    }
 }
 
 impl Display for ParseError {

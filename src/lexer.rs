@@ -10,6 +10,7 @@ pub enum Token {
     Num { value: u64, position: Position },
     Semicolon { position: Position },
     Comment { value: String, position: Position },
+    Plus { position: Position },
 }
 
 impl Token {
@@ -21,6 +22,7 @@ impl Token {
             Token::Num { position, .. } => *position,
             Token::Semicolon { position } => *position,
             Token::Comment { position, .. } => *position,
+            Token::Plus { position } => *position,
         }
     }
 }
@@ -46,15 +48,27 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
 
     while let Some(next) = iterator.peek() {
         match next {
-            '=' => tokens.push(Token::Eq {
-                position: (line, col),
-            }),
-            ';' => tokens.push(Token::Semicolon {
-                position: (line, col),
-            }),
+            '=' => {
+                tokens.push(Token::Eq {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
+            ';' => {
+                tokens.push(Token::Semicolon {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
             '/' => {
                 let token = lex_comment(&mut iterator, &mut line, &mut col)?;
                 tokens.push(token);
+            }
+            '+' => {
+                tokens.push(Token::Plus {
+                    position: (line, col),
+                });
+                iterator.next();
             }
             'a'..='z' | 'A'..='Z' => {
                 let token = lex_alphabetic(&mut iterator, &mut line, &mut col);
@@ -66,12 +80,16 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
             }
             ' ' => {
                 col += 1;
+                iterator.next();
             }
             '\n' => {
                 line += 1;
                 col = 1;
+                iterator.next();
             }
-            _ => continue,
+            _ => {
+                iterator.next();
+            }
         }
     }
 

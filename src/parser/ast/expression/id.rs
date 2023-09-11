@@ -1,31 +1,28 @@
-use std::iter::Peekable;
-
 use crate::{
     lexer::Token,
     parser::{FromTokens, ParseError},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Num(u64);
+pub struct Id(String);
 
-impl FromTokens for Num {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
+impl FromTokens for Id {
+    fn parse<I>(tokens: &mut std::iter::Peekable<I>) -> Result<Self, crate::parser::ParseError>
     where
-        I: Iterator<Item = Token>,
+        I: Iterator<Item = crate::lexer::Token>,
         Self: Sized,
     {
         let value = match tokens.next() {
-            Some(Token::Num { value, .. }) => value,
+            Some(Token::Id { value, .. }) => value,
             Some(token) => {
                 return Err(ParseError {
-                    message: "Tried to parse Num from non Num token".into(),
+                    message: "Tried to parse Id from non id token".into(),
                     position: Some(token.position()),
                 })
             }
             None => return Err(ParseError::eof("Id")),
         };
-
-        Ok(Num(value))
+        Ok(Id(value))
     }
 }
 
@@ -35,28 +32,28 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let tokens = vec![Token::Num {
-            value: 42,
-            position: (0, 0),
-        }];
-        let mut tokens = tokens.into_iter().peekable();
-        assert_eq!(Num::parse(&mut tokens), Ok(Num(42)));
-    }
-
-    #[test]
-    fn test_error_on_non_num() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
             position: (0, 0),
         }];
         let mut tokens = tokens.into_iter().peekable();
-        assert!(Num::parse(&mut tokens).is_err());
+        assert_eq!(Id::parse(&mut tokens), Ok(Id("some_id".into())));
+    }
+
+    #[test]
+    fn test_error_on_non_id() {
+        let tokens = vec![Token::Num {
+            value: 3,
+            position: (0, 0),
+        }];
+        let mut tokens = tokens.into_iter().peekable();
+        assert!(Id::parse(&mut tokens).is_err());
     }
 
     #[test]
     fn test_error_on_eof() {
         let tokens = vec![];
         let mut tokens = tokens.into_iter().peekable();
-        assert!(Num::parse(&mut tokens).is_err());
+        assert!(Id::parse(&mut tokens).is_err());
     }
 }
