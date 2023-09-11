@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let a = 3;
         let b = 5 + 2;
         let c = a + 4;
-        let d = c + b;
+        let d = c + b * 4;
     "#;
 
     let lexed = lex(input)?;

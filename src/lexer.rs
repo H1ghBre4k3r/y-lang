@@ -11,6 +11,7 @@ pub enum Token {
     Semicolon { position: Position },
     Comment { value: String, position: Position },
     Plus { position: Position },
+    Times { position: Position },
 }
 
 impl Token {
@@ -23,6 +24,7 @@ impl Token {
             Token::Semicolon { position } => *position,
             Token::Comment { position, .. } => *position,
             Token::Plus { position } => *position,
+            Token::Times { position } => *position,
         }
     }
 }
@@ -63,6 +65,12 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
             '/' => {
                 let token = lex_comment(&mut iterator, &mut line, &mut col)?;
                 tokens.push(token);
+            }
+            '*' => {
+                tokens.push(Token::Times {
+                    position: (line, col),
+                });
+                iterator.next();
             }
             '+' => {
                 tokens.push(Token::Plus {

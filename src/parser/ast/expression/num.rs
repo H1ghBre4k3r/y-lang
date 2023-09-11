@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Num(u64);
+pub struct Num(pub u64);
 
 impl FromTokens for Num {
     fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>

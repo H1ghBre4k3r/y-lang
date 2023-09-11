@@ -4,7 +4,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Id(String);
+pub struct Id(pub String);
 
 impl FromTokens for Id {
     fn parse<I>(tokens: &mut std::iter::Peekable<I>) -> Result<Self, crate::parser::ParseError>
