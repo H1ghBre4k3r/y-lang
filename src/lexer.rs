@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display, iter::Peekable, str::Chars};
 
 type Position = (usize, usize);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum Token {
     Eq { position: Position },
     Let { position: Position },
@@ -13,6 +13,25 @@ pub enum Token {
     Plus { position: Position },
     Times { position: Position },
 }
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        use Token::*;
+        matches!(
+            (self, other),
+            (Eq { .. }, Eq { .. })
+                | (Let { .. }, Let { .. })
+                | (Id { .. }, Id { .. })
+                | (Num { .. }, Num { .. })
+                | (Semicolon { .. }, Semicolon { .. })
+                | (Comment { .. }, Comment { .. })
+                | (Plus { .. }, Plus { .. })
+                | (Times { .. }, Times { .. })
+        )
+    }
+}
+
+impl Eq for Token {}
 
 impl Token {
     pub fn position(&self) -> Position {
@@ -26,6 +45,45 @@ impl Token {
             Token::Plus { position } => *position,
             Token::Times { position } => *position,
         }
+    }
+}
+
+pub struct Tokens {
+    tokens: Vec<Token>,
+    index: usize,
+}
+
+impl Tokens {
+    pub fn new(tokens: Vec<Token>) -> Self {
+        Self { tokens, index: 0 }
+    }
+
+    pub fn next(&mut self) -> Option<Token> {
+        if self.index < self.tokens.len() {
+            let item = self.tokens.get(self.index).cloned();
+            self.index += 1;
+            return item;
+        }
+
+        None
+    }
+
+    pub fn peek(&mut self) -> Option<Token> {
+        return self.tokens.get(self.index).cloned();
+    }
+
+    pub fn get_index(&self) -> usize {
+        self.index
+    }
+
+    pub fn set_index(&mut self, index: usize) {
+        self.index = index;
+    }
+}
+
+impl From<Vec<Token>> for Tokens {
+    fn from(value: Vec<Token>) -> Self {
+        Self::new(value)
     }
 }
 

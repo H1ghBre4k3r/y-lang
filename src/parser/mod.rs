@@ -1,15 +1,16 @@
-use std::{error::Error, fmt::Display, iter::Peekable};
+use std::{error::Error, fmt::Display};
 
 mod ast;
+pub mod combinators;
 
-use crate::lexer::Token;
+use crate::Tokens;
 
 use self::ast::Statement;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
-    message: String,
-    position: Option<(usize, usize)>,
+    pub message: String,
+    pub position: Option<(usize, usize)>,
 }
 
 impl ParseError {
@@ -34,19 +35,16 @@ impl Display for ParseError {
 impl Error for ParseError {}
 
 pub trait FromTokens {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError>
     where
-        I: Iterator<Item = Token>,
         Self: Sized;
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, Box<dyn Error>> {
-    let mut tokens = tokens.into_iter().peekable();
-
+pub fn parse(tokens: &mut Tokens) -> Result<Vec<Statement>, Box<dyn Error>> {
     let mut statements = vec![];
 
     while tokens.peek().is_some() {
-        let result = Statement::parse(&mut tokens)?;
+        let result = Statement::parse(tokens)?;
         statements.push(result);
     }
 

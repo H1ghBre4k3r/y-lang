@@ -2,10 +2,8 @@ mod initialization;
 
 pub use self::initialization::*;
 
-use std::iter::Peekable;
-
 use crate::{
-    lexer::Token,
+    lexer::{Token, Tokens},
     parser::{FromTokens, ParseError},
 };
 
@@ -15,9 +13,8 @@ pub enum Statement {
 }
 
 impl FromTokens for Statement {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError>
     where
-        I: Iterator<Item = Token>,
         Self: Sized,
     {
         let Some(next) = tokens.peek() else {

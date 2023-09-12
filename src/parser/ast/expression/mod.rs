@@ -4,8 +4,7 @@ mod num;
 pub use self::id::*;
 pub use self::num::*;
 
-use std::iter::Peekable;
-
+use crate::lexer::Tokens;
 use crate::{
     lexer::Token,
     parser::{FromTokens, ParseError},
@@ -20,11 +19,7 @@ pub enum Expression {
 }
 
 impl FromTokens for Expression {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
-    where
-        I: Iterator<Item = Token>,
-        Self: Sized,
-    {
+    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError> {
         let Some(next) = tokens.peek() else {
             todo!();
         };
@@ -70,10 +65,10 @@ mod tests {
             value: "some_id".into(),
             position: (0, 0),
         }];
-        let mut tokens = tokens.into_iter().peekable();
+        let tokens = tokens;
 
         assert_eq!(
-            Expression::parse(&mut tokens),
+            Expression::parse(&mut tokens.into()),
             Ok(Expression::Id(Id("some_id".into())))
         )
     }
@@ -84,8 +79,11 @@ mod tests {
             value: 42,
             position: (0, 0),
         }];
-        let mut tokens = tokens.into_iter().peekable();
+        let tokens = tokens;
 
-        assert_eq!(Expression::parse(&mut tokens), Ok(Expression::Num(Num(42))))
+        assert_eq!(
+            Expression::parse(&mut tokens.into()),
+            Ok(Expression::Num(Num(42)))
+        )
     }
 }

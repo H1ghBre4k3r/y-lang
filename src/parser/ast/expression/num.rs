@@ -1,7 +1,5 @@
-use std::iter::Peekable;
-
 use crate::{
-    lexer::Token,
+    lexer::{Token, Tokens},
     parser::{FromTokens, ParseError},
 };
 
@@ -9,9 +7,8 @@ use crate::{
 pub struct Num(pub u64);
 
 impl FromTokens for Num {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError>
     where
-        I: Iterator<Item = Token>,
         Self: Sized,
     {
         let value = match tokens.next() {
@@ -39,8 +36,8 @@ mod tests {
             value: 42,
             position: (0, 0),
         }];
-        let mut tokens = tokens.into_iter().peekable();
-        assert_eq!(Num::parse(&mut tokens), Ok(Num(42)));
+        let tokens = tokens;
+        assert_eq!(Num::parse(&mut tokens.into()), Ok(Num(42)));
     }
 
     #[test]
@@ -49,14 +46,14 @@ mod tests {
             value: "some_id".into(),
             position: (0, 0),
         }];
-        let mut tokens = tokens.into_iter().peekable();
-        assert!(Num::parse(&mut tokens).is_err());
+        let tokens = tokens;
+        assert!(Num::parse(&mut tokens.into()).is_err());
     }
 
     #[test]
     fn test_error_on_eof() {
         let tokens = vec![];
-        let mut tokens = tokens.into_iter().peekable();
-        assert!(Num::parse(&mut tokens).is_err());
+        let tokens = tokens;
+        assert!(Num::parse(&mut tokens.into()).is_err());
     }
 }

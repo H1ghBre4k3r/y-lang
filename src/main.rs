@@ -3,8 +3,9 @@ mod parser;
 
 use std::error::Error;
 
+use crate::parser::{combinators::Comb, parse};
+
 use self::lexer::*;
-use self::parser::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = r#"
@@ -18,8 +19,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("{lexed:#?}");
 
-    let statements = parse(lexed)?;
+    let statements = parse(&mut lexed.into())?;
 
     println!("{statements:#?}");
+
+    let input = lex("let some = 42;")?;
+
+    let matcher = Comb::LET >> Comb::ID >> Comb::EQ >> (Comb::NUM | Comb::ID) >> Comb::SEMI;
+
+    let result = matcher.parse(&mut input.into())?;
+    println!("{result:#?}");
+
     Ok(())
 }

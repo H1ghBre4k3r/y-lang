@@ -1,7 +1,5 @@
-use std::iter::Peekable;
-
 use crate::{
-    lexer::Token,
+    lexer::{Token, Tokens},
     parser::{ast::Expression, FromTokens, ParseError},
 };
 
@@ -12,9 +10,8 @@ pub struct Initialization {
 }
 
 impl FromTokens for Initialization {
-    fn parse<I>(tokens: &mut Peekable<I>) -> Result<Self, ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError>
     where
-        I: Iterator<Item = Token>,
         Self: Sized,
     {
         let next = tokens.next().ok_or(ParseError {

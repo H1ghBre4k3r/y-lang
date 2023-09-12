@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Token, Tokens},
     parser::{FromTokens, ParseError},
 };
 
@@ -7,9 +7,8 @@ use crate::{
 pub struct Id(pub String);
 
 impl FromTokens for Id {
-    fn parse<I>(tokens: &mut std::iter::Peekable<I>) -> Result<Self, crate::parser::ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<Self, crate::parser::ParseError>
     where
-        I: Iterator<Item = crate::lexer::Token>,
         Self: Sized,
     {
         let value = match tokens.next() {
@@ -36,8 +35,8 @@ mod tests {
             value: "some_id".into(),
             position: (0, 0),
         }];
-        let mut tokens = tokens.into_iter().peekable();
-        assert_eq!(Id::parse(&mut tokens), Ok(Id("some_id".into())));
+        let tokens = tokens;
+        assert_eq!(Id::parse(&mut tokens.into()), Ok(Id("some_id".into())));
     }
 
     #[test]
@@ -46,14 +45,14 @@ mod tests {
             value: 3,
             position: (0, 0),
         }];
-        let mut tokens = tokens.into_iter().peekable();
-        assert!(Id::parse(&mut tokens).is_err());
+        let tokens = tokens;
+        assert!(Id::parse(&mut tokens.into()).is_err());
     }
 
     #[test]
     fn test_error_on_eof() {
         let tokens = vec![];
-        let mut tokens = tokens.into_iter().peekable();
-        assert!(Id::parse(&mut tokens).is_err());
+        let tokens = tokens;
+        assert!(Id::parse(&mut tokens.into()).is_err());
     }
 }
