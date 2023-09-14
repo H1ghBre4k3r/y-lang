@@ -2,14 +2,15 @@ use std::ops::{BitOr, Shr};
 
 use crate::lexer::{Token, Tokens};
 
-use super::ParseError;
+use super::{
+    ast::{AstNode, Expression, Id, Num},
+    FromTokens, ParseError,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Matchable {
     Eq,
     Let,
-    Id,
-    Num,
     Semicolon,
 }
 
@@ -19,61 +20,56 @@ impl PartialEq<Token> for Matchable {
             (self, other),
             (Matchable::Eq, Token::Eq { .. })
                 | (Matchable::Let, Token::Let { .. })
-                | (Matchable::Id, Token::Id { .. })
-                | (Matchable::Num, Token::Num { .. })
                 | (Matchable::Semicolon, Token::Semicolon { .. })
         )
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Comb {
+#[derive(Clone)]
+pub enum Comb<'a> {
+    Node {
+        parser: &'a dyn Fn(&mut Tokens) -> Result<AstNode, ParseError>,
+    },
     Single {
         token: Matchable,
-        should_yield: bool,
     },
     Sequence {
-        current: Box<Comb>,
-        next: Box<Comb>,
+        current: Box<Comb<'a>>,
+        next: Box<Comb<'a>>,
     },
     Either {
-        left: Box<Comb>,
-        right: Box<Comb>,
+        left: Box<Comb<'a>>,
+        right: Box<Comb<'a>>,
     },
 }
 
-impl Comb {
-    pub const ID: Comb = Comb::Single {
-        token: Matchable::Id,
-        should_yield: true,
+impl<'a> Comb<'a> {
+    pub const ID: Comb<'static> = Comb::Node { parser: &Id::parse };
+
+    pub const NUM: Comb<'static> = Comb::Node {
+        parser: &Num::parse,
     };
 
-    pub const LET: Comb = Comb::Single {
+    pub const EXPR: Comb<'static> = Comb::Node {
+        parser: &Expression::parse,
+    };
+
+    pub const LET: Comb<'static> = Comb::Single {
         token: Matchable::Let,
-        should_yield: false,
     };
 
-    pub const NUM: Comb = Comb::Single {
-        token: Matchable::Num,
-        should_yield: true,
-    };
-
-    pub const EQ: Comb = Comb::Single {
+    pub const EQ: Comb<'static> = Comb::Single {
         token: Matchable::Eq,
-        should_yield: false,
-    };
-    pub const SEMI: Comb = Comb::Single {
-        token: Matchable::Semicolon,
-        should_yield: false,
     };
 
-    pub fn parse(&self, tokens: &mut Tokens) -> Result<Vec<Token>, ParseError> {
+    pub const SEMI: Comb<'static> = Comb::Single {
+        token: Matchable::Semicolon,
+    };
+
+    pub fn parse(&self, tokens: &mut Tokens) -> Result<Vec<AstNode>, ParseError> {
         let mut matched = vec![];
         match self {
-            Comb::Single {
-                token,
-                should_yield,
-            } => {
+            Comb::Single { token } => {
                 let Some(t) = tokens.next() else {
                     return Err(ParseError {
                         message: "Reached EOF!".into(),
@@ -86,10 +82,6 @@ impl Comb {
                         message: format!("encountered {:?} while trying to parse {:?}", t, token),
                         position: None,
                     });
-                }
-
-                if *should_yield {
-                    matched.push(t);
                 }
             }
             Comb::Sequence { current, next } => {
@@ -110,13 +102,17 @@ impl Comb {
                     matched.append(&mut right_matches);
                 }
             }
+            Comb::Node { parser } => {
+                let matches = parser(tokens)?;
+                matched.push(matches);
+            }
         }
 
         Ok(matched)
     }
 }
 
-impl Shr for Comb {
+impl<'a> Shr for Comb<'a> {
     type Output = Self;
 
     fn shr(self, rhs: Self) -> Self::Output {
@@ -127,7 +123,7 @@ impl Shr for Comb {
     }
 }
 
-impl BitOr for Comb {
+impl<'a> BitOr for Comb<'a> {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {

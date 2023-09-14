@@ -10,6 +10,8 @@ use crate::{
     parser::{FromTokens, ParseError},
 };
 
+use super::AstNode;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     Id(Id),
@@ -19,36 +21,52 @@ pub enum Expression {
 }
 
 impl FromTokens for Expression {
-    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError> {
+    fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError> {
         let Some(next) = tokens.peek() else {
             todo!();
         };
 
         let expr = match next {
-            Token::Num { .. } => Expression::Num(Num::parse(tokens)?),
-            Token::Id { .. } => Expression::Id(Id::parse(tokens)?),
+            Token::Num { .. } => {
+                let AstNode::Num(num) = Num::parse(tokens)? else {
+                    unreachable!();
+                };
+                Expression::Num(num)
+            }
+            Token::Id { .. } => {
+                let AstNode::Id(id) = Id::parse(tokens)? else {
+                    unreachable!()
+                };
+                Expression::Id(id)
+            }
             _ => todo!(),
         };
 
         let Some(next) = tokens.peek() else {
-            return Ok(expr);
+            return Ok(AstNode::Expression(expr));
         };
 
         match next {
-            Token::Semicolon { .. } => Ok(expr),
+            Token::Semicolon { .. } => Ok(AstNode::Expression(expr)),
             Token::Times { .. } => {
                 tokens.next();
-                Ok(Expression::Multiplication(
+                let AstNode::Expression(rhs) = Expression::parse(tokens)? else {
+                    unreachable!()
+                };
+                Ok(AstNode::Expression(Expression::Multiplication(
                     Box::new(expr),
-                    Box::new(Expression::parse(tokens)?),
-                ))
+                    Box::new(rhs),
+                )))
             }
             Token::Plus { .. } => {
                 tokens.next();
-                Ok(Expression::Addition(
+                let AstNode::Expression(rhs) = Expression::parse(tokens)? else {
+                    unreachable!()
+                };
+                Ok(AstNode::Expression(Expression::Addition(
                     Box::new(expr),
-                    Box::new(Expression::parse(tokens)?),
-                ))
+                    Box::new(rhs),
+                )))
             }
             _ => todo!(),
         }
@@ -69,7 +87,7 @@ mod tests {
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
-            Ok(Expression::Id(Id("some_id".into())))
+            Ok(AstNode::Expression(Expression::Id(Id("some_id".into()))))
         )
     }
 
@@ -83,7 +101,7 @@ mod tests {
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
-            Ok(Expression::Num(Num(42)))
+            Ok(AstNode::Expression(Expression::Num(Num(42))))
         )
     }
 }

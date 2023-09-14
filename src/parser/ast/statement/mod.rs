@@ -7,13 +7,15 @@ use crate::{
     parser::{FromTokens, ParseError},
 };
 
+use super::AstNode;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
     Initialization(Initialization),
 }
 
 impl FromTokens for Statement {
-    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
@@ -21,8 +23,12 @@ impl FromTokens for Statement {
             todo!();
         };
 
+        let AstNode::Initialization(init) = Initialization::parse(tokens)? else {
+            unreachable!()
+        };
+
         match next {
-            Token::Let { .. } => Ok(Statement::Initialization(Initialization::parse(tokens)?)),
+            Token::Let { .. } => Ok(AstNode::Statement(Statement::Initialization(init))),
             _ => todo!(),
         }
     }

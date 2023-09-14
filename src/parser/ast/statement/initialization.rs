@@ -1,65 +1,35 @@
 use crate::{
-    lexer::{Token, Tokens},
-    parser::{ast::Expression, FromTokens, ParseError},
+    lexer::Tokens,
+    parser::{
+        ast::{AstNode, Expression, Id},
+        combinators::Comb,
+        FromTokens, ParseError,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Initialization {
-    id: String,
+    id: Id,
     value: Expression,
 }
 
 impl FromTokens for Initialization {
-    fn parse(tokens: &mut Tokens) -> Result<Self, ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
-        let next = tokens.next().ok_or(ParseError {
-            message: "Expeting 'let' in Initialization".into(),
-            position: None,
-        })?;
-        let Token::Let { .. } = next else {
-            return Err(ParseError {
-                message: "Expeting 'let' in Initialization".into(),
-                position: Some(next.position()),
-            });
+        let matcher = Comb::LET >> Comb::ID >> Comb::EQ >> Comb::EXPR >> Comb::SEMI;
+
+        let results = matcher.parse(tokens)?;
+
+        let AstNode::Id(id) = results[0].clone() else {
+            unreachable!()
         };
 
-        let next = tokens.next().ok_or(ParseError {
-            message: "Expecting identifier in Initialization".into(),
-            position: None,
-        })?;
-        let Token::Id { value: id, .. } = next else {
-            return Err(ParseError {
-                message: "Expecting identifier in Initialization".into(),
-                position: Some(next.position()),
-            });
+        let AstNode::Expression(value) = results[1].clone() else {
+            unreachable!()
         };
 
-        let next = tokens.next().ok_or(ParseError {
-            message: "Expecting '=' in Initialization".into(),
-            position: None,
-        })?;
-        let Token::Eq { .. } = next else {
-            return Err(ParseError {
-                message: "Expecting '=' in Initialization".into(),
-                position: Some(next.position()),
-            });
-        };
-
-        let value = Expression::parse(tokens)?;
-
-        let next = tokens.next().ok_or(ParseError {
-            message: "Expecting ';' in Initialization".into(),
-            position: None,
-        })?;
-        let Token::Semicolon { .. } = next else {
-            return Err(ParseError {
-                message: "Expecting ';' in Initialization".into(),
-                position: Some(next.position()),
-            });
-        };
-
-        Ok(Initialization { id, value })
+        Ok(AstNode::Initialization(Initialization { id, value }))
     }
 }

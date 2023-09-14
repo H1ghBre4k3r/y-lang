@@ -1,13 +1,13 @@
 use crate::{
     lexer::{Token, Tokens},
-    parser::{FromTokens, ParseError},
+    parser::{ast::AstNode, FromTokens, ParseError},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Id(pub String);
 
 impl FromTokens for Id {
-    fn parse(tokens: &mut Tokens) -> Result<Self, crate::parser::ParseError>
+    fn parse(tokens: &mut Tokens) -> Result<AstNode, crate::parser::ParseError>
     where
         Self: Sized,
     {
@@ -21,7 +21,7 @@ impl FromTokens for Id {
             }
             None => return Err(ParseError::eof("Id")),
         };
-        Ok(Id(value))
+        Ok(AstNode::Id(Id(value)))
     }
 }
 
@@ -36,7 +36,10 @@ mod tests {
             position: (0, 0),
         }];
         let tokens = tokens;
-        assert_eq!(Id::parse(&mut tokens.into()), Ok(Id("some_id".into())));
+        assert_eq!(
+            Id::parse(&mut tokens.into()),
+            Ok(AstNode::Id(Id("some_id".into())))
+        );
     }
 
     #[test]
