@@ -5,7 +5,7 @@ pub mod combinators;
 
 use crate::Tokens;
 
-use self::ast::{AstNode, Statement};
+use self::{ast::AstNode, combinators::Comb};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
@@ -41,9 +41,13 @@ pub trait FromTokens {
 pub fn parse(tokens: &mut Tokens) -> Result<Vec<AstNode>, Box<dyn Error>> {
     let mut statements = vec![];
 
+    let matcher = Comb::STATEMENT;
     while tokens.peek().is_some() {
-        let result = Statement::parse(tokens)?;
-        statements.push(result);
+        let result = matcher.parse(tokens)?;
+        let [AstNode::Statement(statement)] = result.as_slice() else {
+            unreachable!()
+        };
+        statements.push(statement.clone().into());
     }
 
     Ok(statements)

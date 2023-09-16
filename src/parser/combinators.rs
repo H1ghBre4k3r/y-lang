@@ -3,7 +3,7 @@ use std::ops::{BitOr, Shr};
 use crate::lexer::{Token, Tokens};
 
 use super::{
-    ast::{AstNode, Expression, Id, Num},
+    ast::{AstNode, Expression, Id, Initialization, Num, Statement},
     FromTokens, ParseError,
 };
 
@@ -66,6 +66,14 @@ impl<'a> Comb<'a> {
         token: Matchable::Semicolon,
     };
 
+    pub const STATEMENT: Comb<'static> = Comb::Node {
+        parser: &Statement::parse,
+    };
+
+    pub const INITIALIZATION: Comb<'static> = Comb::Node {
+        parser: &Initialization::parse,
+    };
+
     pub fn parse(&self, tokens: &mut Tokens) -> Result<Vec<AstNode>, ParseError> {
         let mut matched = vec![];
         match self {
@@ -79,7 +87,7 @@ impl<'a> Comb<'a> {
 
                 if *token != t {
                     return Err(ParseError {
-                        message: format!("encountered {:?} while trying to parse {:?}", t, token),
+                        message: format!("Unexpected {:?} while trying to parse {:?}", t, token),
                         position: None,
                     });
                 }

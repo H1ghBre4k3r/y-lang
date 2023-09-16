@@ -4,7 +4,7 @@ pub use self::initialization::*;
 
 use crate::{
     lexer::{Token, Tokens},
-    parser::{FromTokens, ParseError},
+    parser::{combinators::Comb, FromTokens, ParseError},
 };
 
 use super::AstNode;
@@ -23,13 +23,19 @@ impl FromTokens for Statement {
             todo!();
         };
 
-        let AstNode::Initialization(init) = Initialization::parse(tokens)? else {
-            unreachable!()
-        };
-
         match next {
-            Token::Let { .. } => Ok(Statement::Initialization(init).into()),
-            _ => todo!(),
+            Token::Let { .. } => {
+                let matcher = Comb::INITIALIZATION;
+                let result = matcher.parse(tokens)?;
+                let [AstNode::Initialization(init)] = result.as_slice() else {
+                    unreachable!()
+                };
+                Ok(Statement::Initialization(init.clone()).into())
+            }
+            token => Err(ParseError {
+                message: format!("Unexpected token {token:?} while trying to parse Statement"),
+                position: Some(token.position()),
+            }),
         }
     }
 }
