@@ -8,19 +8,19 @@ use super::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Matchable {
+pub enum Terminal {
     Eq,
     Let,
     Semicolon,
 }
 
-impl PartialEq<Token> for Matchable {
+impl PartialEq<Token> for Terminal {
     fn eq(&self, other: &Token) -> bool {
         matches!(
             (self, other),
-            (Matchable::Eq, Token::Eq { .. })
-                | (Matchable::Let, Token::Let { .. })
-                | (Matchable::Semicolon, Token::Semicolon { .. })
+            (Terminal::Eq, Token::Eq { .. })
+                | (Terminal::Let, Token::Let { .. })
+                | (Terminal::Semicolon, Token::Semicolon { .. })
         )
     }
 }
@@ -30,8 +30,8 @@ pub enum Comb<'a> {
     Node {
         parser: &'a dyn Fn(&mut Tokens) -> Result<AstNode, ParseError>,
     },
-    Single {
-        token: Matchable,
+    Terminal {
+        token: Terminal,
     },
     Sequence {
         current: Box<Comb<'a>>,
@@ -47,7 +47,7 @@ impl<'a> PartialEq for Comb<'a> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Node { .. }, Self::Node { .. }) => false,
-            (Self::Single { token: l_token }, Self::Single { token: r_token }) => {
+            (Self::Terminal { token: l_token }, Self::Terminal { token: r_token }) => {
                 l_token == r_token
             }
             (
@@ -82,7 +82,7 @@ impl<'a> std::fmt::Debug for Comb<'a> {
                 .debug_struct("Node")
                 .field("parser", &"() -> {}".to_string())
                 .finish(),
-            Self::Single { token } => f.debug_struct("Single").field("token", token).finish(),
+            Self::Terminal { token } => f.debug_struct("Single").field("token", token).finish(),
             Self::Sequence { current, next } => f
                 .debug_struct("Sequence")
                 .field("current", current)
@@ -108,16 +108,16 @@ impl<'a> Comb<'a> {
         parser: &Expression::parse,
     };
 
-    pub const LET: Comb<'static> = Comb::Single {
-        token: Matchable::Let,
+    pub const LET: Comb<'static> = Comb::Terminal {
+        token: Terminal::Let,
     };
 
-    pub const EQ: Comb<'static> = Comb::Single {
-        token: Matchable::Eq,
+    pub const EQ: Comb<'static> = Comb::Terminal {
+        token: Terminal::Eq,
     };
 
-    pub const SEMI: Comb<'static> = Comb::Single {
-        token: Matchable::Semicolon,
+    pub const SEMI: Comb<'static> = Comb::Terminal {
+        token: Terminal::Semicolon,
     };
 
     pub const STATEMENT: Comb<'static> = Comb::Node {
@@ -131,7 +131,7 @@ impl<'a> Comb<'a> {
     pub fn parse(&self, tokens: &mut Tokens) -> Result<Vec<AstNode>, ParseError> {
         let mut matched = vec![];
         match self {
-            Comb::Single { token } => {
+            Comb::Terminal { token } => {
                 let Some(t) = tokens.next() else {
                     return Err(ParseError {
                         message: "Reached EOF!".into(),
@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_single_simple() {
+    fn test_parse_terminal_simple() {
         let a = Comb::LET;
         let mut tokens = vec![Token::Let { position: (0, 0) }].into();
         let result = a.parse(&mut tokens);
