@@ -136,44 +136,46 @@ impl<'a> std::fmt::Debug for Comb<'a> {
     }
 }
 
+/// Create a combinator for a specified terminal symbol.
+#[macro_export]
+macro_rules! terminal {
+    ($name:ident, $terminal:ident) => {
+        pub const $name: Comb<'static> = Comb::Terminal {
+            token: Terminal::$terminal,
+        };
+    };
+}
+
+/// Create a combinator for a specified non-terminal symbol.
+#[macro_export]
+macro_rules! node {
+    ($name:ident, $struct:ident) => {
+        pub const $name: Comb<'static> = Comb::Node {
+            parser: &$struct::parse,
+        };
+    };
+}
+
 impl<'a> Comb<'a> {
-    pub const ID: Comb<'static> = Comb::Node { parser: &Id::parse };
+    terminal!(LET, Let);
 
-    pub const NUM: Comb<'static> = Comb::Node {
-        parser: &Num::parse,
-    };
+    terminal!(EQ, Eq);
 
-    pub const EXPR: Comb<'static> = Comb::Node {
-        parser: &Expression::parse,
-    };
+    terminal!(PLUS, Plus);
 
-    pub const LET: Comb<'static> = Comb::Terminal {
-        token: Terminal::Let,
-    };
+    terminal!(TIMES, Times);
 
-    pub const EQ: Comb<'static> = Comb::Terminal {
-        token: Terminal::Eq,
-    };
+    terminal!(SEMI, Semicolon);
 
-    pub const PLUS: Comb<'static> = Comb::Terminal {
-        token: Terminal::Plus,
-    };
+    node!(ID, Id);
 
-    pub const TIMES: Comb<'static> = Comb::Terminal {
-        token: Terminal::Times,
-    };
+    node!(NUM, Num);
 
-    pub const SEMI: Comb<'static> = Comb::Terminal {
-        token: Terminal::Semicolon,
-    };
+    node!(EXPR, Expression);
 
-    pub const STATEMENT: Comb<'static> = Comb::Node {
-        parser: &Statement::parse,
-    };
+    node!(STATEMENT, Statement);
 
-    pub const INITIALIZATION: Comb<'static> = Comb::Node {
-        parser: &Initialization::parse,
-    };
+    node!(INITIALIZATION, Initialization);
 
     pub fn parse(&self, tokens: &mut Tokens) -> Result<Vec<AstNode>, ParseError> {
         let mut matched = vec![];
