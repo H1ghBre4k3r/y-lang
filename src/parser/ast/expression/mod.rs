@@ -5,6 +5,7 @@ pub use self::id::*;
 pub use self::num::*;
 
 use crate::lexer::Tokens;
+use crate::parser::combinators::Comb;
 use crate::{
     lexer::Token,
     parser::{FromTokens, ParseError},
@@ -28,13 +29,13 @@ impl FromTokens for Expression {
 
         let expr = match next {
             Token::Num { .. } => {
-                let AstNode::Num(num) = Num::parse(tokens)? else {
-                    unreachable!();
+                let AstNode::Num(num) = Comb::NUM.parse(tokens)?[0].clone() else {
+                    unreachable!()
                 };
                 Expression::Num(num)
             }
             Token::Id { .. } => {
-                let AstNode::Id(id) = Id::parse(tokens)? else {
+                let AstNode::Id(id) = Comb::ID.parse(tokens)?[0].clone() else {
                     unreachable!()
                 };
                 Expression::Id(id)
@@ -50,14 +51,14 @@ impl FromTokens for Expression {
             Token::Semicolon { .. } => Ok(expr.into()),
             Token::Times { .. } => {
                 tokens.next();
-                let AstNode::Expression(rhs) = Expression::parse(tokens)? else {
+                let AstNode::Expression(rhs) = Comb::EXPR.parse(tokens)?[0].clone() else {
                     unreachable!()
                 };
                 Ok(Expression::Multiplication(Box::new(expr), Box::new(rhs)).into())
             }
             Token::Plus { .. } => {
                 tokens.next();
-                let AstNode::Expression(rhs) = Expression::parse(tokens)? else {
+                let AstNode::Expression(rhs) = Comb::EXPR.parse(tokens)?[0].clone() else {
                     unreachable!()
                 };
                 Ok(Expression::Addition(Box::new(expr), Box::new(rhs)).into())

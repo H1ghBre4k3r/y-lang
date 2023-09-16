@@ -1,4 +1,4 @@
-use std::ops::{BitOr, Shr};
+use std::ops::{BitOr, Not, Shr};
 
 use crate::lexer::{Token, Tokens};
 
@@ -41,6 +41,9 @@ pub enum Comb<'a> {
         left: Box<Comb<'a>>,
         right: Box<Comb<'a>>,
     },
+    Optional {
+        inner: Box<Comb<'a>>,
+    },
 }
 
 impl<'a> PartialEq for Comb<'a> {
@@ -70,6 +73,9 @@ impl<'a> PartialEq for Comb<'a> {
                     right: r_right,
                 },
             ) => l_left == r_left && l_right == r_right,
+            (Self::Optional { inner: l_inner }, Self::Optional { inner: r_inner }) => {
+                l_inner == r_inner
+            }
             _ => false,
         }
     }
@@ -93,6 +99,7 @@ impl<'a> std::fmt::Debug for Comb<'a> {
                 .field("left", left)
                 .field("right", right)
                 .finish(),
+            Self::Optional { inner } => f.debug_struct("Optional").field("inner", inner).finish(),
         }
     }
 }
@@ -168,6 +175,14 @@ impl<'a> Comb<'a> {
                 let matches = parser(tokens)?;
                 matched.push(matches);
             }
+            Comb::Optional { inner } => {
+                let current_index = tokens.get_index();
+                if let Ok(mut result) = inner.parse(tokens) {
+                    matched.append(&mut result);
+                } else {
+                    tokens.set_index(current_index);
+                }
+            }
         }
 
         Ok(matched)
@@ -196,12 +211,22 @@ impl<'a> BitOr for Comb<'a> {
     }
 }
 
+impl<'a> Not for Comb<'a> {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Comb::Optional {
+            inner: Box::new(self),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_shr_simple() {
+    fn test_sequence_simple() {
         let left = Comb::LET;
         let right = Comb::EQ;
         let new = left >> right;
@@ -216,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_shr_complex() {
+    fn test_sequence_complex() {
         let a = Comb::LET;
         let b = Comb::EQ;
         let c = Comb::SEMI;
@@ -235,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bitor_simple() {
+    fn test_either_simple() {
         let left = Comb::LET;
         let right = Comb::EQ;
         let new = left | right;
@@ -250,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bitor_complex() {
+    fn test_either_complex() {
         let a = Comb::LET;
         let b = Comb::EQ;
         let c = Comb::SEMI;
@@ -266,6 +291,66 @@ mod tests {
             },
             new
         );
+    }
+
+    #[test]
+    fn test_optional_simple() {
+        let a = !Comb::LET;
+
+        assert_eq!(
+            Comb::Optional {
+                inner: Box::new(Comb::LET)
+            },
+            a
+        )
+    }
+
+    #[test]
+    fn test_parse_optional_matching_terminal() {
+        let a = !Comb::LET;
+        let mut tokens = vec![Token::Let { position: (0, 0) }].into();
+        let result = a.parse(&mut tokens);
+
+        assert_eq!(Ok(vec![]), result);
+        assert_eq!(tokens.get_index(), 1);
+    }
+
+    #[test]
+    fn test_parse_optional_not_matching_terminal() {
+        let a = !Comb::LET;
+        let mut tokens = vec![Token::Eq { position: (0, 0) }].into();
+        let result = a.parse(&mut tokens);
+
+        assert_eq!(Ok(vec![]), result);
+        assert_eq!(tokens.get_index(), 0);
+    }
+
+    #[test]
+    fn test_parse_optional_matching_node() {
+        let a = !Comb::NUM;
+        let mut tokens = vec![Token::Num {
+            value: 42,
+            position: (0, 0),
+        }]
+        .into();
+        let result = a.parse(&mut tokens);
+
+        assert_eq!(Ok(vec![AstNode::Num(Num(42))]), result);
+        assert_eq!(tokens.get_index(), 1);
+    }
+
+    #[test]
+    fn test_parse_optional_not_matching_node() {
+        let a = !Comb::NUM;
+        let mut tokens = vec![Token::Id {
+            value: "some_id".into(),
+            position: (0, 0),
+        }]
+        .into();
+        let result = a.parse(&mut tokens);
+
+        assert_eq!(Ok(vec![]), result);
+        assert_eq!(tokens.get_index(), 0);
     }
 
     #[test]
