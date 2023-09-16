@@ -23,48 +23,40 @@ pub enum Expression {
 
 impl FromTokens for Expression {
     fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError> {
-        let Some(next) = tokens.peek() else {
-            todo!();
-        };
+        let matcher = Comb::NUM | Comb::ID;
 
-        let expr = match next {
-            Token::Num { .. } => {
-                let AstNode::Num(num) = Comb::NUM.parse(tokens)?[0].clone() else {
-                    unreachable!()
-                };
-                Expression::Num(num)
-            }
-            Token::Id { .. } => {
-                let AstNode::Id(id) = Comb::ID.parse(tokens)?[0].clone() else {
-                    unreachable!()
-                };
-                Expression::Id(id)
-            }
-            _ => todo!(),
+        let result = matcher.parse(tokens)?;
+        let expr = match result.get(0) {
+            Some(AstNode::Id(id)) => Expression::Id(id.clone()),
+            Some(AstNode::Num(num)) => Expression::Num(num.clone()),
+            None | Some(_) => unreachable!(),
         };
 
         let Some(next) = tokens.peek() else {
             return Ok(expr.into());
         };
 
-        match next {
-            Token::Semicolon { .. } => Ok(expr.into()),
+        let tuple = match next {
+            Token::Semicolon { .. } => return Ok(expr.into()),
             Token::Times { .. } => {
                 tokens.next();
-                let AstNode::Expression(rhs) = Comb::EXPR.parse(tokens)?[0].clone() else {
-                    unreachable!()
-                };
-                Ok(Expression::Multiplication(Box::new(expr), Box::new(rhs)).into())
+                Expression::Multiplication
             }
             Token::Plus { .. } => {
                 tokens.next();
-                let AstNode::Expression(rhs) = Comb::EXPR.parse(tokens)?[0].clone() else {
-                    unreachable!()
-                };
-                Ok(Expression::Addition(Box::new(expr), Box::new(rhs)).into())
+                Expression::Addition
             }
-            _ => todo!(),
-        }
+            t => todo!("{t:?}"),
+        };
+
+        let matcher = Comb::EXPR;
+        let result = matcher.parse(tokens)?;
+        let rhs = match result.get(0) {
+            Some(AstNode::Expression(rhs)) => rhs.clone(),
+            None | Some(_) => unreachable!(),
+        };
+
+        Ok(tuple(Box::new(expr), Box::new(rhs)).into())
     }
 }
 

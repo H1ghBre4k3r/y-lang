@@ -48,6 +48,7 @@ impl Token {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tokens {
     tokens: Vec<Token>,
     index: usize,
