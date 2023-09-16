@@ -43,6 +43,60 @@ pub enum Comb<'a> {
     },
 }
 
+impl<'a> PartialEq for Comb<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Node { .. }, Self::Node { .. }) => false,
+            (Self::Single { token: l_token }, Self::Single { token: r_token }) => {
+                l_token == r_token
+            }
+            (
+                Self::Sequence {
+                    current: l_current,
+                    next: l_next,
+                },
+                Self::Sequence {
+                    current: r_current,
+                    next: r_next,
+                },
+            ) => l_current == r_current && l_next == r_next,
+            (
+                Self::Either {
+                    left: l_left,
+                    right: l_right,
+                },
+                Self::Either {
+                    left: r_left,
+                    right: r_right,
+                },
+            ) => l_left == r_left && l_right == r_right,
+            _ => false,
+        }
+    }
+}
+
+impl<'a> std::fmt::Debug for Comb<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Node { .. } => f
+                .debug_struct("Node")
+                .field("parser", &"() -> {}".to_string())
+                .finish(),
+            Self::Single { token } => f.debug_struct("Single").field("token", token).finish(),
+            Self::Sequence { current, next } => f
+                .debug_struct("Sequence")
+                .field("current", current)
+                .field("next", next)
+                .finish(),
+            Self::Either { left, right } => f
+                .debug_struct("Either")
+                .field("left", left)
+                .field("right", right)
+                .finish(),
+        }
+    }
+}
+
 impl<'a> Comb<'a> {
     pub const ID: Comb<'static> = Comb::Node { parser: &Id::parse };
 
@@ -139,5 +193,155 @@ impl<'a> BitOr for Comb<'a> {
             left: Box::new(self),
             right: Box::new(rhs),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_shr_simple() {
+        let left = Comb::LET;
+        let right = Comb::EQ;
+        let new = left >> right;
+
+        assert_eq!(
+            Comb::Sequence {
+                current: Box::new(Comb::LET),
+                next: Box::new(Comb::EQ)
+            },
+            new
+        );
+    }
+
+    #[test]
+    fn test_shr_complex() {
+        let a = Comb::LET;
+        let b = Comb::EQ;
+        let c = Comb::SEMI;
+        let new = a >> b >> c;
+
+        assert_eq!(
+            Comb::Sequence {
+                current: Box::new(Comb::Sequence {
+                    current: Box::new(Comb::LET),
+                    next: Box::new(Comb::EQ),
+                }),
+                next: Box::new(Comb::SEMI)
+            },
+            new
+        );
+    }
+
+    #[test]
+    fn test_bitor_simple() {
+        let left = Comb::LET;
+        let right = Comb::EQ;
+        let new = left | right;
+
+        assert_eq!(
+            Comb::Either {
+                left: Box::new(Comb::LET),
+                right: Box::new(Comb::EQ)
+            },
+            new
+        );
+    }
+
+    #[test]
+    fn test_bitor_complex() {
+        let a = Comb::LET;
+        let b = Comb::EQ;
+        let c = Comb::SEMI;
+        let new = a | b | c;
+
+        assert_eq!(
+            Comb::Either {
+                left: Box::new(Comb::Either {
+                    left: Box::new(Comb::LET),
+                    right: Box::new(Comb::EQ),
+                }),
+                right: Box::new(Comb::SEMI)
+            },
+            new
+        );
+    }
+
+    #[test]
+    fn test_parse_single_simple() {
+        let a = Comb::LET;
+        let mut tokens = vec![Token::Let { position: (0, 0) }].into();
+        let result = a.parse(&mut tokens);
+
+        assert_eq!(Ok(vec![]), result);
+        assert_eq!(tokens.get_index(), 1);
+    }
+
+    #[test]
+    fn test_parse_node_simple() {
+        let a = Comb::NUM;
+        let mut tokens = vec![Token::Num {
+            value: 42,
+            position: (0, 0),
+        }]
+        .into();
+        let result = a.parse(&mut tokens);
+
+        assert_eq!(Ok(vec![AstNode::Num(Num(42))]), result);
+        assert_eq!(tokens.get_index(), 1);
+    }
+
+    #[test]
+    fn test_parse_shr() {
+        let matcher = Comb::LET >> Comb::NUM;
+        let mut tokens = vec![
+            Token::Let { position: (0, 0) },
+            Token::Num {
+                value: 42,
+                position: (0, 0),
+            },
+        ]
+        .into();
+        let result = matcher.parse(&mut tokens);
+        assert_eq!(Ok(vec![AstNode::Num(Num(42))]), result);
+        assert_eq!(tokens.get_index(), 2);
+    }
+
+    #[test]
+    fn test_parse_bitor() {
+        let matcher = Comb::ID | Comb::NUM;
+        let mut tokens = vec![Token::Num {
+            value: 42,
+            position: (0, 0),
+        }]
+        .into();
+        let result = matcher.parse(&mut tokens);
+
+        assert_eq!(Ok(vec![AstNode::Num(Num(42))]), result);
+        assert_eq!(tokens.get_index(), 1);
+
+        let mut tokens = vec![Token::Id {
+            value: "some_id".into(),
+            position: (0, 0),
+        }]
+        .into();
+        let result = matcher.parse(&mut tokens);
+        assert_eq!(Ok(vec![AstNode::Id(Id("some_id".into()))]), result);
+        assert_eq!(tokens.get_index(), 1);
+    }
+
+    #[test]
+    fn test_parse_simple_error() {
+        let a = Comb::LET;
+        let mut tokens = vec![Token::Num {
+            value: 42,
+            position: (0, 0),
+        }]
+        .into();
+        let result = a.parse(&mut tokens);
+
+        assert!(result.is_err());
+        assert_eq!(tokens.get_index(), 1);
     }
 }
