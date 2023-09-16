@@ -43,33 +43,33 @@ impl FromTokens for Expression {
         };
 
         let Some(next) = tokens.peek() else {
-            return Ok(AstNode::Expression(expr));
+            return Ok(expr.into());
         };
 
         match next {
-            Token::Semicolon { .. } => Ok(AstNode::Expression(expr)),
+            Token::Semicolon { .. } => Ok(expr.into()),
             Token::Times { .. } => {
                 tokens.next();
                 let AstNode::Expression(rhs) = Expression::parse(tokens)? else {
                     unreachable!()
                 };
-                Ok(AstNode::Expression(Expression::Multiplication(
-                    Box::new(expr),
-                    Box::new(rhs),
-                )))
+                Ok(Expression::Multiplication(Box::new(expr), Box::new(rhs)).into())
             }
             Token::Plus { .. } => {
                 tokens.next();
                 let AstNode::Expression(rhs) = Expression::parse(tokens)? else {
                     unreachable!()
                 };
-                Ok(AstNode::Expression(Expression::Addition(
-                    Box::new(expr),
-                    Box::new(rhs),
-                )))
+                Ok(Expression::Addition(Box::new(expr), Box::new(rhs)).into())
             }
             _ => todo!(),
         }
+    }
+}
+
+impl From<Expression> for AstNode {
+    fn from(value: Expression) -> Self {
+        AstNode::Expression(value)
     }
 }
 

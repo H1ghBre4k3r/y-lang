@@ -28,8 +28,14 @@ impl FromTokens for Statement {
         };
 
         match next {
-            Token::Let { .. } => Ok(AstNode::Statement(Statement::Initialization(init))),
+            Token::Let { .. } => Ok(Statement::Initialization(init).into()),
             _ => todo!(),
         }
+    }
+}
+
+impl From<Statement> for AstNode {
+    fn from(value: Statement) -> Self {
+        AstNode::Statement(value)
     }
 }

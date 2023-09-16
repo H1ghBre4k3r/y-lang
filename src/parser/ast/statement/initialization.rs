@@ -20,16 +20,21 @@ impl FromTokens for Initialization {
     {
         let matcher = Comb::LET >> Comb::ID >> Comb::EQ >> Comb::EXPR >> Comb::SEMI;
 
-        let results = matcher.parse(tokens)?;
-
-        let AstNode::Id(id) = results[0].clone() else {
-            unreachable!()
+        let result = matcher.parse(tokens)?;
+        let [AstNode::Id(id), AstNode::Expression(value)] = result.as_slice() else {
+            unreachable!();
         };
 
-        let AstNode::Expression(value) = results[1].clone() else {
-            unreachable!()
-        };
+        Ok(Initialization {
+            id: id.clone(),
+            value: value.clone(),
+        }
+        .into())
+    }
+}
 
-        Ok(AstNode::Initialization(Initialization { id, value }))
+impl From<Initialization> for AstNode {
+    fn from(value: Initialization) -> Self {
+        AstNode::Initialization(value)
     }
 }

@@ -21,7 +21,13 @@ impl FromTokens for Id {
             }
             None => return Err(ParseError::eof("Id")),
         };
-        Ok(AstNode::Id(Id(value)))
+        Ok(Id(value).into())
+    }
+}
+
+impl From<Id> for AstNode {
+    fn from(value: Id) -> Self {
+        AstNode::Id(value)
     }
 }
 
