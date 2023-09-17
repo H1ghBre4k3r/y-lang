@@ -14,8 +14,8 @@ pub enum Statement {
     Initialization(Initialization),
 }
 
-impl FromTokens for Statement {
-    fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError>
+impl FromTokens<Token> for Statement {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {

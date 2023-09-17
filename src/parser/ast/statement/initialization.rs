@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Tokens,
+    lexer::{Token, Tokens},
     parser::{
         ast::{AstNode, Expression, Id},
         combinators::Comb,
@@ -13,8 +13,8 @@ pub struct Initialization {
     value: Expression,
 }
 
-impl FromTokens for Initialization {
-    fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError>
+impl FromTokens<Token> for Initialization {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {

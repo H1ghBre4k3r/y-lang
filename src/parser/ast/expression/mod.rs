@@ -21,8 +21,8 @@ pub enum Expression {
     Multiplication(Box<Expression>, Box<Expression>),
 }
 
-impl FromTokens for Expression {
-    fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError> {
+impl FromTokens<Token> for Expression {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::NUM | Comb::ID;
 
         let result = matcher.parse(tokens)?;

@@ -6,8 +6,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Id(pub String);
 
-impl FromTokens for Id {
-    fn parse(tokens: &mut Tokens) -> Result<AstNode, crate::parser::ParseError>
+impl FromTokens<Token> for Id {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, crate::parser::ParseError>
     where
         Self: Sized,
     {

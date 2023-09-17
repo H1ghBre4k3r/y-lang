@@ -30,40 +30,45 @@ impl PartialEq<Token> for Terminal {
 }
 
 #[derive(Clone)]
-pub enum Comb<'a> {
+pub enum Comb<'a, Tok, Term, Node> {
     /// Combinator for parsing a non terminal symbol. Therefore, we utilize the parsing function of
     /// this respective non-terminal.
     Node {
-        parser: &'a dyn Fn(&mut Tokens) -> Result<AstNode, ParseError>,
+        parser: &'a dyn Fn(&mut Tokens<Tok>) -> Result<Node, ParseError>,
     },
     /// Combinator for matching a terminal.
-    Terminal { token: Terminal },
+    Terminal { token: Term },
     /// Combinator for matching a sequence of two other combinators.
     ///
     /// Note: This will nest arbitrary deep
     Sequence {
-        current: Box<Comb<'a>>,
-        next: Box<Comb<'a>>,
+        current: Box<Comb<'a, Tok, Term, Node>>,
+        next: Box<Comb<'a, Tok, Term, Node>>,
     },
     /// Combinator for parsing either the left or the right combinator.
     ///
     /// Note: It will try to parse the left combinator FIRST.
     Either {
-        left: Box<Comb<'a>>,
-        right: Box<Comb<'a>>,
+        left: Box<Comb<'a, Tok, Term, Node>>,
+        right: Box<Comb<'a, Tok, Term, Node>>,
     },
     /// Combinator for optinally parsing another combinator. If the contained combinator does not
     /// match, it is just ignored (and the tokens are not touched).
-    Optional { inner: Box<Comb<'a>> },
+    Optional {
+        inner: Box<Comb<'a, Tok, Term, Node>>,
+    },
     /// Combinator for parsing an arbitrary repitition of another combinator. If amount is 0, the
     /// combinator will consume as many tokens as the inner combinator matches.
     Repitition {
-        inner: Box<Comb<'a>>,
+        inner: Box<Comb<'a, Tok, Term, Node>>,
         amount: Option<usize>,
     },
 }
 
-impl<'a> PartialEq for Comb<'a> {
+impl<'a, Tok, Term, Node> PartialEq for Comb<'a, Tok, Term, Node>
+where
+    Term: PartialEq,
+{
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Node { .. }, Self::Node { .. }) => false,
@@ -108,7 +113,10 @@ impl<'a> PartialEq for Comb<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for Comb<'a> {
+impl<'a, Tok, Term, Node> std::fmt::Debug for Comb<'a, Tok, Term, Node>
+where
+    Term: std::fmt::Debug,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Node { .. } => f
@@ -140,7 +148,7 @@ impl<'a> std::fmt::Debug for Comb<'a> {
 #[macro_export]
 macro_rules! terminal {
     ($name:ident, $terminal:ident) => {
-        pub const $name: Comb<'static> = Comb::Terminal {
+        pub const $name: Comb<'static, Token, Terminal, AstNode> = Comb::Terminal {
             token: Terminal::$terminal,
         };
     };
@@ -150,13 +158,12 @@ macro_rules! terminal {
 #[macro_export]
 macro_rules! node {
     ($name:ident, $struct:ident) => {
-        pub const $name: Comb<'static> = Comb::Node {
+        pub const $name: Comb<'static, Token, Terminal, AstNode> = Comb::Node {
             parser: &$struct::parse,
         };
     };
 }
-
-impl<'a> Comb<'a> {
+impl<'a> Comb<'a, Token, Terminal, AstNode> {
     terminal!(LET, Let);
 
     terminal!(EQ, Eq);
@@ -176,8 +183,14 @@ impl<'a> Comb<'a> {
     node!(STATEMENT, Statement);
 
     node!(INITIALIZATION, Initialization);
+}
 
-    pub fn parse(&self, tokens: &mut Tokens) -> Result<Vec<AstNode>, ParseError> {
+impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>
+where
+    Tok: Clone + std::fmt::Debug,
+    Term: PartialEq<Tok> + std::fmt::Debug,
+{
+    pub fn parse(&self, tokens: &mut Tokens<Tok>) -> Result<Vec<Node>, ParseError> {
         let mut matched = vec![];
         match self {
             Comb::Terminal { token } => {
@@ -250,7 +263,7 @@ impl<'a> Comb<'a> {
     }
 }
 
-impl<'a> Shr for Comb<'a> {
+impl<'a, Tok, Term, Node> Shr for Comb<'a, Tok, Term, Node> {
     type Output = Self;
 
     fn shr(self, rhs: Self) -> Self::Output {
@@ -261,7 +274,7 @@ impl<'a> Shr for Comb<'a> {
     }
 }
 
-impl<'a> BitOr for Comb<'a> {
+impl<'a, Tok, Term, Node> BitOr for Comb<'a, Tok, Term, Node> {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -272,7 +285,7 @@ impl<'a> BitOr for Comb<'a> {
     }
 }
 
-impl<'a> Not for Comb<'a> {
+impl<'a, Tok, Term, Node> Not for Comb<'a, Tok, Term, Node> {
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -282,7 +295,7 @@ impl<'a> Not for Comb<'a> {
     }
 }
 
-impl<'a> BitXor<()> for Comb<'a> {
+impl<'a, Tok, Term, Node> BitXor<()> for Comb<'a, Tok, Term, Node> {
     type Output = Self;
 
     fn bitxor(self, _rhs: ()) -> Self::Output {
@@ -293,7 +306,7 @@ impl<'a> BitXor<()> for Comb<'a> {
     }
 }
 
-impl<'a> BitXor<usize> for Comb<'a> {
+impl<'a, Tok, Term, Node> BitXor<usize> for Comb<'a, Tok, Term, Node> {
     type Output = Self;
 
     fn bitxor(self, rhs: usize) -> Self::Output {

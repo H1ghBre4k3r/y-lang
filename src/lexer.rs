@@ -49,17 +49,20 @@ impl Token {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Tokens {
-    tokens: Vec<Token>,
+pub struct Tokens<T> {
+    tokens: Vec<T>,
     index: usize,
 }
 
-impl Tokens {
-    pub fn new(tokens: Vec<Token>) -> Self {
+impl<T> Tokens<T>
+where
+    T: Clone,
+{
+    pub fn new(tokens: Vec<T>) -> Self {
         Self { tokens, index: 0 }
     }
 
-    pub fn next(&mut self) -> Option<Token> {
+    pub fn next(&mut self) -> Option<T> {
         if self.index < self.tokens.len() {
             let item = self.tokens.get(self.index).cloned();
             self.index += 1;
@@ -69,7 +72,7 @@ impl Tokens {
         None
     }
 
-    pub fn peek(&mut self) -> Option<Token> {
+    pub fn peek(&mut self) -> Option<T> {
         return self.tokens.get(self.index).cloned();
     }
 
@@ -82,8 +85,11 @@ impl Tokens {
     }
 }
 
-impl From<Vec<Token>> for Tokens {
-    fn from(value: Vec<Token>) -> Self {
+impl<T> From<Vec<T>> for Tokens<T>
+where
+    T: Clone,
+{
+    fn from(value: Vec<T>) -> Self {
         Self::new(value)
     }
 }

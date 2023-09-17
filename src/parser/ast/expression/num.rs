@@ -6,8 +6,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Num(pub u64);
 
-impl FromTokens for Num {
-    fn parse(tokens: &mut Tokens) -> Result<AstNode, ParseError>
+impl FromTokens<Token> for Num {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
