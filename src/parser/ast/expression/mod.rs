@@ -19,17 +19,27 @@ pub enum Expression {
     Num(Num),
     Addition(Box<Expression>, Box<Expression>),
     Multiplication(Box<Expression>, Box<Expression>),
+    Parens(Box<Expression>),
 }
 
 impl FromTokens<Token> for Expression {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
-        let matcher = Comb::NUM | Comb::ID;
-
-        let result = matcher.parse(tokens)?;
-        let expr = match result.get(0) {
-            Some(AstNode::Id(id)) => Expression::Id(id.clone()),
-            Some(AstNode::Num(num)) => Expression::Num(num.clone()),
-            None | Some(_) => unreachable!(),
+        let expr = if let Some(Token::LParen { .. }) = tokens.peek() {
+            let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
+            let result = matcher.parse(tokens)?;
+            let expr = match result.get(0) {
+                Some(AstNode::Expression(rhs)) => rhs.clone(),
+                None | Some(_) => unreachable!(),
+            };
+            Expression::Parens(Box::new(expr))
+        } else {
+            let matcher = Comb::NUM | Comb::ID;
+            let result = matcher.parse(tokens)?;
+            match result.get(0) {
+                Some(AstNode::Id(id)) => Expression::Id(id.clone()),
+                Some(AstNode::Num(num)) => Expression::Num(num.clone()),
+                None | Some(_) => unreachable!(),
+            }
         };
 
         let Some(next) = tokens.peek() else {
@@ -37,7 +47,7 @@ impl FromTokens<Token> for Expression {
         };
 
         let tuple = match next {
-            Token::Semicolon { .. } => return Ok(expr.into()),
+            Token::Semicolon { .. } | Token::RParen { .. } => return Ok(expr.into()),
             Token::Times { .. } => {
                 tokens.next();
                 Expression::Multiplication

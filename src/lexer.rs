@@ -12,6 +12,8 @@ pub enum Token {
     Comment { value: String, position: Position },
     Plus { position: Position },
     Times { position: Position },
+    LParen { position: Position },
+    RParen { position: Position },
 }
 
 impl PartialEq for Token {
@@ -27,6 +29,8 @@ impl PartialEq for Token {
                 | (Comment { .. }, Comment { .. })
                 | (Plus { .. }, Plus { .. })
                 | (Times { .. }, Times { .. })
+                | (LParen { .. }, LParen { .. })
+                | (RParen { .. }, RParen { .. })
         )
     }
 }
@@ -44,6 +48,8 @@ impl Token {
             Token::Comment { position, .. } => *position,
             Token::Plus { position } => *position,
             Token::Times { position } => *position,
+            Token::LParen { position } => *position,
+            Token::RParen { position } => *position,
         }
     }
 }
@@ -151,7 +157,19 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
                 let token = lex_numeric(&mut iterator, &mut line, &mut col)?;
                 tokens.push(token);
             }
-            ' ' => {
+            '(' => {
+                tokens.push(Token::LParen {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
+            ')' => {
+                tokens.push(Token::RParen {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
+            ' ' | '\t' => {
                 col += 1;
                 iterator.next();
             }
@@ -160,8 +178,8 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
                 col = 1;
                 iterator.next();
             }
-            _ => {
-                iterator.next();
+            c => {
+                unimplemented!("can not lex character '{c}'");
             }
         }
     }

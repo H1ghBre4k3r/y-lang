@@ -12,6 +12,8 @@ pub enum Terminal {
     Eq,
     Let,
     Semicolon,
+    LParen,
+    RParen,
     Plus,
     Times,
 }
@@ -23,6 +25,8 @@ impl PartialEq<Token> for Terminal {
             (Terminal::Eq, Token::Eq { .. })
                 | (Terminal::Let, Token::Let { .. })
                 | (Terminal::Semicolon, Token::Semicolon { .. })
+                | (Terminal::LParen, Token::LParen { .. })
+                | (Terminal::RParen, Token::RParen { .. })
                 | (Terminal::Plus, Token::Plus { .. })
                 | (Terminal::Times, Token::Times { .. })
         )
@@ -167,6 +171,10 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
     terminal!(LET, Let);
 
     terminal!(EQ, Eq);
+
+    terminal!(LPAREN, LParen);
+
+    terminal!(RPAREN, RParen);
 
     terminal!(PLUS, Plus);
 
