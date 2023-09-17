@@ -14,6 +14,12 @@ pub enum Token {
     Times { position: Position },
     LParen { position: Position },
     RParen { position: Position },
+    LBrace { position: Position },
+    RBrace { position: Position },
+    FnKeyword { position: Position },
+    ReturnKeyword { position: Position },
+    Colon { position: Position },
+    Comma { position: Position },
 }
 
 impl PartialEq for Token {
@@ -31,6 +37,12 @@ impl PartialEq for Token {
                 | (Times { .. }, Times { .. })
                 | (LParen { .. }, LParen { .. })
                 | (RParen { .. }, RParen { .. })
+                | (LBrace { .. }, LBrace { .. })
+                | (RBrace { .. }, RBrace { .. })
+                | (FnKeyword { .. }, FnKeyword { .. })
+                | (ReturnKeyword { .. }, ReturnKeyword { .. })
+                | (Colon { .. }, Colon { .. })
+                | (Comma { .. }, Comma { .. })
         )
     }
 }
@@ -50,6 +62,12 @@ impl Token {
             Token::Times { position } => *position,
             Token::LParen { position } => *position,
             Token::RParen { position } => *position,
+            Token::LBrace { position } => *position,
+            Token::RBrace { position } => *position,
+            Token::FnKeyword { position } => *position,
+            Token::ReturnKeyword { position } => *position,
+            Token::Colon { position } => *position,
+            Token::Comma { position } => *position,
         }
     }
 }
@@ -169,6 +187,30 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
                 });
                 iterator.next();
             }
+            '{' => {
+                tokens.push(Token::LBrace {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
+            '}' => {
+                tokens.push(Token::RBrace {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
+            ':' => {
+                tokens.push(Token::Colon {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
+            ',' => {
+                tokens.push(Token::Comma {
+                    position: (line, col),
+                });
+                iterator.next();
+            }
             ' ' | '\t' => {
                 col += 1;
                 iterator.next();
@@ -220,7 +262,13 @@ fn lex_alphabetic(iterator: &mut Peekable<Chars>, line: &mut usize, col: &mut us
 
     let position = (*line, *col);
 
-    while let Some(next) = iterator.next_if(|item| item.is_alphabetic()) {
+    let Some(next) = iterator.next() else {
+        unreachable!();
+    };
+    *col += 1;
+    read.push(next);
+
+    while let Some(next) = iterator.next_if(|item| item.is_alphanumeric()) {
         *col += 1;
         read.push(next)
     }
@@ -229,6 +277,8 @@ fn lex_alphabetic(iterator: &mut Peekable<Chars>, line: &mut usize, col: &mut us
 
     match read.as_str() {
         "let" => Token::Let { position },
+        "fn" => Token::FnKeyword { position },
+        "return" => Token::ReturnKeyword { position },
         _ => Token::Id {
             value: read,
             position,

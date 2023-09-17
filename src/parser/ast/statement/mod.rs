@@ -7,11 +7,12 @@ use crate::{
     parser::{combinators::Comb, FromTokens, ParseError},
 };
 
-use super::AstNode;
+use super::{AstNode, Expression};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
     Initialization(Initialization),
+    Return(Expression),
 }
 
 impl FromTokens<Token> for Statement {
@@ -31,6 +32,14 @@ impl FromTokens<Token> for Statement {
                     unreachable!()
                 };
                 Ok(Statement::Initialization(init.clone()).into())
+            }
+            Token::ReturnKeyword { .. } => {
+                let matcher = Comb::RETURN_KEYWORD >> Comb::EXPR >> Comb::SEMI;
+                let result = matcher.parse(tokens)?;
+                let [AstNode::Expression(expr)] = result.as_slice() else {
+                    unreachable!()
+                };
+                Ok(Statement::Return(expr.clone()).into())
             }
             token => Err(ParseError {
                 message: format!("Unexpected token {token:?} while trying to parse Statement"),

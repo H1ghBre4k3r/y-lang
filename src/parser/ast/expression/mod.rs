@@ -1,6 +1,8 @@
+mod function;
 mod id;
 mod num;
 
+pub use self::function::*;
 pub use self::id::*;
 pub use self::num::*;
 
@@ -17,6 +19,7 @@ use super::AstNode;
 pub enum Expression {
     Id(Id),
     Num(Num),
+    Function(Function),
     Addition(Box<Expression>, Box<Expression>),
     Multiplication(Box<Expression>, Box<Expression>),
     Parens(Box<Expression>),
@@ -33,11 +36,14 @@ impl FromTokens<Token> for Expression {
             };
             Expression::Parens(Box::new(expr))
         } else {
-            let matcher = Comb::NUM | Comb::ID;
+            let matcher = Comb::FUNCTION | Comb::NUM | Comb::ID;
             let result = matcher.parse(tokens)?;
             match result.get(0) {
                 Some(AstNode::Id(id)) => Expression::Id(id.clone()),
                 Some(AstNode::Num(num)) => Expression::Num(num.clone()),
+                Some(AstNode::Function(func)) => {
+                    return Ok(Expression::Function(func.clone()).into())
+                }
                 None | Some(_) => unreachable!(),
             }
         };

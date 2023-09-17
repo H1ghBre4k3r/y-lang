@@ -3,7 +3,7 @@ use std::ops::{BitOr, BitXor, Not, Shr};
 use crate::lexer::{Token, Tokens};
 
 use super::{
-    ast::{AstNode, Expression, Id, Initialization, Num, Statement},
+    ast::{AstNode, Expression, Function, Id, Initialization, Num, Parameter, Statement},
     FromTokens, ParseError,
 };
 
@@ -14,6 +14,12 @@ pub enum Terminal {
     Semicolon,
     LParen,
     RParen,
+    LBrace,
+    RBrace,
+    FnKeyword,
+    ReturnKeyword,
+    Colon,
+    Comma,
 }
 
 impl PartialEq<Token> for Terminal {
@@ -25,6 +31,12 @@ impl PartialEq<Token> for Terminal {
                 | (Terminal::Semicolon, Token::Semicolon { .. })
                 | (Terminal::LParen, Token::LParen { .. })
                 | (Terminal::RParen, Token::RParen { .. })
+                | (Terminal::LBrace, Token::LBrace { .. })
+                | (Terminal::RBrace, Token::RBrace { .. })
+                | (Terminal::FnKeyword, Token::FnKeyword { .. })
+                | (Terminal::ReturnKeyword, Token::ReturnKeyword { .. })
+                | (Terminal::Colon, Token::Colon { .. })
+                | (Terminal::Comma, Token::Comma { .. })
         )
     }
 }
@@ -172,6 +184,18 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
 
     terminal!(RPAREN, RParen);
 
+    terminal!(LBRACE, LBrace);
+
+    terminal!(RBRACE, RBrace);
+
+    terminal!(FN_KEYWORD, FnKeyword);
+
+    terminal!(RETURN_KEYWORD, ReturnKeyword);
+
+    terminal!(COLON, Colon);
+
+    terminal!(COMMA, Comma);
+
     terminal!(SEMI, Semicolon);
 
     node!(ID, Id);
@@ -183,6 +207,10 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
     node!(STATEMENT, Statement);
 
     node!(INITIALIZATION, Initialization);
+
+    node!(FUNCTION, Function);
+
+    node!(PARAMETER, Parameter);
 }
 
 impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>

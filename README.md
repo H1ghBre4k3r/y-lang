@@ -34,6 +34,14 @@ Or this:
 "foo"
 ```
 
+### Variables
+
+You can assign values to variables: 
+
+```
+let foo = 42;
+```
+
 Aside from these simple expressions, we also have more...complicated expressions. 
 
 ### Control Flow
@@ -69,12 +77,22 @@ match someValue {
 
 You may notice the weird strings with `()` after them - these are function calls. We get to them at a later point.
 
-To make matters even more interesting, you can also bind existing variables to matches: 
+To make matters even more interesting, you can also bind variables to matches: 
 
 ```
 match x in someFunction(x) {
     42 => doSomethingWhere42Matched()
     1337 => doSomethingWhere1377Matched()
     _ => noneOfTheAboveMatched()
+}
+```
+
+#### Functions
+
+In this programming language, functions are first class citizens. You can use them as values and hand them to other functions. Here's how you declare a function which adds two integers (we'll get to types):
+
+```
+let add = fn (x: i32, y: i32): i32 {
+    return x + y;
 }
 ```
