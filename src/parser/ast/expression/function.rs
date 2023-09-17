@@ -20,10 +20,13 @@ impl FromTokens<Token> for Function {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::FN_KEYWORD
             >> Comb::LPAREN
+            // parameter list (optional)
             >> !(Comb::PARAMETER >> ((Comb::COMMA >> Comb::PARAMETER) ^ ()))
             >> Comb::RPAREN
+            // return type
             >> Comb::COLON
             >> Comb::ID
+            // body of the function
             >> Comb::LBRACE
             >> (Comb::STATEMENT ^ ())
             >> Comb::RBRACE;
@@ -91,5 +94,110 @@ impl FromTokens<Token> for Parameter {
 impl From<Parameter> for AstNode {
     fn from(value: Parameter) -> Self {
         AstNode::Parameter(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{lexer::lex, parser::ast::Expression};
+
+    use super::*;
+
+    #[test]
+    fn test_simple_function() {
+        let mut tokens = lex("fn (): i32 {}").expect("something is wrong").into();
+
+        let result = Function::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Function {
+                parameters: vec![],
+                return_type: "i32".into(),
+                statements: vec![]
+            }
+            .into()),
+            result
+        )
+    }
+
+    #[test]
+    fn test_function_with_single_param() {
+        let mut tokens = lex("fn (x: i32): i32 {}")
+            .expect("something is wrong")
+            .into();
+
+        let result = Function::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Function {
+                parameters: vec![Parameter {
+                    name: Id("x".into()),
+                    type_: "i32".into()
+                }],
+                return_type: "i32".into(),
+                statements: vec![]
+            }
+            .into()),
+            result
+        )
+    }
+
+    #[test]
+    fn test_function_with_multiple_params() {
+        let mut tokens = lex("fn (x: i32, y: i32): i32 {}")
+            .expect("something is wrong")
+            .into();
+
+        let result = Function::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Function {
+                parameters: vec![
+                    Parameter {
+                        name: Id("x".into()),
+                        type_: "i32".into()
+                    },
+                    Parameter {
+                        name: Id("y".into()),
+                        type_: "i32".into()
+                    }
+                ],
+                return_type: "i32".into(),
+                statements: vec![]
+            }
+            .into()),
+            result
+        )
+    }
+
+    #[test]
+    fn test_function_with_statements() {
+        let mut tokens = lex("fn (x: i32, y: i32): i32 { return x + y; }")
+            .expect("something is wrong")
+            .into();
+
+        let result = Function::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Function {
+                parameters: vec![
+                    Parameter {
+                        name: Id("x".into()),
+                        type_: "i32".into()
+                    },
+                    Parameter {
+                        name: Id("y".into()),
+                        type_: "i32".into()
+                    }
+                ],
+                return_type: "i32".into(),
+                statements: vec![Statement::Return(Expression::Addition(
+                    Box::new(Expression::Id(Id("x".into()))),
+                    Box::new(Expression::Id(Id("y".into()))),
+                ))]
+            }
+            .into()),
+            result
+        )
     }
 }
