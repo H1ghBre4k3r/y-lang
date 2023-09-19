@@ -1,25 +1,74 @@
+use pesca_parser_derive::Token as ParseToken;
 use std::{error::Error, fmt::Display, iter::Peekable, str::Chars};
 
 type Position = (usize, usize);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ParseToken)]
 pub enum Token {
-    Eq { position: Position },
-    Let { position: Position },
-    Id { value: String, position: Position },
-    Num { value: u64, position: Position },
-    Semicolon { position: Position },
-    Comment { value: String, position: Position },
-    Plus { position: Position },
-    Times { position: Position },
-    LParen { position: Position },
-    RParen { position: Position },
-    LBrace { position: Position },
-    RBrace { position: Position },
-    FnKeyword { position: Position },
-    ReturnKeyword { position: Position },
-    Colon { position: Position },
-    Comma { position: Position },
+    #[terminal]
+    Eq {
+        position: Position,
+    },
+    #[terminal]
+    Let {
+        position: Position,
+    },
+    Id {
+        value: String,
+        position: Position,
+    },
+    Num {
+        value: u64,
+        position: Position,
+    },
+    #[terminal]
+    Semicolon {
+        position: Position,
+    },
+    Comment {
+        value: String,
+        position: Position,
+    },
+    #[terminal]
+    Plus {
+        position: Position,
+    },
+    #[terminal]
+    Times {
+        position: Position,
+    },
+    #[terminal]
+    LParen {
+        position: Position,
+    },
+    #[terminal]
+    RParen {
+        position: Position,
+    },
+    #[terminal]
+    LBrace {
+        position: Position,
+    },
+    #[terminal]
+    RBrace {
+        position: Position,
+    },
+    #[terminal]
+    FnKeyword {
+        position: Position,
+    },
+    #[terminal]
+    ReturnKeyword {
+        position: Position,
+    },
+    #[terminal]
+    Colon {
+        position: Position,
+    },
+    #[terminal]
+    Comma {
+        position: Position,
+    },
 }
 
 impl PartialEq for Token {

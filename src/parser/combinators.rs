@@ -1,45 +1,11 @@
 use std::ops::{BitOr, BitXor, Not, Shr};
 
-use crate::lexer::{Token, Tokens};
+use crate::lexer::{Terminal, Token, Tokens};
 
 use super::{
     ast::{AstNode, Expression, Function, Id, Initialization, Num, Parameter, Statement},
     FromTokens, ParseError,
 };
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Terminal {
-    Eq,
-    Let,
-    Semicolon,
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    FnKeyword,
-    ReturnKeyword,
-    Colon,
-    Comma,
-}
-
-impl PartialEq<Token> for Terminal {
-    fn eq(&self, other: &Token) -> bool {
-        matches!(
-            (self, other),
-            (Terminal::Eq, Token::Eq { .. })
-                | (Terminal::Let, Token::Let { .. })
-                | (Terminal::Semicolon, Token::Semicolon { .. })
-                | (Terminal::LParen, Token::LParen { .. })
-                | (Terminal::RParen, Token::RParen { .. })
-                | (Terminal::LBrace, Token::LBrace { .. })
-                | (Terminal::RBrace, Token::RBrace { .. })
-                | (Terminal::FnKeyword, Token::FnKeyword { .. })
-                | (Terminal::ReturnKeyword, Token::ReturnKeyword { .. })
-                | (Terminal::Colon, Token::Colon { .. })
-                | (Terminal::Comma, Token::Comma { .. })
-        )
-    }
-}
 
 #[derive(Clone)]
 pub enum Comb<'a, Tok, Term, Node> {
