@@ -12,5 +12,6 @@ pub enum AstNode {
     Statement(Statement),
     Initialization(Initialization),
     Function(Function),
+    If(If),
     Parameter(Parameter),
 }
