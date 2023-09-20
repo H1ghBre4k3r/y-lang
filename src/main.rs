@@ -9,9 +9,10 @@ use self::lexer::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = r#"
-let a = 3;"#;
+let fnoo = fn(x:void,y:i32):i32{};"#;
 
-    let lexed = lex(input)?;
+    let lexer = Lexer::new(input);
+    let lexed = lexer.lex()?;
 
     println!("{lexed:#?}");
 

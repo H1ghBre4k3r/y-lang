@@ -26,6 +26,7 @@ pub enum Token {
     Semicolon {
         position: Position,
     },
+    // TODO: think about lexing comments
     Comment {
         value: String,
         position: Position,
@@ -205,34 +206,22 @@ struct LexMap {
     map: HashMap<&'static str, Terminal>,
 }
 
-// TODO: write tests for lex map
 impl LexMap {
     pub fn insert(&mut self, key: &'static str, value: Terminal) {
         self.map.insert(key, value);
     }
 
-    pub fn get(&self, key: &str) -> Option<(Terminal, bool)> {
-        let mut longest_key: Option<String> = None;
-
-        // FIXME: This does not work!
-        // `f` matches `fn` and therefore, this is returned
+    pub fn can_match(&self, key: &str) -> bool {
         for map_key in self.map.keys() {
             if map_key.starts_with(key) {
-                longest_key = if let Some(longest_key) = longest_key {
-                    if longest_key.len() < map_key.len() {
-                        Some(map_key.to_string())
-                    } else {
-                        Some(longest_key)
-                    }
-                } else {
-                    Some(map_key.to_string())
-                }
+                return true;
             }
         }
+        false
+    }
 
-        longest_key
-            .and_then(|key| self.map.get(key.as_str()))
-            .cloned()
+    pub fn get(&self, key: &str) -> Option<Terminal> {
+        self.map.get(key).cloned()
     }
 }
 
@@ -265,167 +254,157 @@ lazy_static! {
     };
 }
 
-pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
-    let mut tokens = vec![];
+#[derive(Debug, Clone)]
+pub struct Lexer<'a> {
+    tokens: Vec<Token>,
+    iterator: Peekable<Chars<'a>>,
+    line: usize,
+    col: usize,
+}
 
-    let mut iterator = input.chars().peekable();
+impl<'a> Lexer<'a> {
+    pub fn new(input: &'a str) -> Self {
+        let iterator = input.chars().peekable();
 
-    let mut line = 1;
-    let mut col = 1;
+        Self {
+            tokens: vec![],
+            iterator,
+            line: 1,
+            col: 1,
+        }
+    }
 
-    let mut stack = vec![];
+    fn peek(&mut self) -> Option<&char> {
+        self.iterator.peek()
+    }
 
-    let mut current_matched;
+    fn next(&mut self) -> Option<char> {
+        self.iterator.next()
+    }
 
-    while let Some(next) = iterator.next() {
-        // eat whitespaces
+    fn next_if(&mut self, func: impl FnOnce(&char) -> bool) -> Option<char> {
+        self.iterator.next_if(func)
+    }
+
+    fn eat_whitespace(&mut self) {
+        while let Some(next) = self.next_if(|item| item.is_whitespace()) {
+            match next {
+                ' ' | '\t' => self.col += 1,
+                '\n' => {
+                    self.col = 1;
+                    self.line += 1;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    pub fn lex(mut self) -> Result<Vec<Token>, LexError> {
+        self.lex_internal()?;
+
+        Ok(self.tokens)
+    }
+
+    pub fn lex_internal(&mut self) -> Result<(), LexError> {
+        self.eat_whitespace();
+
+        let Some(next) = self.peek() else {
+            return Ok(());
+        };
+
         match next {
-            ' ' | '\t' if stack.is_empty() => {
-                col += 1;
+            'a'..='z' | 'A'..='Z' => self.lex_alphanumeric()?,
+            '0'..='9' => self.lex_numeric()?,
+            _ => self.lex_special()?,
+        };
+
+        Ok(())
+    }
+
+    fn lex_special(&mut self) -> Result<(), LexError> {
+        let mut stack = vec![];
+
+        let position = (self.line, self.col);
+
+        while let Some(next) = self.next() {
+            self.col += 1;
+            stack.push(next);
+
+            let read = stack.iter().collect::<String>();
+
+            let can_read_next = self
+                .peek()
+                .map(|item| {
+                    let mut stack = stack.clone();
+                    stack.push(*item);
+                    let read = stack.iter().collect::<String>();
+                    LEX_MAP.can_match(read.as_str())
+                })
+                .unwrap_or(false);
+
+            if can_read_next {
                 continue;
             }
-            '\n' if stack.is_empty() => {
-                line += 1;
-                col = 1;
-                continue;
-            }
-            _ => (),
+
+            let Some(current_match) = LEX_MAP.get(read.as_str()) else {
+                return Err(LexError(format!("failed to lex '{read}'")));
+            };
+
+            self.tokens.push(current_match.to_token(position));
+            break;
         }
 
-        stack.push(next);
-        col += 1;
+        self.lex_internal()
+    }
+
+    fn lex_alphanumeric(&mut self) -> Result<(), LexError> {
+        let mut stack = vec![];
+
+        let position = (self.line, self.col);
+
+        while let Some(next) = self.next_if(|item| item.is_alphanumeric()) {
+            self.col += 1;
+            stack.push(next);
+        }
 
         let read = stack.iter().collect::<String>();
-        current_matched = LEX_MAP.get(read.as_str());
 
-        let peeked = iterator.peek();
-        if let Some(next) = peeked {
-            let mut stack_copy = stack.clone();
-            stack_copy.push(*next);
-
-            let read = stack_copy.iter().collect::<String>();
-            let next_match = LEX_MAP.get(read.as_str());
-            if next_match.is_some() {
-                continue;
-            } else if let Some(terminal) = &current_matched {
-                tokens.push(terminal.to_token((line, col)));
-                stack = vec![];
-                continue;
-            }
+        if let Some(token) = LEX_MAP.get(read.as_str()) {
+            self.tokens.push(token.to_token(position));
         } else {
-            match &current_matched {
-                Some(terminal) => tokens.push(terminal.to_token((line, col))),
-                None => todo!(),
-            }
+            self.tokens.push(Token::Id {
+                value: read,
+                position,
+            })
         }
 
-        match stack[0] {
-            '/' if stack.is_empty() => {
-                let token = lex_comment(&mut iterator, &mut line, &mut col)?;
-                tokens.push(token);
-            }
-            'a'..='z' | 'A'..='Z' => {
-                let token = lex_alphabetic(&mut iterator, &stack, &mut line, &mut col);
-                stack = vec![];
-                tokens.push(token);
-            }
-            '0'..='9' => {
-                let token = lex_numeric(&mut iterator, &stack, &mut line, &mut col)?;
-                stack = vec![];
-                tokens.push(token);
-            }
-            ' ' | '\t' => {
-                stack.remove(0);
-                col += 1;
-                continue;
-            }
-            '\n' => {
-                stack.remove(0);
-                line += 1;
-                col = 1;
-                continue;
-            }
-            _ => {}
+        self.lex_internal()
+    }
+
+    fn lex_numeric(&mut self) -> Result<(), LexError> {
+        let mut stack = vec![];
+
+        let position = (self.line, self.col);
+
+        while let Some(next) = self.next_if(|item| item.is_numeric()) {
+            self.col += 1;
+            stack.push(next)
         }
+
+        let read = stack.iter().collect::<String>();
+
+        let num = read
+            .parse::<u64>()
+            .map(|num| Token::Num {
+                value: num,
+                position,
+            })
+            .map_err(|_| LexError("failed to parse numeric".into()))?;
+
+        self.tokens.push(num);
+
+        self.lex_internal()
     }
-
-    Ok(tokens)
-}
-
-fn lex_comment(
-    iterator: &mut Peekable<Chars>,
-    line: &mut usize,
-    col: &mut usize,
-) -> Result<Token, LexError> {
-    let position = (*line, *col);
-
-    *col += 1;
-    let Some('/') = iterator.next() else {
-        return Err(LexError("Comment without second slash!".into()));
-    };
-
-    let mut read = vec![];
-
-    while let Some(next) = iterator.next_if(|item| *item != '\n') {
-        *col += 1;
-        read.push(next);
-    }
-
-    Ok(Token::Comment {
-        value: read.iter().collect(),
-        position,
-    })
-}
-
-fn lex_alphabetic(
-    iterator: &mut Peekable<Chars>,
-    stack: &[char],
-    line: &mut usize,
-    col: &mut usize,
-) -> Token {
-    let mut read = stack.to_vec();
-
-    let position = (*line, *col);
-
-    *col += 1;
-
-    while let Some(next) = iterator.next_if(|item| item.is_alphanumeric()) {
-        *col += 1;
-        read.push(next)
-    }
-
-    let read = read.iter().collect::<String>();
-
-    Token::Id {
-        value: read,
-        position,
-    }
-}
-
-fn lex_numeric(
-    iterator: &mut Peekable<Chars>,
-    stack: &[char],
-    line: &mut usize,
-    col: &mut usize,
-) -> Result<Token, LexError> {
-    let mut read = stack.to_vec();
-
-    let position = (*line, *col);
-
-    *col += 1;
-    while let Some(next) = iterator.next_if(|item| item.is_numeric()) {
-        *col += 1;
-        read.push(next)
-    }
-
-    let read = read.iter().collect::<String>();
-
-    read.parse::<u64>()
-        .map(|num| Token::Num {
-            value: num,
-            position,
-        })
-        .map_err(|_| LexError("failed to parse numeric".into()))
 }
 
 #[cfg(test)]
@@ -434,59 +413,33 @@ mod tests {
 
     #[test]
     fn test_lex_alphabetic_id() {
-        let mut iterator = "letter".chars().peekable();
-        iterator.next();
-
-        let mut line = 1;
-        let mut col = 1;
+        let lexer = Lexer::new("letter");
 
         assert_eq!(
-            Token::Id {
+            Ok(vec![Token::Id {
                 value: "letter".into(),
                 position: (1, 1)
-            },
-            lex_alphabetic(&mut iterator, &['l'], &mut line, &mut col)
+            }]),
+            lexer.lex()
         )
     }
 
     #[test]
     fn test_lex_numeric() {
-        let mut iterator = "1337".chars().peekable();
-        iterator.next();
-
-        let mut line = 1;
-        let mut col = 1;
+        let lexer = Lexer::new("1337");
 
         assert_eq!(
-            Ok(Token::Num {
+            Ok(vec![Token::Num {
                 value: 1337,
                 position: (1, 1)
-            }),
-            lex_numeric(&mut iterator, &['1'], &mut line, &mut col)
-        )
-    }
-
-    #[test]
-    fn test_lex_comment() {
-        let mut iterator = "// some comment".chars().peekable();
-        iterator.next();
-
-        let mut line = 1;
-        let mut col = 1;
-
-        assert_eq!(
-            Ok(Token::Comment {
-                value: " some comment".into(),
-                position: (1, 1)
-            }),
-            lex_comment(&mut iterator, &mut line, &mut col)
+            }]),
+            lexer.lex()
         )
     }
 
     #[test]
     fn test_lex_function() {
-        let input = "fn () {}";
-        let token = lex(input);
+        let lexer = Lexer::new("fn () {}");
 
         assert_eq!(
             Ok(vec![
@@ -496,14 +449,13 @@ mod tests {
                 Token::LBrace { position: (0, 0) },
                 Token::RBrace { position: (0, 0) }
             ]),
-            token
+            lexer.lex()
         );
     }
 
     #[test]
     fn test_lex_let() {
-        let input = "let foo = 42;";
-        let token = lex(input);
+        let lexer = Lexer::new("let foo = 42;");
 
         assert_eq!(
             Ok(vec![
@@ -519,7 +471,7 @@ mod tests {
                 },
                 Token::Semicolon { position: (0, 0) }
             ]),
-            token
+            lexer.lex()
         );
     }
 }
