@@ -106,6 +106,7 @@ mod tests {
     #[test]
     fn test_simple_function() {
         let mut tokens = lex("fn (): i32 {}").expect("something is wrong").into();
+        dbg!(&tokens);
 
         let result = Function::parse(&mut tokens);
 

@@ -124,7 +124,7 @@ where
 
 /// Create a combinator for a specified terminal symbol.
 #[macro_export]
-macro_rules! terminal {
+macro_rules! terminal_comb {
     ($name:ident, $terminal:ident) => {
         pub const $name: Comb<'static, Token, Terminal, AstNode> = Comb::Terminal {
             token: Terminal::$terminal,
@@ -134,7 +134,7 @@ macro_rules! terminal {
 
 /// Create a combinator for a specified non-terminal symbol.
 #[macro_export]
-macro_rules! node {
+macro_rules! node_comb {
     ($name:ident, $struct:ident) => {
         pub const $name: Comb<'static, Token, Terminal, AstNode> = Comb::Node {
             parser: &$struct::parse,
@@ -142,41 +142,41 @@ macro_rules! node {
     };
 }
 impl<'a> Comb<'a, Token, Terminal, AstNode> {
-    terminal!(LET, Let);
+    terminal_comb!(LET, Let);
 
-    terminal!(EQ, Eq);
+    terminal_comb!(EQ, Eq);
 
-    terminal!(LPAREN, LParen);
+    terminal_comb!(LPAREN, LParen);
 
-    terminal!(RPAREN, RParen);
+    terminal_comb!(RPAREN, RParen);
 
-    terminal!(LBRACE, LBrace);
+    terminal_comb!(LBRACE, LBrace);
 
-    terminal!(RBRACE, RBrace);
+    terminal_comb!(RBRACE, RBrace);
 
-    terminal!(FN_KEYWORD, FnKeyword);
+    terminal_comb!(FN_KEYWORD, FnKeyword);
 
-    terminal!(RETURN_KEYWORD, ReturnKeyword);
+    terminal_comb!(RETURN_KEYWORD, ReturnKeyword);
 
-    terminal!(COLON, Colon);
+    terminal_comb!(COLON, Colon);
 
-    terminal!(COMMA, Comma);
+    terminal_comb!(COMMA, Comma);
 
-    terminal!(SEMI, Semicolon);
+    terminal_comb!(SEMI, Semicolon);
 
-    node!(ID, Id);
+    node_comb!(ID, Id);
 
-    node!(NUM, Num);
+    node_comb!(NUM, Num);
 
-    node!(EXPR, Expression);
+    node_comb!(EXPR, Expression);
 
-    node!(STATEMENT, Statement);
+    node_comb!(STATEMENT, Statement);
 
-    node!(INITIALIZATION, Initialization);
+    node_comb!(INITIALIZATION, Initialization);
 
-    node!(FUNCTION, Function);
+    node_comb!(FUNCTION, Function);
 
-    node!(PARAMETER, Parameter);
+    node_comb!(PARAMETER, Parameter);
 }
 
 impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>
