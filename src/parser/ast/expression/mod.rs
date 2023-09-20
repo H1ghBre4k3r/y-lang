@@ -1,9 +1,11 @@
 mod function;
 mod id;
+mod if_expression;
 mod num;
 
 pub use self::function::*;
 pub use self::id::*;
+pub use self::if_expression::*;
 pub use self::num::*;
 
 use crate::lexer::Tokens;
@@ -20,6 +22,7 @@ pub enum Expression {
     Id(Id),
     Num(Num),
     Function(Function),
+    If(If),
     Addition(Box<Expression>, Box<Expression>),
     Multiplication(Box<Expression>, Box<Expression>),
     Parens(Box<Expression>),
@@ -36,7 +39,7 @@ impl FromTokens<Token> for Expression {
             };
             Expression::Parens(Box::new(expr))
         } else {
-            let matcher = Comb::FUNCTION | Comb::NUM | Comb::ID;
+            let matcher = Comb::FUNCTION | Comb::IF | Comb::NUM | Comb::ID;
             let result = matcher.parse(tokens)?;
             match result.get(0) {
                 Some(AstNode::Id(id)) => Expression::Id(id.clone()),
@@ -44,6 +47,7 @@ impl FromTokens<Token> for Expression {
                 Some(AstNode::Function(func)) => {
                     return Ok(Expression::Function(func.clone()).into())
                 }
+                Some(AstNode::If(if_expression)) => Expression::If(if_expression.clone()),
                 None | Some(_) => unreachable!(),
             }
         };
@@ -53,7 +57,6 @@ impl FromTokens<Token> for Expression {
         };
 
         let tuple = match next {
-            Token::Semicolon { .. } | Token::RParen { .. } => return Ok(expr.into()),
             Token::Times { .. } => {
                 tokens.next();
                 Expression::Multiplication
@@ -62,7 +65,7 @@ impl FromTokens<Token> for Expression {
                 tokens.next();
                 Expression::Addition
             }
-            t => todo!("{t:?}"),
+            _ => return Ok(expr.into()),
         };
 
         let matcher = Comb::EXPR;

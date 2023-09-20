@@ -3,7 +3,7 @@ use std::ops::{BitOr, BitXor, Not, Shr};
 use crate::lexer::{Terminal, Token, Tokens};
 
 use super::{
-    ast::{AstNode, Expression, Function, Id, Initialization, Num, Parameter, Statement},
+    ast::{AstNode, Expression, Function, Id, If, Initialization, Num, Parameter, Statement},
     FromTokens, ParseError,
 };
 
@@ -156,6 +156,10 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
 
     terminal_comb!(FN_KEYWORD, FnKeyword);
 
+    terminal_comb!(IF_KEYWORD, IfKeyword);
+
+    terminal_comb!(ELSE_KEYWORD, ElseKeyword);
+
     terminal_comb!(RETURN_KEYWORD, ReturnKeyword);
 
     terminal_comb!(COLON, Colon);
@@ -175,6 +179,8 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
     node_comb!(INITIALIZATION, Initialization);
 
     node_comb!(FUNCTION, Function);
+
+    node_comb!(IF, If);
 
     node_comb!(PARAMETER, Parameter);
 }

@@ -58,6 +58,14 @@ pub enum Token {
         position: Position,
     },
     #[terminal]
+    IfKeyword {
+        position: Position,
+    },
+    #[terminal]
+    ElseKeyword {
+        position: Position,
+    },
+    #[terminal]
     ReturnKeyword {
         position: Position,
     },
@@ -84,6 +92,8 @@ impl Terminal {
             Terminal::LBrace => Token::LBrace { position },
             Terminal::RBrace => Token::RBrace { position },
             Terminal::FnKeyword => Token::FnKeyword { position },
+            Terminal::IfKeyword => Token::IfKeyword { position },
+            Terminal::ElseKeyword => Token::ElseKeyword { position },
             Terminal::ReturnKeyword => Token::ReturnKeyword { position },
             Terminal::Colon => Token::Colon { position },
             Terminal::Comma => Token::Comma { position },
@@ -110,6 +120,8 @@ impl PartialEq for Token {
                 | (LBrace { .. }, LBrace { .. })
                 | (RBrace { .. }, RBrace { .. })
                 | (FnKeyword { .. }, FnKeyword { .. })
+                | (IfKeyword { .. }, IfKeyword { .. })
+                | (ElseKeyword { .. }, ElseKeyword { .. })
                 | (ReturnKeyword { .. }, ReturnKeyword { .. })
                 | (Colon { .. }, Colon { .. })
                 | (Comma { .. }, Comma { .. })
@@ -135,6 +147,8 @@ impl Token {
             Token::LBrace { position } => *position,
             Token::RBrace { position } => *position,
             Token::FnKeyword { position } => *position,
+            Token::IfKeyword { position } => *position,
+            Token::ElseKeyword { position } => *position,
             Token::ReturnKeyword { position } => *position,
             Token::Colon { position } => *position,
             Token::Comma { position } => *position,

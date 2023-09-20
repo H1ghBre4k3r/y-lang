@@ -12,6 +12,7 @@ use super::{AstNode, Expression};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
     Initialization(Initialization),
+    Expression(Expression),
     Return(Expression),
 }
 
@@ -41,10 +42,17 @@ impl FromTokens<Token> for Statement {
                 };
                 Ok(Statement::Return(expr.clone()).into())
             }
-            token => Err(ParseError {
-                message: format!("Unexpected token {token:?} while trying to parse Statement"),
-                position: Some(token.position()),
-            }),
+            token => {
+                let matcher = Comb::EXPR;
+                let result = matcher.parse(tokens).map_err(|_| ParseError {
+                    message: format!("Unexpected token {token:?} while trying to parse Statement"),
+                    position: Some(token.position()),
+                })?;
+                let [AstNode::Expression(expr)] = result.as_slice() else {
+                    unreachable!()
+                };
+                Ok(Statement::Expression(expr.clone()).into())
+            }
         }
     }
 }
