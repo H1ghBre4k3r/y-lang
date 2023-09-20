@@ -99,13 +99,16 @@ impl From<Parameter> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::lex, parser::ast::Expression};
+    use crate::{lexer::Lexer, parser::ast::Expression};
 
     use super::*;
 
     #[test]
     fn test_simple_function() {
-        let mut tokens = lex("fn (): i32 {}").expect("something is wrong").into();
+        let mut tokens = Lexer::new("fn (): i32 {}")
+            .lex()
+            .expect("something is wrong")
+            .into();
         dbg!(&tokens);
 
         let result = Function::parse(&mut tokens);
@@ -123,7 +126,8 @@ mod tests {
 
     #[test]
     fn test_function_with_single_param() {
-        let mut tokens = lex("fn (x: i32): i32 {}")
+        let mut tokens = Lexer::new("fn (x: i32): i32 {}")
+            .lex()
             .expect("something is wrong")
             .into();
 
@@ -145,7 +149,8 @@ mod tests {
 
     #[test]
     fn test_function_with_multiple_params() {
-        let mut tokens = lex("fn (x: i32, y: i32): i32 {}")
+        let mut tokens = Lexer::new("fn (x: i32, y: i32): i32 {}")
+            .lex()
             .expect("something is wrong")
             .into();
 
@@ -173,7 +178,8 @@ mod tests {
 
     #[test]
     fn test_function_with_statements() {
-        let mut tokens = lex("fn (x: i32, y: i32): i32 { return x + y; }")
+        let mut tokens = Lexer::new("fn (x: i32, y: i32): i32 { return x + y; }")
+            .lex()
             .expect("something is wrong")
             .into();
 
