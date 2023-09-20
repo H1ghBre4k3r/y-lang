@@ -8,4 +8,5 @@ readme = "README.md"
 repository = "https://github.com/H1ghBre4k3r/pesca-parser"
 
 [dependencies]
+lazy_static = "1.4.0"
 pesca_parser_derive = { path = "./pesca_parser_derive"}

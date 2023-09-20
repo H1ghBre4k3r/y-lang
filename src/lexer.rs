@@ -1,5 +1,6 @@
+use lazy_static::lazy_static;
 use pesca_parser_derive::Token as ParseToken;
-use std::{error::Error, fmt::Display, iter::Peekable, str::Chars};
+use std::{collections::HashMap, error::Error, fmt::Display, iter::Peekable, str::Chars};
 
 type Position = (usize, usize);
 
@@ -71,6 +72,27 @@ pub enum Token {
     },
 }
 
+impl Terminal {
+    pub fn to_token(&self, position: Position) -> Token {
+        match self {
+            Terminal::Eq => Token::Eq { position },
+            Terminal::Let => Token::Let { position },
+            Terminal::Semicolon => Token::Semicolon { position },
+            Terminal::Plus => Token::Plus { position },
+            Terminal::Times => Token::Times { position },
+            Terminal::LParen => Token::LParen { position },
+            Terminal::RParen => Token::RParen { position },
+            Terminal::LBrace => Token::LBrace { position },
+            Terminal::RBrace => Token::RBrace { position },
+            Terminal::FnKeyword => Token::FnKeyword { position },
+            Terminal::ReturnKeyword => Token::ReturnKeyword { position },
+            Terminal::Colon => Token::Colon { position },
+            Terminal::Comma => Token::Comma { position },
+        }
+    }
+}
+
+// TODO: move this to own derive macro
 impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
         use Token::*;
@@ -178,6 +200,71 @@ impl Display for LexError {
 
 impl Error for LexError {}
 
+#[derive(Debug, Clone, Default)]
+struct LexMap {
+    map: HashMap<&'static str, Terminal>,
+}
+
+// TODO: write tests for lex map
+impl LexMap {
+    pub fn insert(&mut self, key: &'static str, value: Terminal) {
+        self.map.insert(key, value);
+    }
+
+    pub fn get(&self, key: &str) -> Option<(Terminal, bool)> {
+        let mut longest_key: Option<String> = None;
+
+        // FIXME: This does not work!
+        // `f` matches `fn` and therefore, this is returned
+        for map_key in self.map.keys() {
+            if map_key.starts_with(key) {
+                longest_key = if let Some(longest_key) = longest_key {
+                    if longest_key.len() < map_key.len() {
+                        Some(map_key.to_string())
+                    } else {
+                        Some(longest_key)
+                    }
+                } else {
+                    Some(map_key.to_string())
+                }
+            }
+        }
+
+        longest_key
+            .and_then(|key| self.map.get(key.as_str()))
+            .cloned()
+    }
+}
+
+#[macro_export]
+macro_rules! terminal {
+    ($map:ident, $name:ident, $value:expr) => {
+        $map.insert($value, Terminal::$name);
+    };
+}
+
+lazy_static! {
+    static ref LEX_MAP: LexMap = {
+        let mut m = LexMap::default();
+
+        terminal!(m, Eq, "=");
+        terminal!(m, Let, "let");
+        terminal!(m, Semicolon, ";");
+        terminal!(m, Plus, "+");
+        terminal!(m, Times, "*");
+        terminal!(m, LParen, "(");
+        terminal!(m, RParen, ")");
+        terminal!(m, LBrace, "{");
+        terminal!(m, RBrace, "}");
+        terminal!(m, FnKeyword, "fn");
+        terminal!(m, ReturnKeyword, "return");
+        terminal!(m, Colon, ":");
+        terminal!(m, Comma, ",");
+
+        m
+    };
+}
+
 pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
     let mut tokens = vec![];
 
@@ -186,92 +273,79 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
     let mut line = 1;
     let mut col = 1;
 
-    while let Some(next) = iterator.peek() {
+    let mut stack = vec![];
+
+    let mut current_matched;
+
+    while let Some(next) = iterator.next() {
+        // eat whitespaces
         match next {
-            '=' => {
-                tokens.push(Token::Eq {
-                    position: (line, col),
-                });
-                iterator.next();
+            ' ' | '\t' if stack.is_empty() => {
+                col += 1;
+                continue;
             }
-            ';' => {
-                tokens.push(Token::Semicolon {
-                    position: (line, col),
-                });
-                iterator.next();
+            '\n' if stack.is_empty() => {
+                line += 1;
+                col = 1;
+                continue;
             }
-            '/' => {
+            _ => (),
+        }
+
+        stack.push(next);
+        col += 1;
+
+        let read = stack.iter().collect::<String>();
+        current_matched = LEX_MAP.get(read.as_str());
+
+        let peeked = iterator.peek();
+        if let Some(next) = peeked {
+            let mut stack_copy = stack.clone();
+            stack_copy.push(*next);
+
+            let read = stack_copy.iter().collect::<String>();
+            let next_match = LEX_MAP.get(read.as_str());
+            if next_match.is_some() {
+                continue;
+            } else if let Some(terminal) = &current_matched {
+                tokens.push(terminal.to_token((line, col)));
+                stack = vec![];
+                continue;
+            }
+        } else {
+            match &current_matched {
+                Some(terminal) => tokens.push(terminal.to_token((line, col))),
+                None => todo!(),
+            }
+        }
+
+        match stack[0] {
+            '/' if stack.is_empty() => {
                 let token = lex_comment(&mut iterator, &mut line, &mut col)?;
                 tokens.push(token);
             }
-            '*' => {
-                tokens.push(Token::Times {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
-            '+' => {
-                tokens.push(Token::Plus {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
             'a'..='z' | 'A'..='Z' => {
-                let token = lex_alphabetic(&mut iterator, &mut line, &mut col);
+                let token = lex_alphabetic(&mut iterator, &stack, &mut line, &mut col);
+                stack = vec![];
                 tokens.push(token);
             }
             '0'..='9' => {
-                let token = lex_numeric(&mut iterator, &mut line, &mut col)?;
+                let token = lex_numeric(&mut iterator, &stack, &mut line, &mut col)?;
+                stack = vec![];
                 tokens.push(token);
             }
-            '(' => {
-                tokens.push(Token::LParen {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
-            ')' => {
-                tokens.push(Token::RParen {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
-            '{' => {
-                tokens.push(Token::LBrace {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
-            '}' => {
-                tokens.push(Token::RBrace {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
-            ':' => {
-                tokens.push(Token::Colon {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
-            ',' => {
-                tokens.push(Token::Comma {
-                    position: (line, col),
-                });
-                iterator.next();
-            }
             ' ' | '\t' => {
+                stack.remove(0);
                 col += 1;
-                iterator.next();
+                continue;
             }
             '\n' => {
+                stack.remove(0);
                 line += 1;
                 col = 1;
-                iterator.next();
+                continue;
             }
-            c => {
-                unimplemented!("can not lex character '{c}'");
-            }
+            _ => {}
         }
     }
 
@@ -289,9 +363,6 @@ fn lex_comment(
     let Some('/') = iterator.next() else {
         return Err(LexError("Comment without second slash!".into()));
     };
-    let Some('/') = iterator.next() else {
-        return Err(LexError("Comment without second slash!".into()));
-    };
 
     let mut read = vec![];
 
@@ -306,16 +377,17 @@ fn lex_comment(
     })
 }
 
-fn lex_alphabetic(iterator: &mut Peekable<Chars>, line: &mut usize, col: &mut usize) -> Token {
-    let mut read = vec![];
+fn lex_alphabetic(
+    iterator: &mut Peekable<Chars>,
+    stack: &[char],
+    line: &mut usize,
+    col: &mut usize,
+) -> Token {
+    let mut read = stack.to_vec();
 
     let position = (*line, *col);
 
-    let Some(next) = iterator.next() else {
-        unreachable!();
-    };
     *col += 1;
-    read.push(next);
 
     while let Some(next) = iterator.next_if(|item| item.is_alphanumeric()) {
         *col += 1;
@@ -324,23 +396,19 @@ fn lex_alphabetic(iterator: &mut Peekable<Chars>, line: &mut usize, col: &mut us
 
     let read = read.iter().collect::<String>();
 
-    match read.as_str() {
-        "let" => Token::Let { position },
-        "fn" => Token::FnKeyword { position },
-        "return" => Token::ReturnKeyword { position },
-        _ => Token::Id {
-            value: read,
-            position,
-        },
+    Token::Id {
+        value: read,
+        position,
     }
 }
 
 fn lex_numeric(
     iterator: &mut Peekable<Chars>,
+    stack: &[char],
     line: &mut usize,
     col: &mut usize,
 ) -> Result<Token, LexError> {
-    let mut read = vec![];
+    let mut read = stack.to_vec();
 
     let position = (*line, *col);
 
@@ -365,21 +433,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lex_alphabetic_keyword() {
-        let mut iterator = "let".chars().peekable();
-
-        let mut line = 1;
-        let mut col = 1;
-
-        assert_eq!(
-            Token::Let { position: (1, 1) },
-            lex_alphabetic(&mut iterator, &mut line, &mut col)
-        )
-    }
-
-    #[test]
     fn test_lex_alphabetic_id() {
         let mut iterator = "letter".chars().peekable();
+        iterator.next();
 
         let mut line = 1;
         let mut col = 1;
@@ -389,13 +445,14 @@ mod tests {
                 value: "letter".into(),
                 position: (1, 1)
             },
-            lex_alphabetic(&mut iterator, &mut line, &mut col)
+            lex_alphabetic(&mut iterator, &['l'], &mut line, &mut col)
         )
     }
 
     #[test]
     fn test_lex_numeric() {
         let mut iterator = "1337".chars().peekable();
+        iterator.next();
 
         let mut line = 1;
         let mut col = 1;
@@ -405,13 +462,14 @@ mod tests {
                 value: 1337,
                 position: (1, 1)
             }),
-            lex_numeric(&mut iterator, &mut line, &mut col)
+            lex_numeric(&mut iterator, &['1'], &mut line, &mut col)
         )
     }
 
     #[test]
     fn test_lex_comment() {
         let mut iterator = "// some comment".chars().peekable();
+        iterator.next();
 
         let mut line = 1;
         let mut col = 1;
@@ -423,5 +481,45 @@ mod tests {
             }),
             lex_comment(&mut iterator, &mut line, &mut col)
         )
+    }
+
+    #[test]
+    fn test_lex_function() {
+        let input = "fn () {}";
+        let token = lex(input);
+
+        assert_eq!(
+            Ok(vec![
+                Token::FnKeyword { position: (0, 0) },
+                Token::LParen { position: (0, 0) },
+                Token::RParen { position: (0, 0) },
+                Token::LBrace { position: (0, 0) },
+                Token::RBrace { position: (0, 0) }
+            ]),
+            token
+        );
+    }
+
+    #[test]
+    fn test_lex_let() {
+        let input = "let foo = 42;";
+        let token = lex(input);
+
+        assert_eq!(
+            Ok(vec![
+                Token::Let { position: (0, 0) },
+                Token::Id {
+                    value: "foo".into(),
+                    position: (0, 0)
+                },
+                Token::Eq { position: (0, 0) },
+                Token::Num {
+                    value: 42,
+                    position: (0, 0)
+                },
+                Token::Semicolon { position: (0, 0) }
+            ]),
+            token
+        );
     }
 }

@@ -63,7 +63,7 @@ fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
     });
 
     let gen = quote! {
-        #[derive(Debug, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub enum Terminal {
             #variants
         }
