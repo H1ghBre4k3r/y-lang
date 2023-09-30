@@ -10,12 +10,10 @@ use self::lexer::*;
 fn main() -> Result<(), Box<dyn Error>> {
     let input = r"
         let foo: (i32) -> i32 = \(x) => x * 2;
-        let bar: (i32) -> i32 = \(x) => x + 2;
-
-        let baz: (i32) -> i32 = \(x) => x * x;
+        let bar: (i32, i32) -> i32 = \(x, y) => x + y;
 
         let fizz: (i32) -> i32 = \(x) => {
-            x * 42
+            return bar(x);
         };
 
         let main = fn (): i32 {

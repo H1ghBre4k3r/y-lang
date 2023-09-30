@@ -7,8 +7,8 @@ use super::{Expression, Parameter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lambda {
-    parameters: Vec<Parameter>,
-    expression: Box<Expression>,
+    pub parameters: Vec<Parameter>,
+    pub expression: Box<Expression>,
 }
 
 impl FromTokens<Token> for Lambda {
