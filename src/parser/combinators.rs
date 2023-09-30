@@ -1,4 +1,4 @@
-use std::ops::{BitOr, BitXor, Not, Shr};
+use std::ops::{BitOr, BitXor, Not, Rem, Shr};
 
 use crate::lexer::{Terminal, Token, Tokens};
 
@@ -314,6 +314,17 @@ impl<'a, Tok, Term, Node> BitXor<usize> for Comb<'a, Tok, Term, Node> {
             inner: Box::new(self),
             amount: Some(rhs),
         }
+    }
+}
+
+impl<'a, Tok, Term, Node> Rem for Comb<'a, Tok, Term, Node>
+where
+    Comb<'a, Tok, Term, Node>: Clone,
+{
+    type Output = Self;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        !(self.clone() >> ((rhs >> self) ^ ()))
     }
 }
 

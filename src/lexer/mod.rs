@@ -35,6 +35,9 @@ lazy_static! {
         terminal!(m, ReturnKeyword, "return");
         terminal!(m, Colon, ":");
         terminal!(m, Comma, ",");
+        terminal!(m, SmallRightArrow, "->");
+        terminal!(m, BigRightArrow, "=>");
+        terminal!(m, Backslash, "\\");
 
         m
     };

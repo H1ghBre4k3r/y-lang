@@ -21,7 +21,7 @@ impl FromTokens<Token> for Function {
         let matcher = Comb::FN_KEYWORD
             >> Comb::LPAREN
             // parameter list (optional)
-            >> !(Comb::PARAMETER >> ((Comb::COMMA >> Comb::PARAMETER) ^ ()))
+            >> (Comb::PARAMETER % Comb::COMMA)
             >> Comb::RPAREN
             // return type
             >> Comb::COLON
