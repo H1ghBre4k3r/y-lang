@@ -9,7 +9,8 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         panic!()
     };
 
-    let variants = variants
+    let terminal_variants = variants
+        .clone()
         .into_iter()
         .filter_map(|variant| {
             let Variant {
@@ -37,7 +38,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         })
         .collect::<Punctuated<Variant, Comma>>();
 
-    let matches_terminal_enum = variants.iter().map(|variant| {
+    let matches_terminal_enum = terminal_variants.iter().map(|variant| {
         let Variant {
             ident: var_ident, ..
         } = variant;
@@ -46,7 +47,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         }
     });
 
-    let matches_enum_terminal = variants.iter().map(|variant| {
+    let matches_enum_terminal = terminal_variants.iter().map(|variant| {
         let Variant {
             ident: var_ident, ..
         } = variant;
@@ -55,10 +56,28 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         }
     });
 
+    let matches_to_token = terminal_variants.iter().map(|variant| {
+        let Variant {
+            ident: var_ident, ..
+        } = variant;
+        quote! {
+            Terminal::#var_ident => #ident::#var_ident { position },
+        }
+    });
+
+    let matches_get_position = variants.iter().map(|variant| {
+        let Variant {
+            ident: var_ident, ..
+        } = variant;
+        quote! {
+            #ident::#var_ident { position, .. } => *position,
+        }
+    });
+
     let gen = quote! {
         #[derive(Debug, Clone, PartialEq, Eq)]
         pub enum Terminal {
-            #variants
+            #terminal_variants
         }
 
         impl PartialEq<#ident> for Terminal {
@@ -75,6 +94,24 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                 match (self, rhs) {
                     #(#matches_enum_terminal)*
                     _ => false
+                }
+            }
+        }
+
+        impl Eq for #ident {}
+
+        impl Terminal {
+            pub fn to_token(&self, position: Position) -> #ident {
+                match self {
+                    #(#matches_to_token)*
+                }
+            }
+        }
+
+        impl #ident {
+            pub fn position(&self) -> Position {
+                match self {
+                    #(#matches_get_position)*
                 }
             }
         }
