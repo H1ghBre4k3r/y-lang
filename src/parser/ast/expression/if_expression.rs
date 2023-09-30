@@ -11,9 +11,9 @@ use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct If {
-    condition: Box<Expression>,
-    statements: Vec<Statement>,
-    else_statements: Vec<Statement>,
+    pub condition: Box<Expression>,
+    pub statements: Vec<Statement>,
+    pub else_statements: Vec<Statement>,
 }
 
 impl FromTokens<Token> for If {
