@@ -1,7 +1,7 @@
 use crate::{
     lexer::{Token, Tokens},
     parser::{
-        ast::{AstNode, Expression, Id},
+        ast::{AstNode, Expression, Id, TypeName},
         combinators::Comb,
         FromTokens, ParseError,
     },
@@ -9,8 +9,9 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Initialization {
-    id: Id,
-    value: Expression,
+    pub id: Id,
+    pub type_name: Option<TypeName>,
+    pub value: Expression,
 }
 
 impl FromTokens<Token> for Initialization {
@@ -18,16 +19,42 @@ impl FromTokens<Token> for Initialization {
     where
         Self: Sized,
     {
-        let matcher = Comb::LET >> Comb::ID >> Comb::EQ >> Comb::EXPR >> Comb::SEMI;
+        let matcher = Comb::LET
+            >> Comb::ID
+            >> !(Comb::COLON >> Comb::TYPE_NAME)
+            >> Comb::EQ
+            >> Comb::EXPR
+            >> Comb::SEMI;
 
         let result = matcher.parse(tokens)?;
-        let [AstNode::Id(id), AstNode::Expression(value)] = result.as_slice() else {
-            unreachable!();
+
+        let Some(AstNode::Id(id)) = result.get(0) else {
+            unreachable!()
         };
+
+        let mut type_name = None;
+
+        let value: Expression;
+
+        match result.get(1) {
+            Some(AstNode::TypeName(type_)) => {
+                type_name = Some(type_.clone());
+
+                let Some(AstNode::Expression(expr)) = result.get(2) else {
+                    unreachable!()
+                };
+                value = expr.clone();
+            }
+            Some(AstNode::Expression(expr)) => {
+                value = expr.clone();
+            }
+            _ => unreachable!(),
+        }
 
         Ok(Initialization {
             id: id.clone(),
             value: value.clone(),
+            type_name,
         }
         .into())
     }

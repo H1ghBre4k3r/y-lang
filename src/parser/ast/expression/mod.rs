@@ -1,11 +1,15 @@
+mod block;
 mod function;
 mod id;
 mod if_expression;
+mod lambda;
 mod num;
 
+pub use self::block::*;
 pub use self::function::*;
 pub use self::id::*;
 pub use self::if_expression::*;
+pub use self::lambda::*;
 pub use self::num::*;
 
 use crate::lexer::Tokens;
@@ -22,7 +26,9 @@ pub enum Expression {
     Id(Id),
     Num(Num),
     Function(Function),
+    Lambda(Lambda),
     If(If),
+    Block(Block),
     Addition(Box<Expression>, Box<Expression>),
     Multiplication(Box<Expression>, Box<Expression>),
     Parens(Box<Expression>),
@@ -39,7 +45,8 @@ impl FromTokens<Token> for Expression {
             };
             Expression::Parens(Box::new(expr))
         } else {
-            let matcher = Comb::FUNCTION | Comb::IF | Comb::NUM | Comb::ID;
+            let matcher =
+                Comb::FUNCTION | Comb::IF | Comb::NUM | Comb::ID | Comb::LAMBDA | Comb::BLOCK;
             let result = matcher.parse(tokens)?;
             match result.get(0) {
                 Some(AstNode::Id(id)) => Expression::Id(id.clone()),
@@ -47,7 +54,11 @@ impl FromTokens<Token> for Expression {
                 Some(AstNode::Function(func)) => {
                     return Ok(Expression::Function(func.clone()).into())
                 }
+                Some(AstNode::Lambda(lambda)) => {
+                    return Ok(Expression::Lambda(lambda.clone()).into())
+                }
                 Some(AstNode::If(if_expression)) => Expression::If(if_expression.clone()),
+                Some(AstNode::Block(block)) => Expression::Block(block.clone()),
                 None | Some(_) => unreachable!(),
             }
         };

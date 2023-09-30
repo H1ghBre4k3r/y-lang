@@ -1,7 +1,7 @@
 use crate::{
     lexer::{Token, Tokens},
     parser::{
-        ast::{AstNode, Statement},
+        ast::{AstNode, Statement, TypeName},
         combinators::Comb,
         FromTokens, ParseError,
     },
@@ -70,22 +70,29 @@ impl From<Function> for AstNode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parameter {
-    name: Id,
-    type_: String,
+    pub name: Id,
+    pub type_name: Option<TypeName>,
 }
 
 impl FromTokens<Token> for Parameter {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
-        let matcher = Comb::ID >> Comb::COLON >> Comb::ID;
+        let matcher = Comb::ID >> !(Comb::COLON >> Comb::TYPE_NAME);
         let result = matcher.parse(tokens)?;
 
-        let [AstNode::Id(name), AstNode::Id(type_)] = result.as_slice() else {
-            unreachable!();
+        let Some(AstNode::Id(name)) = result.get(0) else {
+            unreachable!()
         };
+
+        let type_name = result.get(1).map(|type_name| {
+            let AstNode::TypeName(type_name) = type_name else {
+                unreachable!()
+            };
+            type_name.clone()
+        });
 
         Ok(Parameter {
             name: name.clone(),
-            type_: type_.0.clone(),
+            type_name,
         }
         .into())
     }
@@ -137,7 +144,7 @@ mod tests {
             Ok(Function {
                 parameters: vec![Parameter {
                     name: Id("x".into()),
-                    type_: "i32".into()
+                    type_name: Some(TypeName::Literal("i32".into()))
                 }],
                 return_type: "i32".into(),
                 statements: vec![]
@@ -161,11 +168,11 @@ mod tests {
                 parameters: vec![
                     Parameter {
                         name: Id("x".into()),
-                        type_: "i32".into()
+                        type_name: Some(TypeName::Literal("i32".into()))
                     },
                     Parameter {
                         name: Id("y".into()),
-                        type_: "i32".into()
+                        type_name: Some(TypeName::Literal("i32".into()))
                     }
                 ],
                 return_type: "i32".into(),
@@ -190,11 +197,11 @@ mod tests {
                 parameters: vec![
                     Parameter {
                         name: Id("x".into()),
-                        type_: "i32".into()
+                        type_name: Some(TypeName::Literal("i32".into()))
                     },
                     Parameter {
                         name: Id("y".into()),
-                        type_: "i32".into()
+                        type_name: Some(TypeName::Literal("i32".into()))
                     }
                 ],
                 return_type: "i32".into(),
