@@ -1,8 +1,8 @@
-use pesca_parser_derive::Token as ParseToken;
+use pesca_parser_derive::{LooseEq, Token as ParseToken};
 
 type Position = (usize, usize);
 
-#[derive(Debug, Clone, ParseToken)]
+#[derive(Debug, Clone, ParseToken, LooseEq)]
 pub enum Token {
     #[terminal]
     Eq {
@@ -77,6 +77,18 @@ pub enum Token {
     Comma {
         position: Position,
     },
+    #[terminal]
+    SmallRightArrow {
+        position: Position,
+    },
+    #[terminal]
+    BigRightArrow {
+        position: Position,
+    },
+    #[terminal]
+    Backslash {
+        position: Position,
+    },
 }
 
 impl Terminal {
@@ -97,35 +109,10 @@ impl Terminal {
             Terminal::ReturnKeyword => Token::ReturnKeyword { position },
             Terminal::Colon => Token::Colon { position },
             Terminal::Comma => Token::Comma { position },
+            Terminal::SmallRightArrow => Token::SmallRightArrow { position },
+            Terminal::BigRightArrow => Token::BigRightArrow { position },
+            Terminal::Backslash => Token::Backslash { position },
         }
-    }
-}
-
-// TODO: move this to own derive macro
-impl PartialEq for Token {
-    fn eq(&self, other: &Self) -> bool {
-        use Token::*;
-        matches!(
-            (self, other),
-            (Eq { .. }, Eq { .. })
-                | (Let { .. }, Let { .. })
-                | (Id { .. }, Id { .. })
-                | (Num { .. }, Num { .. })
-                | (Semicolon { .. }, Semicolon { .. })
-                | (Comment { .. }, Comment { .. })
-                | (Plus { .. }, Plus { .. })
-                | (Times { .. }, Times { .. })
-                | (LParen { .. }, LParen { .. })
-                | (RParen { .. }, RParen { .. })
-                | (LBrace { .. }, LBrace { .. })
-                | (RBrace { .. }, RBrace { .. })
-                | (FnKeyword { .. }, FnKeyword { .. })
-                | (IfKeyword { .. }, IfKeyword { .. })
-                | (ElseKeyword { .. }, ElseKeyword { .. })
-                | (ReturnKeyword { .. }, ReturnKeyword { .. })
-                | (Colon { .. }, Colon { .. })
-                | (Comma { .. }, Comma { .. })
-        )
     }
 }
 
@@ -152,6 +139,9 @@ impl Token {
             Token::ReturnKeyword { position } => *position,
             Token::Colon { position } => *position,
             Token::Comma { position } => *position,
+            Token::SmallRightArrow { position } => *position,
+            Token::BigRightArrow { position } => *position,
+            Token::Backslash { position } => *position,
         }
     }
 }

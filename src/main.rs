@@ -8,16 +8,29 @@ use crate::parser::parse;
 use self::lexer::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let input = r#"
-        let a = if x {};
-    "#;
+    let input = r"
+        let foo: (i32) -> i32 = \x => x * 2
+        let bar: (i32) -> i32 = \x => x + 2
+
+        let baz: (i32) -> i32 = \x => bar(foo(x))
+
+        let fizz: (i32) -> i32 = \x => {
+            bar(foo(x))
+        };
+
+        let main = fn (): i32 {
+            baz(42)
+        };
+    ";
+
+    println!("{input}");
 
     let lexer = Lexer::new(input);
-    let lexed = lexer.lex()?;
+    let tokens = lexer.lex()?;
 
-    println!("{lexed:#?}");
+    println!("{tokens:#?}");
 
-    let statements = parse(&mut lexed.into())?;
+    let statements = parse(&mut tokens.into())?;
 
     println!("{statements:#?}");
     Ok(())
