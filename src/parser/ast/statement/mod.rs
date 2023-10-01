@@ -28,7 +28,7 @@ impl FromTokens<Token> for Statement {
 
         match next {
             Token::FnKeyword { .. } => {
-                let matcher = Comb::FUNCTION;
+                let matcher = Comb::FUNCTION >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
                 let [AstNode::Function(function)] = result.as_slice() else {
                     unreachable!()

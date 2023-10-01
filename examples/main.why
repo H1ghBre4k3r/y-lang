@@ -1,10 +1,17 @@
-let foo: (i32) -> i32 = \(x) => x * 2;
-let bar: (i32, i32) -> i32 = \(x, y) => x + y;
+fn takes_function(func: (i32, i32) -> i32): i32 {
+    func(42, 1337)
+}
 
-let fizz: (i32) -> i32 = \(x) => {
-    return bar(x);
-};
+fn test(x: i32): (i32) -> i32 {
+    \(y) => x + y
+}
 
 fn main(): i32 {
-    baz(42)
+    let foo = test(42);
+    let bar = foo(1337);
+
+    let baz = takes_function(\(x, y) => {
+        let result = x + y;
+        return result;
+    });
 }

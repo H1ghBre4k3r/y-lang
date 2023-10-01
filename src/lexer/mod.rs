@@ -115,7 +115,7 @@ impl<'a> Lexer<'a> {
         };
 
         match next {
-            'a'..='z' | 'A'..='Z' => self.lex_alphanumeric()?,
+            'a'..='z' | 'A'..='Z' | '_' => self.lex_alphanumeric()?,
             '0'..='9' => self.lex_numeric()?,
             _ => self.lex_special()?,
         };
@@ -164,7 +164,7 @@ impl<'a> Lexer<'a> {
 
         let position = (self.line, self.col);
 
-        while let Some(next) = self.next_if(|item| item.is_alphanumeric()) {
+        while let Some(next) = self.next_if(|item| item.is_alphanumeric() || *item == '_') {
             self.col += 1;
             stack.push(next);
         }
