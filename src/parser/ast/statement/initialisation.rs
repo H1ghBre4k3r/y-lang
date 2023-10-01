@@ -24,12 +24,8 @@ impl FromTokens<Token> for Initialisation {
 
         let mutable = matches!(tokens.peek(), Some(Token::Mut { .. }));
 
-        let matcher = !Comb::MUT
-            >> Comb::ID
-            >> !(Comb::COLON >> Comb::TYPE_NAME)
-            >> Comb::EQ
-            >> Comb::EXPR
-            >> Comb::SEMI;
+        let matcher =
+            !Comb::MUT >> Comb::ID >> !(Comb::COLON >> Comb::TYPE_NAME) >> Comb::EQ >> Comb::EXPR;
 
         let result = matcher.parse(tokens)?;
 
