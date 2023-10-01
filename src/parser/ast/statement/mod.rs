@@ -38,6 +38,7 @@ impl FromTokens<Token> for Statement {
             Token::IfKeyword { .. } => {
                 let matcher = Comb::IF >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
+
                 let [AstNode::If(if_statement)] = result.as_slice() else {
                     unreachable!()
                 };
@@ -46,6 +47,7 @@ impl FromTokens<Token> for Statement {
             Token::FnKeyword { .. } => {
                 let matcher = Comb::FUNCTION >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
+
                 let [AstNode::Function(function)] = result.as_slice() else {
                     unreachable!()
                 };
@@ -54,15 +56,16 @@ impl FromTokens<Token> for Statement {
             Token::WhileKeyword { .. } => {
                 let matcher = Comb::WHILE_LOOP >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
+
                 let [AstNode::WhileLoop(while_loop_statement)] = result.as_slice() else {
                     unreachable!()
                 };
-
                 Ok(Statement::WhileLoop(while_loop_statement.clone()).into())
             }
             Token::Let { .. } => {
-                let matcher = Comb::INITIALISATION;
+                let matcher = Comb::INITIALISATION >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
+
                 let [AstNode::Initialization(init)] = result.as_slice() else {
                     unreachable!()
                 };
@@ -71,6 +74,7 @@ impl FromTokens<Token> for Statement {
             Token::ReturnKeyword { .. } => {
                 let matcher = Comb::RETURN_KEYWORD >> Comb::EXPR >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
+
                 let [AstNode::Expression(expr)] = result.as_slice() else {
                     unreachable!()
                 };
