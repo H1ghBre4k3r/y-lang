@@ -120,7 +120,7 @@ mod tests {
         assert_eq!(
             Ok(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
-                statements: vec![Statement::Expression(Expression::Addition(
+                statements: vec![Statement::YieldingExpression(Expression::Addition(
                     Box::new(Expression::Num(Num(3))),
                     Box::new(Expression::Num(Num(4)))
                 ))],
@@ -141,11 +141,11 @@ mod tests {
         assert_eq!(
             Ok(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
-                statements: vec![Statement::Expression(Expression::Addition(
+                statements: vec![Statement::YieldingExpression(Expression::Addition(
                     Box::new(Expression::Num(Num(3))),
                     Box::new(Expression::Num(Num(4)))
                 ))],
-                else_statements: vec![Statement::Expression(Expression::Addition(
+                else_statements: vec![Statement::YieldingExpression(Expression::Addition(
                     Box::new(Expression::Num(Num(42))),
                     Box::new(Expression::Num(Num(1337)))
                 ))],

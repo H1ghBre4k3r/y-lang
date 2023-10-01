@@ -18,9 +18,11 @@ pub enum AstNode {
     Num(Num),
     Statement(Statement),
     Initialization(Initialization),
+    Assignment(Assignment),
     Function(Function),
     Lambda(Lambda),
     If(If),
+    WhileLoop(WhileLoop),
     Parameter(Parameter),
     TypeName(TypeName),
     Block(Block),
@@ -59,9 +61,14 @@ impl FromTokens<Token> for TypeName {
 
 impl TypeName {
     fn parse_literal(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+        let index = tokens.get_index();
+
         let matcher = !Comb::ID;
 
-        let result = matcher.parse(tokens)?;
+        let result = matcher.parse(tokens).map_err(|e| {
+            tokens.set_index(index);
+            e
+        })?;
 
         let Some(AstNode::Id(type_name)) = result.get(0) else {
             return Err(ParseError {

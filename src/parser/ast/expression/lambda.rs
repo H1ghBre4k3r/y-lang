@@ -147,7 +147,9 @@ mod tests {
                     type_name: None
                 }],
                 expression: Box::new(Expression::Block(Block {
-                    statements: vec![Statement::Expression(Expression::Id(Id("x".into())))]
+                    statements: vec![Statement::YieldingExpression(Expression::Id(
+                        Id("x".into())
+                    ))]
                 }))
             }
             .into()),
