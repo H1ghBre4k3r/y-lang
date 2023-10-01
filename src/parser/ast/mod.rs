@@ -17,7 +17,7 @@ pub enum AstNode {
     Id(Id),
     Num(Num),
     Statement(Statement),
-    Initialization(Initialization),
+    Initialization(Initialisation),
     Assignment(Assignment),
     Function(Function),
     Lambda(Lambda),

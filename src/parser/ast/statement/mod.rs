@@ -1,9 +1,9 @@
 mod assignment;
-mod initialization;
+mod initialisation;
 mod while_loop;
 
 pub use self::assignment::*;
-pub use self::initialization::*;
+pub use self::initialisation::*;
 pub use self::while_loop::*;
 
 use crate::{
@@ -18,7 +18,7 @@ pub enum Statement {
     Function(Function),
     If(If),
     WhileLoop(WhileLoop),
-    Initialization(Initialization),
+    Initialization(Initialisation),
     Assignment(Assignment),
     Expression(Expression),
     YieldingExpression(Expression),
@@ -61,7 +61,7 @@ impl FromTokens<Token> for Statement {
                 Ok(Statement::WhileLoop(while_loop_statement.clone()).into())
             }
             Token::Let { .. } => {
-                let matcher = Comb::INITIALIZATION;
+                let matcher = Comb::INITIALISATION;
                 let result = matcher.parse(tokens)?;
                 let [AstNode::Initialization(init)] = result.as_slice() else {
                     unreachable!()
