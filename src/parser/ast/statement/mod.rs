@@ -7,10 +7,11 @@ use crate::{
     parser::{combinators::Comb, FromTokens, ParseError},
 };
 
-use super::{AstNode, Expression};
+use super::{AstNode, Expression, Function};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
+    Function(Function),
     Initialization(Initialization),
     Expression(Expression),
     Return(Expression),
@@ -26,6 +27,14 @@ impl FromTokens<Token> for Statement {
         };
 
         match next {
+            Token::FnKeyword { .. } => {
+                let matcher = Comb::FUNCTION;
+                let result = matcher.parse(tokens)?;
+                let [AstNode::Function(function)] = result.as_slice() else {
+                    unreachable!()
+                };
+                Ok(Statement::Function(function.clone()).into())
+            }
             Token::Let { .. } => {
                 let matcher = Comb::INITIALIZATION;
                 let result = matcher.parse(tokens)?;
