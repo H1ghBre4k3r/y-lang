@@ -10,6 +10,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Initialization {
     pub id: Id,
+    pub mutable: bool,
     pub type_name: Option<TypeName>,
     pub value: Expression,
 }
@@ -19,7 +20,11 @@ impl FromTokens<Token> for Initialization {
     where
         Self: Sized,
     {
-        let matcher = Comb::LET
+        Comb::LET.parse(tokens)?;
+
+        let mutable = matches!(tokens.peek(), Some(Token::Mut { .. }));
+
+        let matcher = !Comb::MUT
             >> Comb::ID
             >> !(Comb::COLON >> Comb::TYPE_NAME)
             >> Comb::EQ
@@ -53,6 +58,7 @@ impl FromTokens<Token> for Initialization {
 
         Ok(Initialization {
             id: id.clone(),
+            mutable,
             value: value.clone(),
             type_name,
         }
@@ -65,3 +71,6 @@ impl From<Initialization> for AstNode {
         AstNode::Initialization(value)
     }
 }
+
+#[cfg(test)]
+mod tests {}

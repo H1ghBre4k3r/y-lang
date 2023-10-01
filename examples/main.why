@@ -16,6 +16,13 @@ fn main(): i32 {
         foo()
     }
 
+    let mut x = 10;
+
+    while x > 0 {
+        do_something(x);
+        x = x - 1;
+    }
+
     let baz = takes_function(\(x, y) => {
         let result = x + y;
         return result;

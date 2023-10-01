@@ -12,6 +12,10 @@ pub enum Token {
     Let {
         position: Position,
     },
+    #[terminal]
+    Mut {
+        position: Position,
+    },
     Id {
         value: String,
         position: Position,
@@ -31,6 +35,10 @@ pub enum Token {
     },
     #[terminal]
     Plus {
+        position: Position,
+    },
+    #[terminal]
+    Minus {
         position: Position,
     },
     #[terminal]
@@ -66,6 +74,10 @@ pub enum Token {
         position: Position,
     },
     #[terminal]
+    WhileKeyword {
+        position: Position,
+    },
+    #[terminal]
     ReturnKeyword {
         position: Position,
     },
@@ -87,6 +99,26 @@ pub enum Token {
     },
     #[terminal]
     Backslash {
+        position: Position,
+    },
+    #[terminal]
+    Equal {
+        position: Position,
+    },
+    #[terminal]
+    GreaterThan {
+        position: Position,
+    },
+    #[terminal]
+    LessThan {
+        position: Position,
+    },
+    #[terminal]
+    GreaterOrEqual {
+        position: Position,
+    },
+    #[terminal]
+    LessOrEqual {
         position: Position,
     },
 }

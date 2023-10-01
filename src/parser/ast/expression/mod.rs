@@ -24,6 +24,15 @@ use crate::{
 use super::AstNode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ComparisonOperation {
+    Equals,
+    Greater,
+    Less,
+    GreaterOrEquals,
+    LessOrEquals,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     Id(Id),
     Num(Num),
@@ -32,9 +41,15 @@ pub enum Expression {
     If(If),
     Block(Block),
     Addition(Box<Expression>, Box<Expression>),
+    Substraction(Box<Expression>, Box<Expression>),
     Multiplication(Box<Expression>, Box<Expression>),
     Parens(Box<Expression>),
     Postfix(Postfix),
+    Comparison {
+        lhs: Box<Expression>,
+        rhs: Box<Expression>,
+        operation: ComparisonOperation,
+    },
 }
 
 impl FromTokens<Token> for Expression {
@@ -79,9 +94,18 @@ impl FromTokens<Token> for Expression {
                 tokens.next();
                 Expression::Addition
             }
+            Token::Minus { .. } => {
+                tokens.next();
+                Expression::Substraction
+            }
             Token::LParen { .. } => {
                 return Ok(Expression::Postfix(Self::parse_call(expr, tokens)?).into())
             }
+            Token::Equal { .. }
+            | Token::GreaterThan { .. }
+            | Token::LessThan { .. }
+            | Token::GreaterOrEqual { .. }
+            | Token::LessOrEqual { .. } => return Ok(Self::parse_comparison(expr, tokens)?.into()),
             _ => return Ok(expr.into()),
         };
 
@@ -115,6 +139,37 @@ impl Expression {
         Ok(Postfix::Call {
             expr: Box::new(expr),
             args,
+        })
+    }
+
+    fn parse_comparison(
+        lhs: Expression,
+        tokens: &mut Tokens<Token>,
+    ) -> Result<Expression, ParseError> {
+        let Some(next) = tokens.next() else {
+            unreachable!()
+        };
+
+        let comparator = match next {
+            Token::Equal { .. } => ComparisonOperation::Equals,
+            Token::GreaterThan { .. } => ComparisonOperation::Greater,
+            Token::LessThan { .. } => ComparisonOperation::Less,
+            Token::GreaterOrEqual { .. } => ComparisonOperation::GreaterOrEquals,
+            Token::LessOrEqual { .. } => ComparisonOperation::LessOrEquals,
+            _ => unreachable!(),
+        };
+
+        let matcher = Comb::EXPR;
+        let result = matcher.parse(tokens)?;
+        let rhs = match result.get(0) {
+            Some(AstNode::Expression(rhs)) => rhs.clone(),
+            None | Some(_) => unreachable!(),
+        };
+
+        Ok(Expression::Comparison {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+            operation: comparator,
         })
     }
 }
@@ -261,7 +316,7 @@ mod tests {
                     }
                 ],
                 expression: Box::new(Expression::Block(Block {
-                    statements: vec![Statement::Expression(Expression::Addition(
+                    statements: vec![Statement::YieldingExpression(Expression::Addition(
                         Box::new(Expression::Id(Id("x".into()))),
                         Box::new(Expression::Id(Id("y".into()))),
                     ))]
@@ -282,11 +337,11 @@ mod tests {
         assert_eq!(
             Ok(Expression::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
-                statements: vec![Statement::Expression(Expression::Addition(
+                statements: vec![Statement::YieldingExpression(Expression::Addition(
                     Box::new(Expression::Num(Num(3))),
                     Box::new(Expression::Num(Num(4)))
                 ))],
-                else_statements: vec![Statement::Expression(Expression::Addition(
+                else_statements: vec![Statement::YieldingExpression(Expression::Addition(
                     Box::new(Expression::Num(Num(42))),
                     Box::new(Expression::Num(Num(1337)))
                 ))],

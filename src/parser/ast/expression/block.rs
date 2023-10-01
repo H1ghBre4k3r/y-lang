@@ -63,7 +63,9 @@ mod tests {
 
         assert_eq!(
             Ok(Block {
-                statements: vec![Statement::Expression(Expression::Id(Id("x".into())))]
+                statements: vec![Statement::YieldingExpression(Expression::Id(
+                    Id("x".into())
+                ))]
             }
             .into()),
             result
@@ -89,10 +91,11 @@ mod tests {
                 statements: vec![
                     Statement::Initialization(Initialization {
                         id: Id("a".into()),
+                        mutable: false,
                         value: Expression::Num(Num(42)),
                         type_name: None
                     },),
-                    Statement::Expression(Expression::Id(Id("a".into())))
+                    Statement::YieldingExpression(Expression::Id(Id("a".into())))
                 ]
             }
             .into()),

@@ -22,8 +22,10 @@ lazy_static! {
 
         terminal!(m, Eq, "=");
         terminal!(m, Let, "let");
+        terminal!(m, Mut, "mut");
         terminal!(m, Semicolon, ";");
         terminal!(m, Plus, "+");
+        terminal!(m, Minus, "-");
         terminal!(m, Times, "*");
         terminal!(m, LParen, "(");
         terminal!(m, RParen, ")");
@@ -32,12 +34,18 @@ lazy_static! {
         terminal!(m, FnKeyword, "fn");
         terminal!(m, IfKeyword, "if");
         terminal!(m, ElseKeyword, "else");
+        terminal!(m, WhileKeyword, "while");
         terminal!(m, ReturnKeyword, "return");
         terminal!(m, Colon, ":");
         terminal!(m, Comma, ",");
         terminal!(m, SmallRightArrow, "->");
         terminal!(m, BigRightArrow, "=>");
         terminal!(m, Backslash, "\\");
+        terminal!(m, Equal, "==");
+        terminal!(m, GreaterThan, ">");
+        terminal!(m, LessThan, "<");
+        terminal!(m, GreaterOrEqual, ">=");
+        terminal!(m, LessOrEqual, "<=");
 
         m
     };

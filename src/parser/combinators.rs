@@ -4,8 +4,8 @@ use crate::lexer::{Terminal, Token, Tokens};
 
 use super::{
     ast::{
-        AstNode, Block, Expression, Function, Id, If, Initialization, Lambda, Num, Parameter,
-        Statement, TypeName,
+        Assignment, AstNode, Block, Expression, Function, Id, If, Initialization, Lambda, Num,
+        Parameter, Statement, TypeName, WhileLoop,
     },
     FromTokens, ParseError,
 };
@@ -147,6 +147,8 @@ macro_rules! node_comb {
 impl<'a> Comb<'a, Token, Terminal, AstNode> {
     terminal_comb!(LET, Let);
 
+    terminal_comb!(MUT, Mut);
+
     terminal_comb!(EQ, Eq);
 
     terminal_comb!(LPAREN, LParen);
@@ -162,6 +164,8 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
     terminal_comb!(IF_KEYWORD, IfKeyword);
 
     terminal_comb!(ELSE_KEYWORD, ElseKeyword);
+
+    terminal_comb!(WHILE_KEYWORD, WhileKeyword);
 
     terminal_comb!(RETURN_KEYWORD, ReturnKeyword);
 
@@ -187,11 +191,15 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
 
     node_comb!(INITIALIZATION, Initialization);
 
+    node_comb!(ASSIGNMENT, Assignment);
+
     node_comb!(FUNCTION, Function);
 
     node_comb!(LAMBDA, Lambda);
 
     node_comb!(IF, If);
+
+    node_comb!(WHILE_LOOP, WhileLoop);
 
     node_comb!(BLOCK, Block);
 
