@@ -38,7 +38,7 @@ impl From<Block> for AstNode {
 mod tests {
     use crate::{
         lexer::Lexer,
-        parser::ast::{Expression, Id, Initialization, Num},
+        parser::ast::{Expression, Id, Initialisation, Num},
     };
 
     use super::*;
@@ -89,7 +89,7 @@ mod tests {
         assert_eq!(
             Ok(Block {
                 statements: vec![
-                    Statement::Initialization(Initialization {
+                    Statement::Initialization(Initialisation {
                         id: Id("a".into()),
                         mutable: false,
                         value: Expression::Num(Num(42)),
