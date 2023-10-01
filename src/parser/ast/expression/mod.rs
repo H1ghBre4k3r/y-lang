@@ -173,6 +173,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Function(Function {
+                id: None,
                 parameters: vec![],
                 statements: vec![],
                 return_type: TypeName::Literal("i32".into())
@@ -197,6 +198,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Function(Function {
+                id: None,
                 parameters: vec![
                     Parameter {
                         name: Id("x".into()),

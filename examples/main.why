@@ -1,0 +1,10 @@
+let foo: (i32) -> i32 = \(x) => x * 2;
+let bar: (i32, i32) -> i32 = \(x, y) => x + y;
+
+let fizz: (i32) -> i32 = \(x) => {
+    return bar(x);
+};
+
+fn main(): i32 {
+    baz(42)
+}

@@ -11,6 +11,7 @@ use super::Id;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
+    pub id: Option<Id>,
     pub parameters: Vec<Parameter>,
     pub return_type: TypeName,
     pub statements: Vec<Statement>,
@@ -19,6 +20,7 @@ pub struct Function {
 impl FromTokens<Token> for Function {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::FN_KEYWORD
+            >> !Comb::ID
             >> Comb::LPAREN
             // parameter list (optional)
             >> (Comb::PARAMETER % Comb::COMMA)
@@ -32,6 +34,11 @@ impl FromTokens<Token> for Function {
             >> Comb::RBRACE;
 
         let mut result = matcher.parse(tokens)?.into_iter().peekable();
+
+        let id = match result.next_if(|item| matches!(item, AstNode::Id(_))) {
+            Some(AstNode::Id(id)) => Some(id),
+            _ => None,
+        };
 
         let mut parameters = vec![];
 
@@ -54,6 +61,7 @@ impl FromTokens<Token> for Function {
         }
 
         Ok(Function {
+            id,
             parameters,
             return_type,
             statements,
@@ -121,6 +129,7 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
+                id: None,
                 parameters: vec![],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![]
@@ -141,6 +150,7 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
+                id: None,
                 parameters: vec![Parameter {
                     name: Id("x".into()),
                     type_name: Some(TypeName::Literal("i32".into()))
@@ -164,6 +174,7 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
+                id: None,
                 parameters: vec![
                     Parameter {
                         name: Id("x".into()),
@@ -193,6 +204,40 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
+                id: None,
+                parameters: vec![
+                    Parameter {
+                        name: Id("x".into()),
+                        type_name: Some(TypeName::Literal("i32".into()))
+                    },
+                    Parameter {
+                        name: Id("y".into()),
+                        type_name: Some(TypeName::Literal("i32".into()))
+                    }
+                ],
+                return_type: TypeName::Literal("i32".into()),
+                statements: vec![Statement::Return(Expression::Addition(
+                    Box::new(Expression::Id(Id("x".into()))),
+                    Box::new(Expression::Id(Id("y".into()))),
+                ))]
+            }
+            .into()),
+            result
+        )
+    }
+
+    #[test]
+    fn test_function_with_name() {
+        let mut tokens = Lexer::new("fn main(x: i32, y: i32): i32 { return x + y; }")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Function::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Function {
+                id: Some(Id("main".into())),
                 parameters: vec![
                     Parameter {
                         name: Id("x".into()),
