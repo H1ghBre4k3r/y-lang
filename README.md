@@ -92,7 +92,7 @@ match x in someFunction(x) {
 In this programming language, functions are first class citizens. You can use them as values and hand them to other functions. Here's how you declare a function which adds two integers (we'll get to types later):
 
 ```
-let add = fn (x: i32, y: i32): i32 {
+fn add(x: i32, y: i32): i32 {
     return x + y;
 }
 ```
@@ -106,9 +106,34 @@ let add: (i32, i32) -> i32 = \(x, y) => x + y;
 Note, how we have to explicitly annotate the type of the function at the variable. Although, it might seem to very verbose, lambdas are very usefull, when passing function as arguments to other functions: 
 
 ```
-let foo = fn (func: (i32, i32) -> i32) -> i32 {
+fn foo(func: (i32, i32) -> i32): i32 {
     func(42, 1337) * 3
 };
 
 let bar = foo(\(x, y) => x + y));
-``` 
+```
+
+Furthermore, you can assign functions to variables: 
+
+```
+let add = fn (x: i32, y: i32): i32 {
+    return x + y;
+}
+```
+... I would not recommend this way. ^^
+
+BUT, you can also assign _existing_ functions to variables (or use them as parameters, etc.): 
+
+```
+fn add(x: i32, y: i32): i32 {
+    return x + y;
+}
+
+fn foo(func: (i32, i32) -> i32): i32 {
+    func(42, 1337) * 3
+};
+
+let test = foo;
+
+let bar = test(add);
+```
