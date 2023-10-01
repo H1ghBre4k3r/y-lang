@@ -10,6 +10,12 @@ fn main(): i32 {
     let foo = test(42);
     let bar = foo(1337);
 
+    if true {
+        bar()
+    } else {
+        foo()
+    }
+
     let baz = takes_function(\(x, y) => {
         let result = x + y;
         return result;
