@@ -197,7 +197,6 @@ mod tests {
             value: "some_id".into(),
             position: (0, 0),
         }];
-        let tokens = tokens;
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
@@ -211,7 +210,6 @@ mod tests {
             value: 42,
             position: (0, 0),
         }];
-        let tokens = tokens;
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),

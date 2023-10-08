@@ -41,7 +41,6 @@ mod tests {
             value: "some_id".into(),
             position: (0, 0),
         }];
-        let tokens = tokens;
         assert_eq!(
             Id::parse(&mut tokens.into()),
             Ok(AstNode::Id(Id("some_id".into())))
@@ -54,14 +53,12 @@ mod tests {
             value: 3,
             position: (0, 0),
         }];
-        let tokens = tokens;
         assert!(Id::parse(&mut tokens.into()).is_err());
     }
 
     #[test]
     fn test_error_on_eof() {
         let tokens = vec![];
-        let tokens = tokens;
         assert!(Id::parse(&mut tokens.into()).is_err());
     }
 }

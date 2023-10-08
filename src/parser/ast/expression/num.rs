@@ -42,7 +42,6 @@ mod tests {
             value: 42,
             position: (0, 0),
         }];
-        let tokens = tokens;
         assert_eq!(Num::parse(&mut tokens.into()), Ok(AstNode::Num(Num(42))));
     }
 
@@ -52,14 +51,12 @@ mod tests {
             value: "some_id".into(),
             position: (0, 0),
         }];
-        let tokens = tokens;
         assert!(Num::parse(&mut tokens.into()).is_err());
     }
 
     #[test]
     fn test_error_on_eof() {
         let tokens = vec![];
-        let tokens = tokens;
         assert!(Num::parse(&mut tokens.into()).is_err());
     }
 }
