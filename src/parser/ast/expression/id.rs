@@ -1,18 +1,18 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::{TokenKind, Tokens},
     parser::{ast::AstNode, FromTokens, ParseError},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Id(pub String);
 
-impl FromTokens<Token> for Id {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, crate::parser::ParseError>
+impl FromTokens<TokenKind> for Id {
+    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, crate::parser::ParseError>
     where
         Self: Sized,
     {
         let value = match tokens.next() {
-            Some(Token::Id { value, .. }) => value,
+            Some(TokenKind::Id { value, .. }) => value,
             Some(token) => {
                 return Err(ParseError {
                     message: format!("Tried to parse Id from non id token ({:?})", token),
@@ -37,7 +37,7 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let tokens = vec![Token::Id {
+        let tokens = vec![TokenKind::Id {
             value: "some_id".into(),
             position: (0, 0),
         }];
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn test_error_on_non_id() {
-        let tokens = vec![Token::Num {
+        let tokens = vec![TokenKind::Num {
             value: 3,
             position: (0, 0),
         }];

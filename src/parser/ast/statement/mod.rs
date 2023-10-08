@@ -7,7 +7,7 @@ pub use self::initialisation::*;
 pub use self::while_loop::*;
 
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::{TokenKind, Tokens},
     parser::{combinators::Comb, FromTokens, ParseError},
 };
 
@@ -25,8 +25,8 @@ pub enum Statement {
     Return(Expression),
 }
 
-impl FromTokens<Token> for Statement {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
+impl FromTokens<TokenKind> for Statement {
+    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
@@ -35,7 +35,7 @@ impl FromTokens<Token> for Statement {
         };
 
         match next {
-            Token::IfKeyword { .. } => {
+            TokenKind::IfKeyword { .. } => {
                 let matcher = Comb::IF >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -44,7 +44,7 @@ impl FromTokens<Token> for Statement {
                 };
                 Ok(Statement::If(if_statement.clone()).into())
             }
-            Token::FnKeyword { .. } => {
+            TokenKind::FnKeyword { .. } => {
                 let matcher = Comb::FUNCTION >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -53,7 +53,7 @@ impl FromTokens<Token> for Statement {
                 };
                 Ok(Statement::Function(function.clone()).into())
             }
-            Token::WhileKeyword { .. } => {
+            TokenKind::WhileKeyword { .. } => {
                 let matcher = Comb::WHILE_LOOP >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -62,7 +62,7 @@ impl FromTokens<Token> for Statement {
                 };
                 Ok(Statement::WhileLoop(while_loop_statement.clone()).into())
             }
-            Token::Let { .. } => {
+            TokenKind::Let { .. } => {
                 let matcher = Comb::INITIALISATION >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -71,7 +71,7 @@ impl FromTokens<Token> for Statement {
                 };
                 Ok(Statement::Initialization(init.clone()).into())
             }
-            Token::ReturnKeyword { .. } => {
+            TokenKind::ReturnKeyword { .. } => {
                 let matcher = Comb::RETURN_KEYWORD >> Comb::EXPR >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -99,7 +99,7 @@ impl FromTokens<Token> for Statement {
 }
 
 impl Statement {
-    fn parse_assignment(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_assignment(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::ASSIGNMENT >> Comb::SEMI;
@@ -115,7 +115,7 @@ impl Statement {
         Ok(Statement::Assignment(assignment.clone()).into())
     }
 
-    fn parse_expression(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_expression(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::EXPR;
@@ -128,7 +128,7 @@ impl Statement {
             unreachable!()
         };
         match tokens.peek() {
-            Some(Token::Semicolon { .. }) => {
+            Some(TokenKind::Semicolon { .. }) => {
                 tokens.next();
                 Ok(Statement::Expression(expr.clone()).into())
             }

@@ -1,7 +1,7 @@
 mod expression;
 mod statement;
 
-use crate::lexer::Token;
+use crate::lexer::TokenKind;
 use crate::lexer::Tokens;
 
 pub use self::expression::*;
@@ -38,8 +38,8 @@ pub enum TypeName {
     Tuple(Vec<TypeName>),
 }
 
-impl FromTokens<Token> for TypeName {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+impl FromTokens<TokenKind> for TypeName {
+    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         if let Ok(type_name) = Self::parse_literal(tokens) {
             return Ok(type_name);
         };
@@ -60,7 +60,7 @@ impl FromTokens<Token> for TypeName {
 }
 
 impl TypeName {
-    fn parse_literal(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_literal(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = !Comb::ID;
@@ -80,7 +80,7 @@ impl TypeName {
         Ok(TypeName::Literal(type_name.0.clone()).into())
     }
 
-    fn parse_tuple(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_tuple(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::LPAREN >> (Comb::TYPE_NAME % Comb::COMMA) >> Comb::RPAREN;
@@ -102,7 +102,7 @@ impl TypeName {
         Ok(TypeName::Tuple(elems).into())
     }
 
-    fn parse_fn(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_fn(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let AstNode::TypeName(TypeName::Tuple(params)) = Self::parse_tuple(tokens)? else {

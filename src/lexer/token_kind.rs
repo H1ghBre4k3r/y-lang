@@ -3,7 +3,7 @@ use pesca_parser_derive::{LooseEq, Token as ParseToken};
 type Position = (usize, usize);
 
 #[derive(Debug, Clone, ParseToken, LooseEq)]
-pub enum Token {
+pub enum TokenKind {
     #[terminal]
     Eq {
         position: Position,

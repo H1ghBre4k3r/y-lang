@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::{TokenKind, Tokens},
     parser::{
         ast::{AstNode, Block, Expression},
         combinators::Comb,
@@ -13,8 +13,8 @@ pub struct WhileLoop {
     pub block: Block,
 }
 
-impl FromTokens<Token> for WhileLoop {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+impl FromTokens<TokenKind> for WhileLoop {
+    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let matcher = Comb::WHILE_KEYWORD >> Comb::EXPR >> Comb::BLOCK;
 
         let result = matcher.parse(tokens)?;

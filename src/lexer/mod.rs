@@ -1,9 +1,9 @@
 mod lexmap;
-mod token;
+mod token_kind;
 mod tokens;
 
 pub use lexmap::*;
-pub use token::*;
+pub use token_kind::*;
 pub use tokens::*;
 
 use lazy_static::lazy_static;
@@ -66,7 +66,7 @@ impl Error for LexError {}
 
 #[derive(Debug, Clone)]
 pub struct Lexer<'a> {
-    tokens: Vec<Token>,
+    tokens: Vec<TokenKind>,
     iterator: Peekable<Chars<'a>>,
     line: usize,
     col: usize,
@@ -109,7 +109,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn lex(mut self) -> LexResult<Vec<Token>> {
+    pub fn lex(mut self) -> LexResult<Vec<TokenKind>> {
         self.lex_internal()?;
 
         Ok(self.tokens)
@@ -182,7 +182,7 @@ impl<'a> Lexer<'a> {
         if let Some(token) = LEX_MAP.get(read.as_str()) {
             self.tokens.push(token.to_token(position));
         } else {
-            self.tokens.push(Token::Id {
+            self.tokens.push(TokenKind::Id {
                 value: read,
                 position,
             })
@@ -205,7 +205,7 @@ impl<'a> Lexer<'a> {
 
         let num = read
             .parse::<u64>()
-            .map(|num| Token::Num {
+            .map(|num| TokenKind::Num {
                 value: num,
                 position,
             })
@@ -226,7 +226,7 @@ mod tests {
         let lexer = Lexer::new("letter");
 
         assert_eq!(
-            Ok(vec![Token::Id {
+            Ok(vec![TokenKind::Id {
                 value: "letter".into(),
                 position: (1, 1)
             }]),
@@ -239,7 +239,7 @@ mod tests {
         let lexer = Lexer::new("1337");
 
         assert_eq!(
-            Ok(vec![Token::Num {
+            Ok(vec![TokenKind::Num {
                 value: 1337,
                 position: (1, 1)
             }]),
@@ -253,11 +253,11 @@ mod tests {
 
         assert_eq!(
             Ok(vec![
-                Token::FnKeyword { position: (0, 0) },
-                Token::LParen { position: (0, 0) },
-                Token::RParen { position: (0, 0) },
-                Token::LBrace { position: (0, 0) },
-                Token::RBrace { position: (0, 0) }
+                TokenKind::FnKeyword { position: (0, 0) },
+                TokenKind::LParen { position: (0, 0) },
+                TokenKind::RParen { position: (0, 0) },
+                TokenKind::LBrace { position: (0, 0) },
+                TokenKind::RBrace { position: (0, 0) }
             ]),
             lexer.lex()
         );
@@ -269,17 +269,17 @@ mod tests {
 
         assert_eq!(
             Ok(vec![
-                Token::Let { position: (0, 0) },
-                Token::Id {
+                TokenKind::Let { position: (0, 0) },
+                TokenKind::Id {
                     value: "foo".into(),
                     position: (0, 0)
                 },
-                Token::Eq { position: (0, 0) },
-                Token::Num {
+                TokenKind::Eq { position: (0, 0) },
+                TokenKind::Num {
                     value: 42,
                     position: (0, 0)
                 },
-                Token::Semicolon { position: (0, 0) }
+                TokenKind::Semicolon { position: (0, 0) }
             ]),
             lexer.lex()
         );

@@ -17,7 +17,7 @@ pub use self::postfix::*;
 use crate::lexer::Tokens;
 use crate::parser::combinators::Comb;
 use crate::{
-    lexer::Token,
+    lexer::TokenKind,
     parser::{FromTokens, ParseError},
 };
 
@@ -52,9 +52,9 @@ pub enum Expression {
     },
 }
 
-impl FromTokens<Token> for Expression {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
-        let expr = if let Some(Token::LParen { .. }) = tokens.peek() {
+impl FromTokens<TokenKind> for Expression {
+    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+        let expr = if let Some(TokenKind::LParen { .. }) = tokens.peek() {
             let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
             let result = matcher.parse(tokens)?;
             let expr = match result.get(0) {
@@ -86,26 +86,28 @@ impl FromTokens<Token> for Expression {
         };
 
         let tuple = match next {
-            Token::Times { .. } => {
+            TokenKind::Times { .. } => {
                 tokens.next();
                 Expression::Multiplication
             }
-            Token::Plus { .. } => {
+            TokenKind::Plus { .. } => {
                 tokens.next();
                 Expression::Addition
             }
-            Token::Minus { .. } => {
+            TokenKind::Minus { .. } => {
                 tokens.next();
                 Expression::Substraction
             }
-            Token::LParen { .. } => {
+            TokenKind::LParen { .. } => {
                 return Ok(Expression::Postfix(Self::parse_call(expr, tokens)?).into())
             }
-            Token::Equal { .. }
-            | Token::GreaterThan { .. }
-            | Token::LessThan { .. }
-            | Token::GreaterOrEqual { .. }
-            | Token::LessOrEqual { .. } => return Ok(Self::parse_comparison(expr, tokens)?.into()),
+            TokenKind::Equal { .. }
+            | TokenKind::GreaterThan { .. }
+            | TokenKind::LessThan { .. }
+            | TokenKind::GreaterOrEqual { .. }
+            | TokenKind::LessOrEqual { .. } => {
+                return Ok(Self::parse_comparison(expr, tokens)?.into())
+            }
             _ => return Ok(expr.into()),
         };
 
@@ -121,7 +123,7 @@ impl FromTokens<Token> for Expression {
 }
 
 impl Expression {
-    fn parse_call(expr: Expression, tokens: &mut Tokens<Token>) -> Result<Postfix, ParseError> {
+    fn parse_call(expr: Expression, tokens: &mut Tokens<TokenKind>) -> Result<Postfix, ParseError> {
         let matcher = Comb::LPAREN >> (Comb::EXPR % Comb::COMMA) >> Comb::RPAREN;
 
         let result = matcher.parse(tokens)?.into_iter();
@@ -144,18 +146,18 @@ impl Expression {
 
     fn parse_comparison(
         lhs: Expression,
-        tokens: &mut Tokens<Token>,
+        tokens: &mut Tokens<TokenKind>,
     ) -> Result<Expression, ParseError> {
         let Some(next) = tokens.next() else {
             unreachable!()
         };
 
         let comparator = match next {
-            Token::Equal { .. } => ComparisonOperation::Equals,
-            Token::GreaterThan { .. } => ComparisonOperation::Greater,
-            Token::LessThan { .. } => ComparisonOperation::Less,
-            Token::GreaterOrEqual { .. } => ComparisonOperation::GreaterOrEquals,
-            Token::LessOrEqual { .. } => ComparisonOperation::LessOrEquals,
+            TokenKind::Equal { .. } => ComparisonOperation::Equals,
+            TokenKind::GreaterThan { .. } => ComparisonOperation::Greater,
+            TokenKind::LessThan { .. } => ComparisonOperation::Less,
+            TokenKind::GreaterOrEqual { .. } => ComparisonOperation::GreaterOrEquals,
+            TokenKind::LessOrEqual { .. } => ComparisonOperation::LessOrEquals,
             _ => unreachable!(),
         };
 
@@ -191,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_parse_id() {
-        let tokens = vec![Token::Id {
+        let tokens = vec![TokenKind::Id {
             value: "some_id".into(),
             position: (0, 0),
         }];
@@ -205,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_parse_num() {
-        let tokens = vec![Token::Num {
+        let tokens = vec![TokenKind::Num {
             value: 42,
             position: (0, 0),
         }];

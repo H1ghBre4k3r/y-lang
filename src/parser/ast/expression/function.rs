@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::{TokenKind, Tokens},
     parser::{
         ast::{AstNode, Statement, TypeName},
         combinators::Comb,
@@ -17,8 +17,8 @@ pub struct Function {
     pub statements: Vec<Statement>,
 }
 
-impl FromTokens<Token> for Function {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+impl FromTokens<TokenKind> for Function {
+    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let matcher = Comb::FN_KEYWORD
             >> !Comb::ID
             >> Comb::LPAREN
@@ -82,8 +82,8 @@ pub struct Parameter {
     pub type_name: Option<TypeName>,
 }
 
-impl FromTokens<Token> for Parameter {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+impl FromTokens<TokenKind> for Parameter {
+    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID >> !(Comb::COLON >> Comb::TYPE_NAME);
         let result = matcher.parse(tokens)?;
 
