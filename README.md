@@ -1,6 +1,8 @@
 # Pesca Parser
 
-Parsing all the way down. 
+> **Attention:** Everything in this project is subject to change! The documentation of the code is nearly non-existent. Furthermore, the currently executable does nothing really useful.
+
+Parsing all the way down.
 
 An innovative parser for an ever more innovative programming language!
 
