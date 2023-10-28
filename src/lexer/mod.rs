@@ -131,12 +131,34 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
+    fn lex_comment(&mut self) -> LexResult<()> {
+        assert_eq!(Some('/'), self.next());
+
+        let mut stack = vec![];
+        let position = (self.line, self.col);
+
+        while let Some(next) = self.next_if(|c| *c != '\n') {
+            stack.push(next);
+        }
+
+        self.tokens.push(TokenKind::Comment {
+            value: stack.iter().collect(),
+            position,
+        });
+
+        self.lex_internal()
+    }
+
     fn lex_special(&mut self) -> LexResult<()> {
         let mut stack = vec![];
 
         let position = (self.line, self.col);
 
         while let Some(next) = self.next() {
+            if next == '/' && stack.is_empty() {
+                return self.lex_comment();
+            }
+
             self.col += 1;
             stack.push(next);
 
