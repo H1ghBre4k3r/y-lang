@@ -23,6 +23,7 @@ pub enum Statement {
     Expression(Expression),
     YieldingExpression(Expression),
     Return(Expression),
+    Comment(String),
 }
 
 impl FromTokens<TokenKind> for Statement {
@@ -79,6 +80,10 @@ impl FromTokens<TokenKind> for Statement {
                     unreachable!()
                 };
                 Ok(Statement::Return(expr.clone()).into())
+            }
+            TokenKind::Comment { value, .. } => {
+                tokens.next();
+                Ok(Statement::Comment(value).into())
             }
             _ => {
                 if let Ok(assignment) = Self::parse_assignment(tokens) {

@@ -28,3 +28,11 @@ fn main(): i32 {
         return result;
     });
 }
+
+let square: (i32) -> i32 = \(x) => x * x;
+
+// declare square: (i32) -> i32;
+
+// impl Add<i32, i32> {
+//     add = \(x, y) => x + y
+// }
