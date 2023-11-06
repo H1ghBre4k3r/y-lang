@@ -129,4 +129,8 @@ pub enum TokenKind {
     LessOrEqual {
         position: Position,
     },
+    #[terminal]
+    Ampersand {
+        position: Position,
+    },
 }

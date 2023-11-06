@@ -48,6 +48,7 @@ lazy_static! {
         terminal!(m, LessThan, "<");
         terminal!(m, GreaterOrEqual, ">=");
         terminal!(m, LessOrEqual, "<=");
+        terminal!(m, Ampersand, "&");
 
         m
     };

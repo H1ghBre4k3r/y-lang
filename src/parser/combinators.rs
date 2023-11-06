@@ -185,6 +185,8 @@ impl<'a> Comb<'a, TokenKind, Terminal, AstNode> {
 
     terminal_comb!(BACKSLASH, Backslash);
 
+    terminal_comb!(AMPERSAND, Ampersand);
+
     node_comb!(ID, Id);
 
     node_comb!(NUM, Num);
