@@ -1,3 +1,4 @@
+mod array;
 mod block;
 mod function;
 mod id;
@@ -6,6 +7,7 @@ mod lambda;
 mod num;
 mod postfix;
 
+pub use self::array::*;
 pub use self::block::*;
 pub use self::function::*;
 pub use self::id::*;
@@ -50,6 +52,7 @@ pub enum Expression {
         rhs: Box<Expression>,
         operation: ComparisonOperation,
     },
+    Array(Array),
 }
 
 impl FromTokens<TokenKind> for Expression {
@@ -63,8 +66,13 @@ impl FromTokens<TokenKind> for Expression {
             };
             Expression::Parens(Box::new(expr))
         } else {
-            let matcher =
-                Comb::FUNCTION | Comb::IF | Comb::NUM | Comb::ID | Comb::LAMBDA | Comb::BLOCK;
+            let matcher = Comb::FUNCTION
+                | Comb::IF
+                | Comb::NUM
+                | Comb::ID
+                | Comb::LAMBDA
+                | Comb::BLOCK
+                | Comb::ARRAY;
             let result = matcher.parse(tokens)?;
             match result.get(0) {
                 Some(AstNode::Id(id)) => Expression::Id(id.clone()),
@@ -77,6 +85,7 @@ impl FromTokens<TokenKind> for Expression {
                 }
                 Some(AstNode::If(if_expression)) => Expression::If(if_expression.clone()),
                 Some(AstNode::Block(block)) => Expression::Block(block.clone()),
+                Some(AstNode::Array(array)) => Expression::Array(array.clone()),
                 None | Some(_) => unreachable!(),
             }
         };
@@ -395,6 +404,34 @@ mod tests {
                     ))
                 })))),
                 args: vec![Expression::Num(Num(42)), Expression::Num(Num(1337))]
+            })
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn test_parse_array_empty() {
+        let mut tokens = Lexer::new("[]").lex().expect("something is wrong").into();
+
+        let result = Expression::parse(&mut tokens);
+        assert_eq!(
+            Ok(Expression::Array(Array::Literal { values: vec![] }).into()),
+            result
+        );
+    }
+
+    #[test]
+    fn test_parse_array_simple_literal() {
+        let mut tokens = Lexer::new("[42, 1337]")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Expression::parse(&mut tokens);
+        assert_eq!(
+            Ok(Expression::Array(Array::Literal {
+                values: vec![Expression::Num(Num(42)), Expression::Num(Num(1337))]
             })
             .into()),
             result
