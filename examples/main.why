@@ -31,6 +31,12 @@ fn main(): i32 {
 
 let square: (i32) -> i32 = \(x) => x * x;
 
+let foo = [0; 10];
+
+let bar = [17, 42, 133
+
+let a = foo[0];
+
 // declare square: (i32) -> i32;
 
 // impl Add<i32, i32> {
