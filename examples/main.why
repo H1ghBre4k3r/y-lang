@@ -43,6 +43,14 @@ fn some_function(): [i32] {
 
 let b = (some_function())[42];
 
+fn takes_reference(x: &i32): void {
+    x = x + 10;
+}
+
+let also_takes_reference: (&i32) -> void = \(x) => {
+    x = x + 10;
+};
+
 // declare square: (i32) -> i32;
 
 // impl Add<i32, i32> {
