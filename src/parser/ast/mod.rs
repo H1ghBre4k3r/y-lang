@@ -37,6 +37,7 @@ pub enum TypeName {
         return_type: Box<TypeName>,
     },
     Tuple(Vec<TypeName>),
+    Array(Box<TypeName>),
 }
 
 impl FromTokens<TokenKind> for TypeName {
@@ -52,6 +53,10 @@ impl FromTokens<TokenKind> for TypeName {
         if let Ok(tuple) = Self::parse_tuple(tokens) {
             return Ok(tuple);
         };
+
+        if let Ok(array) = Self::parse_array(tokens) {
+            return Ok(array);
+        }
 
         Err(ParseError {
             message: "could not parse type name".into(),
@@ -126,6 +131,23 @@ impl TypeName {
             return_type: Box::new(type_name.clone()),
         }
         .into())
+    }
+
+    fn parse_array(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+        let index = tokens.get_index();
+
+        let matcher = Comb::LBRACKET >> Comb::TYPE_NAME >> Comb::RBRACKET;
+
+        let result = matcher.parse(tokens).map_err(|e| {
+            tokens.set_index(index);
+            e
+        })?;
+
+        let Some(AstNode::TypeName(type_name)) = result.get(0) else {
+            unreachable!()
+        };
+
+        Ok(TypeName::Array(Box::new(type_name.clone())).into())
     }
 }
 
