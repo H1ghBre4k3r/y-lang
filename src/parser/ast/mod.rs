@@ -26,6 +26,7 @@ pub enum AstNode {
     Parameter(Parameter),
     TypeName(TypeName),
     Block(Block),
+    Array(Array),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
