@@ -218,4 +218,46 @@ mod tests {
             result
         );
     }
+
+    #[test]
+    fn test_parse_reference_of_tuple() {
+        let mut tokens = Lexer::new("&(i32, i32)")
+            .lex()
+            .expect("something went wrong")
+            .into();
+
+        let result = TypeName::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(TypeName::Reference(Box::new(TypeName::Tuple(vec![
+                TypeName::Literal(
+                    "i32".into()
+                );
+                2
+            ])))
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn test_parse_tuple_of_references() {
+        let mut tokens = Lexer::new("(&i32, &i32)")
+            .lex()
+            .expect("something went wrong")
+            .into();
+
+        let result = TypeName::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(TypeName::Tuple(vec![
+                TypeName::Reference(Box::new(TypeName::Literal(
+                    "i32".into()
+                )));
+                2
+            ])
+            .into()),
+            result
+        )
+    }
 }
