@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display};
 mod ast;
 pub mod combinators;
 
-use crate::{lexer::TokenKind, Tokens};
+use crate::lexer::{TokenKind, Tokens};
 
 use self::{ast::AstNode, combinators::Comb};
 

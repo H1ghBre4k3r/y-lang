@@ -5,16 +5,14 @@ pub struct Tokens<T> {
     index: usize,
 }
 
-impl<T> Tokens<T>
+impl<T> Iterator for Tokens<T>
 where
     T: Clone,
 {
-    pub fn new(tokens: Vec<T>) -> Self {
-        Self { tokens, index: 0 }
-    }
+    type Item = T;
 
     /// Get the next item (if present).
-    pub fn next(&mut self) -> Option<T> {
+    fn next(&mut self) -> Option<T> {
         if self.index < self.tokens.len() {
             let item = self.tokens.get(self.index).cloned();
             self.index += 1;
@@ -22,6 +20,15 @@ where
         }
 
         None
+    }
+}
+
+impl<T> Tokens<T>
+where
+    T: Clone,
+{
+    pub fn new(tokens: Vec<T>) -> Self {
+        Self { tokens, index: 0 }
     }
 
     /// Peek at the next item.

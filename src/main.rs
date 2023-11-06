@@ -1,11 +1,6 @@
-mod lexer;
-mod parser;
-
 use std::{error::Error, fs};
 
-use crate::parser::parse;
-
-use self::lexer::*;
+use pesca_parser::{lexer::Lexer, parser::parse};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = fs::read_to_string("examples/main.why")?;
