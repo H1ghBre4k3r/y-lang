@@ -110,6 +110,9 @@ impl FromTokens<TokenKind> for Expression {
             TokenKind::LParen { .. } => {
                 return Ok(Expression::Postfix(Self::parse_call(expr, tokens)?).into())
             }
+            TokenKind::LBracket { .. } => {
+                return Ok(Expression::Postfix(Self::parse_index(expr, tokens)?).into())
+            }
             TokenKind::Equal { .. }
             | TokenKind::GreaterThan { .. }
             | TokenKind::LessThan { .. }
@@ -150,6 +153,24 @@ impl Expression {
         Ok(Postfix::Call {
             expr: Box::new(expr),
             args,
+        })
+    }
+
+    fn parse_index(
+        expr: Expression,
+        tokens: &mut Tokens<TokenKind>,
+    ) -> Result<Postfix, ParseError> {
+        let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::RBRACKET;
+
+        let result = matcher.parse(tokens)?;
+
+        let Some(AstNode::Expression(index)) = result.get(0).cloned() else {
+            unreachable!()
+        };
+
+        Ok(Postfix::Index {
+            expr: Box::new(expr),
+            index: Box::new(index),
         })
     }
 
@@ -436,5 +457,24 @@ mod tests {
             .into()),
             result
         );
+    }
+
+    #[test]
+    fn test_parse_index_simple() {
+        let mut tokens = Lexer::new("foo[42]")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::Postfix(Postfix::Index {
+                expr: Box::new(Expression::Id(Id("foo".into()))),
+                index: Box::new(Expression::Num(Num(42)))
+            })
+            .into()),
+            result
+        )
     }
 }

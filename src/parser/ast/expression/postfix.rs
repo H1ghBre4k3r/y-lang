@@ -6,4 +6,8 @@ pub enum Postfix {
         expr: Box<Expression>,
         args: Vec<Expression>,
     },
+    Index {
+        expr: Box<Expression>,
+        index: Box<Expression>,
+    },
 }
