@@ -31,6 +31,8 @@ lazy_static! {
         terminal!(m, RParen, ")");
         terminal!(m, LBrace, "{");
         terminal!(m, RBrace, "}");
+        terminal!(m, LBracket, "[");
+        terminal!(m, RBracket, "]");
         terminal!(m, FnKeyword, "fn");
         terminal!(m, IfKeyword, "if");
         terminal!(m, ElseKeyword, "else");

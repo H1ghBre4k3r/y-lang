@@ -62,6 +62,14 @@ pub enum TokenKind {
         position: Position,
     },
     #[terminal]
+    LBracket {
+        position: Position,
+    },
+    #[terminal]
+    RBracket {
+        position: Position,
+    },
+    #[terminal]
     FnKeyword {
         position: Position,
     },
