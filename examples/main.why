@@ -37,6 +37,12 @@ let bar: [[i32]] = [17, 42, 1337];
 
 let a = foo[0];
 
+fn some_function(): [i32] {
+    [42, 1337]
+}
+
+let b = (some_function())[42];
+
 // declare square: (i32) -> i32;
 
 // impl Add<i32, i32> {
