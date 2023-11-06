@@ -33,9 +33,9 @@ let square: (i32) -> i32 = \(x) => x * x;
 
 let foo = [0; 10];
 
-let bar = [17, 42, 133
+let bar: [[i32]] = [17, 42, 1337];
 
-let a = foo[0];
+// let a = foo[0];
 
 // declare square: (i32) -> i32;
 
