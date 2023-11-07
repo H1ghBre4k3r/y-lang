@@ -1,8 +1,10 @@
 mod assignment;
+mod declaration;
 mod initialisation;
 mod while_loop;
 
 pub use self::assignment::*;
+pub use self::declaration::*;
 pub use self::initialisation::*;
 pub use self::while_loop::*;
 
@@ -24,6 +26,7 @@ pub enum Statement {
     YieldingExpression(Expression),
     Return(Expression),
     Comment(String),
+    Declaration(Declaration),
 }
 
 impl FromTokens<TokenKind> for Statement {
@@ -80,6 +83,15 @@ impl FromTokens<TokenKind> for Statement {
                     unreachable!()
                 };
                 Ok(Statement::Return(expr.clone()).into())
+            }
+            TokenKind::DeclareKeyword { .. } => {
+                let matcher = Comb::DECLARATION >> Comb::SEMI;
+                let result = matcher.parse(tokens)?;
+
+                let Some(AstNode::Declaration(declaration)) = result.get(0).cloned() else {
+                    unreachable!()
+                };
+                Ok(Statement::Declaration(declaration).into())
             }
             TokenKind::Comment { value, .. } => {
                 tokens.next();
