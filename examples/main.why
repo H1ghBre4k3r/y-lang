@@ -53,6 +53,8 @@ let also_takes_reference: (&i32) -> void = \(x) => {
 
 declare square: (i32) -> i32;
 
+const PI: f32 = 314159265;
+
 // impl Add<i32, i32> {
 //     add = \(x, y) => x + y
 // }
