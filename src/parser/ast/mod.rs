@@ -13,6 +13,7 @@ pub enum AstNode {
     Num(Num),
     Statement(Statement),
     Initialization(Initialisation),
+    Constant(Constant),
     Assignment(Assignment),
     Function(Function),
     Lambda(Lambda),

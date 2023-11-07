@@ -13,6 +13,10 @@ pub enum TokenKind {
         position: Position,
     },
     #[terminal]
+    Const {
+        position: Position,
+    },
+    #[terminal]
     Mut {
         position: Position,
     },

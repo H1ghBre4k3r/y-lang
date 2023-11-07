@@ -1,9 +1,11 @@
 mod assignment;
+mod constant;
 mod declaration;
 mod initialisation;
 mod while_loop;
 
 pub use self::assignment::*;
+pub use self::constant::*;
 pub use self::declaration::*;
 pub use self::initialisation::*;
 pub use self::while_loop::*;
@@ -21,6 +23,7 @@ pub enum Statement {
     If(If),
     WhileLoop(WhileLoop),
     Initialization(Initialisation),
+    Constant(Constant),
     Assignment(Assignment),
     Expression(Expression),
     YieldingExpression(Expression),
@@ -74,6 +77,15 @@ impl FromTokens<TokenKind> for Statement {
                     unreachable!()
                 };
                 Ok(Statement::Initialization(init.clone()).into())
+            }
+            TokenKind::Const { .. } => {
+                let matcher = Comb::CONSTANT >> Comb::SEMI;
+                let result = matcher.parse(tokens)?;
+
+                let [AstNode::Constant(constant)] = result.as_slice() else {
+                    unreachable!()
+                };
+                Ok(Statement::Constant(constant.clone()).into())
             }
             TokenKind::ReturnKeyword { .. } => {
                 let matcher = Comb::RETURN_KEYWORD >> Comb::EXPR >> Comb::SEMI;
@@ -164,10 +176,30 @@ impl From<Statement> for AstNode {
 mod tests {
     use crate::{
         lexer::Lexer,
-        parser::ast::{Id, Num},
+        parser::ast::{Id, Num, TypeName},
     };
 
     use super::*;
+
+    #[test]
+    fn test_basic_constant() {
+        let mut tokens = Lexer::new("const foo: i32 = 42;")
+            .lex()
+            .expect("should work")
+            .into();
+
+        let result = Statement::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Statement::Constant(Constant {
+                id: Id("foo".into()),
+                type_name: TypeName::Literal("i32".into()),
+                value: Expression::Num(Num(42))
+            })
+            .into()),
+            result
+        )
+    }
 
     #[test]
     fn test_basic_return() {
