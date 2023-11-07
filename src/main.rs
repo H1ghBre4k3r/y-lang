@@ -1,9 +1,27 @@
 use std::{error::Error, fs};
 
+use clap::{command, Parser};
 use pesca_parser::{lexer::Lexer, parser::parse};
 
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+#[command(propagate_version = true)]
+pub struct Cli {
+    /// The path to the source file.
+    #[arg(index = 1)]
+    pub file: std::path::PathBuf,
+}
+
+impl Cli {
+    pub fn init() -> Self {
+        Cli::parse()
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let input = fs::read_to_string("examples/main.why")?;
+    let args = Cli::init();
+
+    let input = fs::read_to_string(args.file)?;
 
     println!("{input}");
 
