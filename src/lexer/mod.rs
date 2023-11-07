@@ -22,6 +22,7 @@ lazy_static! {
 
         terminal!(m, Eq, "=");
         terminal!(m, Let, "let");
+        terminal!(m, Const, "const");
         terminal!(m, Mut, "mut");
         terminal!(m, Semicolon, ";");
         terminal!(m, Plus, "+");
