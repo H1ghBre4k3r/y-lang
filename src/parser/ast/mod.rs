@@ -22,4 +22,5 @@ pub enum AstNode {
     TypeName(TypeName),
     Block(Block),
     Array(Array),
+    Declaration(Declaration),
 }

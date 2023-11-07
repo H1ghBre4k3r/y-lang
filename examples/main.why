@@ -51,7 +51,7 @@ let also_takes_reference: (&i32) -> void = \(x) => {
     x = x + 10;
 };
 
-// declare square: (i32) -> i32;
+declare square: (i32) -> i32;
 
 // impl Add<i32, i32> {
 //     add = \(x, y) => x + y

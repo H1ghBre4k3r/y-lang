@@ -133,4 +133,8 @@ pub enum TokenKind {
     Ampersand {
         position: Position,
     },
+    #[terminal]
+    DeclareKeyword {
+        position: Position,
+    },
 }
