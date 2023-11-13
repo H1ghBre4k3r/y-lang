@@ -32,7 +32,6 @@ pub enum TokenKind {
     Semicolon {
         position: Position,
     },
-    // TODO: think about lexing comments
     Comment {
         value: String,
         position: Position,
