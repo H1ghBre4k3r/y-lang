@@ -16,7 +16,7 @@ pest_derive = "2.7"
 simple_logger = { version = "4.3.0", default-features = false, features = ["colored", "colors"]}
 unescape = "0.1.0"
 once_cell = "1.19"
-home = "0.5.5"
+home = "0.5.9"
 include_dir = "0.7.3"
 
 [dev-dependencies]
