@@ -100,7 +100,7 @@ impl FromTokens<TokenKind> for Statement {
                 let matcher = Comb::DECLARATION >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
-                let Some(AstNode::Declaration(declaration)) = result.get(0).cloned() else {
+                let Some(AstNode::Declaration(declaration)) = result.first().cloned() else {
                     unreachable!()
                 };
                 Ok(Statement::Declaration(declaration).into())

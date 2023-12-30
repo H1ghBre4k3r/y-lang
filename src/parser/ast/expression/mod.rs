@@ -57,10 +57,10 @@ pub enum Expression {
 
 impl FromTokens<TokenKind> for Expression {
     fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
-        let expr = if let Some(TokenKind::LParen { .. }) = tokens.peek() {
+        let mut expr = if let Some(TokenKind::LParen { .. }) = tokens.peek() {
             let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
             let result = matcher.parse(tokens)?;
-            let expr = match result.get(0) {
+            let expr = match result.first() {
                 Some(AstNode::Expression(rhs)) => rhs.clone(),
                 None | Some(_) => unreachable!(),
             };
@@ -74,7 +74,7 @@ impl FromTokens<TokenKind> for Expression {
                 | Comb::BLOCK
                 | Comb::ARRAY;
             let result = matcher.parse(tokens)?;
-            match result.get(0) {
+            match result.first() {
                 Some(AstNode::Id(id)) => Expression::Id(id.clone()),
                 Some(AstNode::Num(num)) => Expression::Num(num.clone()),
                 Some(AstNode::Function(func)) => {
@@ -90,47 +90,51 @@ impl FromTokens<TokenKind> for Expression {
             }
         };
 
-        let Some(next) = tokens.peek() else {
-            return Ok(expr.into());
-        };
+        loop {
+            let Some(next) = tokens.peek() else {
+                return Ok(expr.into());
+            };
 
-        let tuple = match next {
-            TokenKind::Times { .. } => {
-                tokens.next();
-                Expression::Multiplication
-            }
-            TokenKind::Plus { .. } => {
-                tokens.next();
-                Expression::Addition
-            }
-            TokenKind::Minus { .. } => {
-                tokens.next();
-                Expression::Substraction
-            }
-            TokenKind::LParen { .. } => {
-                return Ok(Expression::Postfix(Self::parse_call(expr, tokens)?).into())
-            }
-            TokenKind::LBracket { .. } => {
-                return Ok(Expression::Postfix(Self::parse_index(expr, tokens)?).into())
-            }
-            TokenKind::Equal { .. }
-            | TokenKind::GreaterThan { .. }
-            | TokenKind::LessThan { .. }
-            | TokenKind::GreaterOrEqual { .. }
-            | TokenKind::LessOrEqual { .. } => {
-                return Ok(Self::parse_comparison(expr, tokens)?.into())
-            }
-            _ => return Ok(expr.into()),
-        };
+            let tuple = match next {
+                TokenKind::Times { .. } => {
+                    tokens.next();
+                    Expression::Multiplication
+                }
+                TokenKind::Plus { .. } => {
+                    tokens.next();
+                    Expression::Addition
+                }
+                TokenKind::Minus { .. } => {
+                    tokens.next();
+                    Expression::Substraction
+                }
+                TokenKind::LParen { .. } => {
+                    expr = Expression::Postfix(Self::parse_call(expr, tokens)?);
+                    continue;
+                }
+                TokenKind::LBracket { .. } => {
+                    expr = Expression::Postfix(Self::parse_index(expr, tokens)?);
+                    continue;
+                }
+                TokenKind::Equal { .. }
+                | TokenKind::GreaterThan { .. }
+                | TokenKind::LessThan { .. }
+                | TokenKind::GreaterOrEqual { .. }
+                | TokenKind::LessOrEqual { .. } => {
+                    return Ok(Self::parse_comparison(expr, tokens)?.into());
+                }
+                _ => return Ok(expr.into()),
+            };
 
-        let matcher = Comb::EXPR;
-        let result = matcher.parse(tokens)?;
-        let rhs = match result.get(0) {
-            Some(AstNode::Expression(rhs)) => rhs.clone(),
-            None | Some(_) => unreachable!(),
-        };
+            let matcher = Comb::EXPR;
+            let result = matcher.parse(tokens)?;
+            let rhs = match result.first() {
+                Some(AstNode::Expression(rhs)) => rhs.clone(),
+                None | Some(_) => unreachable!(),
+            };
 
-        Ok(tuple(Box::new(expr), Box::new(rhs)).into())
+            expr = tuple(Box::new(expr), Box::new(rhs))
+        }
     }
 }
 
@@ -164,7 +168,7 @@ impl Expression {
 
         let result = matcher.parse(tokens)?;
 
-        let Some(AstNode::Expression(index)) = result.get(0).cloned() else {
+        let Some(AstNode::Expression(index)) = result.first().cloned() else {
             unreachable!()
         };
 
@@ -193,7 +197,7 @@ impl Expression {
 
         let matcher = Comb::EXPR;
         let result = matcher.parse(tokens)?;
-        let rhs = match result.get(0) {
+        let rhs = match result.first() {
             Some(AstNode::Expression(rhs)) => rhs.clone(),
             None | Some(_) => unreachable!(),
         };

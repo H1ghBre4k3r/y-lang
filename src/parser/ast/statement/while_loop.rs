@@ -19,7 +19,7 @@ impl FromTokens<TokenKind> for WhileLoop {
 
         let result = matcher.parse(tokens)?;
 
-        let Some(AstNode::Expression(condition)) = result.get(0) else {
+        let Some(AstNode::Expression(condition)) = result.first() else {
             unreachable!()
         };
 

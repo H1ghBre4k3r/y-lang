@@ -87,7 +87,7 @@ impl FromTokens<TokenKind> for Parameter {
         let matcher = Comb::ID >> !(Comb::COLON >> Comb::TYPE_NAME);
         let result = matcher.parse(tokens)?;
 
-        let Some(AstNode::Id(name)) = result.get(0) else {
+        let Some(AstNode::Id(name)) = result.first() else {
             unreachable!()
         };
 

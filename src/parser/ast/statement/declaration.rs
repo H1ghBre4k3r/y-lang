@@ -19,7 +19,7 @@ impl FromTokens<TokenKind> for Declaration {
 
         let result = matcher.parse(tokens)?;
 
-        let Some(AstNode::Id(name)) = result.get(0).cloned() else {
+        let Some(AstNode::Id(name)) = result.first().cloned() else {
             unreachable!()
         };
 

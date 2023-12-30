@@ -58,7 +58,7 @@ impl TypeName {
             e
         })?;
 
-        let Some(AstNode::Id(type_name)) = result.get(0) else {
+        let Some(AstNode::Id(type_name)) = result.first() else {
             return Err(ParseError {
                 message: "Could not parse type literal".into(),
                 position: None,
@@ -104,7 +104,7 @@ impl TypeName {
             e
         })?;
 
-        let Some(AstNode::TypeName(type_name)) = result.get(0) else {
+        let Some(AstNode::TypeName(type_name)) = result.first() else {
             unreachable!()
         };
 
@@ -125,7 +125,7 @@ impl TypeName {
             e
         })?;
 
-        let Some(AstNode::TypeName(type_name)) = result.get(0) else {
+        let Some(AstNode::TypeName(type_name)) = result.first() else {
             unreachable!()
         };
 
@@ -142,7 +142,7 @@ impl TypeName {
             e
         })?;
 
-        let Some(AstNode::TypeName(type_name)) = result.get(0) else {
+        let Some(AstNode::TypeName(type_name)) = result.first() else {
             unreachable!()
         };
 

@@ -19,7 +19,7 @@ impl FromTokens<TokenKind> for Assignment {
 
         let result = matcher.parse(tokens)?;
 
-        let Some(AstNode::Id(id)) = result.get(0) else {
+        let Some(AstNode::Id(id)) = result.first() else {
             unreachable!()
         };
 

@@ -36,7 +36,7 @@ impl FromTokens<TokenKind> for Array {
 
         let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::SEMI >> Comb::NUM >> Comb::RBRACKET;
         if let Ok(result) = matcher.parse(tokens) {
-            let Some(AstNode::Expression(initial_value)) = result.get(0).cloned() else {
+            let Some(AstNode::Expression(initial_value)) = result.first().cloned() else {
                 unreachable!()
             };
 
