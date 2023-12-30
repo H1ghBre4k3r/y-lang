@@ -6,7 +6,8 @@ use super::{
     ast::{
         Array, Assignment, AstNode, Block, Constant, Declaration, Expression, Function, Id, If,
         Initialisation, Lambda, Num, Parameter, Statement, StructDeclaration,
-        StructFieldDeclaration, TypeName, WhileLoop,
+        StructFieldDeclaration, StructFieldInitialisation, StructInitialisation, TypeName,
+        WhileLoop,
     },
     FromTokens, ParseError,
 };
@@ -229,6 +230,10 @@ impl<'a> Comb<'a, TokenKind, Terminal, AstNode> {
     node_comb!(STRUCT_DECLARATION, StructDeclaration);
 
     node_comb!(STRUCT_FIELD_DECLARATION, StructFieldDeclaration);
+
+    node_comb!(STRUCT_INITILISATION, StructInitialisation);
+
+    node_comb!(STRUCT_FIELD_INITIALISATION, StructFieldInitialisation);
 }
 
 impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>

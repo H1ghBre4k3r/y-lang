@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn test_if_else_without_semicolon() {
-        let mut tokens = Lexer::new("if x { 3 + 4 } else { 42 + 1337 }")
+        let mut tokens = Lexer::new("if (x) { 3 + 4 } else { 42 + 1337 }")
             .lex()
             .expect("should work")
             .into();
@@ -253,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_if_else_with_semicolon() {
-        let mut tokens = Lexer::new("if x { 3 + 4 } else { 42 + 1337 };")
+        let mut tokens = Lexer::new("if (x) { 3 + 4 } else { 42 + 1337 };")
             .lex()
             .expect("should work")
             .into();
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn test_if_else_ignores_call() {
-        let mut tokens = Lexer::new("if x { 3 + 4 } else { 42 + 1337 }()")
+        let mut tokens = Lexer::new("if (x) { 3 + 4 } else { 42 + 1337 }()")
             .lex()
             .expect("should work")
             .into();

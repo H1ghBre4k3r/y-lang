@@ -21,7 +21,9 @@ impl FromTokens<TokenKind> for If {
         tokens: &mut crate::lexer::Tokens<TokenKind>,
     ) -> Result<crate::parser::ast::AstNode, crate::parser::ParseError> {
         let matcher = Comb::IF_KEYWORD
+            >> Comb::LPAREN
             >> Comb::EXPR
+            >> Comb::RPAREN
             >> Comb::LBRACE
             >> (Comb::STATEMENT ^ ())
             >> Comb::RBRACE;
@@ -79,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_simple_if() {
-        let mut tokens = Lexer::new("if x {}").lex().expect("should work").into();
+        let mut tokens = Lexer::new("if (x) {}").lex().expect("should work").into();
 
         assert_eq!(
             Ok(If {
@@ -94,7 +96,7 @@ mod tests {
 
     #[test]
     fn test_simple_if_else() {
-        let mut tokens = Lexer::new("if x {} else {}")
+        let mut tokens = Lexer::new("if (x) {} else {}")
             .lex()
             .expect("should work")
             .into();
@@ -112,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_complexer_if() {
-        let mut tokens = Lexer::new("if x { 3 + 4 }")
+        let mut tokens = Lexer::new("if (x) { 3 + 4 }")
             .lex()
             .expect("should work")
             .into();
@@ -133,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_complexer_if_else() {
-        let mut tokens = Lexer::new("if x { 3 + 4 } else { 42 + 1337 }")
+        let mut tokens = Lexer::new("if (x) { 3 + 4 } else { 42 + 1337 }")
             .lex()
             .expect("should work")
             .into();
