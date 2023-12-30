@@ -10,7 +10,7 @@ fn main(): i32 {
     let foo = test(42);
     let bar = foo(1337);
 
-    if true {
+    if (true) {
         bar()
     } else {
         foo()
@@ -18,7 +18,7 @@ fn main(): i32 {
 
     let mut x = 10;
 
-    while x > 0 {
+    while (x > 0) {
         do_something(x);
         x = x - 1;
     }
@@ -60,9 +60,9 @@ struct Foo {
     baz: u64;
 };
 
-// let foo = Foo {
-//    bar: 123,
-//    baz: 42
-// };
+let foo = Foo {
+   bar: 123,
+   baz: 42
+};
 
 // let test = foo.bar;

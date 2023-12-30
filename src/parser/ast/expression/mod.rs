@@ -6,6 +6,7 @@ mod if_expression;
 mod lambda;
 mod num;
 mod postfix;
+mod struct_initialisation;
 
 pub use self::array::*;
 pub use self::block::*;
@@ -15,6 +16,7 @@ pub use self::if_expression::*;
 pub use self::lambda::*;
 pub use self::num::*;
 pub use self::postfix::*;
+pub use self::struct_initialisation::*;
 
 use crate::lexer::Tokens;
 use crate::parser::combinators::Comb;
@@ -53,6 +55,7 @@ pub enum Expression {
         operation: ComparisonOperation,
     },
     Array(Array),
+    StructInitialisation(StructInitialisation),
 }
 
 impl FromTokens<TokenKind> for Expression {
@@ -69,6 +72,7 @@ impl FromTokens<TokenKind> for Expression {
             let matcher = Comb::FUNCTION
                 | Comb::IF
                 | Comb::NUM
+                | Comb::STRUCT_INITILISATION
                 | Comb::ID
                 | Comb::LAMBDA
                 | Comb::BLOCK
@@ -86,6 +90,9 @@ impl FromTokens<TokenKind> for Expression {
                 Some(AstNode::If(if_expression)) => Expression::If(if_expression.clone()),
                 Some(AstNode::Block(block)) => Expression::Block(block.clone()),
                 Some(AstNode::Array(array)) => Expression::Array(array.clone()),
+                Some(AstNode::StructInitialisation(initialisation)) => {
+                    Expression::StructInitialisation(initialisation.clone())
+                }
                 None | Some(_) => unreachable!(),
             }
         };
@@ -363,7 +370,7 @@ mod tests {
 
     #[test]
     fn test_parse_if() {
-        let mut tokens = Lexer::new("if x { 3 + 4 } else { 42 + 1337 }")
+        let mut tokens = Lexer::new("if (x) { 3 + 4 } else { 42 + 1337 }")
             .lex()
             .expect("should work")
             .into();
@@ -480,5 +487,42 @@ mod tests {
             .into()),
             result
         )
+    }
+
+    #[test]
+    fn parse_struct() {
+        let mut tokens = Lexer::new("Foo { bar: 42, baz: \\(x) => x + x }")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::StructInitialisation(StructInitialisation {
+                id: Id("Foo".into()),
+                fields: vec![
+                    StructFieldInitialisation {
+                        name: Id("bar".into()),
+                        value: Expression::Num(Num(42))
+                    },
+                    StructFieldInitialisation {
+                        name: Id("baz".into()),
+                        value: Expression::Lambda(Lambda {
+                            parameters: vec![Parameter {
+                                name: Id("x".into()),
+                                type_name: None
+                            }],
+                            expression: Box::new(Expression::Addition(
+                                Box::new(Expression::Id(Id("x".into()))),
+                                Box::new(Expression::Id(Id("x".into())))
+                            ))
+                        })
+                    }
+                ]
+            })
+            .into()),
+            result
+        );
     }
 }
