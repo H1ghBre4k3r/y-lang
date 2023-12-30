@@ -101,6 +101,10 @@ pub enum TokenKind {
         position: Position,
     },
     #[terminal]
+    Dot {
+        position: Position,
+    },
+    #[terminal]
     SmallRightArrow {
         position: Position,
     },
@@ -138,6 +142,10 @@ pub enum TokenKind {
     },
     #[terminal]
     DeclareKeyword {
+        position: Position,
+    },
+    #[terminal]
+    StructKeyword {
         position: Position,
     },
 }

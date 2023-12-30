@@ -41,6 +41,7 @@ lazy_static! {
         terminal!(m, ReturnKeyword, "return");
         terminal!(m, Colon, ":");
         terminal!(m, Comma, ",");
+        terminal!(m, Dot, ".");
         terminal!(m, SmallRightArrow, "->");
         terminal!(m, BigRightArrow, "=>");
         terminal!(m, Backslash, "\\");
@@ -51,6 +52,7 @@ lazy_static! {
         terminal!(m, LessOrEqual, "<=");
         terminal!(m, Ampersand, "&");
         terminal!(m, DeclareKeyword, "declare");
+        terminal!(m, StructKeyword, "struct");
 
         m
     };
