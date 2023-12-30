@@ -65,4 +65,4 @@ let foo = Foo {
    baz: 42
 };
 
-// let test = foo.bar;
+let test = foo.bar()[42];

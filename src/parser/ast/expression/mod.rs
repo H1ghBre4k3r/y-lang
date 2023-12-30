@@ -123,6 +123,10 @@ impl FromTokens<TokenKind> for Expression {
                     expr = Expression::Postfix(Self::parse_index(expr, tokens)?);
                     continue;
                 }
+                TokenKind::Dot { .. } => {
+                    expr = Expression::Postfix(Self::parse_property_access(expr, tokens)?);
+                    continue;
+                }
                 TokenKind::Equal { .. }
                 | TokenKind::GreaterThan { .. }
                 | TokenKind::LessThan { .. }
@@ -182,6 +186,24 @@ impl Expression {
         Ok(Postfix::Index {
             expr: Box::new(expr),
             index: Box::new(index),
+        })
+    }
+
+    fn parse_property_access(
+        expr: Expression,
+        tokens: &mut Tokens<TokenKind>,
+    ) -> Result<Postfix, ParseError> {
+        let matcher = Comb::DOT >> Comb::ID;
+
+        let result = matcher.parse(tokens)?;
+
+        let Some(AstNode::Id(property)) = result.first().cloned() else {
+            unreachable!()
+        };
+
+        Ok(Postfix::PropertyAccess {
+            expr: Box::new(expr),
+            property,
         })
     }
 
@@ -520,6 +542,47 @@ mod tests {
                         })
                     }
                 ]
+            })
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn parse_property_access_simple() {
+        let mut tokens = Lexer::new("foo.bar")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::Postfix(Postfix::PropertyAccess {
+                expr: Box::new(Expression::Id(Id("foo".into()))),
+                property: Id("bar".into())
+            })
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn parse_property_access_complex() {
+        let mut tokens = Lexer::new("foo().bar")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::Postfix(Postfix::PropertyAccess {
+                expr: Box::new(Expression::Postfix(Postfix::Call {
+                    expr: Box::new(Expression::Id(Id("foo".into()))),
+                    args: vec![]
+                })),
+                property: Id("bar".into())
             })
             .into()),
             result

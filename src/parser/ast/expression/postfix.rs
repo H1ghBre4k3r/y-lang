@@ -1,4 +1,4 @@
-use super::Expression;
+use super::{Expression, Id};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Postfix {
@@ -9,5 +9,9 @@ pub enum Postfix {
     Index {
         expr: Box<Expression>,
         index: Box<Expression>,
+    },
+    PropertyAccess {
+        expr: Box<Expression>,
+        property: Id,
     },
 }

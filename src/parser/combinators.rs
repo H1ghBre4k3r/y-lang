@@ -181,6 +181,8 @@ impl<'a> Comb<'a, TokenKind, Terminal, AstNode> {
 
     terminal_comb!(COMMA, Comma);
 
+    terminal_comb!(DOT, Dot);
+
     terminal_comb!(SEMI, Semicolon);
 
     terminal_comb!(SMALL_RIGHT_ARROW, SmallRightArrow);
