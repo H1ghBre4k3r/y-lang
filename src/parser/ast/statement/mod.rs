@@ -2,12 +2,14 @@ mod assignment;
 mod constant;
 mod declaration;
 mod initialisation;
+mod struct_declaration;
 mod while_loop;
 
 pub use self::assignment::*;
 pub use self::constant::*;
 pub use self::declaration::*;
 pub use self::initialisation::*;
+pub use self::struct_declaration::*;
 pub use self::while_loop::*;
 
 use crate::{
@@ -30,6 +32,7 @@ pub enum Statement {
     Return(Expression),
     Comment(String),
     Declaration(Declaration),
+    StructDeclaration(StructDeclaration),
 }
 
 impl FromTokens<TokenKind> for Statement {
@@ -108,6 +111,15 @@ impl FromTokens<TokenKind> for Statement {
             TokenKind::Comment { value, .. } => {
                 tokens.next();
                 Ok(Statement::Comment(value).into())
+            }
+            TokenKind::StructKeyword { .. } => {
+                let matcher = Comb::STRUCT_DECLARATION >> Comb::SEMI;
+                let result = matcher.parse(tokens)?;
+
+                let Some(AstNode::StructDeclaration(declaration)) = result.first().cloned() else {
+                    unreachable!()
+                };
+                Ok(Statement::StructDeclaration(declaration).into())
             }
             _ => {
                 if let Ok(assignment) = Self::parse_assignment(tokens) {

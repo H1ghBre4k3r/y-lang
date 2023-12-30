@@ -24,4 +24,6 @@ pub enum AstNode {
     Block(Block),
     Array(Array),
     Declaration(Declaration),
+    StructDeclaration(StructDeclaration),
+    StructFieldDeclaration(StructFieldDeclaration),
 }

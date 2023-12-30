@@ -41,7 +41,7 @@ fn some_function(): [i32] {
     [42, 1337]
 }
 
-let b = (some_function())[42];
+let b = some_function()[42];
 
 fn takes_reference(x: &i32): void {
     x = x + 10;
@@ -55,6 +55,14 @@ declare square: (i32) -> i32;
 
 const PI: f32 = 314159265;
 
-// impl Add<i32, i32> {
-//     add = \(x, y) => x + y
-// }
+struct Foo {
+    bar: u32;
+    baz: u64;
+};
+
+// let foo = Foo {
+//    bar: 123,
+//    baz: 42
+// };
+
+// let test = foo.bar;

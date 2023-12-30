@@ -5,7 +5,8 @@ use crate::lexer::{Terminal, TokenKind, Tokens};
 use super::{
     ast::{
         Array, Assignment, AstNode, Block, Constant, Declaration, Expression, Function, Id, If,
-        Initialisation, Lambda, Num, Parameter, Statement, TypeName, WhileLoop,
+        Initialisation, Lambda, Num, Parameter, Statement, StructDeclaration,
+        StructFieldDeclaration, TypeName, WhileLoop,
     },
     FromTokens, ParseError,
 };
@@ -191,6 +192,8 @@ impl<'a> Comb<'a, TokenKind, Terminal, AstNode> {
 
     terminal_comb!(DECLARE_KEYWORD, DeclareKeyword);
 
+    terminal_comb!(STRUCT_KEYWORD, StructKeyword);
+
     node_comb!(ID, Id);
 
     node_comb!(NUM, Num);
@@ -222,6 +225,10 @@ impl<'a> Comb<'a, TokenKind, Terminal, AstNode> {
     node_comb!(DECLARATION, Declaration);
 
     node_comb!(CONSTANT, Constant);
+
+    node_comb!(STRUCT_DECLARATION, StructDeclaration);
+
+    node_comb!(STRUCT_FIELD_DECLARATION, StructFieldDeclaration);
 }
 
 impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>
