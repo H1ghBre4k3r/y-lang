@@ -42,6 +42,7 @@ lazy_static! {
         terminal!(m, Colon, ":");
         terminal!(m, Comma, ",");
         terminal!(m, Dot, ".");
+        terminal!(m, ExclamationMark, "!");
         terminal!(m, SmallRightArrow, "->");
         terminal!(m, BigRightArrow, "=>");
         terminal!(m, Backslash, "\\");

@@ -148,4 +148,8 @@ pub enum TokenKind {
     StructKeyword {
         position: Position,
     },
+    #[terminal]
+    ExclamationMark {
+        position: Position,
+    },
 }

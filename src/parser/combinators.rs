@@ -177,6 +177,10 @@ impl<'a> Comb<'a, TokenKind, Terminal, AstNode> {
 
     terminal_comb!(RETURN_KEYWORD, ReturnKeyword);
 
+    terminal_comb!(MINUS, Minus);
+
+    terminal_comb!(EXCLAMATION_MARK, ExclamationMark);
+
     terminal_comb!(COLON, Colon);
 
     terminal_comb!(COMMA, Comma);
