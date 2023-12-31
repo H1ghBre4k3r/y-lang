@@ -6,6 +6,7 @@ mod if_expression;
 mod lambda;
 mod num;
 mod postfix;
+mod prefix;
 mod struct_initialisation;
 
 pub use self::array::*;
@@ -16,6 +17,7 @@ pub use self::if_expression::*;
 pub use self::lambda::*;
 pub use self::num::*;
 pub use self::postfix::*;
+pub use self::prefix::*;
 pub use self::struct_initialisation::*;
 
 use crate::lexer::Tokens;
@@ -49,6 +51,7 @@ pub enum Expression {
     Multiplication(Box<Expression>, Box<Expression>),
     Parens(Box<Expression>),
     Postfix(Postfix),
+    Prefix(Prefix),
     Comparison {
         lhs: Box<Expression>,
         rhs: Box<Expression>,
@@ -60,40 +63,67 @@ pub enum Expression {
 
 impl FromTokens<TokenKind> for Expression {
     fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
-        let mut expr = if let Some(TokenKind::LParen { .. }) = tokens.peek() {
-            let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
-            let result = matcher.parse(tokens)?;
-            let expr = match result.first() {
-                Some(AstNode::Expression(rhs)) => rhs.clone(),
-                None | Some(_) => unreachable!(),
-            };
-            Expression::Parens(Box::new(expr))
-        } else {
-            let matcher = Comb::FUNCTION
-                | Comb::IF
-                | Comb::NUM
-                | Comb::STRUCT_INITILISATION
-                | Comb::ID
-                | Comb::LAMBDA
-                | Comb::BLOCK
-                | Comb::ARRAY;
-            let result = matcher.parse(tokens)?;
-            match result.first() {
-                Some(AstNode::Id(id)) => Expression::Id(id.clone()),
-                Some(AstNode::Num(num)) => Expression::Num(num.clone()),
-                Some(AstNode::Function(func)) => {
-                    return Ok(Expression::Function(func.clone()).into())
+        let mut expr = match tokens.peek() {
+            Some(TokenKind::LParen { .. }) => {
+                let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
+                let result = matcher.parse(tokens)?;
+                let expr = match result.first() {
+                    Some(AstNode::Expression(rhs)) => rhs.clone(),
+                    None | Some(_) => unreachable!(),
+                };
+                Expression::Parens(Box::new(expr))
+            }
+            Some(TokenKind::Minus { .. }) => {
+                let matcher = Comb::MINUS >> Comb::EXPR;
+                let result = matcher.parse(tokens)?;
+
+                let Some(AstNode::Expression(expr)) = result.first() else {
+                    unreachable!();
+                };
+
+                Expression::Prefix(Prefix::Minus {
+                    expr: Box::new(expr.clone()),
+                })
+            }
+            Some(TokenKind::ExclamationMark { .. }) => {
+                let matcher = Comb::EXCLAMATION_MARK >> Comb::EXPR;
+                let result = matcher.parse(tokens)?;
+
+                let Some(AstNode::Expression(expr)) = result.first() else {
+                    unreachable!();
+                };
+
+                Expression::Prefix(Prefix::Negation {
+                    expr: Box::new(expr.clone()),
+                })
+            }
+            _ => {
+                let matcher = Comb::FUNCTION
+                    | Comb::IF
+                    | Comb::NUM
+                    | Comb::STRUCT_INITILISATION
+                    | Comb::ID
+                    | Comb::LAMBDA
+                    | Comb::BLOCK
+                    | Comb::ARRAY;
+                let result = matcher.parse(tokens)?;
+                match result.first() {
+                    Some(AstNode::Id(id)) => Expression::Id(id.clone()),
+                    Some(AstNode::Num(num)) => Expression::Num(num.clone()),
+                    Some(AstNode::Function(func)) => {
+                        return Ok(Expression::Function(func.clone()).into())
+                    }
+                    Some(AstNode::Lambda(lambda)) => {
+                        return Ok(Expression::Lambda(lambda.clone()).into())
+                    }
+                    Some(AstNode::If(if_expression)) => Expression::If(if_expression.clone()),
+                    Some(AstNode::Block(block)) => Expression::Block(block.clone()),
+                    Some(AstNode::Array(array)) => Expression::Array(array.clone()),
+                    Some(AstNode::StructInitialisation(initialisation)) => {
+                        Expression::StructInitialisation(initialisation.clone())
+                    }
+                    None | Some(_) => unreachable!(),
                 }
-                Some(AstNode::Lambda(lambda)) => {
-                    return Ok(Expression::Lambda(lambda.clone()).into())
-                }
-                Some(AstNode::If(if_expression)) => Expression::If(if_expression.clone()),
-                Some(AstNode::Block(block)) => Expression::Block(block.clone()),
-                Some(AstNode::Array(array)) => Expression::Array(array.clone()),
-                Some(AstNode::StructInitialisation(initialisation)) => {
-                    Expression::StructInitialisation(initialisation.clone())
-                }
-                None | Some(_) => unreachable!(),
             }
         };
 
@@ -583,6 +613,78 @@ mod tests {
                     args: vec![]
                 })),
                 property: Id("bar".into())
+            })
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn test_simple_minus() {
+        let mut tokens = Lexer::new("-42").lex().expect("something is wrong").into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::Prefix(Prefix::Minus {
+                expr: Box::new(Expression::Num(Num(42)))
+            })
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn test_complex_minus() {
+        let mut tokens = Lexer::new("-someFunction()")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::Prefix(Prefix::Minus {
+                expr: Box::new(Expression::Postfix(Postfix::Call {
+                    expr: Box::new(Expression::Id(Id("someFunction".into()))),
+                    args: vec![]
+                }))
+            })
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn test_simple_negation() {
+        let mut tokens = Lexer::new("!42").lex().expect("something is wrong").into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::Prefix(Prefix::Negation {
+                expr: Box::new(Expression::Num(Num(42)))
+            })
+            .into()),
+            result
+        );
+    }
+
+    #[test]
+    fn test_complex_negation() {
+        let mut tokens = Lexer::new("!someFunction()")
+            .lex()
+            .expect("something is wrong")
+            .into();
+
+        let result = Expression::parse(&mut tokens);
+
+        assert_eq!(
+            Ok(Expression::Prefix(Prefix::Negation {
+                expr: Box::new(Expression::Postfix(Postfix::Call {
+                    expr: Box::new(Expression::Id(Id("someFunction".into()))),
+                    args: vec![]
+                }))
             })
             .into()),
             result
