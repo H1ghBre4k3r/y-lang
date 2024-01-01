@@ -153,7 +153,7 @@ impl<'a> Comb<'a, TokenKind, Terminal, AstNode> {
 
     terminal_comb!(MUT, Mut);
 
-    terminal_comb!(EQ, Eq);
+    terminal_comb!(ASSIGN, Assign);
 
     terminal_comb!(LPAREN, LParen);
 
@@ -392,13 +392,13 @@ mod tests {
     #[test]
     fn test_sequence_simple() {
         let left = Comb::LET;
-        let right = Comb::EQ;
+        let right = Comb::ASSIGN;
         let new = left >> right;
 
         assert_eq!(
             Comb::Sequence {
                 current: Box::new(Comb::LET),
-                next: Box::new(Comb::EQ)
+                next: Box::new(Comb::ASSIGN)
             },
             new
         );
@@ -407,7 +407,7 @@ mod tests {
     #[test]
     fn test_sequence_complex() {
         let a = Comb::LET;
-        let b = Comb::EQ;
+        let b = Comb::ASSIGN;
         let c = Comb::SEMI;
         let new = a >> b >> c;
 
@@ -415,7 +415,7 @@ mod tests {
             Comb::Sequence {
                 current: Box::new(Comb::Sequence {
                     current: Box::new(Comb::LET),
-                    next: Box::new(Comb::EQ),
+                    next: Box::new(Comb::ASSIGN),
                 }),
                 next: Box::new(Comb::SEMI)
             },
@@ -426,13 +426,13 @@ mod tests {
     #[test]
     fn test_either_simple() {
         let left = Comb::LET;
-        let right = Comb::EQ;
+        let right = Comb::ASSIGN;
         let new = left | right;
 
         assert_eq!(
             Comb::Either {
                 left: Box::new(Comb::LET),
-                right: Box::new(Comb::EQ)
+                right: Box::new(Comb::ASSIGN)
             },
             new
         );
@@ -441,7 +441,7 @@ mod tests {
     #[test]
     fn test_either_complex() {
         let a = Comb::LET;
-        let b = Comb::EQ;
+        let b = Comb::ASSIGN;
         let c = Comb::SEMI;
         let new = a | b | c;
 
@@ -449,7 +449,7 @@ mod tests {
             Comb::Either {
                 left: Box::new(Comb::Either {
                     left: Box::new(Comb::LET),
-                    right: Box::new(Comb::EQ),
+                    right: Box::new(Comb::ASSIGN),
                 }),
                 right: Box::new(Comb::SEMI)
             },
@@ -482,7 +482,7 @@ mod tests {
     #[test]
     fn test_parse_optional_not_matching_terminal() {
         let a = !Comb::LET;
-        let mut tokens = vec![TokenKind::Eq { position: (0, 0) }].into();
+        let mut tokens = vec![TokenKind::Assign { position: (0, 0) }].into();
         let result = a.parse(&mut tokens);
 
         assert_eq!(Ok(vec![]), result);
@@ -557,7 +557,7 @@ mod tests {
         let mut tokens = vec![
             TokenKind::Let { position: (0, 0) },
             TokenKind::Let { position: (0, 0) },
-            TokenKind::Eq { position: (0, 0) },
+            TokenKind::Assign { position: (0, 0) },
             TokenKind::Let { position: (0, 0) },
             TokenKind::Let { position: (0, 0) },
         ]
@@ -572,7 +572,7 @@ mod tests {
         let mut tokens = vec![
             TokenKind::Let { position: (0, 0) },
             TokenKind::Let { position: (0, 0) },
-            TokenKind::Eq { position: (0, 0) },
+            TokenKind::Assign { position: (0, 0) },
             TokenKind::Let { position: (0, 0) },
             TokenKind::Let { position: (0, 0) },
         ]

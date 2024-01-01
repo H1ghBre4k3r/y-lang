@@ -15,7 +15,7 @@ pub struct Assignment {
 
 impl FromTokens<TokenKind> for Assignment {
     fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
-        let matcher = Comb::ID >> Comb::EQ >> Comb::EXPR;
+        let matcher = Comb::ID >> Comb::ASSIGN >> Comb::EXPR;
 
         let result = matcher.parse(tokens)?;
 

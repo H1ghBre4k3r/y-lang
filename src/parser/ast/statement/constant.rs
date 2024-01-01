@@ -21,7 +21,7 @@ impl FromTokens<TokenKind> for Constant {
     {
         Comb::CONST_KEYWORD.parse(tokens)?;
 
-        let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME >> Comb::EQ >> Comb::EXPR;
+        let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME >> Comb::ASSIGN >> Comb::EXPR;
 
         let result = matcher.parse(tokens)?;
 

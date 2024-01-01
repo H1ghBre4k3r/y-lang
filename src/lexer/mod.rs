@@ -20,7 +20,7 @@ lazy_static! {
     static ref LEX_MAP: LexMap = {
         let mut m = LexMap::default();
 
-        terminal!(m, Eq, "=");
+        terminal!(m, Assign, "=");
         terminal!(m, Let, "let");
         terminal!(m, Const, "const");
         terminal!(m, Mut, "mut");
@@ -304,7 +304,7 @@ mod tests {
                     value: "foo".into(),
                     position: (0, 0)
                 },
-                TokenKind::Eq { position: (0, 0) },
+                TokenKind::Assign { position: (0, 0) },
                 TokenKind::Num {
                     value: 42,
                     position: (0, 0)

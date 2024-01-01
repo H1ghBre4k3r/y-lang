@@ -5,7 +5,7 @@ type Position = (usize, usize);
 #[derive(Debug, Clone, ParseToken, LooseEq)]
 pub enum TokenKind {
     #[terminal]
-    Eq {
+    Assign {
         position: Position,
     },
     #[terminal]
