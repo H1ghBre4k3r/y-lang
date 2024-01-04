@@ -1,0 +1,24 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "semantic-release-cargo",
+      {
+        "allFeatures": true,
+        "check": true,
+        "checkArgs": ["--no-deps"],
+        "publishArgs": ["--no-verify"]
+      }
+    ],
+    "@semantic-release/github",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "set-version ${nextRelease.version}",
+        "publishCmd": "publish-package"
+      }
+    ]
+  ]
+}
