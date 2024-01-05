@@ -23,7 +23,7 @@ pub use self::struct_initialisation::*;
 use crate::lexer::Tokens;
 use crate::parser::combinators::Comb;
 use crate::{
-    lexer::TokenKind,
+    lexer::Token,
     parser::{FromTokens, ParseError},
 };
 
@@ -61,10 +61,10 @@ pub enum Expression {
     StructInitialisation(StructInitialisation),
 }
 
-impl FromTokens<TokenKind> for Expression {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+impl FromTokens<Token> for Expression {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let mut expr = match tokens.peek() {
-            Some(TokenKind::LParen { .. }) => {
+            Some(Token::LParen { .. }) => {
                 let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
                 let result = matcher.parse(tokens)?;
                 let expr = match result.first() {
@@ -73,7 +73,7 @@ impl FromTokens<TokenKind> for Expression {
                 };
                 Expression::Parens(Box::new(expr))
             }
-            Some(TokenKind::Minus { .. }) => {
+            Some(Token::Minus { .. }) => {
                 let matcher = Comb::MINUS >> Comb::EXPR;
                 let result = matcher.parse(tokens)?;
 
@@ -85,7 +85,7 @@ impl FromTokens<TokenKind> for Expression {
                     expr: Box::new(expr.clone()),
                 })
             }
-            Some(TokenKind::ExclamationMark { .. }) => {
+            Some(Token::ExclamationMark { .. }) => {
                 let matcher = Comb::EXCLAMATION_MARK >> Comb::EXPR;
                 let result = matcher.parse(tokens)?;
 
@@ -133,35 +133,35 @@ impl FromTokens<TokenKind> for Expression {
             };
 
             let tuple = match next {
-                TokenKind::Times { .. } => {
+                Token::Times { .. } => {
                     tokens.next();
                     Expression::Multiplication
                 }
-                TokenKind::Plus { .. } => {
+                Token::Plus { .. } => {
                     tokens.next();
                     Expression::Addition
                 }
-                TokenKind::Minus { .. } => {
+                Token::Minus { .. } => {
                     tokens.next();
                     Expression::Substraction
                 }
-                TokenKind::LParen { .. } => {
+                Token::LParen { .. } => {
                     expr = Expression::Postfix(Self::parse_call(expr, tokens)?);
                     continue;
                 }
-                TokenKind::LBracket { .. } => {
+                Token::LBracket { .. } => {
                     expr = Expression::Postfix(Self::parse_index(expr, tokens)?);
                     continue;
                 }
-                TokenKind::Dot { .. } => {
+                Token::Dot { .. } => {
                     expr = Expression::Postfix(Self::parse_property_access(expr, tokens)?);
                     continue;
                 }
-                TokenKind::Equal { .. }
-                | TokenKind::GreaterThan { .. }
-                | TokenKind::LessThan { .. }
-                | TokenKind::GreaterOrEqual { .. }
-                | TokenKind::LessOrEqual { .. } => {
+                Token::Equal { .. }
+                | Token::GreaterThan { .. }
+                | Token::LessThan { .. }
+                | Token::GreaterOrEqual { .. }
+                | Token::LessOrEqual { .. } => {
                     return Ok(Self::parse_comparison(expr, tokens)?.into());
                 }
                 _ => return Ok(expr.into()),
@@ -180,7 +180,7 @@ impl FromTokens<TokenKind> for Expression {
 }
 
 impl Expression {
-    fn parse_call(expr: Expression, tokens: &mut Tokens<TokenKind>) -> Result<Postfix, ParseError> {
+    fn parse_call(expr: Expression, tokens: &mut Tokens<Token>) -> Result<Postfix, ParseError> {
         let matcher = Comb::LPAREN >> (Comb::EXPR % Comb::COMMA) >> Comb::RPAREN;
 
         let result = matcher.parse(tokens)?.into_iter();
@@ -201,10 +201,7 @@ impl Expression {
         })
     }
 
-    fn parse_index(
-        expr: Expression,
-        tokens: &mut Tokens<TokenKind>,
-    ) -> Result<Postfix, ParseError> {
+    fn parse_index(expr: Expression, tokens: &mut Tokens<Token>) -> Result<Postfix, ParseError> {
         let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::RBRACKET;
 
         let result = matcher.parse(tokens)?;
@@ -221,7 +218,7 @@ impl Expression {
 
     fn parse_property_access(
         expr: Expression,
-        tokens: &mut Tokens<TokenKind>,
+        tokens: &mut Tokens<Token>,
     ) -> Result<Postfix, ParseError> {
         let matcher = Comb::DOT >> Comb::ID;
 
@@ -239,18 +236,18 @@ impl Expression {
 
     fn parse_comparison(
         lhs: Expression,
-        tokens: &mut Tokens<TokenKind>,
+        tokens: &mut Tokens<Token>,
     ) -> Result<Expression, ParseError> {
         let Some(next) = tokens.next() else {
             unreachable!()
         };
 
         let comparator = match next {
-            TokenKind::Equal { .. } => ComparisonOperation::Equals,
-            TokenKind::GreaterThan { .. } => ComparisonOperation::Greater,
-            TokenKind::LessThan { .. } => ComparisonOperation::Less,
-            TokenKind::GreaterOrEqual { .. } => ComparisonOperation::GreaterOrEquals,
-            TokenKind::LessOrEqual { .. } => ComparisonOperation::LessOrEquals,
+            Token::Equal { .. } => ComparisonOperation::Equals,
+            Token::GreaterThan { .. } => ComparisonOperation::Greater,
+            Token::LessThan { .. } => ComparisonOperation::Less,
+            Token::GreaterOrEqual { .. } => ComparisonOperation::GreaterOrEquals,
+            Token::LessOrEqual { .. } => ComparisonOperation::LessOrEquals,
             _ => unreachable!(),
         };
 
@@ -286,9 +283,9 @@ mod tests {
 
     #[test]
     fn test_parse_id() {
-        let tokens = vec![TokenKind::Id {
+        let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: (0, 0),
+            position: 0,
         }];
 
         assert_eq!(
@@ -299,9 +296,9 @@ mod tests {
 
     #[test]
     fn test_parse_num() {
-        let tokens = vec![TokenKind::Num {
+        let tokens = vec![Token::Integer {
             value: 42,
-            position: (0, 0),
+            position: 0,
         }];
 
         assert_eq!(

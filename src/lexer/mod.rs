@@ -1,112 +1,12 @@
 mod lexmap;
-mod token_kind;
+mod token;
 mod tokens;
 
 pub use lexmap::*;
-use regex::{Match, Regex};
-pub use token_kind::*;
+pub use token::*;
 pub use tokens::*;
 
 use std::{error::Error, fmt::Display};
-
-struct Lexikon {
-    entries: Vec<(Regex, Box<dyn Fn(Match) -> TokenKind>)>,
-}
-
-#[macro_export]
-macro_rules! terminal {
-    ($entries:ident, $name:ident, $value:expr) => {
-        Self::insert(
-            &mut $entries,
-            Regex::new(&$value.escape_unicode().to_string()).unwrap(),
-            |_| TokenKind::$name { position: (0, 0) },
-        );
-    };
-}
-
-#[macro_export]
-macro_rules! literal {
-    ($entries:ident, $name:ident, $value:expr) => {
-        Self::insert(&mut $entries, Regex::new($value).unwrap(), |matched| {
-            TokenKind::$name {
-                position: (0, 0),
-                value: matched.as_str().parse().unwrap(),
-            }
-        });
-    };
-}
-
-impl<'a> Lexikon {
-    pub fn new() -> Lexikon {
-        let mut m = vec![];
-
-        terminal!(m, Assign, "=");
-        terminal!(m, Let, "let");
-        terminal!(m, Const, "const");
-        terminal!(m, Mut, "mut");
-        terminal!(m, Semicolon, ";");
-        terminal!(m, Plus, "+");
-        terminal!(m, Minus, "-");
-        terminal!(m, Times, "*");
-        terminal!(m, LParen, "(");
-        terminal!(m, RParen, ")");
-        terminal!(m, LBrace, "{");
-        terminal!(m, RBrace, "}");
-        terminal!(m, LBracket, "[");
-        terminal!(m, RBracket, "]");
-        terminal!(m, FnKeyword, "fn");
-        terminal!(m, IfKeyword, "if");
-        terminal!(m, ElseKeyword, "else");
-        terminal!(m, WhileKeyword, "while");
-        terminal!(m, ReturnKeyword, "return");
-        terminal!(m, Colon, ":");
-        terminal!(m, Comma, ",");
-        terminal!(m, Dot, ".");
-        terminal!(m, ExclamationMark, "!");
-        terminal!(m, SmallRightArrow, "->");
-        terminal!(m, BigRightArrow, "=>");
-        terminal!(m, Backslash, "\\");
-        terminal!(m, Equal, "==");
-        terminal!(m, GreaterThan, ">");
-        terminal!(m, LessThan, "<");
-        terminal!(m, GreaterOrEqual, ">=");
-        terminal!(m, LessOrEqual, "<=");
-        terminal!(m, Ampersand, "&");
-        terminal!(m, DeclareKeyword, "declare");
-        terminal!(m, StructKeyword, "struct");
-
-        literal!(m, Id, "[a-zA-Z_][a-zA-Z0-9_]*");
-        literal!(m, Num, "[0-9]*");
-
-        Lexikon { entries: m }
-    }
-
-    fn insert<F: Fn(Match) -> TokenKind + 'static>(
-        entries: &mut Vec<(Regex, Box<dyn Fn(Match) -> TokenKind>)>,
-        reg: Regex,
-        f: F,
-    ) {
-        entries.push((reg, Box::new(f)))
-    }
-
-    pub fn find_longest_match(&self, pattern: &'a str) -> (usize, Option<TokenKind>) {
-        let mut longest = (0, None);
-
-        for (reg, mapper) in &self.entries {
-            let Some(res) = reg.captures_at(pattern, 0).and_then(|res| res.get(0)) else {
-                continue;
-            };
-
-            let len = res.len();
-
-            if len > longest.0 && res.start() == 0 {
-                longest = (len, Some(mapper(res)));
-            }
-        }
-
-        longest
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LexError(String);
@@ -122,7 +22,7 @@ impl Display for LexError {
 impl Error for LexError {}
 
 pub struct Lexer<'a> {
-    tokens: Vec<TokenKind>,
+    tokens: Vec<Token>,
     lexikon: Lexikon,
     position: usize,
     input: &'a str,
@@ -150,12 +50,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn lex(mut self) -> LexResult<Vec<TokenKind>> {
+    pub fn lex(mut self) -> LexResult<Vec<Token>> {
         while self.position != self.input.len() {
             self.eat_whitespace();
             let (len, res) = self
                 .lexikon
-                .find_longest_match(&self.input[self.position..])
+                .find_longest_match(&self.input[self.position..], self.position)
                 .clone();
 
             match res {
@@ -189,9 +89,9 @@ mod tests {
         let lexer = Lexer::new("letter");
 
         assert_eq!(
-            Ok(vec![TokenKind::Id {
+            Ok(vec![Token::Id {
                 value: "letter".into(),
-                position: (1, 1)
+                position: 0
             }]),
             lexer.lex()
         )
@@ -202,9 +102,9 @@ mod tests {
         let lexer = Lexer::new("1337");
 
         assert_eq!(
-            Ok(vec![TokenKind::Num {
+            Ok(vec![Token::Integer {
                 value: 1337,
-                position: (1, 1)
+                position: 0
             }]),
             lexer.lex()
         )
@@ -216,11 +116,11 @@ mod tests {
 
         assert_eq!(
             Ok(vec![
-                TokenKind::FnKeyword { position: (0, 0) },
-                TokenKind::LParen { position: (0, 0) },
-                TokenKind::RParen { position: (0, 0) },
-                TokenKind::LBrace { position: (0, 0) },
-                TokenKind::RBrace { position: (0, 0) }
+                Token::FnKeyword { position: 0 },
+                Token::LParen { position: 0 },
+                Token::RParen { position: 0 },
+                Token::LBrace { position: 0 },
+                Token::RBrace { position: 0 }
             ]),
             lexer.lex()
         );
@@ -232,17 +132,17 @@ mod tests {
 
         assert_eq!(
             Ok(vec![
-                TokenKind::Let { position: (0, 0) },
-                TokenKind::Id {
+                Token::Let { position: 0 },
+                Token::Id {
                     value: "foo".into(),
-                    position: (0, 0)
+                    position: 0
                 },
-                TokenKind::Assign { position: (0, 0) },
-                TokenKind::Num {
+                Token::Assign { position: 0 },
+                Token::Integer {
                     value: 42,
-                    position: (0, 0)
+                    position: 0
                 },
-                TokenKind::Semicolon { position: (0, 0) }
+                Token::Semicolon { position: 0 }
             ]),
             lexer.lex()
         );

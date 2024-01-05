@@ -1,5 +1,5 @@
 use crate::{
-    lexer::TokenKind,
+    lexer::Token,
     parser::{
         ast::{AstNode, Statement},
         combinators::Comb,
@@ -16,9 +16,9 @@ pub struct If {
     pub else_statements: Vec<Statement>,
 }
 
-impl FromTokens<TokenKind> for If {
+impl FromTokens<Token> for If {
     fn parse(
-        tokens: &mut crate::lexer::Tokens<TokenKind>,
+        tokens: &mut crate::lexer::Tokens<Token>,
     ) -> Result<crate::parser::ast::AstNode, crate::parser::ParseError> {
         let matcher = Comb::IF_KEYWORD
             >> Comb::LPAREN

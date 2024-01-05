@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{TokenKind, Tokens},
+    lexer::{Token, Tokens},
     parser::{
         ast::{AstNode, Id, TypeName},
         combinators::Comb,
@@ -13,8 +13,8 @@ pub struct Declaration {
     pub type_name: TypeName,
 }
 
-impl FromTokens<TokenKind> for Declaration {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+impl FromTokens<Token> for Declaration {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::DECLARE_KEYWORD >> Comb::ID >> Comb::COLON >> Comb::TYPE_NAME;
 
         let result = matcher.parse(tokens)?;
