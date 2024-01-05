@@ -1,4 +1,4 @@
-# Pesca Parser
+# Pesca Lang
 
 > **Attention:** Everything in this project is subject to change! The documentation of the code is nearly non-existent. Furthermore, the currently executable does nothing really useful.
 
@@ -10,27 +10,27 @@ Ok, jokes aside: This is just a small project to "restart" my programming langua
 
 # Language
 
-*Note:* This language specification is subject to change and far from complete! 
+_Note:_ This language specification is subject to change and far from complete!
 
-Here are my thoughts on the syntax of the language :) 
+Here are my thoughts on the syntax of the language :)
 
 ## Expressions
 
 Everything is an expression. Well, almost everything. There are some things which are no expressions, e.g., statements. For statements, see a later section.
 
-A very basic expression is this: 
+A very basic expression is this:
 
 ```
 17 + 25
 ```
 
-Even this is an expression: 
+Even this is an expression:
 
 ```
 1337
 ```
 
-Or this: 
+Or this:
 
 ```
 "foo"
@@ -38,17 +38,17 @@ Or this:
 
 ### Variables
 
-You can assign values to variables: 
+You can assign values to variables:
 
 ```
 let foo = 42;
 ```
 
-Aside from these simple expressions, we also have more...complicated expressions. 
+Aside from these simple expressions, we also have more...complicated expressions.
 
 ### Control Flow
 
-To control the flow of your program, you can utilize several control flow constructs. 
+To control the flow of your program, you can utilize several control flow constructs.
 
 #### If-expressions
 
@@ -56,15 +56,15 @@ Whoop whoop, the basic foundations of every sane programming language: `if`-`els
 
 ```
 if someCondition {
-    42 
+    42
 } else {
     1337
 }
 ```
 
-*Note:* Both arms _must have_ the same return type. If the return type of the `if` arm is `void`, the `else` arm _can_ be omitted.
+_Note:_ Both arms _must have_ the same return type. If the return type of the `if` arm is `void`, the `else` arm _can_ be omitted.
 
-#### Match 
+#### Match
 
 A more advanced version of control flow is the `match` expression. It is like `switch` from other languages. But on steriods.
 
@@ -72,14 +72,14 @@ A more advanced version of control flow is the `match` expression. It is like `s
 match someValue {
     42 => doSomething()
     1337 => doSomethingElse()
-    _ => doSomethingVeryDifferent() 
+    _ => doSomethingVeryDifferent()
     ^-- this is a wildcard
 }
 ```
 
 You may notice the weird strings with `()` after them - these are function calls. We get to them at a later point.
 
-To make matters even more interesting, you can also bind variables to matches: 
+To make matters even more interesting, you can also bind variables to matches:
 
 ```
 match x in someFunction(x) {
@@ -99,13 +99,13 @@ fn add(x: i32, y: i32): i32 {
 }
 ```
 
-Additionally, you can define functions as lambdas: 
+Additionally, you can define functions as lambdas:
 
 ```
 let add: (i32, i32) -> i32 = \(x, y) => x + y;
 ```
 
-Note, how we have to explicitly annotate the type of the function at the variable. Although, it might seem to very verbose, lambdas are very usefull, when passing function as arguments to other functions: 
+Note, how we have to explicitly annotate the type of the function at the variable. Although, it might seem to very verbose, lambdas are very usefull, when passing function as arguments to other functions:
 
 ```
 fn foo(func: (i32, i32) -> i32): i32 {
@@ -115,16 +115,17 @@ fn foo(func: (i32, i32) -> i32): i32 {
 let bar = foo(\(x, y) => x + y));
 ```
 
-Furthermore, you can assign functions to variables: 
+Furthermore, you can assign functions to variables:
 
 ```
 let add = fn (x: i32, y: i32): i32 {
     return x + y;
 }
 ```
+
 ... I would not recommend this way. ^^
 
-BUT, you can also assign _existing_ functions to variables (or use them as parameters, etc.): 
+BUT, you can also assign _existing_ functions to variables (or use them as parameters, etc.):
 
 ```
 fn add(x: i32, y: i32): i32 {
