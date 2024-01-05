@@ -3,26 +3,28 @@ use crate::{
     parser::{ast::AstNode, FromTokens, ParseError},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Num(pub u64);
+#[derive(Debug, Clone, PartialEq)]
+pub enum Num {
+    Integer(u64),
+    FloatingPoint(f64),
+}
+
+impl Eq for Num {}
 
 impl FromTokens<Token> for Num {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
-        let value = match tokens.next() {
-            Some(Token::Integer { value, .. }) => value,
-            Some(token) => {
-                return Err(ParseError {
-                    message: "Tried to parse Num from non Num token".into(),
-                    position: Some(token.position()),
-                })
-            }
-            None => return Err(ParseError::eof("Id")),
-        };
-
-        Ok(Num(value).into())
+        match tokens.next() {
+            Some(Token::Integer { value, .. }) => Ok(Num::Integer(value).into()),
+            Some(Token::FloatingPoint { value, .. }) => Ok(Num::FloatingPoint(value).into()),
+            Some(token) => Err(ParseError {
+                message: "Tried to parse Num from non Num token".into(),
+                position: Some(token.position()),
+            }),
+            None => Err(ParseError::eof("Id")),
+        }
     }
 }
 
@@ -34,6 +36,8 @@ impl From<Num> for AstNode {
 
 #[cfg(test)]
 mod tests {
+    use crate::lexer::Lexer;
+
     use super::*;
 
     #[test]
@@ -42,7 +46,10 @@ mod tests {
             value: 42,
             position: 0,
         }];
-        assert_eq!(Num::parse(&mut tokens.into()), Ok(AstNode::Num(Num(42))));
+        assert_eq!(
+            Num::parse(&mut tokens.into()),
+            Ok(AstNode::Num(Num::Integer(42)))
+        );
     }
 
     #[test]
@@ -58,5 +65,14 @@ mod tests {
     fn test_error_on_eof() {
         let tokens = vec![];
         assert!(Num::parse(&mut tokens.into()).is_err());
+    }
+
+    #[test]
+    fn test_parse_floatingpoint() {
+        let mut tokens = Lexer::new("1337.42").lex().expect("should work").into();
+
+        let result = Num::parse(&mut tokens);
+
+        assert_eq!(Ok(Num::FloatingPoint(1337.42).into()), result);
     }
 }

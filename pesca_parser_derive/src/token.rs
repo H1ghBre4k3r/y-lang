@@ -52,7 +52,6 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    // TODO: use this variants in a way to automatically parse them.
     let literal_variants_tuples = variants
         .clone()
         .into_iter()

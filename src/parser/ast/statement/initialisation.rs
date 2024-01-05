@@ -91,7 +91,7 @@ mod tests {
                 id: Id("foo".into()),
                 mutable: false,
                 type_name: None,
-                value: Expression::Num(Num(42))
+                value: Expression::Num(Num::Integer(42))
             }
             .into()),
             result
@@ -112,7 +112,7 @@ mod tests {
                 id: Id("foo".into()),
                 mutable: false,
                 type_name: Some(TypeName::Literal("i32".into())),
-                value: Expression::Num(Num(42))
+                value: Expression::Num(Num::Integer(42))
             }
             .into()),
             result
@@ -133,7 +133,7 @@ mod tests {
                 id: Id("foo".into()),
                 mutable: true,
                 type_name: None,
-                value: Expression::Num(Num(42))
+                value: Expression::Num(Num::Integer(42))
             }
             .into()),
             result

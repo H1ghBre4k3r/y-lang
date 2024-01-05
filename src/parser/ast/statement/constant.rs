@@ -71,7 +71,7 @@ mod tests {
             Ok(Constant {
                 id: Id("foo".into()),
                 type_name: TypeName::Literal("i32".into()),
-                value: Expression::Num(Num(42))
+                value: Expression::Num(Num::Integer(42))
             }
             .into()),
             result

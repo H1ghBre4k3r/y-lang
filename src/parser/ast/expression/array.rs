@@ -88,7 +88,10 @@ mod tests {
         let result = Array::parse(&mut tokens);
         assert_eq!(
             Ok(Array::Literal {
-                values: vec![Expression::Num(Num(42)), Expression::Num(Num(1337))]
+                values: vec![
+                    Expression::Num(Num::Integer(42)),
+                    Expression::Num(Num::Integer(1337))
+                ]
             }
             .into()),
             result
@@ -105,8 +108,8 @@ mod tests {
         let result = Array::parse(&mut tokens);
         assert_eq!(
             Ok(Array::Default {
-                initial_value: Box::new(Expression::Num(Num(42))),
-                length: Num(5)
+                initial_value: Box::new(Expression::Num(Num::Integer(42))),
+                length: Num::Integer(5)
             }
             .into()),
             result

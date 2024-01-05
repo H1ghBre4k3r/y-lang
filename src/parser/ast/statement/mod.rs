@@ -206,7 +206,7 @@ mod tests {
             Ok(Statement::Constant(Constant {
                 id: Id("foo".into()),
                 type_name: TypeName::Literal("i32".into()),
-                value: Expression::Num(Num(42))
+                value: Expression::Num(Num::Integer(42))
             })
             .into()),
             result
@@ -220,7 +220,7 @@ mod tests {
         let result = Statement::parse(&mut tokens);
 
         assert_eq!(
-            Ok(Statement::Return(Expression::Num(Num(42))).into()),
+            Ok(Statement::Return(Expression::Num(Num::Integer(42))).into()),
             result
         );
     }
@@ -238,12 +238,12 @@ mod tests {
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
                 statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(3))),
-                    Box::new(Expression::Num(Num(4)))
+                    Box::new(Expression::Num(Num::Integer(3))),
+                    Box::new(Expression::Num(Num::Integer(4)))
                 ))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(42))),
-                    Box::new(Expression::Num(Num(1337)))
+                    Box::new(Expression::Num(Num::Integer(42))),
+                    Box::new(Expression::Num(Num::Integer(1337)))
                 ))],
             })
             .into()),
@@ -264,12 +264,12 @@ mod tests {
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
                 statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(3))),
-                    Box::new(Expression::Num(Num(4)))
+                    Box::new(Expression::Num(Num::Integer(3))),
+                    Box::new(Expression::Num(Num::Integer(4)))
                 ))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(42))),
-                    Box::new(Expression::Num(Num(1337)))
+                    Box::new(Expression::Num(Num::Integer(42))),
+                    Box::new(Expression::Num(Num::Integer(1337)))
                 ))],
             })
             .into()),
@@ -290,12 +290,12 @@ mod tests {
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
                 statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(3))),
-                    Box::new(Expression::Num(Num(4)))
+                    Box::new(Expression::Num(Num::Integer(3))),
+                    Box::new(Expression::Num(Num::Integer(4)))
                 ))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(42))),
-                    Box::new(Expression::Num(Num(1337)))
+                    Box::new(Expression::Num(Num::Integer(42))),
+                    Box::new(Expression::Num(Num::Integer(1337)))
                 ))],
             })
             .into()),
@@ -312,7 +312,7 @@ mod tests {
         assert_eq!(
             Ok(Statement::Assignment(Assignment {
                 id: Id("x".into()),
-                value: Expression::Num(Num(42))
+                value: Expression::Num(Num::Integer(42))
             })
             .into()),
             result

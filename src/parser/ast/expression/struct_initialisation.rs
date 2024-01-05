@@ -98,7 +98,7 @@ mod tests {
         assert_eq!(
             Ok(StructFieldInitialisation {
                 name: Id("bar".into()),
-                value: Expression::Num(Num(42))
+                value: Expression::Num(Num::Integer(42))
             }
             .into()),
             result
@@ -138,7 +138,7 @@ mod tests {
                 id: Id("Foo".into()),
                 fields: vec![StructFieldInitialisation {
                     name: Id("bar".into()),
-                    value: Expression::Num(Num(42))
+                    value: Expression::Num(Num::Integer(42))
                 }]
             }
             .into()),
@@ -161,7 +161,7 @@ mod tests {
                 fields: vec![
                     StructFieldInitialisation {
                         name: Id("bar".into()),
-                        value: Expression::Num(Num(42))
+                        value: Expression::Num(Num::Integer(42))
                     },
                     StructFieldInitialisation {
                         name: Id("baz".into()),
