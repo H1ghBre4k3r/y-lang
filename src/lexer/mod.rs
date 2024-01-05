@@ -3,22 +3,42 @@ mod token_kind;
 mod tokens;
 
 pub use lexmap::*;
+use regex::{Match, Regex};
 pub use token_kind::*;
 pub use tokens::*;
 
-use lazy_static::lazy_static;
-use std::{error::Error, fmt::Display, iter::Peekable, str::Chars};
+use std::{error::Error, fmt::Display};
+
+struct Lexikon {
+    entries: Vec<(Regex, Box<dyn Fn(Match) -> TokenKind>)>,
+}
 
 #[macro_export]
 macro_rules! terminal {
-    ($map:ident, $name:ident, $value:expr) => {
-        $map.insert($value, Terminal::$name);
+    ($entries:ident, $name:ident, $value:expr) => {
+        Self::insert(
+            &mut $entries,
+            Regex::new(&$value.escape_unicode().to_string()).unwrap(),
+            |_| TokenKind::$name { position: (0, 0) },
+        );
     };
 }
 
-lazy_static! {
-    static ref LEX_MAP: LexMap = {
-        let mut m = LexMap::default();
+#[macro_export]
+macro_rules! literal {
+    ($entries:ident, $name:ident, $value:expr) => {
+        Self::insert(&mut $entries, Regex::new($value).unwrap(), |matched| {
+            TokenKind::$name {
+                position: (0, 0),
+                value: matched.as_str().parse().unwrap(),
+            }
+        });
+    };
+}
+
+impl<'a> Lexikon {
+    pub fn new() -> Lexikon {
+        let mut m = vec![];
 
         terminal!(m, Assign, "=");
         terminal!(m, Let, "let");
@@ -55,8 +75,37 @@ lazy_static! {
         terminal!(m, DeclareKeyword, "declare");
         terminal!(m, StructKeyword, "struct");
 
-        m
-    };
+        literal!(m, Id, "[a-zA-Z_][a-zA-Z0-9_]*");
+        literal!(m, Num, "[0-9]*");
+
+        Lexikon { entries: m }
+    }
+
+    fn insert<F: Fn(Match) -> TokenKind + 'static>(
+        entries: &mut Vec<(Regex, Box<dyn Fn(Match) -> TokenKind>)>,
+        reg: Regex,
+        f: F,
+    ) {
+        entries.push((reg, Box::new(f)))
+    }
+
+    pub fn find_longest_match(&self, pattern: &'a str) -> (usize, Option<TokenKind>) {
+        let mut longest = (0, None);
+
+        for (reg, mapper) in &self.entries {
+            let Some(res) = reg.captures_at(pattern, 0).and_then(|res| res.get(0)) else {
+                continue;
+            };
+
+            let len = res.len();
+
+            if len > longest.0 && res.start() == 0 {
+                longest = (len, Some(mapper(res)));
+            }
+        }
+
+        longest
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,178 +121,62 @@ impl Display for LexError {
 
 impl Error for LexError {}
 
-#[derive(Debug, Clone)]
 pub struct Lexer<'a> {
     tokens: Vec<TokenKind>,
-    iterator: Peekable<Chars<'a>>,
-    line: usize,
-    col: usize,
+    lexikon: Lexikon,
+    position: usize,
+    input: &'a str,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
-        let iterator = input.chars().peekable();
-
         Self {
             tokens: vec![],
-            iterator,
-            line: 1,
-            col: 1,
+            lexikon: Lexikon::new(),
+            position: 0,
+            input,
         }
     }
 
-    fn peek(&mut self) -> Option<&char> {
-        self.iterator.peek()
-    }
-
-    fn next(&mut self) -> Option<char> {
-        self.iterator.next()
-    }
-
-    fn next_if(&mut self, func: impl FnOnce(&char) -> bool) -> Option<char> {
-        self.iterator.next_if(func)
-    }
-
     fn eat_whitespace(&mut self) {
-        while let Some(next) = self.next_if(|item| item.is_whitespace()) {
-            match next {
-                ' ' | '\t' => self.col += 1,
-                '\n' => {
-                    self.col = 1;
-                    self.line += 1;
-                }
-                _ => {}
-            }
+        while self
+            .input
+            .as_bytes()
+            .get(self.position)
+            .map(|c| c.is_ascii_whitespace())
+            .unwrap_or(false)
+        {
+            self.position += 1;
         }
     }
 
     pub fn lex(mut self) -> LexResult<Vec<TokenKind>> {
-        self.lex_internal()?;
+        while self.position != self.input.len() {
+            self.eat_whitespace();
+            let (len, res) = self
+                .lexikon
+                .find_longest_match(&self.input[self.position..])
+                .clone();
+
+            match res {
+                Some(t) => self.tokens.push(t),
+                None => {
+                    if self.position == self.input.len() {
+                        return Ok(self.tokens);
+                    } else {
+                        panic!(
+                            "Failed to lex '{}' at position {}; remaining '{}'",
+                            self.input,
+                            self.position,
+                            &self.input[self.position..]
+                        );
+                    }
+                }
+            };
+            self.position += len;
+        }
 
         Ok(self.tokens)
-    }
-
-    pub fn lex_internal(&mut self) -> LexResult<()> {
-        self.eat_whitespace();
-
-        let Some(next) = self.peek() else {
-            return Ok(());
-        };
-
-        match next {
-            'a'..='z' | 'A'..='Z' | '_' => self.lex_alphanumeric()?,
-            '0'..='9' => self.lex_numeric()?,
-            _ => self.lex_special()?,
-        };
-
-        Ok(())
-    }
-
-    fn lex_comment(&mut self) -> LexResult<()> {
-        assert_eq!(Some('/'), self.next());
-
-        let mut stack = vec![];
-        let position = (self.line, self.col);
-
-        while let Some(next) = self.next_if(|c| *c != '\n') {
-            stack.push(next);
-        }
-
-        self.tokens.push(TokenKind::Comment {
-            value: stack.iter().collect(),
-            position,
-        });
-
-        self.lex_internal()
-    }
-
-    fn lex_special(&mut self) -> LexResult<()> {
-        let mut stack = vec![];
-
-        let position = (self.line, self.col);
-
-        while let Some(next) = self.next() {
-            if next == '/' && stack.is_empty() {
-                return self.lex_comment();
-            }
-
-            self.col += 1;
-            stack.push(next);
-
-            let read = stack.iter().collect::<String>();
-
-            let can_read_next = self
-                .peek()
-                .map(|item| {
-                    let mut stack = stack.clone();
-                    stack.push(*item);
-                    let read = stack.iter().collect::<String>();
-                    LEX_MAP.can_match(read.as_str())
-                })
-                .unwrap_or(false);
-
-            if can_read_next {
-                continue;
-            }
-
-            let Some(current_match) = LEX_MAP.get(read.as_str()) else {
-                return Err(LexError(format!("failed to lex '{read}'")));
-            };
-
-            self.tokens.push(current_match.to_token(position));
-            break;
-        }
-
-        self.lex_internal()
-    }
-
-    fn lex_alphanumeric(&mut self) -> LexResult<()> {
-        let mut stack = vec![];
-
-        let position = (self.line, self.col);
-
-        while let Some(next) = self.next_if(|item| item.is_alphanumeric() || *item == '_') {
-            self.col += 1;
-            stack.push(next);
-        }
-
-        let read = stack.iter().collect::<String>();
-
-        if let Some(token) = LEX_MAP.get(read.as_str()) {
-            self.tokens.push(token.to_token(position));
-        } else {
-            self.tokens.push(TokenKind::Id {
-                value: read,
-                position,
-            })
-        }
-
-        self.lex_internal()
-    }
-
-    fn lex_numeric(&mut self) -> LexResult<()> {
-        let mut stack = vec![];
-
-        let position = (self.line, self.col);
-
-        while let Some(next) = self.next_if(|item| item.is_numeric()) {
-            self.col += 1;
-            stack.push(next)
-        }
-
-        let read = stack.iter().collect::<String>();
-
-        let num = read
-            .parse::<u64>()
-            .map(|num| TokenKind::Num {
-                value: num,
-                position,
-            })
-            .map_err(|_| LexError("failed to parse numeric".into()))?;
-
-        self.tokens.push(num);
-
-        self.lex_internal()
     }
 }
 
