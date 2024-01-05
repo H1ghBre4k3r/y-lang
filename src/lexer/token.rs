@@ -17,6 +17,8 @@ pub enum Token {
     Id { value: String, position: Position },
     #[literal("[0-9]+")]
     Integer { value: u64, position: Position },
+    #[literal("[0-9]+\\.[0-9]+")]
+    FloatingPoint { value: f64, position: Position },
     #[terminal(";")]
     Semicolon { position: Position },
     #[literal("//.*")]

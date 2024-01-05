@@ -92,7 +92,7 @@ mod tests {
                     Statement::Initialization(Initialisation {
                         id: Id("a".into()),
                         mutable: false,
-                        value: Expression::Num(Num(42)),
+                        value: Expression::Num(Num::Integer(42)),
                         type_name: None
                     },),
                     Statement::YieldingExpression(Expression::Id(Id("a".into())))

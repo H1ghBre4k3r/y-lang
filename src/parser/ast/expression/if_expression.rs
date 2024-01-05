@@ -123,8 +123,8 @@ mod tests {
             Ok(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
                 statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(3))),
-                    Box::new(Expression::Num(Num(4)))
+                    Box::new(Expression::Num(Num::Integer(3))),
+                    Box::new(Expression::Num(Num::Integer(4)))
                 ))],
                 else_statements: vec![]
             }
@@ -144,12 +144,12 @@ mod tests {
             Ok(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
                 statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(3))),
-                    Box::new(Expression::Num(Num(4)))
+                    Box::new(Expression::Num(Num::Integer(3))),
+                    Box::new(Expression::Num(Num::Integer(4)))
                 ))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(42))),
-                    Box::new(Expression::Num(Num(1337)))
+                    Box::new(Expression::Num(Num::Integer(42))),
+                    Box::new(Expression::Num(Num::Integer(1337)))
                 ))],
             }
             .into()),

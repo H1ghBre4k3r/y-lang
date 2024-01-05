@@ -303,7 +303,7 @@ mod tests {
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
-            Ok(AstNode::Expression(Expression::Num(Num(42))))
+            Ok(AstNode::Expression(Expression::Num(Num::Integer(42))))
         )
     }
 
@@ -377,7 +377,7 @@ mod tests {
         assert_eq!(
             Ok(Expression::Lambda(Lambda {
                 parameters: vec![],
-                expression: Box::new(Expression::Num(Num(42)))
+                expression: Box::new(Expression::Num(Num::Integer(42)))
             })
             .into()),
             result
@@ -428,12 +428,12 @@ mod tests {
             Ok(Expression::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
                 statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(3))),
-                    Box::new(Expression::Num(Num(4)))
+                    Box::new(Expression::Num(Num::Integer(3))),
+                    Box::new(Expression::Num(Num::Integer(4)))
                 ))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num(42))),
-                    Box::new(Expression::Num(Num(1337)))
+                    Box::new(Expression::Num(Num::Integer(42))),
+                    Box::new(Expression::Num(Num::Integer(1337)))
                 ))],
             })
             .into()),
@@ -484,7 +484,10 @@ mod tests {
                         Box::new(Expression::Id(Id("y".into())))
                     ))
                 })))),
-                args: vec![Expression::Num(Num(42)), Expression::Num(Num(1337))]
+                args: vec![
+                    Expression::Num(Num::Integer(42)),
+                    Expression::Num(Num::Integer(1337))
+                ]
             })
             .into()),
             result
@@ -512,7 +515,10 @@ mod tests {
         let result = Expression::parse(&mut tokens);
         assert_eq!(
             Ok(Expression::Array(Array::Literal {
-                values: vec![Expression::Num(Num(42)), Expression::Num(Num(1337))]
+                values: vec![
+                    Expression::Num(Num::Integer(42)),
+                    Expression::Num(Num::Integer(1337))
+                ]
             })
             .into()),
             result
@@ -531,7 +537,7 @@ mod tests {
         assert_eq!(
             Ok(Expression::Postfix(Postfix::Index {
                 expr: Box::new(Expression::Id(Id("foo".into()))),
-                index: Box::new(Expression::Num(Num(42)))
+                index: Box::new(Expression::Num(Num::Integer(42)))
             })
             .into()),
             result
@@ -553,7 +559,7 @@ mod tests {
                 fields: vec![
                     StructFieldInitialisation {
                         name: Id("bar".into()),
-                        value: Expression::Num(Num(42))
+                        value: Expression::Num(Num::Integer(42))
                     },
                     StructFieldInitialisation {
                         name: Id("baz".into()),
@@ -624,7 +630,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Minus {
-                expr: Box::new(Expression::Num(Num(42)))
+                expr: Box::new(Expression::Num(Num::Integer(42)))
             })
             .into()),
             result
@@ -660,7 +666,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Negation {
-                expr: Box::new(Expression::Num(Num(42)))
+                expr: Box::new(Expression::Num(Num::Integer(42)))
             })
             .into()),
             result
