@@ -15,7 +15,7 @@ pub enum Token {
     Mut { position: Position },
     #[literal("[a-zA-Z_][a-zA-Z0-9_]*")]
     Id { value: String, position: Position },
-    #[literal("[0-9]*")]
+    #[literal("[0-9]+")]
     Integer { value: u64, position: Position },
     #[terminal(";")]
     Semicolon { position: Position },
