@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{TokenKind, Tokens},
+    lexer::{Token, Tokens},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError},
 };
 
@@ -11,8 +11,8 @@ pub struct Lambda {
     pub expression: Box<Expression>,
 }
 
-impl FromTokens<TokenKind> for Lambda {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+impl FromTokens<Token> for Lambda {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::BACKSLASH
             >> Comb::LPAREN
             // parameter list (optional)

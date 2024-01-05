@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{TokenKind, Tokens},
+    lexer::{Token, Tokens},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError},
 };
 
@@ -16,8 +16,8 @@ pub enum Array {
     },
 }
 
-impl FromTokens<TokenKind> for Array {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+impl FromTokens<Token> for Array {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let start = tokens.get_index();
         let matcher = Comb::LBRACKET >> (Comb::EXPR % Comb::COMMA) >> Comb::RBRACKET;
 

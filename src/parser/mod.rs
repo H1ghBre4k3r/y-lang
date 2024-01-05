@@ -3,14 +3,14 @@ use std::{error::Error, fmt::Display};
 mod ast;
 pub mod combinators;
 
-use crate::lexer::{TokenKind, Tokens};
+use crate::lexer::{Token, Tokens};
 
 use self::{ast::AstNode, combinators::Comb};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
     pub message: String,
-    pub position: Option<(usize, usize)>,
+    pub position: Option<usize>,
 }
 
 impl ParseError {
@@ -24,8 +24,8 @@ impl ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some((line, col)) = self.position {
-            f.write_fmt(format_args!("{} ({}:{})", self.message, line, col))
+        if let Some(pos) = self.position {
+            f.write_fmt(format_args!("{} ({})", self.message, pos))
         } else {
             f.write_str(&self.message)
         }
@@ -38,7 +38,7 @@ pub trait FromTokens<T> {
     fn parse(tokens: &mut Tokens<T>) -> Result<AstNode, ParseError>;
 }
 
-pub fn parse(tokens: &mut Tokens<TokenKind>) -> Result<Vec<AstNode>, Box<dyn Error>> {
+pub fn parse(tokens: &mut Tokens<Token>) -> Result<Vec<AstNode>, Box<dyn Error>> {
     let mut statements = vec![];
 
     let matcher = Comb::STATEMENT;

@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{TokenKind, Tokens},
+    lexer::{Token, Tokens},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError},
 };
 
@@ -11,8 +11,8 @@ pub struct StructInitialisation {
     pub fields: Vec<StructFieldInitialisation>,
 }
 
-impl FromTokens<TokenKind> for StructInitialisation {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+impl FromTokens<Token> for StructInitialisation {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID
             >> Comb::LBRACE
             >> (Comb::STRUCT_FIELD_INITIALISATION % Comb::COMMA)
@@ -46,8 +46,8 @@ pub struct StructFieldInitialisation {
     pub value: Expression,
 }
 
-impl FromTokens<TokenKind> for StructFieldInitialisation {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+impl FromTokens<Token> for StructFieldInitialisation {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID >> Comb::COLON >> Comb::EXPR;
 
         let result = matcher.parse(tokens)?;

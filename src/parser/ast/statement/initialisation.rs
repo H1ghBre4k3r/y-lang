@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{TokenKind, Tokens},
+    lexer::{Token, Tokens},
     parser::{
         ast::{AstNode, Expression, Id, TypeName},
         combinators::Comb,
@@ -15,14 +15,14 @@ pub struct Initialisation {
     pub value: Expression,
 }
 
-impl FromTokens<TokenKind> for Initialisation {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError>
+impl FromTokens<Token> for Initialisation {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
         Comb::LET.parse(tokens)?;
 
-        let mutable = matches!(tokens.peek(), Some(TokenKind::Mut { .. }));
+        let mutable = matches!(tokens.peek(), Some(Token::Mut { .. }));
 
         let matcher = !Comb::MUT
             >> Comb::ID

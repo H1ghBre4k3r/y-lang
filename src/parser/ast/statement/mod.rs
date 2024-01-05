@@ -13,7 +13,7 @@ pub use self::struct_declaration::*;
 pub use self::while_loop::*;
 
 use crate::{
-    lexer::{TokenKind, Tokens},
+    lexer::{Token, Tokens},
     parser::{combinators::Comb, FromTokens, ParseError},
 };
 
@@ -35,8 +35,8 @@ pub enum Statement {
     StructDeclaration(StructDeclaration),
 }
 
-impl FromTokens<TokenKind> for Statement {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError>
+impl FromTokens<Token> for Statement {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
@@ -45,7 +45,7 @@ impl FromTokens<TokenKind> for Statement {
         };
 
         match next {
-            TokenKind::IfKeyword { .. } => {
+            Token::IfKeyword { .. } => {
                 let matcher = Comb::IF >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -54,7 +54,7 @@ impl FromTokens<TokenKind> for Statement {
                 };
                 Ok(Statement::If(if_statement.clone()).into())
             }
-            TokenKind::FnKeyword { .. } => {
+            Token::FnKeyword { .. } => {
                 let matcher = Comb::FUNCTION >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -63,7 +63,7 @@ impl FromTokens<TokenKind> for Statement {
                 };
                 Ok(Statement::Function(function.clone()).into())
             }
-            TokenKind::WhileKeyword { .. } => {
+            Token::WhileKeyword { .. } => {
                 let matcher = Comb::WHILE_LOOP >> !Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -72,7 +72,7 @@ impl FromTokens<TokenKind> for Statement {
                 };
                 Ok(Statement::WhileLoop(while_loop_statement.clone()).into())
             }
-            TokenKind::Let { .. } => {
+            Token::Let { .. } => {
                 let matcher = Comb::INITIALISATION >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -81,7 +81,7 @@ impl FromTokens<TokenKind> for Statement {
                 };
                 Ok(Statement::Initialization(init.clone()).into())
             }
-            TokenKind::Const { .. } => {
+            Token::Const { .. } => {
                 let matcher = Comb::CONSTANT >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -90,7 +90,7 @@ impl FromTokens<TokenKind> for Statement {
                 };
                 Ok(Statement::Constant(constant.clone()).into())
             }
-            TokenKind::ReturnKeyword { .. } => {
+            Token::ReturnKeyword { .. } => {
                 let matcher = Comb::RETURN_KEYWORD >> Comb::EXPR >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -99,7 +99,7 @@ impl FromTokens<TokenKind> for Statement {
                 };
                 Ok(Statement::Return(expr.clone()).into())
             }
-            TokenKind::DeclareKeyword { .. } => {
+            Token::DeclareKeyword { .. } => {
                 let matcher = Comb::DECLARATION >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -108,11 +108,11 @@ impl FromTokens<TokenKind> for Statement {
                 };
                 Ok(Statement::Declaration(declaration).into())
             }
-            TokenKind::Comment { value, .. } => {
+            Token::Comment { value, .. } => {
                 tokens.next();
                 Ok(Statement::Comment(value).into())
             }
-            TokenKind::StructKeyword { .. } => {
+            Token::StructKeyword { .. } => {
                 let matcher = Comb::STRUCT_DECLARATION >> Comb::SEMI;
                 let result = matcher.parse(tokens)?;
 
@@ -140,7 +140,7 @@ impl FromTokens<TokenKind> for Statement {
 }
 
 impl Statement {
-    fn parse_assignment(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+    fn parse_assignment(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::ASSIGNMENT >> Comb::SEMI;
@@ -156,7 +156,7 @@ impl Statement {
         Ok(Statement::Assignment(assignment.clone()).into())
     }
 
-    fn parse_expression(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError> {
+    fn parse_expression(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::EXPR;
@@ -169,7 +169,7 @@ impl Statement {
             unreachable!()
         };
         match tokens.peek() {
-            Some(TokenKind::Semicolon { .. }) => {
+            Some(Token::Semicolon { .. }) => {
                 tokens.next();
                 Ok(Statement::Expression(expr.clone()).into())
             }

@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{TokenKind, Tokens},
+    lexer::{Token, Tokens},
     parser::{
         ast::{AstNode, Expression, Id, TypeName},
         combinators::Comb,
@@ -14,8 +14,8 @@ pub struct Constant {
     pub value: Expression,
 }
 
-impl FromTokens<TokenKind> for Constant {
-    fn parse(tokens: &mut Tokens<TokenKind>) -> Result<AstNode, ParseError>
+impl FromTokens<Token> for Constant {
+    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
