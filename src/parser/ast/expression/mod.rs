@@ -32,15 +32,6 @@ use crate::{
 use super::AstNode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ComparisonOperation {
-    Equals,
-    Greater,
-    Less,
-    GreaterOrEquals,
-    LessOrEquals,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     Id(Id),
     Num(Num),
@@ -48,17 +39,9 @@ pub enum Expression {
     Lambda(Lambda),
     If(If),
     Block(Block),
-    // Addition(Box<Expression>, Box<Expression>),
-    // Substraction(Box<Expression>, Box<Expression>),
-    // Multiplication(Box<Expression>, Box<Expression>),
     Parens(Box<Expression>),
     Postfix(Postfix),
     Prefix(Prefix),
-    // Comparison {
-    //     lhs: Box<Expression>,
-    //     rhs: Box<Expression>,
-    //     operation: ComparisonOperation,
-    // },
     Binary(Box<BinaryExpression>),
     Array(Array),
     StructInitialisation(StructInitialisation),
@@ -165,23 +148,6 @@ impl FromTokens<Token> for Expression {
 }
 
 impl Expression {
-    fn precedence(&self) -> usize {
-        match self {
-            Expression::Binary(binary) => binary.precedence(),
-            Expression::Id(_)
-            | Expression::Num(_)
-            | Expression::Function(_)
-            | Expression::Lambda(_)
-            | Expression::If(_)
-            | Expression::Block(_)
-            | Expression::Parens(_)
-            | Expression::Postfix(_)
-            | Expression::Prefix(_)
-            | Expression::Array(_)
-            | Expression::StructInitialisation(_) => 10,
-        }
-    }
-
     fn parse_call(expr: Expression, tokens: &mut Tokens<Token>) -> Result<Postfix, ParseError> {
         let matcher = Comb::LPAREN >> (Comb::EXPR % Comb::COMMA) >> Comb::RPAREN;
 
@@ -252,35 +218,15 @@ impl Expression {
             Token::Plus { .. } => BinaryExpression::Addition(lhs, rhs),
             Token::Minus { .. } => BinaryExpression::Substraction(lhs, rhs),
             Token::Times { .. } => BinaryExpression::Multiplication(lhs, rhs),
-            Token::Equal { .. } => BinaryExpression::Comparison {
-                lhs,
-                rhs,
-                operation: ComparisonOperation::Equals,
-            },
-            Token::GreaterThan { .. } => BinaryExpression::Comparison {
-                lhs,
-                rhs,
-                operation: ComparisonOperation::Greater,
-            },
-            Token::LessThan { .. } => BinaryExpression::Comparison {
-                lhs,
-                rhs,
-                operation: ComparisonOperation::Less,
-            },
-            Token::GreaterOrEqual { .. } => BinaryExpression::Comparison {
-                lhs,
-                rhs,
-                operation: ComparisonOperation::GreaterOrEquals,
-            },
-            Token::LessOrEqual { .. } => BinaryExpression::Comparison {
-                lhs,
-                rhs,
-                operation: ComparisonOperation::LessOrEquals,
-            },
+            Token::Equal { .. } => BinaryExpression::Equal(lhs, rhs),
+            Token::GreaterThan { .. } => BinaryExpression::GreaterThan(lhs, rhs),
+            Token::LessThan { .. } => BinaryExpression::LessThen(lhs, rhs),
+            Token::GreaterOrEqual { .. } => BinaryExpression::GreaterOrEqual(lhs, rhs),
+            Token::LessOrEqual { .. } => BinaryExpression::LessOrEqual(lhs, rhs),
             _ => unreachable!(),
         };
 
-        Ok(Expression::Binary(Box::new(binary)))
+        Ok(Expression::Binary(Box::new(binary.balance())))
     }
 }
 
