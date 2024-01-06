@@ -114,7 +114,10 @@ impl From<Parameter> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::Lexer, parser::ast::Expression};
+    use crate::{
+        lexer::Lexer,
+        parser::ast::{BinaryExpression, Expression},
+    };
 
     use super::*;
 
@@ -216,10 +219,12 @@ mod tests {
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
-                statements: vec![Statement::Return(Expression::Addition(
-                    Box::new(Expression::Id(Id("x".into()))),
-                    Box::new(Expression::Id(Id("y".into()))),
-                ))]
+                statements: vec![Statement::Return(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Id(Id("x".into())),
+                        Expression::Id(Id("y".into())),
+                    )
+                )))]
             }
             .into()),
             result
@@ -249,10 +254,12 @@ mod tests {
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
-                statements: vec![Statement::Return(Expression::Addition(
-                    Box::new(Expression::Id(Id("x".into()))),
-                    Box::new(Expression::Id(Id("y".into()))),
-                ))]
+                statements: vec![Statement::Return(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Id(Id("x".into())),
+                        Expression::Id(Id("y".into())),
+                    )
+                )))]
             }
             .into()),
             result
