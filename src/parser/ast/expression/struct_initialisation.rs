@@ -79,7 +79,7 @@ mod tests {
     use crate::{
         lexer::Lexer,
         parser::{
-            ast::{Expression, Id, Lambda, Num, Parameter},
+            ast::{BinaryExpression, Expression, Id, Lambda, Num, Parameter},
             FromTokens,
         },
     };
@@ -170,10 +170,12 @@ mod tests {
                                 name: Id("x".into()),
                                 type_name: None
                             }],
-                            expression: Box::new(Expression::Addition(
-                                Box::new(Expression::Id(Id("x".into()))),
-                                Box::new(Expression::Id(Id("x".into())))
-                            ))
+                            expression: Box::new(Expression::Binary(Box::new(
+                                BinaryExpression::Addition(
+                                    Expression::Id(Id("x".into())),
+                                    Expression::Id(Id("x".into()))
+                                )
+                            )))
                         })
                     }
                 ]

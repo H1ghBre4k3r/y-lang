@@ -54,7 +54,7 @@ impl From<Lambda> for AstNode {
 mod tests {
     use crate::{
         lexer::Lexer,
-        parser::ast::{Block, Id, Num, Statement},
+        parser::ast::{BinaryExpression, Block, Id, Num, Statement},
     };
 
     use super::*;
@@ -99,10 +99,10 @@ mod tests {
                         type_name: None
                     }
                 ],
-                expression: Box::new(Expression::Addition(
-                    Box::new(Expression::Id(Id("x".into()))),
-                    Box::new(Expression::Id(Id("y".into()))),
-                ))
+                expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition(
+                    Expression::Id(Id("x".into())),
+                    Expression::Id(Id("y".into())),
+                ))))
             }
             .into()),
             result

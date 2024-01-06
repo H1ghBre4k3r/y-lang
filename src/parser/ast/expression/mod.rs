@@ -1,4 +1,5 @@
 mod array;
+mod binary;
 mod block;
 mod function;
 mod id;
@@ -10,6 +11,7 @@ mod prefix;
 mod struct_initialisation;
 
 pub use self::array::*;
+pub use self::binary::*;
 pub use self::block::*;
 pub use self::function::*;
 pub use self::id::*;
@@ -46,17 +48,18 @@ pub enum Expression {
     Lambda(Lambda),
     If(If),
     Block(Block),
-    Addition(Box<Expression>, Box<Expression>),
-    Substraction(Box<Expression>, Box<Expression>),
-    Multiplication(Box<Expression>, Box<Expression>),
+    // Addition(Box<Expression>, Box<Expression>),
+    // Substraction(Box<Expression>, Box<Expression>),
+    // Multiplication(Box<Expression>, Box<Expression>),
     Parens(Box<Expression>),
     Postfix(Postfix),
     Prefix(Prefix),
-    Comparison {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-        operation: ComparisonOperation,
-    },
+    // Comparison {
+    //     lhs: Box<Expression>,
+    //     rhs: Box<Expression>,
+    //     operation: ComparisonOperation,
+    // },
+    Binary(Box<BinaryExpression>),
     Array(Array),
     StructInitialisation(StructInitialisation),
 }
@@ -132,19 +135,7 @@ impl FromTokens<Token> for Expression {
                 return Ok(expr.into());
             };
 
-            let tuple = match next {
-                Token::Times { .. } => {
-                    tokens.next();
-                    Expression::Multiplication
-                }
-                Token::Plus { .. } => {
-                    tokens.next();
-                    Expression::Addition
-                }
-                Token::Minus { .. } => {
-                    tokens.next();
-                    Expression::Substraction
-                }
+            match next {
                 Token::LParen { .. } => {
                     expr = Expression::Postfix(Self::parse_call(expr, tokens)?);
                     continue;
@@ -157,29 +148,40 @@ impl FromTokens<Token> for Expression {
                     expr = Expression::Postfix(Self::parse_property_access(expr, tokens)?);
                     continue;
                 }
-                Token::Equal { .. }
+                Token::Plus { .. }
+                | Token::Minus { .. }
+                | Token::Times { .. }
+                | Token::Equal { .. }
                 | Token::GreaterThan { .. }
                 | Token::LessThan { .. }
                 | Token::GreaterOrEqual { .. }
                 | Token::LessOrEqual { .. } => {
-                    return Ok(Self::parse_comparison(expr, tokens)?.into());
+                    return Ok(Self::parse_binary(expr, tokens)?.into());
                 }
                 _ => return Ok(expr.into()),
             };
-
-            let matcher = Comb::EXPR;
-            let result = matcher.parse(tokens)?;
-            let rhs = match result.first() {
-                Some(AstNode::Expression(rhs)) => rhs.clone(),
-                None | Some(_) => unreachable!(),
-            };
-
-            expr = tuple(Box::new(expr), Box::new(rhs))
         }
     }
 }
 
 impl Expression {
+    fn precedence(&self) -> usize {
+        match self {
+            Expression::Binary(binary) => binary.precedence(),
+            Expression::Id(_)
+            | Expression::Num(_)
+            | Expression::Function(_)
+            | Expression::Lambda(_)
+            | Expression::If(_)
+            | Expression::Block(_)
+            | Expression::Parens(_)
+            | Expression::Postfix(_)
+            | Expression::Prefix(_)
+            | Expression::Array(_)
+            | Expression::StructInitialisation(_) => 10,
+        }
+    }
+
     fn parse_call(expr: Expression, tokens: &mut Tokens<Token>) -> Result<Postfix, ParseError> {
         let matcher = Comb::LPAREN >> (Comb::EXPR % Comb::COMMA) >> Comb::RPAREN;
 
@@ -234,21 +236,9 @@ impl Expression {
         })
     }
 
-    fn parse_comparison(
-        lhs: Expression,
-        tokens: &mut Tokens<Token>,
-    ) -> Result<Expression, ParseError> {
-        let Some(next) = tokens.next() else {
+    fn parse_binary(lhs: Expression, tokens: &mut Tokens<Token>) -> Result<Expression, ParseError> {
+        let Some(operation) = tokens.next() else {
             unreachable!()
-        };
-
-        let comparator = match next {
-            Token::Equal { .. } => ComparisonOperation::Equals,
-            Token::GreaterThan { .. } => ComparisonOperation::Greater,
-            Token::LessThan { .. } => ComparisonOperation::Less,
-            Token::GreaterOrEqual { .. } => ComparisonOperation::GreaterOrEquals,
-            Token::LessOrEqual { .. } => ComparisonOperation::LessOrEquals,
-            _ => unreachable!(),
         };
 
         let matcher = Comb::EXPR;
@@ -258,11 +248,39 @@ impl Expression {
             None | Some(_) => unreachable!(),
         };
 
-        Ok(Expression::Comparison {
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-            operation: comparator,
-        })
+        let binary = match operation {
+            Token::Plus { .. } => BinaryExpression::Addition(lhs, rhs),
+            Token::Minus { .. } => BinaryExpression::Substraction(lhs, rhs),
+            Token::Times { .. } => BinaryExpression::Multiplication(lhs, rhs),
+            Token::Equal { .. } => BinaryExpression::Comparison {
+                lhs,
+                rhs,
+                operation: ComparisonOperation::Equals,
+            },
+            Token::GreaterThan { .. } => BinaryExpression::Comparison {
+                lhs,
+                rhs,
+                operation: ComparisonOperation::Greater,
+            },
+            Token::LessThan { .. } => BinaryExpression::Comparison {
+                lhs,
+                rhs,
+                operation: ComparisonOperation::Less,
+            },
+            Token::GreaterOrEqual { .. } => BinaryExpression::Comparison {
+                lhs,
+                rhs,
+                operation: ComparisonOperation::GreaterOrEquals,
+            },
+            Token::LessOrEqual { .. } => BinaryExpression::Comparison {
+                lhs,
+                rhs,
+                operation: ComparisonOperation::LessOrEquals,
+            },
+            _ => unreachable!(),
+        };
+
+        Ok(Expression::Binary(Box::new(binary)))
     }
 }
 
@@ -355,10 +373,12 @@ mod tests {
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
-                statements: vec![Statement::Return(Expression::Addition(
-                    Box::new(Expression::Id(Id("x".into()))),
-                    Box::new(Expression::Id(Id("y".into()))),
-                ))]
+                statements: vec![Statement::Return(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Id(Id("x".into())),
+                        Expression::Id(Id("y".into())),
+                    )
+                )))]
             })
             .into()),
             result
@@ -406,10 +426,12 @@ mod tests {
                     }
                 ],
                 expression: Box::new(Expression::Block(Block {
-                    statements: vec![Statement::YieldingExpression(Expression::Addition(
-                        Box::new(Expression::Id(Id("x".into()))),
-                        Box::new(Expression::Id(Id("y".into()))),
-                    ))]
+                    statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                        BinaryExpression::Addition(
+                            Expression::Id(Id("x".into())),
+                            Expression::Id(Id("y".into())),
+                        )
+                    )))]
                 }))
             })
             .into()),
@@ -427,14 +449,18 @@ mod tests {
         assert_eq!(
             Ok(Expression::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
-                statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(3))),
-                    Box::new(Expression::Num(Num::Integer(4)))
-                ))],
-                else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(42))),
-                    Box::new(Expression::Num(Num::Integer(1337)))
-                ))],
+                statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(3)),
+                        Expression::Num(Num::Integer(4))
+                    )
+                )))],
+                else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(42)),
+                        Expression::Num(Num::Integer(1337))
+                    )
+                )))],
             })
             .into()),
             Expression::parse(&mut tokens)
@@ -479,10 +505,10 @@ mod tests {
                             type_name: None
                         }
                     ],
-                    expression: Box::new(Expression::Addition(
-                        Box::new(Expression::Id(Id("x".into()))),
-                        Box::new(Expression::Id(Id("y".into())))
-                    ))
+                    expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition(
+                        Expression::Id(Id("x".into())),
+                        Expression::Id(Id("y".into()))
+                    ))))
                 })))),
                 args: vec![
                     Expression::Num(Num::Integer(42)),
@@ -568,10 +594,12 @@ mod tests {
                                 name: Id("x".into()),
                                 type_name: None
                             }],
-                            expression: Box::new(Expression::Addition(
-                                Box::new(Expression::Id(Id("x".into()))),
-                                Box::new(Expression::Id(Id("x".into())))
-                            ))
+                            expression: Box::new(Expression::Binary(Box::new(
+                                BinaryExpression::Addition(
+                                    Expression::Id(Id("x".into())),
+                                    Expression::Id(Id("x".into()))
+                                )
+                            )))
                         })
                     }
                 ]

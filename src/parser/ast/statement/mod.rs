@@ -188,7 +188,7 @@ impl From<Statement> for AstNode {
 mod tests {
     use crate::{
         lexer::Lexer,
-        parser::ast::{Id, Num, TypeName},
+        parser::ast::{BinaryExpression, Id, Num, TypeName},
     };
 
     use super::*;
@@ -237,14 +237,18 @@ mod tests {
         assert_eq!(
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
-                statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(3))),
-                    Box::new(Expression::Num(Num::Integer(4)))
-                ))],
-                else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(42))),
-                    Box::new(Expression::Num(Num::Integer(1337)))
-                ))],
+                statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(3)),
+                        Expression::Num(Num::Integer(4))
+                    )
+                )))],
+                else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(42)),
+                        Expression::Num(Num::Integer(1337))
+                    )
+                )))],
             })
             .into()),
             result
@@ -263,14 +267,18 @@ mod tests {
         assert_eq!(
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
-                statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(3))),
-                    Box::new(Expression::Num(Num::Integer(4)))
-                ))],
-                else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(42))),
-                    Box::new(Expression::Num(Num::Integer(1337)))
-                ))],
+                statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(3)),
+                        Expression::Num(Num::Integer(4))
+                    )
+                )))],
+                else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(42)),
+                        Expression::Num(Num::Integer(1337))
+                    )
+                )))],
             })
             .into()),
             result
@@ -289,14 +297,18 @@ mod tests {
         assert_eq!(
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id("x".into()))),
-                statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(3))),
-                    Box::new(Expression::Num(Num::Integer(4)))
-                ))],
-                else_statements: vec![Statement::YieldingExpression(Expression::Addition(
-                    Box::new(Expression::Num(Num::Integer(42))),
-                    Box::new(Expression::Num(Num::Integer(1337)))
-                ))],
+                statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(3)),
+                        Expression::Num(Num::Integer(4))
+                    )
+                )))],
+                else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression::Addition(
+                        Expression::Num(Num::Integer(42)),
+                        Expression::Num(Num::Integer(1337))
+                    )
+                )))],
             })
             .into()),
             result
