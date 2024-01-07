@@ -16,29 +16,29 @@ pub enum BinaryExpression {
 impl BinaryExpression {
     pub fn inner(&self) -> (Expression, Expression) {
         match self {
-            BinaryExpression::Addition(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::Substraction(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::Multiplication(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::Division(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::Equal(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::GreaterThan(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::LessThen(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::GreaterOrEqual(lhs, rhs) => (lhs.clone(), rhs.clone()),
-            BinaryExpression::LessOrEqual(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::Addition(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::Substraction(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::Multiplication(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::Division(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::Equal(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::GreaterThan(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::LessThen(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::GreaterOrEqual(lhs, rhs) => (lhs.clone(), rhs.clone()),
+            Self::LessOrEqual(lhs, rhs) => (lhs.clone(), rhs.clone()),
         }
     }
 
     pub fn converter(&self) -> impl Fn(Expression, Expression) -> BinaryExpression {
         match self {
-            BinaryExpression::Addition(_, _) => BinaryExpression::Addition,
-            BinaryExpression::Substraction(_, _) => BinaryExpression::Substraction,
-            BinaryExpression::Multiplication(_, _) => BinaryExpression::Multiplication,
-            BinaryExpression::Division(_, _) => BinaryExpression::Division,
-            BinaryExpression::Equal(_, _) => BinaryExpression::Equal,
-            BinaryExpression::GreaterThan(_, _) => BinaryExpression::GreaterThan,
-            BinaryExpression::LessThen(_, _) => BinaryExpression::LessThen,
-            BinaryExpression::GreaterOrEqual(_, _) => BinaryExpression::GreaterOrEqual,
-            BinaryExpression::LessOrEqual(_, _) => BinaryExpression::LessOrEqual,
+            Self::Addition(_, _) => BinaryExpression::Addition,
+            Self::Substraction(_, _) => BinaryExpression::Substraction,
+            Self::Multiplication(_, _) => BinaryExpression::Multiplication,
+            Self::Division(_, _) => BinaryExpression::Division,
+            Self::Equal(_, _) => BinaryExpression::Equal,
+            Self::GreaterThan(_, _) => BinaryExpression::GreaterThan,
+            Self::LessThen(_, _) => BinaryExpression::LessThen,
+            Self::GreaterOrEqual(_, _) => BinaryExpression::GreaterOrEqual,
+            Self::LessOrEqual(_, _) => BinaryExpression::LessOrEqual,
         }
     }
 
