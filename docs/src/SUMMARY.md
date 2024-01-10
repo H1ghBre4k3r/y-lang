@@ -7,3 +7,8 @@
   - [Variables](./basics/variables.md)
   - [Datatypes](./basics/types.md)
   - [Control Structures](./basics/control-structures.md)
+- [End](./SUMMARY.md)
+
+---
+
+[GitHub Repository](https://github.com/H1ghBre4k3r/pesca-lang)
