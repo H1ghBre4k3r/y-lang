@@ -9,5 +9,5 @@ repository = "https://github.com/H1ghBre4k3r/pesca-parser"
 
 [dependencies]
 clap = { version = "4.4.7", features = ["derive"] }
-pesca_parser_derive = { path = "./pesca_parser_derive"}
+lex_derive = { path = "./lex_derive/" }
 regex = "1.10.2"
