@@ -1,4 +1,4 @@
-use pesca_parser_derive::{LooseEq, Token as ParseToken};
+use lex_derive::{LooseEq, Token as ParseToken};
 use regex::{Match, Regex};
 
 type Position = usize;
