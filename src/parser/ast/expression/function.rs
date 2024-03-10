@@ -10,14 +10,15 @@ use crate::{
 use super::Id;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Function {
-    pub id: Option<Id>,
-    pub parameters: Vec<Parameter>,
+pub struct Function<T> {
+    pub id: Option<Id<T>>,
+    pub parameters: Vec<Parameter<T>>,
     pub return_type: TypeName,
-    pub statements: Vec<Statement>,
+    pub statements: Vec<Statement<T>>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for Function {
+impl FromTokens<Token> for Function<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::FN_KEYWORD
             >> !Comb::ID
@@ -65,24 +66,26 @@ impl FromTokens<Token> for Function {
             parameters,
             return_type,
             statements,
+            info: (),
         }
         .into())
     }
 }
 
-impl From<Function> for AstNode {
-    fn from(value: Function) -> Self {
+impl From<Function<()>> for AstNode {
+    fn from(value: Function<()>) -> Self {
         AstNode::Function(value)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Parameter {
-    pub name: Id,
+pub struct Parameter<T> {
+    pub name: Id<T>,
     pub type_name: Option<TypeName>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for Parameter {
+impl FromTokens<Token> for Parameter<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID >> !(Comb::COLON >> Comb::TYPE_NAME);
         let result = matcher.parse(tokens)?;
@@ -101,13 +104,14 @@ impl FromTokens<Token> for Parameter {
         Ok(Parameter {
             name: name.clone(),
             type_name,
+            info: (),
         }
         .into())
     }
 }
 
-impl From<Parameter> for AstNode {
-    fn from(value: Parameter) -> Self {
+impl From<Parameter<()>> for AstNode {
+    fn from(value: Parameter<()>) -> Self {
         AstNode::Parameter(value)
     }
 }
@@ -135,7 +139,8 @@ mod tests {
                 id: None,
                 parameters: vec![],
                 return_type: TypeName::Literal("i32".into()),
-                statements: vec![]
+                statements: vec![],
+                info: ()
             }
             .into()),
             result
@@ -155,11 +160,13 @@ mod tests {
             Ok(Function {
                 id: None,
                 parameters: vec![Parameter {
-                    name: Id("x".into()),
-                    type_name: Some(TypeName::Literal("i32".into()))
+                    name: Id("x".into(), ()),
+                    type_name: Some(TypeName::Literal("i32".into())),
+                    info: ()
                 }],
                 return_type: TypeName::Literal("i32".into()),
-                statements: vec![]
+                statements: vec![],
+                info: ()
             }
             .into()),
             result
@@ -180,16 +187,19 @@ mod tests {
                 id: None,
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("x".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     },
                     Parameter {
-                        name: Id("y".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("y".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
-                statements: vec![]
+                statements: vec![],
+                info: ()
             }
             .into()),
             result
@@ -210,21 +220,24 @@ mod tests {
                 id: None,
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("x".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     },
                     Parameter {
-                        name: Id("y".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("y".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Id(Id("x".into())),
-                        Expression::Id(Id("y".into())),
+                        Expression::Id(Id("x".into(), ())),
+                        Expression::Id(Id("y".into(), ())),
                     )
-                )))]
+                )))],
+                info: ()
             }
             .into()),
             result
@@ -242,24 +255,27 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
-                id: Some(Id("main".into())),
+                id: Some(Id("main".into(), ())),
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("x".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     },
                     Parameter {
-                        name: Id("y".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("y".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Id(Id("x".into())),
-                        Expression::Id(Id("y".into())),
+                        Expression::Id(Id("x".into(), ())),
+                        Expression::Id(Id("y".into(), ())),
                     )
-                )))]
+                )))],
+                info: ()
             }
             .into()),
             result

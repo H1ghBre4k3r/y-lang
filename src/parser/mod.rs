@@ -5,7 +5,10 @@ pub mod combinators;
 
 use crate::lexer::{Token, Tokens};
 
-use self::{ast::AstNode, combinators::Comb};
+use self::{
+    ast::{AstNode, Statement},
+    combinators::Comb,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
@@ -38,7 +41,7 @@ pub trait FromTokens<T> {
     fn parse(tokens: &mut Tokens<T>) -> Result<AstNode, ParseError>;
 }
 
-pub fn parse(tokens: &mut Tokens<Token>) -> Result<Vec<AstNode>, Box<dyn Error>> {
+pub fn parse(tokens: &mut Tokens<Token>) -> Result<Vec<Statement<()>>, Box<dyn Error>> {
     let mut statements = vec![];
 
     let matcher = Comb::STATEMENT;
@@ -47,7 +50,7 @@ pub fn parse(tokens: &mut Tokens<Token>) -> Result<Vec<AstNode>, Box<dyn Error>>
         let [AstNode::Statement(statement)] = result.as_slice() else {
             unreachable!()
         };
-        statements.push(statement.clone().into());
+        statements.push(statement.clone());
     }
 
     Ok(statements)

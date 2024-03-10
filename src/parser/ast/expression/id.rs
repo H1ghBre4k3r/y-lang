@@ -4,9 +4,9 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Id(pub String);
+pub struct Id<T>(pub String, pub T);
 
-impl FromTokens<Token> for Id {
+impl FromTokens<Token> for Id<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, crate::parser::ParseError>
     where
         Self: Sized,
@@ -21,12 +21,12 @@ impl FromTokens<Token> for Id {
             }
             None => return Err(ParseError::eof("Id")),
         };
-        Ok(Id(value).into())
+        Ok(Id(value, ()).into())
     }
 }
 
-impl From<Id> for AstNode {
-    fn from(value: Id) -> Self {
+impl From<Id<()>> for AstNode {
+    fn from(value: Id<()>) -> Self {
         AstNode::Id(value)
     }
 }
@@ -43,7 +43,7 @@ mod tests {
         }];
         assert_eq!(
             Id::parse(&mut tokens.into()),
-            Ok(AstNode::Id(Id("some_id".into())))
+            Ok(AstNode::Id(Id("some_id".into(), ())))
         );
     }
 

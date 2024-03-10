@@ -4,21 +4,21 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Num {
-    Integer(u64),
-    FloatingPoint(f64),
+pub enum Num<T> {
+    Integer(u64, T),
+    FloatingPoint(f64, T),
 }
 
-impl Eq for Num {}
+impl<T> Eq for Num<T> where T: Eq {}
 
-impl FromTokens<Token> for Num {
+impl FromTokens<Token> for Num<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
         match tokens.next() {
-            Some(Token::Integer { value, .. }) => Ok(Num::Integer(value).into()),
-            Some(Token::FloatingPoint { value, .. }) => Ok(Num::FloatingPoint(value).into()),
+            Some(Token::Integer { value, .. }) => Ok(Num::Integer(value, ()).into()),
+            Some(Token::FloatingPoint { value, .. }) => Ok(Num::FloatingPoint(value, ()).into()),
             Some(token) => Err(ParseError {
                 message: "Tried to parse Num from non Num token".into(),
                 position: Some(token.position()),
@@ -28,8 +28,8 @@ impl FromTokens<Token> for Num {
     }
 }
 
-impl From<Num> for AstNode {
-    fn from(value: Num) -> Self {
+impl From<Num<()>> for AstNode {
+    fn from(value: Num<()>) -> Self {
         AstNode::Num(value)
     }
 }
@@ -48,7 +48,7 @@ mod tests {
         }];
         assert_eq!(
             Num::parse(&mut tokens.into()),
-            Ok(AstNode::Num(Num::Integer(42)))
+            Ok(AstNode::Num(Num::Integer(42, ())))
         );
     }
 
@@ -73,6 +73,6 @@ mod tests {
 
         let result = Num::parse(&mut tokens);
 
-        assert_eq!(Ok(Num::FloatingPoint(1337.42).into()), result);
+        assert_eq!(Ok(Num::FloatingPoint(1337.42, ()).into()), result);
     }
 }

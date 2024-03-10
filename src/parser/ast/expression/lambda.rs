@@ -6,12 +6,13 @@ use crate::{
 use super::{Expression, Parameter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Lambda {
-    pub parameters: Vec<Parameter>,
-    pub expression: Box<Expression>,
+pub struct Lambda<T> {
+    pub parameters: Vec<Parameter<T>>,
+    pub expression: Box<Expression<T>>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for Lambda {
+impl FromTokens<Token> for Lambda<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::BACKSLASH
             >> Comb::LPAREN
@@ -39,13 +40,14 @@ impl FromTokens<Token> for Lambda {
         Ok(Lambda {
             parameters,
             expression: Box::new(expression),
+            info: (),
         }
         .into())
     }
 }
 
-impl From<Lambda> for AstNode {
-    fn from(value: Lambda) -> Self {
+impl From<Lambda<()>> for AstNode {
+    fn from(value: Lambda<()>) -> Self {
         AstNode::Lambda(value)
     }
 }
@@ -71,7 +73,8 @@ mod tests {
         assert_eq!(
             Ok(Lambda {
                 parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(42)))
+                expression: Box::new(Expression::Num(Num::Integer(42, ()))),
+                info: ()
             }
             .into()),
             result
@@ -91,18 +94,21 @@ mod tests {
             Ok(Lambda {
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into()),
-                        type_name: None
+                        name: Id("x".into(), ()),
+                        type_name: None,
+                        info: ()
                     },
                     Parameter {
-                        name: Id("y".into()),
-                        type_name: None
+                        name: Id("y".into(), ()),
+                        type_name: None,
+                        info: ()
                     }
                 ],
                 expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition(
-                    Expression::Id(Id("x".into())),
-                    Expression::Id(Id("y".into())),
-                ))))
+                    Expression::Id(Id("x".into(), ())),
+                    Expression::Id(Id("y".into(), ())),
+                )))),
+                info: ()
             }
             .into()),
             result
@@ -121,10 +127,12 @@ mod tests {
         assert_eq!(
             Ok(Lambda {
                 parameters: vec![Parameter {
-                    name: Id("x".into()),
-                    type_name: None
+                    name: Id("x".into(), ()),
+                    type_name: None,
+                    info: ()
                 }],
-                expression: Box::new(Expression::Id(Id("x".into())))
+                expression: Box::new(Expression::Id(Id("x".into(), ()))),
+                info: ()
             }
             .into()),
             result
@@ -143,14 +151,18 @@ mod tests {
         assert_eq!(
             Ok(Lambda {
                 parameters: vec![Parameter {
-                    name: Id("x".into()),
-                    type_name: None
+                    name: Id("x".into(), ()),
+                    type_name: None,
+                    info: ()
                 }],
                 expression: Box::new(Expression::Block(Block {
-                    statements: vec![Statement::YieldingExpression(Expression::Id(
-                        Id("x".into())
-                    ))]
-                }))
+                    statements: vec![Statement::YieldingExpression(Expression::Id(Id(
+                        "x".into(),
+                        ()
+                    )))],
+                    info: ()
+                })),
+                info: ()
             }
             .into()),
             result

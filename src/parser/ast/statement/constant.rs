@@ -8,13 +8,14 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Constant {
-    pub id: Id,
+pub struct Constant<T> {
+    pub id: Id<T>,
     pub type_name: TypeName,
-    pub value: Expression,
+    pub value: Expression<T>,
+    pub info: (),
 }
 
-impl FromTokens<Token> for Constant {
+impl FromTokens<Token> for Constant<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
@@ -41,13 +42,14 @@ impl FromTokens<Token> for Constant {
             id: id.clone(),
             value: value.clone(),
             type_name,
+            info: (),
         }
         .into())
     }
 }
 
-impl From<Constant> for AstNode {
-    fn from(value: Constant) -> Self {
+impl From<Constant<()>> for AstNode {
+    fn from(value: Constant<()>) -> Self {
         AstNode::Constant(value)
     }
 }
@@ -69,9 +71,10 @@ mod tests {
 
         assert_eq!(
             Ok(Constant {
-                id: Id("foo".into()),
+                id: Id("foo".into(), ()),
                 type_name: TypeName::Literal("i32".into()),
-                value: Expression::Num(Num::Integer(42))
+                value: Expression::Num(Num::Integer(42, ())),
+                info: ()
             }
             .into()),
             result

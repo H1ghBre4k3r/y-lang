@@ -8,12 +8,13 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WhileLoop {
-    pub condition: Expression,
-    pub block: Block,
+pub struct WhileLoop<T> {
+    pub condition: Expression<T>,
+    pub block: Block<T>,
+    pub info: (),
 }
 
-impl FromTokens<Token> for WhileLoop {
+impl FromTokens<Token> for WhileLoop<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher =
             Comb::WHILE_KEYWORD >> Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN >> Comb::BLOCK;
@@ -31,13 +32,14 @@ impl FromTokens<Token> for WhileLoop {
         Ok(WhileLoop {
             condition: condition.clone(),
             block: block.clone(),
+            info: (),
         }
         .into())
     }
 }
 
-impl From<WhileLoop> for AstNode {
-    fn from(value: WhileLoop) -> Self {
+impl From<WhileLoop<()>> for AstNode {
+    fn from(value: WhileLoop<()>) -> Self {
         AstNode::WhileLoop(value)
     }
 }

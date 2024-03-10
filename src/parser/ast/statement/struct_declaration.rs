@@ -8,12 +8,13 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructDeclaration {
-    id: Id,
-    fields: Vec<StructFieldDeclaration>,
+pub struct StructDeclaration<T> {
+    pub id: Id<T>,
+    pub fields: Vec<StructFieldDeclaration<T>>,
+    pub info: (),
 }
 
-impl FromTokens<Token> for StructDeclaration {
+impl FromTokens<Token> for StructDeclaration<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::STRUCT_KEYWORD
             >> Comb::ID
@@ -33,23 +34,29 @@ impl FromTokens<Token> for StructDeclaration {
             fields.push(field);
         }
 
-        Ok(StructDeclaration { id, fields }.into())
+        Ok(StructDeclaration {
+            id,
+            fields,
+            info: (),
+        }
+        .into())
     }
 }
 
-impl From<StructDeclaration> for AstNode {
-    fn from(value: StructDeclaration) -> Self {
+impl From<StructDeclaration<()>> for AstNode {
+    fn from(value: StructDeclaration<()>) -> Self {
         Self::StructDeclaration(value)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructFieldDeclaration {
-    name: Id,
-    type_name: TypeName,
+pub struct StructFieldDeclaration<T> {
+    pub name: Id<T>,
+    pub type_name: TypeName,
+    pub info: T,
 }
 
-impl FromTokens<Token> for StructFieldDeclaration {
+impl FromTokens<Token> for StructFieldDeclaration<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME >> Comb::SEMI;
         let result = matcher.parse(tokens)?;
@@ -65,13 +72,14 @@ impl FromTokens<Token> for StructFieldDeclaration {
         Ok(StructFieldDeclaration {
             name: name.clone(),
             type_name: type_name.clone(),
+            info: (),
         }
         .into())
     }
 }
 
-impl From<StructFieldDeclaration> for AstNode {
-    fn from(value: StructFieldDeclaration) -> Self {
+impl From<StructFieldDeclaration<()>> for AstNode {
+    fn from(value: StructFieldDeclaration<()>) -> Self {
         Self::StructFieldDeclaration(value)
     }
 }
@@ -99,8 +107,9 @@ mod tests {
 
         assert_eq!(
             Ok(StructDeclaration {
-                id: Id("Foo".into()),
-                fields: vec![]
+                id: Id("Foo".into(), ()),
+                fields: vec![],
+                info: ()
             }
             .into()),
             result
@@ -122,11 +131,13 @@ mod tests {
 
         assert_eq!(
             Ok(StructDeclaration {
-                id: Id("Foo".into()),
+                id: Id("Foo".into(), ()),
                 fields: vec![StructFieldDeclaration {
-                    name: Id("foo".into()),
-                    type_name: TypeName::Literal("u32".into())
-                }]
+                    name: Id("foo".into(), ()),
+                    type_name: TypeName::Literal("u32".into()),
+                    info: ()
+                }],
+                info: ()
             }
             .into()),
             result
@@ -149,17 +160,20 @@ mod tests {
 
         assert_eq!(
             Ok(StructDeclaration {
-                id: Id("Foo".into()),
+                id: Id("Foo".into(), ()),
                 fields: vec![
                     StructFieldDeclaration {
-                        name: Id("foo".into()),
-                        type_name: TypeName::Literal("u32".into())
+                        name: Id("foo".into(), ()),
+                        type_name: TypeName::Literal("u32".into()),
+                        info: ()
                     },
                     StructFieldDeclaration {
-                        name: Id("baz".into()),
-                        type_name: TypeName::Array(Box::new(TypeName::Literal("f64".into())))
+                        name: Id("baz".into(), ()),
+                        type_name: TypeName::Array(Box::new(TypeName::Literal("f64".into()))),
+                        info: ()
                     }
-                ]
+                ],
+                info: ()
             }
             .into()),
             result

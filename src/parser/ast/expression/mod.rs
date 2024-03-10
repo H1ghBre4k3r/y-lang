@@ -32,22 +32,22 @@ use crate::{
 use super::AstNode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expression {
-    Id(Id),
-    Num(Num),
-    Function(Function),
-    Lambda(Lambda),
-    If(If),
-    Block(Block),
-    Parens(Box<Expression>),
-    Postfix(Postfix),
-    Prefix(Prefix),
-    Binary(Box<BinaryExpression>),
-    Array(Array),
-    StructInitialisation(StructInitialisation),
+pub enum Expression<T> {
+    Id(Id<T>),
+    Num(Num<T>),
+    Function(Function<T>),
+    Lambda(Lambda<T>),
+    If(If<T>),
+    Block(Block<T>),
+    Parens(Box<Expression<T>>),
+    Postfix(Postfix<T>),
+    Prefix(Prefix<T>),
+    Binary(Box<BinaryExpression<T>>),
+    Array(Array<T>),
+    StructInitialisation(StructInitialisation<T>),
 }
 
-impl FromTokens<Token> for Expression {
+impl FromTokens<Token> for Expression<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let mut expr = match tokens.peek() {
             Some(Token::LParen { .. }) => {
@@ -147,8 +147,11 @@ impl FromTokens<Token> for Expression {
     }
 }
 
-impl Expression {
-    fn parse_call(expr: Expression, tokens: &mut Tokens<Token>) -> Result<Postfix, ParseError> {
+impl Expression<()> {
+    fn parse_call(
+        expr: Expression<()>,
+        tokens: &mut Tokens<Token>,
+    ) -> Result<Postfix<()>, ParseError> {
         let matcher = Comb::LPAREN >> (Comb::EXPR % Comb::COMMA) >> Comb::RPAREN;
 
         let result = matcher.parse(tokens)?.into_iter();
@@ -166,10 +169,14 @@ impl Expression {
         Ok(Postfix::Call {
             expr: Box::new(expr),
             args,
+            info: (),
         })
     }
 
-    fn parse_index(expr: Expression, tokens: &mut Tokens<Token>) -> Result<Postfix, ParseError> {
+    fn parse_index(
+        expr: Expression<()>,
+        tokens: &mut Tokens<Token>,
+    ) -> Result<Postfix<()>, ParseError> {
         let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::RBRACKET;
 
         let result = matcher.parse(tokens)?;
@@ -181,13 +188,14 @@ impl Expression {
         Ok(Postfix::Index {
             expr: Box::new(expr),
             index: Box::new(index),
+            info: (),
         })
     }
 
     fn parse_property_access(
-        expr: Expression,
+        expr: Expression<()>,
         tokens: &mut Tokens<Token>,
-    ) -> Result<Postfix, ParseError> {
+    ) -> Result<Postfix<()>, ParseError> {
         let matcher = Comb::DOT >> Comb::ID;
 
         let result = matcher.parse(tokens)?;
@@ -199,10 +207,14 @@ impl Expression {
         Ok(Postfix::PropertyAccess {
             expr: Box::new(expr),
             property,
+            info: (),
         })
     }
 
-    fn parse_binary(lhs: Expression, tokens: &mut Tokens<Token>) -> Result<Expression, ParseError> {
+    fn parse_binary(
+        lhs: Expression<()>,
+        tokens: &mut Tokens<Token>,
+    ) -> Result<Expression<()>, ParseError> {
         let Some(operation) = tokens.next() else {
             unreachable!()
         };
@@ -230,8 +242,8 @@ impl Expression {
     }
 }
 
-impl From<Expression> for AstNode {
-    fn from(value: Expression) -> Self {
+impl From<Expression<()>> for AstNode {
+    fn from(value: Expression<()>) -> Self {
         AstNode::Expression(value)
     }
 }
@@ -254,7 +266,10 @@ mod tests {
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
-            Ok(AstNode::Expression(Expression::Id(Id("some_id".into()))))
+            Ok(AstNode::Expression(Expression::Id(Id(
+                "some_id".into(),
+                ()
+            ))))
         )
     }
 
@@ -267,7 +282,7 @@ mod tests {
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
-            Ok(AstNode::Expression(Expression::Num(Num::Integer(42))))
+            Ok(AstNode::Expression(Expression::Num(Num::Integer(42, ()))))
         )
     }
 
@@ -285,7 +300,8 @@ mod tests {
                 id: None,
                 parameters: vec![],
                 statements: vec![],
-                return_type: TypeName::Literal("i32".into())
+                return_type: TypeName::Literal("i32".into()),
+                info: ()
             })
             .into()),
             result
@@ -310,21 +326,24 @@ mod tests {
                 id: None,
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("x".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     },
                     Parameter {
-                        name: Id("y".into()),
-                        type_name: Some(TypeName::Literal("i32".into()))
+                        name: Id("y".into(), ()),
+                        type_name: Some(TypeName::Literal("i32".into())),
+                        info: ()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Id(Id("x".into())),
-                        Expression::Id(Id("y".into())),
+                        Expression::Id(Id("x".into(), ())),
+                        Expression::Id(Id("y".into(), ())),
                     )
-                )))]
+                )))],
+                info: ()
             })
             .into()),
             result
@@ -343,7 +362,8 @@ mod tests {
         assert_eq!(
             Ok(Expression::Lambda(Lambda {
                 parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(42)))
+                expression: Box::new(Expression::Num(Num::Integer(42, ()))),
+                info: (),
             })
             .into()),
             result
@@ -363,22 +383,26 @@ mod tests {
             Ok(Expression::Lambda(Lambda {
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into()),
-                        type_name: None
+                        name: Id("x".into(), ()),
+                        type_name: None,
+                        info: (),
                     },
                     Parameter {
-                        name: Id("y".into()),
-                        type_name: None
+                        name: Id("y".into(), ()),
+                        type_name: None,
+                        info: (),
                     }
                 ],
                 expression: Box::new(Expression::Block(Block {
                     statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                         BinaryExpression::Addition(
-                            Expression::Id(Id("x".into())),
-                            Expression::Id(Id("y".into())),
+                            Expression::Id(Id("x".into(), ())),
+                            Expression::Id(Id("y".into(), ())),
                         )
-                    )))]
-                }))
+                    )))],
+                    info: (),
+                })),
+                info: (),
             })
             .into()),
             result
@@ -394,19 +418,20 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::If(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3)),
-                        Expression::Num(Num::Integer(4))
+                        Expression::Num(Num::Integer(3, ())),
+                        Expression::Num(Num::Integer(4, ()))
                     )
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42)),
-                        Expression::Num(Num::Integer(1337))
+                        Expression::Num(Num::Integer(42, ())),
+                        Expression::Num(Num::Integer(1337, ()))
                     )
                 )))],
+                info: (),
             })
             .into()),
             Expression::parse(&mut tokens)
@@ -421,8 +446,9 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Postfix(Postfix::Call {
-                expr: Box::new(Expression::Id(Id("foo".into()))),
-                args: vec![]
+                expr: Box::new(Expression::Id(Id("foo".into(), ()))),
+                args: vec![],
+                info: ()
             })
             .into()),
             result
@@ -443,23 +469,27 @@ mod tests {
                 expr: Box::new(Expression::Parens(Box::new(Expression::Lambda(Lambda {
                     parameters: vec![
                         Parameter {
-                            name: Id("x".into()),
-                            type_name: None
+                            name: Id("x".into(), ()),
+                            type_name: None,
+                            info: (),
                         },
                         Parameter {
-                            name: Id("y".into()),
-                            type_name: None
+                            name: Id("y".into(), ()),
+                            type_name: None,
+                            info: (),
                         }
                     ],
                     expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition(
-                        Expression::Id(Id("x".into())),
-                        Expression::Id(Id("y".into()))
-                    ))))
+                        Expression::Id(Id("x".into(), ())),
+                        Expression::Id(Id("y".into(), ()))
+                    )))),
+                    info: (),
                 })))),
                 args: vec![
-                    Expression::Num(Num::Integer(42)),
-                    Expression::Num(Num::Integer(1337))
-                ]
+                    Expression::Num(Num::Integer(42, ())),
+                    Expression::Num(Num::Integer(1337, ()))
+                ],
+                info: (),
             })
             .into()),
             result
@@ -472,7 +502,11 @@ mod tests {
 
         let result = Expression::parse(&mut tokens);
         assert_eq!(
-            Ok(Expression::Array(Array::Literal { values: vec![] }).into()),
+            Ok(Expression::Array(Array::Literal {
+                values: vec![],
+                info: ()
+            })
+            .into()),
             result
         );
     }
@@ -488,9 +522,10 @@ mod tests {
         assert_eq!(
             Ok(Expression::Array(Array::Literal {
                 values: vec![
-                    Expression::Num(Num::Integer(42)),
-                    Expression::Num(Num::Integer(1337))
-                ]
+                    Expression::Num(Num::Integer(42, ())),
+                    Expression::Num(Num::Integer(1337, ()))
+                ],
+                info: ()
             })
             .into()),
             result
@@ -508,8 +543,9 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Postfix(Postfix::Index {
-                expr: Box::new(Expression::Id(Id("foo".into()))),
-                index: Box::new(Expression::Num(Num::Integer(42)))
+                expr: Box::new(Expression::Id(Id("foo".into(), ()))),
+                index: Box::new(Expression::Num(Num::Integer(42, ()))),
+                info: ()
             })
             .into()),
             result
@@ -527,28 +563,33 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::StructInitialisation(StructInitialisation {
-                id: Id("Foo".into()),
+                id: Id("Foo".into(), ()),
                 fields: vec![
                     StructFieldInitialisation {
-                        name: Id("bar".into()),
-                        value: Expression::Num(Num::Integer(42))
+                        name: Id("bar".into(), ()),
+                        value: Expression::Num(Num::Integer(42, ())),
+                        info: ()
                     },
                     StructFieldInitialisation {
-                        name: Id("baz".into()),
+                        name: Id("baz".into(), ()),
                         value: Expression::Lambda(Lambda {
                             parameters: vec![Parameter {
-                                name: Id("x".into()),
-                                type_name: None
+                                name: Id("x".into(), ()),
+                                type_name: None,
+                                info: ()
                             }],
                             expression: Box::new(Expression::Binary(Box::new(
                                 BinaryExpression::Addition(
-                                    Expression::Id(Id("x".into())),
-                                    Expression::Id(Id("x".into()))
+                                    Expression::Id(Id("x".into(), ())),
+                                    Expression::Id(Id("x".into(), ()))
                                 )
-                            )))
-                        })
+                            ))),
+                            info: ()
+                        }),
+                        info: ()
                     }
-                ]
+                ],
+                info: ()
             })
             .into()),
             result
@@ -566,8 +607,9 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Postfix(Postfix::PropertyAccess {
-                expr: Box::new(Expression::Id(Id("foo".into()))),
-                property: Id("bar".into())
+                expr: Box::new(Expression::Id(Id("foo".into(), ()))),
+                property: Id("bar".into(), ()),
+                info: ()
             })
             .into()),
             result
@@ -586,10 +628,12 @@ mod tests {
         assert_eq!(
             Ok(Expression::Postfix(Postfix::PropertyAccess {
                 expr: Box::new(Expression::Postfix(Postfix::Call {
-                    expr: Box::new(Expression::Id(Id("foo".into()))),
-                    args: vec![]
+                    expr: Box::new(Expression::Id(Id("foo".into(), ()))),
+                    args: vec![],
+                    info: ()
                 })),
-                property: Id("bar".into())
+                property: Id("bar".into(), ()),
+                info: ()
             })
             .into()),
             result
@@ -604,7 +648,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Minus {
-                expr: Box::new(Expression::Num(Num::Integer(42)))
+                expr: Box::new(Expression::Num(Num::Integer(42, ())))
             })
             .into()),
             result
@@ -623,8 +667,9 @@ mod tests {
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Minus {
                 expr: Box::new(Expression::Postfix(Postfix::Call {
-                    expr: Box::new(Expression::Id(Id("someFunction".into()))),
-                    args: vec![]
+                    expr: Box::new(Expression::Id(Id("someFunction".into(), ()))),
+                    args: vec![],
+                    info: ()
                 }))
             })
             .into()),
@@ -640,7 +685,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Negation {
-                expr: Box::new(Expression::Num(Num::Integer(42)))
+                expr: Box::new(Expression::Num(Num::Integer(42, ())))
             })
             .into()),
             result
@@ -659,8 +704,9 @@ mod tests {
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Negation {
                 expr: Box::new(Expression::Postfix(Postfix::Call {
-                    expr: Box::new(Expression::Id(Id("someFunction".into()))),
-                    args: vec![]
+                    expr: Box::new(Expression::Id(Id("someFunction".into(), ()))),
+                    args: vec![],
+                    info: ()
                 }))
             })
             .into()),
