@@ -8,12 +8,13 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Assignment {
-    pub id: Id,
-    pub value: Expression,
+pub struct Assignment<T> {
+    pub id: Id<T>,
+    pub value: Expression<T>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for Assignment {
+impl FromTokens<Token> for Assignment<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID >> Comb::ASSIGN >> Comb::EXPR;
 
@@ -30,13 +31,14 @@ impl FromTokens<Token> for Assignment {
         Ok(Assignment {
             id: id.clone(),
             value: value.clone(),
+            info: (),
         }
         .into())
     }
 }
 
-impl From<Assignment> for AstNode {
-    fn from(value: Assignment) -> Self {
+impl From<Assignment<()>> for AstNode {
+    fn from(value: Assignment<()>) -> Self {
         AstNode::Assignment(value)
     }
 }

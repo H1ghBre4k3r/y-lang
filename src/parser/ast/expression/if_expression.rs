@@ -10,13 +10,14 @@ use crate::{
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct If {
-    pub condition: Box<Expression>,
-    pub statements: Vec<Statement>,
-    pub else_statements: Vec<Statement>,
+pub struct If<T> {
+    pub condition: Box<Expression<T>>,
+    pub statements: Vec<Statement<T>>,
+    pub else_statements: Vec<Statement<T>>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for If {
+impl FromTokens<Token> for If<()> {
     fn parse(
         tokens: &mut crate::lexer::Tokens<Token>,
     ) -> Result<crate::parser::ast::AstNode, crate::parser::ParseError> {
@@ -59,13 +60,14 @@ impl FromTokens<Token> for If {
             condition: Box::new(condition),
             statements,
             else_statements,
+            info: (),
         }
         .into())
     }
 }
 
-impl From<If> for AstNode {
-    fn from(value: If) -> Self {
+impl From<If<()>> for AstNode {
+    fn from(value: If<()>) -> Self {
         AstNode::If(value)
     }
 }
@@ -85,9 +87,10 @@ mod tests {
 
         assert_eq!(
             Ok(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![],
-                else_statements: vec![]
+                else_statements: vec![],
+                info: ()
             }
             .into()),
             If::parse(&mut tokens)
@@ -103,9 +106,10 @@ mod tests {
 
         assert_eq!(
             Ok(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![],
-                else_statements: vec![]
+                else_statements: vec![],
+                info: ()
             }
             .into()),
             If::parse(&mut tokens)
@@ -121,14 +125,15 @@ mod tests {
 
         assert_eq!(
             Ok(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3)),
-                        Expression::Num(Num::Integer(4))
+                        Expression::Num(Num::Integer(3, ())),
+                        Expression::Num(Num::Integer(4, ()))
                     )
                 )))],
-                else_statements: vec![]
+                else_statements: vec![],
+                info: ()
             }
             .into()),
             If::parse(&mut tokens)
@@ -144,19 +149,20 @@ mod tests {
 
         assert_eq!(
             Ok(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3)),
-                        Expression::Num(Num::Integer(4))
+                        Expression::Num(Num::Integer(3, ())),
+                        Expression::Num(Num::Integer(4, ()))
                     )
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42)),
-                        Expression::Num(Num::Integer(1337))
+                        Expression::Num(Num::Integer(42, ())),
+                        Expression::Num(Num::Integer(1337, ()))
                     )
                 )))],
+                info: ()
             }
             .into()),
             If::parse(&mut tokens)

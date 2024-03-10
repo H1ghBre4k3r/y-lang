@@ -1,20 +1,23 @@
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BinaryExpression {
-    Addition(Expression, Expression),
-    Substraction(Expression, Expression),
-    Multiplication(Expression, Expression),
-    Division(Expression, Expression),
-    Equal(Expression, Expression),
-    GreaterThan(Expression, Expression),
-    LessThen(Expression, Expression),
-    GreaterOrEqual(Expression, Expression),
-    LessOrEqual(Expression, Expression),
+pub enum BinaryExpression<T> {
+    Addition(Expression<T>, Expression<T>),
+    Substraction(Expression<T>, Expression<T>),
+    Multiplication(Expression<T>, Expression<T>),
+    Division(Expression<T>, Expression<T>),
+    Equal(Expression<T>, Expression<T>),
+    GreaterThan(Expression<T>, Expression<T>),
+    LessThen(Expression<T>, Expression<T>),
+    GreaterOrEqual(Expression<T>, Expression<T>),
+    LessOrEqual(Expression<T>, Expression<T>),
 }
 
-impl BinaryExpression {
-    pub fn inner(&self) -> (Expression, Expression) {
+impl<T> BinaryExpression<T>
+where
+    T: Clone,
+{
+    pub fn inner(&self) -> (Expression<T>, Expression<T>) {
         match self {
             Self::Addition(lhs, rhs) => (lhs.clone(), rhs.clone()),
             Self::Substraction(lhs, rhs) => (lhs.clone(), rhs.clone()),
@@ -28,7 +31,7 @@ impl BinaryExpression {
         }
     }
 
-    pub fn converter(&self) -> impl Fn(Expression, Expression) -> BinaryExpression {
+    pub fn converter(&self) -> impl Fn(Expression<T>, Expression<T>) -> BinaryExpression<T> {
         match self {
             Self::Addition(_, _) => BinaryExpression::Addition,
             Self::Substraction(_, _) => BinaryExpression::Substraction,
@@ -45,7 +48,7 @@ impl BinaryExpression {
     /// This function balances a binary expresion according the precedence of the operators.
     ///
     /// Attetention: This function assumes the left hand side to be a non-binary expression!
-    pub fn balance(&self) -> BinaryExpression {
+    pub fn balance(&self) -> BinaryExpression<T> {
         let converter = self.converter();
         let (mut lhs, mut rhs) = self.inner();
 
@@ -87,19 +90,19 @@ mod tests {
     #[test]
     fn test_simple_balance() {
         let testee = BinaryExpression::Multiplication(
-            Expression::Num(Num::Integer(42)),
+            Expression::Num(Num::Integer(42, ())),
             Expression::Binary(Box::new(BinaryExpression::Addition(
-                Expression::Num(Num::Integer(1)),
-                Expression::Num(Num::Integer(2)),
+                Expression::Num(Num::Integer(1, ())),
+                Expression::Num(Num::Integer(2, ())),
             ))),
         );
 
         let expected = BinaryExpression::Addition(
             Expression::Binary(Box::new(BinaryExpression::Multiplication(
-                Expression::Num(Num::Integer(42)),
-                Expression::Num(Num::Integer(1)),
+                Expression::Num(Num::Integer(42, ())),
+                Expression::Num(Num::Integer(1, ())),
             ))),
-            Expression::Num(Num::Integer(2)),
+            Expression::Num(Num::Integer(2, ())),
         );
 
         assert_eq!(expected, testee.balance());
@@ -109,10 +112,10 @@ mod tests {
     fn test_unneeded_balance() {
         let testee = BinaryExpression::Addition(
             Expression::Binary(Box::new(BinaryExpression::Multiplication(
-                Expression::Num(Num::Integer(42)),
-                Expression::Num(Num::Integer(1)),
+                Expression::Num(Num::Integer(42, ())),
+                Expression::Num(Num::Integer(1, ())),
             ))),
-            Expression::Num(Num::Integer(2)),
+            Expression::Num(Num::Integer(2, ())),
         );
 
         assert_eq!(testee, testee.balance());

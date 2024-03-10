@@ -20,22 +20,22 @@ use crate::{
 use super::{AstNode, Expression, Function, If};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Statement {
-    Function(Function),
-    If(If),
-    WhileLoop(WhileLoop),
-    Initialization(Initialisation),
-    Constant(Constant),
-    Assignment(Assignment),
-    Expression(Expression),
-    YieldingExpression(Expression),
-    Return(Expression),
+pub enum Statement<T> {
+    Function(Function<T>),
+    If(If<T>),
+    WhileLoop(WhileLoop<T>),
+    Initialization(Initialisation<T>),
+    Constant(Constant<T>),
+    Assignment(Assignment<T>),
+    Expression(Expression<T>),
+    YieldingExpression(Expression<T>),
+    Return(Expression<T>),
     Comment(String),
-    Declaration(Declaration),
-    StructDeclaration(StructDeclaration),
+    Declaration(Declaration<T>),
+    StructDeclaration(StructDeclaration<T>),
 }
 
-impl FromTokens<Token> for Statement {
+impl FromTokens<Token> for Statement<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
@@ -139,7 +139,7 @@ impl FromTokens<Token> for Statement {
     }
 }
 
-impl Statement {
+impl Statement<()> {
     fn parse_assignment(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
@@ -178,8 +178,8 @@ impl Statement {
     }
 }
 
-impl From<Statement> for AstNode {
-    fn from(value: Statement) -> Self {
+impl From<Statement<()>> for AstNode {
+    fn from(value: Statement<()>) -> Self {
         AstNode::Statement(value)
     }
 }
@@ -204,9 +204,10 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::Constant(Constant {
-                id: Id("foo".into()),
+                id: Id("foo".into(), ()),
                 type_name: TypeName::Literal("i32".into()),
-                value: Expression::Num(Num::Integer(42))
+                value: Expression::Num(Num::Integer(42, ())),
+                info: ()
             })
             .into()),
             result
@@ -220,7 +221,7 @@ mod tests {
         let result = Statement::parse(&mut tokens);
 
         assert_eq!(
-            Ok(Statement::Return(Expression::Num(Num::Integer(42))).into()),
+            Ok(Statement::Return(Expression::Num(Num::Integer(42, ()))).into()),
             result
         );
     }
@@ -236,19 +237,20 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::If(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3)),
-                        Expression::Num(Num::Integer(4))
+                        Expression::Num(Num::Integer(3, ())),
+                        Expression::Num(Num::Integer(4, ()))
                     )
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42)),
-                        Expression::Num(Num::Integer(1337))
+                        Expression::Num(Num::Integer(42, ())),
+                        Expression::Num(Num::Integer(1337, ()))
                     )
                 )))],
+                info: ()
             })
             .into()),
             result
@@ -266,19 +268,20 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::If(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3)),
-                        Expression::Num(Num::Integer(4))
+                        Expression::Num(Num::Integer(3, ())),
+                        Expression::Num(Num::Integer(4, ()))
                     )
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42)),
-                        Expression::Num(Num::Integer(1337))
+                        Expression::Num(Num::Integer(42, ())),
+                        Expression::Num(Num::Integer(1337, ()))
                     )
                 )))],
+                info: ()
             })
             .into()),
             result
@@ -296,19 +299,20 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::If(If {
-                condition: Box::new(Expression::Id(Id("x".into()))),
+                condition: Box::new(Expression::Id(Id("x".into(), ()))),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3)),
-                        Expression::Num(Num::Integer(4))
+                        Expression::Num(Num::Integer(3, ())),
+                        Expression::Num(Num::Integer(4, ()))
                     )
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42)),
-                        Expression::Num(Num::Integer(1337))
+                        Expression::Num(Num::Integer(42, ())),
+                        Expression::Num(Num::Integer(1337, ()))
                     )
                 )))],
+                info: ()
             })
             .into()),
             result
@@ -323,8 +327,9 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::Assignment(Assignment {
-                id: Id("x".into()),
-                value: Expression::Num(Num::Integer(42))
+                id: Id("x".into(), ()),
+                value: Expression::Num(Num::Integer(42, ())),
+                info: ()
             })
             .into()),
             result

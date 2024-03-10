@@ -8,14 +8,15 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Initialisation {
-    pub id: Id,
+pub struct Initialisation<T> {
+    pub id: Id<T>,
     pub mutable: bool,
     pub type_name: Option<TypeName>,
-    pub value: Expression,
+    pub value: Expression<T>,
+    pub info: (),
 }
 
-impl FromTokens<Token> for Initialisation {
+impl FromTokens<Token> for Initialisation<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
@@ -38,7 +39,7 @@ impl FromTokens<Token> for Initialisation {
 
         let mut type_name = None;
 
-        let value: Expression;
+        let value: Expression<()>;
 
         match result.get(1) {
             Some(AstNode::TypeName(type_)) => {
@@ -60,13 +61,14 @@ impl FromTokens<Token> for Initialisation {
             mutable,
             value: value.clone(),
             type_name,
+            info: (),
         }
         .into())
     }
 }
 
-impl From<Initialisation> for AstNode {
-    fn from(value: Initialisation) -> Self {
+impl From<Initialisation<()>> for AstNode {
+    fn from(value: Initialisation<()>) -> Self {
         AstNode::Initialization(value)
     }
 }
@@ -88,10 +90,11 @@ mod tests {
 
         assert_eq!(
             Ok(Initialisation {
-                id: Id("foo".into()),
+                id: Id("foo".into(), ()),
                 mutable: false,
                 type_name: None,
-                value: Expression::Num(Num::Integer(42))
+                value: Expression::Num(Num::Integer(42, ())),
+                info: ()
             }
             .into()),
             result
@@ -109,10 +112,11 @@ mod tests {
 
         assert_eq!(
             Ok(Initialisation {
-                id: Id("foo".into()),
+                id: Id("foo".into(), ()),
                 mutable: false,
                 type_name: Some(TypeName::Literal("i32".into())),
-                value: Expression::Num(Num::Integer(42))
+                value: Expression::Num(Num::Integer(42, ())),
+                info: ()
             }
             .into()),
             result
@@ -130,10 +134,11 @@ mod tests {
 
         assert_eq!(
             Ok(Initialisation {
-                id: Id("foo".into()),
+                id: Id("foo".into(), ()),
                 mutable: true,
                 type_name: None,
-                value: Expression::Num(Num::Integer(42))
+                value: Expression::Num(Num::Integer(42, ())),
+                info: ()
             }
             .into()),
             result

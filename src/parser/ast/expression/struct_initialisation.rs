@@ -6,12 +6,13 @@ use crate::{
 use super::{Expression, Id};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructInitialisation {
-    pub id: Id,
-    pub fields: Vec<StructFieldInitialisation>,
+pub struct StructInitialisation<T> {
+    pub id: Id<T>,
+    pub fields: Vec<StructFieldInitialisation<T>>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for StructInitialisation {
+impl FromTokens<Token> for StructInitialisation<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID
             >> Comb::LBRACE
@@ -30,23 +31,29 @@ impl FromTokens<Token> for StructInitialisation {
             fields.push(field);
         }
 
-        Ok(StructInitialisation { id, fields }.into())
+        Ok(StructInitialisation {
+            id,
+            fields,
+            info: (),
+        }
+        .into())
     }
 }
 
-impl From<StructInitialisation> for AstNode {
-    fn from(value: StructInitialisation) -> Self {
+impl From<StructInitialisation<()>> for AstNode {
+    fn from(value: StructInitialisation<()>) -> Self {
         Self::StructInitialisation(value)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructFieldInitialisation {
-    pub name: Id,
-    pub value: Expression,
+pub struct StructFieldInitialisation<T> {
+    pub name: Id<T>,
+    pub value: Expression<T>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for StructFieldInitialisation {
+impl FromTokens<Token> for StructFieldInitialisation<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID >> Comb::COLON >> Comb::EXPR;
 
@@ -63,13 +70,14 @@ impl FromTokens<Token> for StructFieldInitialisation {
         Ok(StructFieldInitialisation {
             name: name.clone(),
             value: value.clone(),
+            info: (),
         }
         .into())
     }
 }
 
-impl From<StructFieldInitialisation> for AstNode {
-    fn from(value: StructFieldInitialisation) -> Self {
+impl From<StructFieldInitialisation<()>> for AstNode {
+    fn from(value: StructFieldInitialisation<()>) -> Self {
         Self::StructFieldInitialisation(value)
     }
 }
@@ -97,8 +105,9 @@ mod tests {
 
         assert_eq!(
             Ok(StructFieldInitialisation {
-                name: Id("bar".into()),
-                value: Expression::Num(Num::Integer(42))
+                name: Id("bar".into(), ()),
+                value: Expression::Num(Num::Integer(42, ())),
+                info: ()
             }
             .into()),
             result
@@ -116,8 +125,9 @@ mod tests {
 
         assert_eq!(
             Ok(StructInitialisation {
-                id: Id("Foo".into()),
-                fields: vec![]
+                id: Id("Foo".into(), ()),
+                fields: vec![],
+                info: ()
             }
             .into()),
             result
@@ -135,11 +145,13 @@ mod tests {
 
         assert_eq!(
             Ok(StructInitialisation {
-                id: Id("Foo".into()),
+                id: Id("Foo".into(), ()),
                 fields: vec![StructFieldInitialisation {
-                    name: Id("bar".into()),
-                    value: Expression::Num(Num::Integer(42))
-                }]
+                    name: Id("bar".into(), ()),
+                    value: Expression::Num(Num::Integer(42, ())),
+                    info: ()
+                }],
+                info: ()
             }
             .into()),
             result
@@ -157,28 +169,33 @@ mod tests {
 
         assert_eq!(
             Ok(StructInitialisation {
-                id: Id("Foo".into()),
+                id: Id("Foo".into(), ()),
                 fields: vec![
                     StructFieldInitialisation {
-                        name: Id("bar".into()),
-                        value: Expression::Num(Num::Integer(42))
+                        name: Id("bar".into(), ()),
+                        value: Expression::Num(Num::Integer(42, ())),
+                        info: ()
                     },
                     StructFieldInitialisation {
-                        name: Id("baz".into()),
+                        name: Id("baz".into(), ()),
                         value: Expression::Lambda(Lambda {
                             parameters: vec![Parameter {
-                                name: Id("x".into()),
-                                type_name: None
+                                name: Id("x".into(), ()),
+                                type_name: None,
+                                info: ()
                             }],
                             expression: Box::new(Expression::Binary(Box::new(
                                 BinaryExpression::Addition(
-                                    Expression::Id(Id("x".into())),
-                                    Expression::Id(Id("x".into()))
+                                    Expression::Id(Id("x".into(), ())),
+                                    Expression::Id(Id("x".into(), ()))
                                 )
-                            )))
-                        })
+                            ))),
+                            info: ()
+                        }),
+                        info: ()
                     }
-                ]
+                ],
+                info: ()
             }
             .into()),
             result

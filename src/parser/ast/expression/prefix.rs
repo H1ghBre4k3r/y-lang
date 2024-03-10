@@ -1,7 +1,7 @@
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Prefix {
-    Negation { expr: Box<Expression> },
-    Minus { expr: Box<Expression> },
+pub enum Prefix<T> {
+    Negation { expr: Box<Expression<T>> },
+    Minus { expr: Box<Expression<T>> },
 }

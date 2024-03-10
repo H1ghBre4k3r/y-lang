@@ -8,11 +8,12 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Block {
-    pub statements: Vec<Statement>,
+pub struct Block<T> {
+    pub statements: Vec<Statement<T>>,
+    pub info: T,
 }
 
-impl FromTokens<Token> for Block {
+impl FromTokens<Token> for Block<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::LBRACE >> (Comb::STATEMENT ^ ()) >> Comb::RBRACE;
 
@@ -24,12 +25,16 @@ impl FromTokens<Token> for Block {
             statements.push(statement);
         }
 
-        Ok(Block { statements }.into())
+        Ok(Block {
+            statements,
+            info: (),
+        }
+        .into())
     }
 }
 
-impl From<Block> for AstNode {
-    fn from(value: Block) -> Self {
+impl From<Block<()>> for AstNode {
+    fn from(value: Block<()>) -> Self {
         AstNode::Block(value)
     }
 }
@@ -49,7 +54,14 @@ mod tests {
 
         let result = Block::parse(&mut tokens);
 
-        assert_eq!(Ok(Block { statements: vec![] }.into()), result)
+        assert_eq!(
+            Ok(Block {
+                statements: vec![],
+                info: ()
+            }
+            .into()),
+            result
+        )
     }
 
     #[test]
@@ -63,9 +75,11 @@ mod tests {
 
         assert_eq!(
             Ok(Block {
-                statements: vec![Statement::YieldingExpression(Expression::Id(
-                    Id("x".into())
-                ))]
+                statements: vec![Statement::YieldingExpression(Expression::Id(Id(
+                    "x".into(),
+                    ()
+                )))],
+                info: ()
             }
             .into()),
             result
@@ -90,13 +104,15 @@ mod tests {
             Ok(Block {
                 statements: vec![
                     Statement::Initialization(Initialisation {
-                        id: Id("a".into()),
+                        id: Id("a".into(), ()),
                         mutable: false,
-                        value: Expression::Num(Num::Integer(42)),
-                        type_name: None
+                        value: Expression::Num(Num::Integer(42, ())),
+                        type_name: None,
+                        info: ()
                     },),
-                    Statement::YieldingExpression(Expression::Id(Id("a".into())))
-                ]
+                    Statement::YieldingExpression(Expression::Id(Id("a".into(), ())))
+                ],
+                info: ()
             }
             .into()),
             result

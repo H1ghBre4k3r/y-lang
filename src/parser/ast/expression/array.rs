@@ -6,17 +6,19 @@ use crate::{
 use super::{Expression, Num};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Array {
+pub enum Array<T> {
     Literal {
-        values: Vec<Expression>,
+        values: Vec<Expression<T>>,
+        info: T,
     },
     Default {
-        initial_value: Box<Expression>,
-        length: Num,
+        initial_value: Box<Expression<T>>,
+        length: Num<T>,
+        info: T,
     },
 }
 
-impl FromTokens<Token> for Array {
+impl FromTokens<Token> for Array<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let start = tokens.get_index();
         let matcher = Comb::LBRACKET >> (Comb::EXPR % Comb::COMMA) >> Comb::RBRACKET;
@@ -30,7 +32,7 @@ impl FromTokens<Token> for Array {
                 };
                 values.push(value);
             }
-            return Ok(Array::Literal { values }.into());
+            return Ok(Array::Literal { values, info: () }.into());
         }
         tokens.set_index(start);
 
@@ -47,6 +49,7 @@ impl FromTokens<Token> for Array {
             return Ok(Array::Default {
                 initial_value: Box::new(initial_value),
                 length,
+                info: (),
             }
             .into());
         };
@@ -58,8 +61,8 @@ impl FromTokens<Token> for Array {
     }
 }
 
-impl From<Array> for AstNode {
-    fn from(value: Array) -> Self {
+impl From<Array<()>> for AstNode {
+    fn from(value: Array<()>) -> Self {
         Self::Array(value)
     }
 }
@@ -75,7 +78,14 @@ mod tests {
         let mut tokens = Lexer::new("[]").lex().expect("something is wrong").into();
 
         let result = Array::parse(&mut tokens);
-        assert_eq!(Ok(Array::Literal { values: vec![] }.into()), result);
+        assert_eq!(
+            Ok(Array::Literal {
+                values: vec![],
+                info: ()
+            }
+            .into()),
+            result
+        );
     }
 
     #[test]
@@ -89,9 +99,10 @@ mod tests {
         assert_eq!(
             Ok(Array::Literal {
                 values: vec![
-                    Expression::Num(Num::Integer(42)),
-                    Expression::Num(Num::Integer(1337))
-                ]
+                    Expression::Num(Num::Integer(42, ())),
+                    Expression::Num(Num::Integer(1337, ())),
+                ],
+                info: ()
             }
             .into()),
             result
@@ -108,8 +119,9 @@ mod tests {
         let result = Array::parse(&mut tokens);
         assert_eq!(
             Ok(Array::Default {
-                initial_value: Box::new(Expression::Num(Num::Integer(42))),
-                length: Num::Integer(5)
+                initial_value: Box::new(Expression::Num(Num::Integer(42, ()))),
+                length: Num::Integer(5, ()),
+                info: ()
             }
             .into()),
             result
