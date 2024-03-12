@@ -2,7 +2,7 @@ use super::scope::Scope;
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    scope: Scope,
+    pub scope: Scope,
 }
 
 impl Default for Context {

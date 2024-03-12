@@ -11,13 +11,13 @@ impl TypeCheckable for Num<()> {
             Num::Integer(val, _) => Ok(Num::Integer(
                 val,
                 TypeInformation {
-                    type_id: Some(Type::Integer),
+                    type_id: Type::Integer,
                 },
             )),
             Num::FloatingPoint(val, _) => Ok(Num::FloatingPoint(
                 val,
                 TypeInformation {
-                    type_id: Some(Type::Float),
+                    type_id: Type::FloatingPoint,
                 },
             )),
         }
@@ -40,7 +40,7 @@ mod tests {
         };
 
         assert_eq!(num, 42);
-        assert_eq!(info.type_id, Some(Type::Integer));
+        assert_eq!(info.type_id, Type::Integer);
         Ok(())
     }
 
@@ -53,7 +53,7 @@ mod tests {
         };
 
         assert_eq!(num, 42.0);
-        assert_eq!(info.type_id, Some(Type::Float));
+        assert_eq!(info.type_id, Type::FloatingPoint);
         Ok(())
     }
 }

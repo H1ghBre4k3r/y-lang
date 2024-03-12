@@ -1,7 +1,7 @@
 use std::{error::Error, fs};
 
 use clap::{command, Parser};
-use pesca_lang::{lexer::Lexer, parser::parse};
+use pesca_lang::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -33,5 +33,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let statements = parse(&mut tokens.into())?;
 
     println!("{statements:#?}");
+
+    let checked = TypeChecker::new().check(statements)?;
+
+    println!("{checked:#?}");
     Ok(())
 }

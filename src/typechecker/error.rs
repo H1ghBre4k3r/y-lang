@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display};
 
 use super::types::Type;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeError {
     pub expected: Type,
     pub actual: Type,
