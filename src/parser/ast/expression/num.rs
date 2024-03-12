@@ -28,6 +28,18 @@ impl FromTokens<Token> for Num<()> {
     }
 }
 
+impl<T> Num<T>
+where
+    T: Clone,
+{
+    pub fn get_info(&self) -> T {
+        match self {
+            Num::Integer(_, info) => info.clone(),
+            Num::FloatingPoint(_, info) => info.clone(),
+        }
+    }
+}
+
 impl From<Num<()>> for AstNode {
     fn from(value: Num<()>) -> Self {
         AstNode::Num(value)

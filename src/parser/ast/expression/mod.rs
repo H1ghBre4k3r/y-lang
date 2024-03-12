@@ -47,6 +47,28 @@ pub enum Expression<T> {
     StructInitialisation(StructInitialisation<T>),
 }
 
+impl<T> Expression<T>
+where
+    T: Clone,
+{
+    pub fn get_info(&self) -> T {
+        match self {
+            Expression::Id(Id(_, info)) => info.clone(),
+            Expression::Num(num) => num.get_info(),
+            Expression::Function(Function { info, .. }) => info.clone(),
+            Expression::Lambda(Lambda { info, .. }) => info.clone(),
+            Expression::If(If { info, .. }) => info.clone(),
+            Expression::Block(Block { info, .. }) => info.clone(),
+            Expression::Parens(expr) => expr.get_info(),
+            Expression::Postfix(postfix) => postfix.get_info(),
+            Expression::Prefix(prefix) => prefix.get_info(),
+            Expression::Binary(_) => todo!(),
+            Expression::Array(arr) => arr.get_info(),
+            Expression::StructInitialisation(StructInitialisation { info, .. }) => info.clone(),
+        }
+    }
+}
+
 impl FromTokens<Token> for Expression<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let mut expr = match tokens.peek() {

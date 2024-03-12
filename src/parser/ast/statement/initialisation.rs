@@ -13,7 +13,7 @@ pub struct Initialisation<T> {
     pub mutable: bool,
     pub type_name: Option<TypeName>,
     pub value: Expression<T>,
-    pub info: (),
+    pub info: T,
 }
 
 impl FromTokens<Token> for Initialisation<()> {
