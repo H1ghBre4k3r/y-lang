@@ -18,6 +18,18 @@ pub enum Array<T> {
     },
 }
 
+impl<T> Array<T>
+where
+    T: Clone,
+{
+    pub fn get_info(&self) -> T {
+        match self {
+            Array::Literal { info, .. } => info.clone(),
+            Array::Default { info, .. } => info.clone(),
+        }
+    }
+}
+
 impl FromTokens<Token> for Array<()> {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         let start = tokens.get_index();

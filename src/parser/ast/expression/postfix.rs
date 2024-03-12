@@ -18,3 +18,16 @@ pub enum Postfix<T> {
         info: T,
     },
 }
+
+impl<T> Postfix<T>
+where
+    T: Clone,
+{
+    pub fn get_info(&self) -> T {
+        match self {
+            Postfix::Call { info, .. } => info.clone(),
+            Postfix::Index { info, .. } => info.clone(),
+            Postfix::PropertyAccess { info, .. } => info.clone(),
+        }
+    }
+}
