@@ -10,7 +10,7 @@ use self::{context::Context, error::TypeError, types::Type};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {
-    pub type_id: Option<Type>,
+    pub type_id: Type,
 }
 
 pub type TypeResult<T> = Result<T, TypeError>;
@@ -23,7 +23,7 @@ pub struct TypeChecker {
 trait TypeCheckable {
     type Output;
 
-    fn check(self, context: &mut Context) -> TypeResult<Self::Output>;
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output>;
 }
 
 impl TypeChecker {

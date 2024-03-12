@@ -1,21 +1,50 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use super::types::Type;
 
+#[derive(Debug, Clone, Default)]
+pub struct Stack {
+    variables: HashMap<String, Type>,
+    types: HashMap<String, Type>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Scope {
-    stacks: Vec<HashMap<String, Type>>,
+    stacks: Vec<Stack>,
 }
+
+impl Default for Scope {
+    fn default() -> Self {
+        Scope {
+            stacks: vec![Stack::default()],
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeAddError {
+    pub name: String,
+    pub type_id: Type,
+}
+
+impl Display for TypeAddError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "tried to add already existing type '{}'",
+            self.name
+        ))
+    }
+}
+
+impl std::error::Error for TypeAddError {}
 
 impl Scope {
     pub fn new() -> Scope {
-        Scope {
-            stacks: vec![HashMap::new()],
-        }
+        Self::default()
     }
 
     pub fn enter_scope(&mut self) {
-        self.stacks.push(HashMap::new())
+        self.stacks.push(Stack::default())
     }
 
     pub fn exit_scope(&mut self) {
@@ -25,16 +54,40 @@ impl Scope {
     pub fn add_variable(&mut self, name: impl ToString, type_id: Type) {
         self.stacks
             .last_mut()
-            .and_then(|scope| scope.insert(name.to_string(), type_id));
+            .and_then(|scope| scope.variables.insert(name.to_string(), type_id));
     }
 
-    pub fn get_variable(&mut self, name: impl ToString) -> Option<Type> {
+    pub fn get_variable(&self, name: impl ToString) -> Option<Type> {
         let name = name.to_string();
         self.stacks
             .iter()
             .rev()
-            .find(|scope| scope.contains_key(&name))
-            .and_then(|scope| scope.get(&name).cloned())
+            .find(|scope| scope.variables.contains_key(&name))
+            .and_then(|scope| scope.variables.get(&name).cloned())
+    }
+
+    pub fn add_type(&mut self, name: impl ToString, type_id: Type) -> Result<(), TypeAddError> {
+        let name = name.to_string();
+        let Some(last) = self.stacks.last_mut() else {
+            unreachable!("trying to add type {name} in empty scope");
+        };
+
+        if last.types.contains_key(&name) {
+            return Err(TypeAddError { name, type_id });
+        }
+
+        last.types.insert(name, type_id);
+
+        Ok(())
+    }
+
+    pub fn get_type(&self, name: impl ToString) -> Option<Type> {
+        let name = name.to_string();
+        self.stacks
+            .iter()
+            .rev()
+            .find(|scope| scope.types.contains_key(&name))
+            .and_then(|scope| scope.types.get(&name).cloned())
     }
 }
 
