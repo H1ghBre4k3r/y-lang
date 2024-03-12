@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::{GetPosition, Token, Tokens},
     parser::{ast::AstNode, FromTokens, ParseError},
 };
 
@@ -56,7 +56,7 @@ mod tests {
     fn test_parse() {
         let tokens = vec![Token::Integer {
             value: 42,
-            position: 0,
+            position: (0, 0),
         }];
         assert_eq!(
             Num::parse(&mut tokens.into()),
@@ -68,7 +68,7 @@ mod tests {
     fn test_error_on_non_num() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: 0,
+            position: (0, 0),
         }];
         assert!(Num::parse(&mut tokens.into()).is_err());
     }

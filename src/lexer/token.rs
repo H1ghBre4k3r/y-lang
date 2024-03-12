@@ -1,7 +1,7 @@
 use lex_derive::{LooseEq, Token as ParseToken};
 use regex::{Match, Regex};
 
-type Position = usize;
+type Position = (usize, usize);
 
 #[derive(Debug, Clone, ParseToken, LooseEq)]
 pub enum Token {

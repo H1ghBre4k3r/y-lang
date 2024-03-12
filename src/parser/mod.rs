@@ -13,7 +13,7 @@ use self::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
     pub message: String,
-    pub position: Option<usize>,
+    pub position: Option<(usize, usize)>,
 }
 
 impl ParseError {
@@ -28,7 +28,7 @@ impl ParseError {
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(pos) = self.position {
-            f.write_fmt(format_args!("{} ({})", self.message, pos))
+            f.write_fmt(format_args!("{} ({}:{})", self.message, pos.0, pos.1))
         } else {
             f.write_str(&self.message)
         }
