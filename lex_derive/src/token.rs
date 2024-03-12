@@ -194,8 +194,12 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
             }
         }
 
-        impl #ident {
-            pub fn position(&self) -> Position {
+        pub trait GetPosition {
+            fn position(&self) -> Position;
+        }
+
+        impl GetPosition for #ident {
+            fn position(&self) -> Position {
                 match self {
                     #(#matches_get_position)*
                 }
@@ -225,7 +229,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
             };
         }
 
-        type Entries = Vec<(Regex, Box<dyn Fn(Match, usize) -> Token>)>;
+        type Entries = Vec<(Regex, Box<dyn Fn(Match, (usize, usize)) -> Token>)>;
 
         pub struct Lexikon {
             entries: Entries,
@@ -242,14 +246,14 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                 Lexikon { entries }
             }
 
-            fn insert<F: Fn(Match, usize) -> Token + 'static>(entries: &mut Entries, reg: Regex, f: F) {
+            fn insert<F: Fn(Match, (usize, usize)) -> Token + 'static>(entries: &mut Entries, reg: Regex, f: F) {
                 entries.push((reg, Box::new(f)))
             }
 
             pub fn find_longest_match(
                 &self,
                 pattern: &'a str,
-                position: usize,
+                position: (usize, usize),
             ) -> (usize, Option<Token>) {
                 let mut longest = (0, None);
 

@@ -1,6 +1,6 @@
 use std::ops::{BitOr, BitXor, Not, Rem, Shr};
 
-use crate::lexer::{Terminal, Token, Tokens};
+use crate::lexer::{GetPosition, Terminal, Token, Tokens};
 
 use super::{
     ast::{
@@ -244,7 +244,7 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
 
 impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>
 where
-    Tok: Clone + std::fmt::Debug,
+    Tok: Clone + std::fmt::Debug + GetPosition,
     Term: PartialEq<Tok> + std::fmt::Debug,
 {
     pub fn parse(&self, tokens: &mut Tokens<Tok>) -> Result<Vec<Node>, ParseError> {
@@ -262,7 +262,7 @@ where
                 if *token != t {
                     return Err(ParseError {
                         message: format!("Unexpected {:?} while trying to parse {:?}", t, token),
-                        position: None,
+                        position: Some(t.position()),
                     });
                 }
             }
@@ -472,7 +472,7 @@ mod tests {
     #[test]
     fn test_parse_optional_matching_terminal() {
         let a = !Comb::LET;
-        let mut tokens = vec![Token::Let { position: 0 }].into();
+        let mut tokens = vec![Token::Let { position: (0, 0) }].into();
         let result = a.parse(&mut tokens);
 
         assert_eq!(Ok(vec![]), result);
@@ -482,7 +482,7 @@ mod tests {
     #[test]
     fn test_parse_optional_not_matching_terminal() {
         let a = !Comb::LET;
-        let mut tokens = vec![Token::Assign { position: 0 }].into();
+        let mut tokens = vec![Token::Assign { position: (0, 0) }].into();
         let result = a.parse(&mut tokens);
 
         assert_eq!(Ok(vec![]), result);
@@ -494,7 +494,7 @@ mod tests {
         let a = !Comb::NUM;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: 0,
+            position: (0, 0),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -508,7 +508,7 @@ mod tests {
         let a = !Comb::NUM;
         let mut tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: 0,
+            position: (0, 0),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -539,11 +539,11 @@ mod tests {
     fn test_parse_repition_simple_matching() {
         let a = Comb::LET ^ 5;
         let mut tokens = vec![
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
         ]
         .into();
         let result = a.parse(&mut tokens);
@@ -555,11 +555,11 @@ mod tests {
     fn test_parse_repition_simple_not_matching() {
         let a = Comb::LET ^ 5;
         let mut tokens = vec![
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
-            Token::Assign { position: 0 },
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
+            Token::Assign { position: (0, 0) },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
         ]
         .into();
         let result = a.parse(&mut tokens);
@@ -570,11 +570,11 @@ mod tests {
     fn test_parse_repition_simple_wildcard() {
         let a = Comb::LET ^ ();
         let mut tokens = vec![
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
-            Token::Assign { position: 0 },
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
+            Token::Assign { position: (0, 0) },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
         ]
         .into();
         let result = a.parse(&mut tokens);
@@ -588,15 +588,15 @@ mod tests {
         let mut tokens = vec![
             Token::Integer {
                 value: 42,
-                position: 0,
+                position: (0, 0),
             },
             Token::Integer {
                 value: 1337,
-                position: 0,
+                position: (0, 0),
             },
             Token::Integer {
                 value: 17,
-                position: 0,
+                position: (0, 0),
             },
         ]
         .into();
@@ -619,18 +619,18 @@ mod tests {
         let mut tokens = vec![
             Token::Integer {
                 value: 42,
-                position: 0,
+                position: (0, 0),
             },
             Token::Integer {
                 value: 1337,
-                position: 0,
+                position: (0, 0),
             },
             Token::Integer {
                 value: 17,
-                position: 0,
+                position: (0, 0),
             },
-            Token::Let { position: 0 },
-            Token::Let { position: 0 },
+            Token::Let { position: (0, 0) },
+            Token::Let { position: (0, 0) },
         ]
         .into();
         let result = a.parse(&mut tokens);
@@ -649,7 +649,7 @@ mod tests {
     #[test]
     fn test_parse_terminal_simple() {
         let a = Comb::LET;
-        let mut tokens = vec![Token::Let { position: 0 }].into();
+        let mut tokens = vec![Token::Let { position: (0, 0) }].into();
         let result = a.parse(&mut tokens);
 
         assert_eq!(Ok(vec![]), result);
@@ -661,7 +661,7 @@ mod tests {
         let a = Comb::NUM;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: 0,
+            position: (0, 0),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -674,10 +674,10 @@ mod tests {
     fn test_parse_shr() {
         let matcher = Comb::LET >> Comb::NUM;
         let mut tokens = vec![
-            Token::Let { position: 0 },
+            Token::Let { position: (0, 0) },
             Token::Integer {
                 value: 42,
-                position: 0,
+                position: (0, 0),
             },
         ]
         .into();
@@ -691,7 +691,7 @@ mod tests {
         let matcher = Comb::ID | Comb::NUM;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: 0,
+            position: (0, 0),
         }]
         .into();
         let result = matcher.parse(&mut tokens);
@@ -701,7 +701,7 @@ mod tests {
 
         let mut tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: 0,
+            position: (0, 0),
         }]
         .into();
         let result = matcher.parse(&mut tokens);
@@ -714,7 +714,7 @@ mod tests {
         let a = Comb::LET;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: 0,
+            position: (0, 0),
         }]
         .into();
         let result = a.parse(&mut tokens);

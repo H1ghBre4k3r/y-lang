@@ -283,7 +283,7 @@ mod tests {
     fn test_parse_id() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: 0,
+            position: (0, 0),
         }];
 
         assert_eq!(
@@ -299,7 +299,7 @@ mod tests {
     fn test_parse_num() {
         let tokens = vec![Token::Integer {
             value: 42,
-            position: 0,
+            position: (0, 0),
         }];
 
         assert_eq!(
