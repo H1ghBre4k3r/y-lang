@@ -75,10 +75,10 @@ mod tests {
 
         assert_eq!(
             Ok(Block {
-                statements: vec![Statement::YieldingExpression(Expression::Id(Id(
-                    "x".into(),
-                    ()
-                )))],
+                statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                    name: "x".into(),
+                    info: ()
+                }))],
                 info: ()
             }
             .into()),
@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn test_complex_block() {
         let mut tokens = Lexer::new(
-            "{ 
+            "{
                 let a = 42;
                 a
             }",
@@ -104,13 +104,19 @@ mod tests {
             Ok(Block {
                 statements: vec![
                     Statement::Initialization(Initialisation {
-                        id: Id("a".into(), ()),
+                        id: Id {
+                            name: "a".into(),
+                            info: ()
+                        },
                         mutable: false,
                         value: Expression::Num(Num::Integer(42, ())),
                         type_name: None,
                         info: ()
                     },),
-                    Statement::YieldingExpression(Expression::Id(Id("a".into(), ())))
+                    Statement::YieldingExpression(Expression::Id(Id {
+                        name: "a".into(),
+                        info: ()
+                    }))
                 ],
                 info: ()
             }

@@ -65,7 +65,7 @@ impl TypeName {
             });
         };
 
-        Ok(TypeName::Literal(type_name.0.clone()).into())
+        Ok(TypeName::Literal(type_name.name.clone()).into())
     }
 
     fn parse_tuple(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {

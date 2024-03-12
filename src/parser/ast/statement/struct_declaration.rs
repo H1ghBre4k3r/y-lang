@@ -107,7 +107,10 @@ mod tests {
 
         assert_eq!(
             Ok(StructDeclaration {
-                id: Id("Foo".into(), ()),
+                id: Id {
+                    name: "Foo".into(),
+                    info: ()
+                },
                 fields: vec![],
                 info: ()
             }
@@ -131,9 +134,15 @@ mod tests {
 
         assert_eq!(
             Ok(StructDeclaration {
-                id: Id("Foo".into(), ()),
+                id: Id {
+                    name: "Foo".into(),
+                    info: ()
+                },
                 fields: vec![StructFieldDeclaration {
-                    name: Id("foo".into(), ()),
+                    name: Id {
+                        name: "foo".into(),
+                        info: ()
+                    },
                     type_name: TypeName::Literal("u32".into()),
                     info: ()
                 }],
@@ -160,15 +169,24 @@ mod tests {
 
         assert_eq!(
             Ok(StructDeclaration {
-                id: Id("Foo".into(), ()),
+                id: Id {
+                    name: "Foo".into(),
+                    info: ()
+                },
                 fields: vec![
                     StructFieldDeclaration {
-                        name: Id("foo".into(), ()),
+                        name: Id {
+                            name: "foo".into(),
+                            info: ()
+                        },
                         type_name: TypeName::Literal("u32".into()),
                         info: ()
                     },
                     StructFieldDeclaration {
-                        name: Id("baz".into(), ()),
+                        name: Id {
+                            name: "baz".into(),
+                            info: ()
+                        },
                         type_name: TypeName::Array(Box::new(TypeName::Literal("f64".into()))),
                         info: ()
                     }

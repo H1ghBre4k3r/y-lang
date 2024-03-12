@@ -705,7 +705,13 @@ mod tests {
         }]
         .into();
         let result = matcher.parse(&mut tokens);
-        assert_eq!(Ok(vec![AstNode::Id(Id("some_id".into(), ()))]), result);
+        assert_eq!(
+            Ok(vec![AstNode::Id(Id {
+                name: "some_id".into(),
+                info: ()
+            })]),
+            result
+        );
         assert_eq!(tokens.get_index(), 1);
     }
 

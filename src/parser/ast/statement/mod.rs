@@ -204,7 +204,10 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::Constant(Constant {
-                id: Id("foo".into(), ()),
+                id: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 type_name: TypeName::Literal("i32".into()),
                 value: Expression::Num(Num::Integer(42, ())),
                 info: ()
@@ -237,18 +240,23 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::If(If {
-                condition: Box::new(Expression::Id(Id("x".into(), ()))),
+                condition: Box::new(Expression::Id(Id {
+                    name: "x".into(),
+                    info: ()
+                })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3, ())),
-                        Expression::Num(Num::Integer(4, ()))
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Num(Num::Integer(3, ())),
+                        right: Expression::Num(Num::Integer(4, ())),
+                        info: (),
+                    }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42, ())),
-                        Expression::Num(Num::Integer(1337, ()))
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Num(Num::Integer(42, ())),
+                        right: Expression::Num(Num::Integer(1337, ())),
+                        info: (),
+                    }
                 )))],
                 info: ()
             })
@@ -268,18 +276,23 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::If(If {
-                condition: Box::new(Expression::Id(Id("x".into(), ()))),
+                condition: Box::new(Expression::Id(Id {
+                    name: "x".into(),
+                    info: ()
+                })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3, ())),
-                        Expression::Num(Num::Integer(4, ()))
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Num(Num::Integer(3, ())),
+                        right: Expression::Num(Num::Integer(4, ())),
+                        info: (),
+                    }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42, ())),
-                        Expression::Num(Num::Integer(1337, ()))
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Num(Num::Integer(42, ())),
+                        right: Expression::Num(Num::Integer(1337, ())),
+                        info: (),
+                    }
                 )))],
                 info: ()
             })
@@ -299,18 +312,23 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::If(If {
-                condition: Box::new(Expression::Id(Id("x".into(), ()))),
+                condition: Box::new(Expression::Id(Id {
+                    name: "x".into(),
+                    info: ()
+                })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(3, ())),
-                        Expression::Num(Num::Integer(4, ()))
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Num(Num::Integer(3, ())),
+                        right: Expression::Num(Num::Integer(4, ())),
+                        info: (),
+                    }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Num(Num::Integer(42, ())),
-                        Expression::Num(Num::Integer(1337, ()))
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Num(Num::Integer(42, ())),
+                        right: Expression::Num(Num::Integer(1337, ())),
+                        info: (),
+                    }
                 )))],
                 info: ()
             })
@@ -327,7 +345,10 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::Assignment(Assignment {
-                id: Id("x".into(), ()),
+                id: Id {
+                    name: "x".into(),
+                    info: ()
+                },
                 value: Expression::Num(Num::Integer(42, ())),
                 info: ()
             })

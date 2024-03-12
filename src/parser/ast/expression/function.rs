@@ -160,7 +160,10 @@ mod tests {
             Ok(Function {
                 id: None,
                 parameters: vec![Parameter {
-                    name: Id("x".into(), ()),
+                    name: Id {
+                        name: "x".into(),
+                        info: ()
+                    },
                     type_name: Some(TypeName::Literal("i32".into())),
                     info: ()
                 }],
@@ -187,12 +190,18 @@ mod tests {
                 id: None,
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into(), ()),
+                        name: Id {
+                            name: "x".into(),
+                            info: ()
+                        },
                         type_name: Some(TypeName::Literal("i32".into())),
                         info: ()
                     },
                     Parameter {
-                        name: Id("y".into(), ()),
+                        name: Id {
+                            name: "y".into(),
+                            info: ()
+                        },
                         type_name: Some(TypeName::Literal("i32".into())),
                         info: ()
                     }
@@ -220,22 +229,35 @@ mod tests {
                 id: None,
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into(), ()),
+                        name: Id {
+                            name: "x".into(),
+                            info: ()
+                        },
                         type_name: Some(TypeName::Literal("i32".into())),
                         info: ()
                     },
                     Parameter {
-                        name: Id("y".into(), ()),
+                        name: Id {
+                            name: "y".into(),
+                            info: ()
+                        },
                         type_name: Some(TypeName::Literal("i32".into())),
                         info: ()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Id(Id("x".into(), ())),
-                        Expression::Id(Id("y".into(), ())),
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Id(Id {
+                            name: "x".into(),
+                            info: ()
+                        }),
+                        right: Expression::Id(Id {
+                            name: "y".into(),
+                            info: ()
+                        }),
+                        info: (),
+                    }
                 )))],
                 info: ()
             }
@@ -255,25 +277,41 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
-                id: Some(Id("main".into(), ())),
+                id: Some(Id {
+                    name: "main".into(),
+                    info: ()
+                }),
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into(), ()),
+                        name: Id {
+                            name: "x".into(),
+                            info: ()
+                        },
                         type_name: Some(TypeName::Literal("i32".into())),
                         info: ()
                     },
                     Parameter {
-                        name: Id("y".into(), ()),
+                        name: Id {
+                            name: "y".into(),
+                            info: ()
+                        },
                         type_name: Some(TypeName::Literal("i32".into())),
                         info: ()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
-                    BinaryExpression::Addition(
-                        Expression::Id(Id("x".into(), ())),
-                        Expression::Id(Id("y".into(), ())),
-                    )
+                    BinaryExpression::Addition {
+                        left: Expression::Id(Id {
+                            name: "x".into(),
+                            info: ()
+                        }),
+                        right: Expression::Id(Id {
+                            name: "y".into(),
+                            info: ()
+                        }),
+                        info: (),
+                    }
                 )))],
                 info: ()
             }

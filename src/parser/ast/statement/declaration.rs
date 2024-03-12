@@ -66,7 +66,10 @@ mod tests {
 
         assert_eq!(
             Ok(Declaration {
-                name: Id("foo".into(), ()),
+                name: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 type_name: TypeName::Literal("i32".into()),
                 info: ()
             }
@@ -85,7 +88,10 @@ mod tests {
         let result = Declaration::parse(&mut tokens);
         assert_eq!(
             Ok(Declaration {
-                name: Id("foo".into(), ()),
+                name: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 type_name: TypeName::Tuple(vec![TypeName::Literal("i32".into()); 2]),
                 info: ()
             }
@@ -104,7 +110,10 @@ mod tests {
         let result = Declaration::parse(&mut tokens);
         assert_eq!(
             Ok(Declaration {
-                name: Id("foo".into(), ()),
+                name: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 type_name: TypeName::Fn {
                     params: vec![TypeName::Literal("i32".into()); 2],
                     return_type: Box::new(TypeName::Literal("i32".into()))
