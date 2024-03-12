@@ -71,7 +71,10 @@ mod tests {
 
         assert_eq!(
             Ok(Constant {
-                id: Id("foo".into(), ()),
+                id: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 type_name: TypeName::Literal("i32".into()),
                 value: Expression::Num(Num::Integer(42, ())),
                 info: ()

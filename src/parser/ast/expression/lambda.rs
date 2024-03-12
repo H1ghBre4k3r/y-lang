@@ -94,20 +94,33 @@ mod tests {
             Ok(Lambda {
                 parameters: vec![
                     Parameter {
-                        name: Id("x".into(), ()),
+                        name: Id {
+                            name: "x".into(),
+                            info: ()
+                        },
                         type_name: None,
                         info: ()
                     },
                     Parameter {
-                        name: Id("y".into(), ()),
+                        name: Id {
+                            name: "y".into(),
+                            info: ()
+                        },
                         type_name: None,
                         info: ()
                     }
                 ],
-                expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition(
-                    Expression::Id(Id("x".into(), ())),
-                    Expression::Id(Id("y".into(), ())),
-                )))),
+                expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition {
+                    left: Expression::Id(Id {
+                        name: "x".into(),
+                        info: ()
+                    }),
+                    right: Expression::Id(Id {
+                        name: "y".into(),
+                        info: ()
+                    }),
+                    info: (),
+                }))),
                 info: ()
             }
             .into()),
@@ -127,11 +140,17 @@ mod tests {
         assert_eq!(
             Ok(Lambda {
                 parameters: vec![Parameter {
-                    name: Id("x".into(), ()),
+                    name: Id {
+                        name: "x".into(),
+                        info: ()
+                    },
                     type_name: None,
                     info: ()
                 }],
-                expression: Box::new(Expression::Id(Id("x".into(), ()))),
+                expression: Box::new(Expression::Id(Id {
+                    name: "x".into(),
+                    info: ()
+                })),
                 info: ()
             }
             .into()),
@@ -151,15 +170,18 @@ mod tests {
         assert_eq!(
             Ok(Lambda {
                 parameters: vec![Parameter {
-                    name: Id("x".into(), ()),
+                    name: Id {
+                        name: "x".into(),
+                        info: ()
+                    },
                     type_name: None,
                     info: ()
                 }],
                 expression: Box::new(Expression::Block(Block {
-                    statements: vec![Statement::YieldingExpression(Expression::Id(Id(
-                        "x".into(),
-                        ()
-                    )))],
+                    statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                        name: "x".into(),
+                        info: ()
+                    }))],
                     info: ()
                 })),
                 info: ()

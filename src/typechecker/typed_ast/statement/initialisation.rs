@@ -19,7 +19,7 @@ impl TypeCheckable for Initialisation<()> {
             ..
         } = self;
 
-        let name = id.0;
+        let name = id.name;
 
         let value = value.check(ctx)?;
 
@@ -39,7 +39,10 @@ impl TypeCheckable for Initialisation<()> {
         ctx.scope.add_variable(&name, info.type_id.clone());
 
         Ok(Initialisation {
-            id: Id(name, info.clone()),
+            id: Id {
+                name,
+                info: info.clone(),
+            },
             mutable,
             type_name,
             value,
@@ -64,7 +67,10 @@ mod tests {
         let mut ctx = Context::default();
 
         let init = Initialisation {
-            id: Id("foo".into(), ()),
+            id: Id {
+                name: "foo".into(),
+                info: (),
+            },
             mutable: false,
             type_name: None,
             value: Expression::Num(Num::Integer(42, ())),
@@ -72,7 +78,7 @@ mod tests {
         }
         .check(&mut ctx)?;
 
-        assert_eq!(init.id.0, "foo".to_string());
+        assert_eq!(init.id.name, "foo".to_string());
         assert!(!init.mutable);
         assert!(init.type_name.is_none());
         assert_eq!(
@@ -93,7 +99,10 @@ mod tests {
         let mut ctx = Context::default();
 
         let init = Initialisation {
-            id: Id("foo".into(), ()),
+            id: Id {
+                name: "foo".into(),
+                info: (),
+            },
             mutable: false,
             type_name: None,
             value: Expression::Num(Num::Integer(42, ())),
@@ -114,7 +123,10 @@ mod tests {
         let mut ctx = Context::default();
 
         let init = Initialisation {
-            id: Id("foo".into(), ()),
+            id: Id {
+                name: "foo".into(),
+                info: (),
+            },
             mutable: false,
             type_name: None,
             value: Expression::Num(Num::Integer(42, ())),
@@ -130,7 +142,7 @@ mod tests {
             }
         );
         assert_eq!(
-            init.id.1,
+            init.id.info,
             TypeInformation {
                 type_id: Type::Integer
             }
@@ -144,7 +156,10 @@ mod tests {
         let mut ctx = Context::default();
 
         let init = Initialisation {
-            id: Id("foo".into(), ()),
+            id: Id {
+                name: "foo".into(),
+                info: (),
+            },
             mutable: false,
             type_name: Some(TypeName::Literal("f64".into())),
             value: Expression::Num(Num::Integer(42, ())),

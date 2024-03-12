@@ -90,7 +90,10 @@ mod tests {
 
         assert_eq!(
             Ok(Initialisation {
-                id: Id("foo".into(), ()),
+                id: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 mutable: false,
                 type_name: None,
                 value: Expression::Num(Num::Integer(42, ())),
@@ -112,7 +115,10 @@ mod tests {
 
         assert_eq!(
             Ok(Initialisation {
-                id: Id("foo".into(), ()),
+                id: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 mutable: false,
                 type_name: Some(TypeName::Literal("i32".into())),
                 value: Expression::Num(Num::Integer(42, ())),
@@ -134,7 +140,10 @@ mod tests {
 
         assert_eq!(
             Ok(Initialisation {
-                id: Id("foo".into(), ()),
+                id: Id {
+                    name: "foo".into(),
+                    info: ()
+                },
                 mutable: true,
                 type_name: None,
                 value: Expression::Num(Num::Integer(42, ())),
