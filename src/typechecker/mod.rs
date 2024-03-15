@@ -6,14 +6,14 @@ mod types;
 
 use crate::parser::ast::Statement;
 
-use self::{context::Context, error::TypeError, types::Type};
+use self::{context::Context, error::TypeCheckError, types::Type};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {
     pub type_id: Type,
 }
 
-pub type TypeResult<T> = Result<T, TypeError>;
+pub type TypeResult<T> = Result<T, TypeCheckError>;
 
 #[derive(Debug, Clone, Default)]
 pub struct TypeChecker {
