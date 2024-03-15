@@ -13,7 +13,7 @@ pub enum Type {
     Reference(Box<Type>),
     Tuple(Vec<Type>),
     Array(Box<Type>),
-    Struct(HashMap<String, Type>),
+    Struct(String, HashMap<String, Type>),
     Function {
         params: Vec<Type>,
         return_value: Box<Type>,
