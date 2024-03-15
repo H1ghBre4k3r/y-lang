@@ -1,3 +1,4 @@
+mod declaration;
 mod initialisation;
 
 use crate::{
@@ -20,7 +21,7 @@ impl TypeCheckable for Statement<()> {
             Statement::YieldingExpression(_) => todo!(),
             Statement::Return(_) => todo!(),
             Statement::Comment(_) => todo!(),
-            Statement::Declaration(_) => todo!(),
+            Statement::Declaration(dec) => Ok(Statement::Declaration(dec.check(ctx)?)),
             Statement::StructDeclaration(_) => todo!(),
         }
     }

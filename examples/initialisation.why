@@ -1,1 +1,3 @@
 let foo = 42;
+
+declare bar: i64;
