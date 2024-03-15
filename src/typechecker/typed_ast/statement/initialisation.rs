@@ -3,7 +3,10 @@ use std::borrow::Borrow;
 use crate::{
     parser::ast::{Id, Initialisation},
     typechecker::{
-        context::Context, error::TypeError, types::Type, TypeCheckable, TypeInformation, TypeResult,
+        context::Context,
+        error::{TypeCheckError, TypeMismatch},
+        types::Type,
+        TypeCheckable, TypeInformation, TypeResult,
     },
 };
 
@@ -28,10 +31,10 @@ impl TypeCheckable for Initialisation<()> {
         if let Some(type_name) = type_name.clone() {
             if let Ok(type_id) = Type::try_from((type_name, ctx.borrow())) {
                 if type_id != info.type_id {
-                    return Err(TypeError {
+                    return Err(TypeCheckError::TypeMismatch(TypeMismatch {
                         expected: type_id,
                         actual: info.type_id,
-                    });
+                    }));
                 }
             }
         }
@@ -58,7 +61,10 @@ mod tests {
     use crate::{
         parser::ast::{Expression, Id, Initialisation, Num, TypeName},
         typechecker::{
-            context::Context, error::TypeError, types::Type, TypeCheckable, TypeInformation,
+            context::Context,
+            error::{TypeCheckError, TypeMismatch},
+            types::Type,
+            TypeCheckable, TypeInformation,
         },
     };
 
@@ -169,10 +175,10 @@ mod tests {
         let init = init.check(&mut ctx);
         assert_eq!(
             init,
-            Err(TypeError {
+            Err(TypeCheckError::TypeMismatch(TypeMismatch {
                 expected: Type::FloatingPoint,
                 actual: Type::Integer
-            })
+            }))
         );
     }
 }

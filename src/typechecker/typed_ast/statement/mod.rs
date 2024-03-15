@@ -17,10 +17,12 @@ impl TypeCheckable for Statement<()> {
             Statement::Initialization(init) => Ok(Statement::Initialization(init.check(ctx)?)),
             Statement::Constant(_) => todo!(),
             Statement::Assignment(_) => todo!(),
-            Statement::Expression(_) => todo!(),
-            Statement::YieldingExpression(_) => todo!(),
-            Statement::Return(_) => todo!(),
-            Statement::Comment(_) => todo!(),
+            Statement::Expression(exp) => Ok(Statement::Expression(exp.check(ctx)?)),
+            Statement::YieldingExpression(exp) => {
+                Ok(Statement::YieldingExpression(exp.check(ctx)?))
+            }
+            Statement::Return(exp) => Ok(Statement::Return(exp.check(ctx)?)),
+            Statement::Comment(c) => Ok(Statement::Comment(c)),
             Statement::Declaration(dec) => Ok(Statement::Declaration(dec.check(ctx)?)),
             Statement::StructDeclaration(_) => todo!(),
         }

@@ -1,3 +1,4 @@
+mod id;
 mod num;
 
 use crate::{
@@ -8,10 +9,10 @@ use crate::{
 impl TypeCheckable for Expression<()> {
     type Output = Expression<TypeInformation>;
 
-    fn check(self, context: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         match self {
-            Expression::Id(_) => todo!(),
-            Expression::Num(num) => Ok(Expression::Num(num.check(context)?)),
+            Expression::Id(id) => Ok(Expression::Id(id.check(ctx)?)),
+            Expression::Num(num) => Ok(Expression::Num(num.check(ctx)?)),
             Expression::Function(_) => todo!(),
             Expression::Lambda(_) => todo!(),
             Expression::If(_) => todo!(),
