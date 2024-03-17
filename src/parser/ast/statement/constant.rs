@@ -12,7 +12,7 @@ pub struct Constant<T> {
     pub id: Id<T>,
     pub type_name: TypeName,
     pub value: Expression<T>,
-    pub info: (),
+    pub info: T,
 }
 
 impl FromTokens<Token> for Constant<()> {

@@ -1,11 +1,14 @@
 use std::{error::Error, fmt::Display};
 
+use crate::parser::ast::TypeName;
+
 use super::types::Type;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TypeCheckError {
     TypeMismatch(TypeMismatch),
     UndefinedVariable(UndefinedVariable),
+    UndefinedType(UndefinedType),
 }
 
 impl Display for TypeCheckError {
@@ -13,6 +16,7 @@ impl Display for TypeCheckError {
         match self {
             TypeCheckError::TypeMismatch(e) => f.write_fmt(format_args!("{e}")),
             TypeCheckError::UndefinedVariable(e) => f.write_fmt(format_args!("{e}")),
+            TypeCheckError::UndefinedType(e) => f.write_fmt(format_args!("{e}")),
         }
     }
 }
@@ -51,3 +55,19 @@ impl Display for UndefinedVariable {
 }
 
 impl Error for UndefinedVariable {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UndefinedType {
+    pub type_name: TypeName,
+}
+
+impl Display for UndefinedType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Tried to use undefined type {:?}",
+            self.type_name
+        ))
+    }
+}
+
+impl Error for UndefinedType {}

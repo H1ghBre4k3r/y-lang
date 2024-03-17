@@ -12,3 +12,9 @@ impl Default for Context {
         }
     }
 }
+
+impl<'a> From<&'a mut Context> for &'a Context {
+    fn from(value: &'a mut Context) -> Self {
+        value
+    }
+}

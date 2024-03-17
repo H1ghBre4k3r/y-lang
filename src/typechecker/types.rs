@@ -1,8 +1,11 @@
-use std::{collections::HashMap, error::Error, fmt::Display};
+use std::{borrow::Borrow, collections::HashMap, error::Error, fmt::Display};
 
 use crate::parser::ast::TypeName;
 
-use super::context::Context;
+use super::{
+    context::Context,
+    error::{TypeCheckError, UndefinedType},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
@@ -36,14 +39,27 @@ impl Display for TypeFromTypeNameError {
 
 impl Error for TypeFromTypeNameError {}
 
-impl TryFrom<(TypeName, &Context)> for Type {
+impl From<TypeFromTypeNameError> for TypeCheckError {
+    fn from(value: TypeFromTypeNameError) -> Self {
+        TypeCheckError::UndefinedType(UndefinedType {
+            type_name: value.source,
+        })
+    }
+}
+
+impl<T> TryFrom<(T, &Context)> for Type
+where
+    T: Into<TypeName>,
+{
     type Error = TypeFromTypeNameError;
 
-    fn try_from((value, ctx): (TypeName, &Context)) -> Result<Self, Self::Error> {
-        match value.clone() {
+    fn try_from((value, ctx): (T, &Context)) -> Result<Self, Self::Error> {
+        let value = value.into();
+        match &value {
             TypeName::Literal(lit) => match lit.as_str() {
                 "i64" => Ok(Type::Integer),
                 "f64" => Ok(Type::FloatingPoint),
+                "void" => Ok(Type::Void),
                 literal => match ctx.scope.get_type(literal) {
                     Some(type_id) => Ok(type_id),
                     None => Err(TypeFromTypeNameError { source: value }),
@@ -55,26 +71,28 @@ impl TryFrom<(TypeName, &Context)> for Type {
             } => {
                 let mut new_params = vec![];
 
-                for p in params.into_iter() {
+                for p in params.iter() {
                     new_params.push((p, ctx).try_into()?)
                 }
 
                 Ok(Type::Function {
                     params: new_params,
-                    return_value: Box::new((*return_type, ctx).try_into()?),
+                    return_value: Box::new((return_type.borrow(), ctx).try_into()?),
                 })
             }
             TypeName::Tuple(inner) => {
                 let mut elements = vec![];
 
-                for el in inner.into_iter() {
+                for el in inner.iter() {
                     elements.push((el, ctx).try_into()?);
                 }
 
                 Ok(Type::Tuple(elements))
             }
-            TypeName::Array(inner) => Ok(Type::Array(Box::new((*inner, ctx).try_into()?))),
-            TypeName::Reference(inner) => Ok(Type::Reference(Box::new((*inner, ctx).try_into()?))),
+            TypeName::Array(inner) => Ok(Type::Array(Box::new((inner.borrow(), ctx).try_into()?))),
+            TypeName::Reference(inner) => {
+                Ok(Type::Reference(Box::new((inner.borrow(), ctx).try_into()?)))
+            }
         }
     }
 }

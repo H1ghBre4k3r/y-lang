@@ -11,7 +11,7 @@ use crate::{
 pub struct WhileLoop<T> {
     pub condition: Expression<T>,
     pub block: Block<T>,
-    pub info: (),
+    pub info: T,
 }
 
 impl FromTokens<Token> for WhileLoop<()> {

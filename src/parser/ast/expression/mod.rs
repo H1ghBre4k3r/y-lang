@@ -105,6 +105,16 @@ impl FromTokens<Token> for Expression<()> {
                     expr: Box::new(expr.clone()),
                 })
             }
+            Some(Token::LBrace { .. }) => {
+                let matcher = Comb::BLOCK;
+                let result = matcher.parse(tokens)?;
+
+                let Some(AstNode::Block(expr)) = result.first() else {
+                    unreachable!();
+                };
+
+                Expression::Block(expr.clone())
+            }
             _ => {
                 let matcher = Comb::FUNCTION
                     | Comb::IF
@@ -112,7 +122,6 @@ impl FromTokens<Token> for Expression<()> {
                     | Comb::STRUCT_INITILISATION
                     | Comb::ID
                     | Comb::LAMBDA
-                    | Comb::BLOCK
                     | Comb::ARRAY;
                 let result = matcher.parse(tokens)?;
                 match result.first() {
@@ -380,20 +389,20 @@ mod tests {
             Ok(Expression::Function(Function {
                 id: None,
                 parameters: vec![
-                    Parameter {
+                    FunctionParameter {
                         name: Id {
                             name: "x".into(),
                             info: ()
                         },
-                        type_name: Some(TypeName::Literal("i32".into())),
+                        type_name: TypeName::Literal("i32".into()),
                         info: ()
                     },
-                    Parameter {
+                    FunctionParameter {
                         name: Id {
                             name: "y".into(),
                             info: ()
                         },
-                        type_name: Some(TypeName::Literal("i32".into())),
+                        type_name: TypeName::Literal("i32".into()),
                         info: ()
                     }
                 ],
@@ -450,20 +459,18 @@ mod tests {
         assert_eq!(
             Ok(Expression::Lambda(Lambda {
                 parameters: vec![
-                    Parameter {
+                    LambdaParameter {
                         name: Id {
                             name: "x".into(),
                             info: ()
                         },
-                        type_name: None,
                         info: (),
                     },
-                    Parameter {
+                    LambdaParameter {
                         name: Id {
                             name: "y".into(),
                             info: ()
                         },
-                        type_name: None,
                         info: (),
                     }
                 ],
@@ -557,20 +564,18 @@ mod tests {
             Ok(Expression::Postfix(Postfix::Call {
                 expr: Box::new(Expression::Parens(Box::new(Expression::Lambda(Lambda {
                     parameters: vec![
-                        Parameter {
+                        LambdaParameter {
                             name: Id {
                                 name: "x".into(),
                                 info: ()
                             },
-                            type_name: None,
                             info: (),
                         },
-                        Parameter {
+                        LambdaParameter {
                             name: Id {
                                 name: "y".into(),
                                 info: ()
                             },
-                            type_name: None,
                             info: (),
                         }
                     ],
@@ -689,12 +694,11 @@ mod tests {
                             info: ()
                         },
                         value: Expression::Lambda(Lambda {
-                            parameters: vec![Parameter {
+                            parameters: vec![LambdaParameter {
                                 name: Id {
                                     name: "x".into(),
                                     info: ()
                                 },
-                                type_name: None,
                                 info: ()
                             }],
                             expression: Box::new(Expression::Binary(Box::new(

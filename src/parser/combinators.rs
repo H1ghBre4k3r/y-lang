@@ -4,10 +4,10 @@ use crate::lexer::{GetPosition, Terminal, Token, Tokens};
 
 use super::{
     ast::{
-        Array, Assignment, AstNode, Block, Constant, Declaration, Expression, Function, Id, If,
-        Initialisation, Lambda, Num, Parameter, Statement, StructDeclaration,
-        StructFieldDeclaration, StructFieldInitialisation, StructInitialisation, TypeName,
-        WhileLoop,
+        Array, Assignment, AstNode, Block, Constant, Declaration, Expression, Function,
+        FunctionParameter, Id, If, Initialisation, Lambda, LambdaParameter, Num, Statement,
+        StructDeclaration, StructFieldDeclaration, StructFieldInitialisation, StructInitialisation,
+        TypeName, WhileLoop,
     },
     FromTokens, ParseError,
 };
@@ -217,6 +217,8 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
 
     node_comb!(LAMBDA, Lambda);
 
+    node_comb!(LAMBDA_PARAMETER, LambdaParameter);
+
     node_comb!(IF, If);
 
     node_comb!(WHILE_LOOP, WhileLoop);
@@ -225,7 +227,7 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
 
     node_comb!(ARRAY, Array);
 
-    node_comb!(PARAMETER, Parameter);
+    node_comb!(PARAMETER, FunctionParameter);
 
     node_comb!(TYPE_NAME, TypeName);
 

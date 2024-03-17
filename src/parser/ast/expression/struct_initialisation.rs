@@ -87,7 +87,7 @@ mod tests {
     use crate::{
         lexer::Lexer,
         parser::{
-            ast::{BinaryExpression, Expression, Id, Lambda, Num, Parameter},
+            ast::{BinaryExpression, Expression, Id, Lambda, LambdaParameter, Num},
             FromTokens,
         },
     };
@@ -200,12 +200,11 @@ mod tests {
                             info: ()
                         },
                         value: Expression::Lambda(Lambda {
-                            parameters: vec![Parameter {
+                            parameters: vec![LambdaParameter {
                                 name: Id {
                                     name: "x".into(),
                                     info: ()
                                 },
-                                type_name: None,
                                 info: ()
                             }],
                             expression: Box::new(Expression::Binary(Box::new(

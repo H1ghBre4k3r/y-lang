@@ -11,7 +11,7 @@ use crate::{
 pub struct StructDeclaration<T> {
     pub id: Id<T>,
     pub fields: Vec<StructFieldDeclaration<T>>,
-    pub info: (),
+    pub info: T,
 }
 
 impl FromTokens<Token> for StructDeclaration<()> {

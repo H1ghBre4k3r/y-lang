@@ -18,6 +18,12 @@ pub enum TypeName {
     Reference(Box<TypeName>),
 }
 
+impl From<&TypeName> for TypeName {
+    fn from(value: &TypeName) -> Self {
+        value.clone()
+    }
+}
+
 impl FromTokens<Token> for TypeName {
     fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
         if let Ok(type_name) = Self::parse_literal(tokens) {

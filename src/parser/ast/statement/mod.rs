@@ -184,6 +184,28 @@ impl From<Statement<()>> for AstNode {
     }
 }
 
+impl<T> Statement<T>
+where
+    T: Clone,
+{
+    pub fn get_info(&self) -> T {
+        match self {
+            Statement::Function(Function { info, .. }) => info.clone(),
+            Statement::If(If { info, .. }) => info.clone(),
+            Statement::WhileLoop(WhileLoop { info, .. }) => info.clone(),
+            Statement::Initialization(Initialisation { info, .. }) => info.clone(),
+            Statement::Constant(Constant { info, .. }) => info.clone(),
+            Statement::Assignment(Assignment { info, .. }) => info.clone(),
+            Statement::Expression(exp) => exp.get_info(),
+            Statement::YieldingExpression(exp) => exp.get_info(),
+            Statement::Return(exp) => exp.get_info(),
+            Statement::Comment(_) => unimplemented!("Comments to not have type information"),
+            Statement::Declaration(Declaration { info, .. }) => info.clone(),
+            Statement::StructDeclaration(StructDeclaration { info, .. }) => info.clone(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
