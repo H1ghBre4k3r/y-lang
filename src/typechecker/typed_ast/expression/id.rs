@@ -3,7 +3,7 @@ use crate::{
     typechecker::{
         context::Context,
         error::{TypeCheckError, UndefinedVariable},
-        TypeCheckable, TypeInformation, TypeResult,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -26,9 +26,11 @@ impl TypeCheckable for Id<()> {
     }
 }
 
+impl TypedConstruct for Id<TypeInformation> {}
+
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
         parser::ast::Id,
@@ -43,7 +45,8 @@ mod tests {
     #[test]
     fn test_no_member_modification() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
-        ctx.scope.add_variable("foo", Type::Integer);
+        ctx.scope
+            .add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
 
         let id = Id {
             name: "foo".into(),
@@ -60,7 +63,8 @@ mod tests {
     #[test]
     fn test_correct_type_inference() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
-        ctx.scope.add_variable("foo", Type::Integer);
+        ctx.scope
+            .add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
 
         let id = Id {
             name: "foo".into(),
@@ -72,7 +76,7 @@ mod tests {
         assert_eq!(
             id.info,
             TypeInformation {
-                type_id: Type::Integer
+                type_id: Rc::new(RefCell::new(Some(Type::Integer)))
             }
         );
 

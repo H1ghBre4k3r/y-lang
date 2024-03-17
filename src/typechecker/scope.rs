@@ -1,10 +1,10 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use super::types::Type;
 
 #[derive(Debug, Clone, Default)]
 pub struct Stack {
-    variables: HashMap<String, Type>,
+    variables: HashMap<String, Rc<RefCell<Option<Type>>>>,
     types: HashMap<String, Type>,
 }
 
@@ -51,13 +51,13 @@ impl Scope {
         self.stacks.pop();
     }
 
-    pub fn add_variable(&mut self, name: impl ToString, type_id: Type) {
+    pub fn add_variable(&mut self, name: impl ToString, type_id: Rc<RefCell<Option<Type>>>) {
         self.stacks
             .last_mut()
             .and_then(|scope| scope.variables.insert(name.to_string(), type_id));
     }
 
-    pub fn get_variable(&self, name: impl ToString) -> Option<Type> {
+    pub fn get_variable(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
         let name = name.to_string();
         self.stacks
             .iter()
@@ -93,6 +93,8 @@ impl Scope {
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::RefCell, rc::Rc};
+
     use crate::typechecker::types::Type;
 
     use super::Scope;
@@ -106,18 +108,24 @@ mod tests {
     #[test]
     fn test_add_variable() {
         let mut scope = Scope::new();
-        scope.add_variable("foo", Type::Integer);
+        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
 
-        assert_eq!(scope.get_variable("foo"), Some(Type::Integer));
+        assert_eq!(
+            scope.get_variable("foo"),
+            Some(Rc::new(RefCell::new(Some(Type::Integer))))
+        );
     }
 
     #[test]
     fn test_add_override() {
         let mut scope = Scope::new();
-        scope.add_variable("foo", Type::Integer);
-        scope.add_variable("foo", Type::Boolean);
+        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Boolean))));
 
-        assert_eq!(scope.get_variable("foo"), Some(Type::Boolean));
+        assert_eq!(
+            scope.get_variable("foo"),
+            Some(Rc::new(RefCell::new(Some(Type::Boolean))))
+        );
     }
 
     #[test]
@@ -127,10 +135,30 @@ mod tests {
         scope.enter_scope();
         assert_eq!(scope.stacks.len(), 2);
 
-        scope.add_variable("foo", Type::Integer);
-        assert_eq!(scope.get_variable("foo"), Some(Type::Integer));
+        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+        assert_eq!(
+            scope.get_variable("foo"),
+            Some(Rc::new(RefCell::new(Some(Type::Integer))))
+        );
 
         scope.exit_scope();
         assert!(scope.get_variable("foo").is_none())
+    }
+
+    #[test]
+    fn test_shared_variable_values() {
+        let mut scope = Scope::new();
+
+        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+
+        let foo = scope.get_variable("foo").unwrap();
+        let bar = scope.get_variable("foo").unwrap();
+
+        assert_eq!(foo, bar);
+
+        *foo.borrow_mut() = None;
+
+        assert_eq!(foo, Rc::new(RefCell::new(None)));
+        assert_eq!(bar, Rc::new(RefCell::new(None)));
     }
 }

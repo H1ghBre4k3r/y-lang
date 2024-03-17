@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
 use crate::{
     parser::ast::{Id, Initialisation},
@@ -6,7 +6,7 @@ use crate::{
         context::Context,
         error::{TypeCheckError, TypeMismatch},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -24,39 +24,64 @@ impl TypeCheckable for Initialisation<()> {
 
         let name = id.name;
 
-        let value = value.check(ctx)?;
+        let mut value = value.check(ctx)?;
 
-        let info = value.get_info();
+        let mut info = value.get_info();
 
+        // check for annotated type
         if let Some(type_name) = type_name.clone() {
+            // is it actually a valid type?
             if let Ok(type_id) = Type::try_from((type_name, ctx.borrow())) {
-                if type_id != info.type_id {
-                    return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                        expected: type_id,
-                        actual: info.type_id,
-                    }));
+                // check of type of associated expression
+                let inner = info.type_id.clone();
+                let inner = inner.borrow_mut();
+
+                match inner.as_ref() {
+                    // we have a type...
+                    Some(inner_type) => {
+                        // check, if they are equal
+                        if type_id != *inner_type {
+                            return Err(TypeCheckError::TypeMismatch(TypeMismatch {
+                                expected: type_id,
+                                actual: inner_type.clone(),
+                            }));
+                        }
+                    }
+                    // oups - no value of associated expression
+                    None => {
+                        // update type of underlying expression
+                        value.update_type(type_id.clone());
+
+                        // ...and the type of enclosed in the information
+                        info.type_id = Rc::new(RefCell::new(Some(type_id)));
+                    }
                 }
+            } else if info.type_id.borrow_mut().is_none() {
+                todo!()
             }
         }
 
-        ctx.scope.add_variable(&name, info.type_id.clone());
+        let type_id = info.type_id.clone();
+
+        ctx.scope.add_variable(&name, type_id);
 
         Ok(Initialisation {
-            id: Id {
-                name,
-                info: info.clone(),
-            },
+            id: Id { name, info },
             mutable,
             type_name,
             value,
-            info,
+            info: TypeInformation {
+                type_id: Rc::new(RefCell::new(Some(Type::Void))),
+            },
         })
     }
 }
 
+impl TypedConstruct for Initialisation<TypeInformation> {}
+
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
         parser::ast::{Expression, Id, Initialisation, Num, TypeName},
@@ -92,7 +117,7 @@ mod tests {
             Expression::Num(Num::Integer(
                 42,
                 TypeInformation {
-                    type_id: Type::Integer
+                    type_id: Rc::new(RefCell::new(Some(Type::Integer)))
                 }
             ))
         );
@@ -119,7 +144,7 @@ mod tests {
 
         let var = ctx.scope.get_variable("foo");
 
-        assert_eq!(var, Some(Type::Integer));
+        assert_eq!(var, Some(Rc::new(RefCell::new(Some(Type::Integer)))));
 
         Ok(())
     }
@@ -144,13 +169,13 @@ mod tests {
         assert_eq!(
             init.info,
             TypeInformation {
-                type_id: Type::Integer
+                type_id: Rc::new(RefCell::new(Some(Type::Void)))
             }
         );
         assert_eq!(
             init.id.info,
             TypeInformation {
-                type_id: Type::Integer
+                type_id: Rc::new(RefCell::new(Some(Type::Integer)))
             }
         );
 

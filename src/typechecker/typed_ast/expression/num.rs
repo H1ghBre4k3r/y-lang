@@ -1,6 +1,10 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     parser::ast::Num,
-    typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult},
+    typechecker::{
+        context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+    },
 };
 
 impl TypeCheckable for Num<()> {
@@ -11,22 +15,24 @@ impl TypeCheckable for Num<()> {
             Num::Integer(val, _) => Ok(Num::Integer(
                 val,
                 TypeInformation {
-                    type_id: Type::Integer,
+                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                 },
             )),
             Num::FloatingPoint(val, _) => Ok(Num::FloatingPoint(
                 val,
                 TypeInformation {
-                    type_id: Type::FloatingPoint,
+                    type_id: Rc::new(RefCell::new(Some(Type::FloatingPoint))),
                 },
             )),
         }
     }
 }
 
+impl TypedConstruct for Num<TypeInformation> {}
+
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
         parser::ast::Num,
@@ -40,7 +46,7 @@ mod tests {
         };
 
         assert_eq!(num, 42);
-        assert_eq!(info.type_id, Type::Integer);
+        assert_eq!(info.type_id, Rc::new(RefCell::new(Some(Type::Integer))));
         Ok(())
     }
 
@@ -53,7 +59,10 @@ mod tests {
         };
 
         assert_eq!(num, 42.0);
-        assert_eq!(info.type_id, Type::FloatingPoint);
+        assert_eq!(
+            info.type_id,
+            Rc::new(RefCell::new(Some(Type::FloatingPoint)))
+        );
         Ok(())
     }
 }

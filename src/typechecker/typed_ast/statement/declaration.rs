@@ -1,8 +1,10 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
 use crate::{
     parser::ast::{Declaration, Id},
-    typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult},
+    typechecker::{
+        context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+    },
 };
 
 impl TypeCheckable for Declaration<()> {
@@ -19,6 +21,8 @@ impl TypeCheckable for Declaration<()> {
             todo!()
         };
 
+        let type_id = Rc::new(RefCell::new(Some(type_id)));
+
         ctx.scope.add_variable(&name, type_id.clone());
 
         Ok(Declaration {
@@ -29,14 +33,18 @@ impl TypeCheckable for Declaration<()> {
                 },
             },
             type_name,
-            info: TypeInformation { type_id },
+            info: TypeInformation {
+                type_id: Rc::new(RefCell::new(Some(Type::Void))),
+            },
         })
     }
 }
 
+impl TypedConstruct for Declaration<TypeInformation> {}
+
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
         parser::ast::{Declaration, Id, TypeName},
@@ -81,7 +89,7 @@ mod tests {
 
         let var = ctx.scope.get_variable("foo");
 
-        assert_eq!(var, Some(Type::Integer));
+        assert_eq!(var, Some(Rc::new(RefCell::new(Some(Type::Integer)))));
 
         Ok(())
     }
@@ -101,8 +109,11 @@ mod tests {
 
         let dec = dec.check(&mut ctx)?;
 
-        assert_eq!(dec.name.info.type_id, Type::Integer);
-        assert_eq!(dec.info.type_id, Type::Integer);
+        assert_eq!(
+            dec.name.info.type_id,
+            Rc::new(RefCell::new(Some(Type::Integer)))
+        );
+        assert_eq!(dec.info.type_id, Rc::new(RefCell::new(Some(Type::Void))));
 
         Ok(())
     }
