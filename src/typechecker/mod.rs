@@ -21,6 +21,7 @@ pub type TypeResult<T> = Result<T, TypeCheckError>;
 #[derive(Debug, Clone, Default)]
 pub struct TypeChecker {
     context: Context,
+    statements: Vec<Statement<()>>,
 }
 
 trait TypeCheckable {
@@ -48,17 +49,17 @@ where
 }
 
 impl TypeChecker {
-    pub fn new() -> TypeChecker {
-        Default::default()
+    pub fn new(statements: Vec<Statement<()>>) -> TypeChecker {
+        TypeChecker {
+            statements,
+            ..Default::default()
+        }
     }
 
-    pub fn check(
-        &mut self,
-        statements: Vec<Statement<()>>,
-    ) -> TypeResult<Vec<Statement<TypeInformation>>> {
+    pub fn check(mut self) -> TypeResult<Vec<Statement<TypeInformation>>> {
         let mut checked = vec![];
 
-        for stm in statements.into_iter() {
+        for stm in self.statements.into_iter() {
             checked.push(stm.check(&mut self.context)?);
         }
 
