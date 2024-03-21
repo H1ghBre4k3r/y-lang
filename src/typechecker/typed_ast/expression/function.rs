@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    parser::ast::{Function, FunctionParameter, Id},
+    parser::ast::{Expression, Function, FunctionParameter, Id},
     typechecker::{
         context::Context,
         error::{TypeCheckError, TypeMismatch, UndefinedType},
@@ -93,23 +93,25 @@ impl TypeCheckable for Function<()> {
             type_id: function_type.clone(),
         };
 
-        let id = if let Some(Id { name, .. }) = id {
-            ctx.scope.add_variable(&name, function_type);
-            Some(Id {
-                name,
-                info: info.clone(),
-            })
-        } else {
-            None
-        };
+        let id = id.map(|Id { name, .. }| Id {
+            name,
+            info: info.clone(),
+        });
 
-        Ok(Function {
+        let func = Function {
             id,
             parameters: checked_parameters,
             return_type,
             statements: checked_statements,
             info,
-        })
+        };
+
+        if let Some(Id { name, .. }) = &func.id {
+            ctx.scope
+                .add_variable(name, Expression::Function(func.clone()))
+        }
+
+        Ok(func)
     }
 }
 
@@ -136,13 +138,15 @@ impl TypeCheckable for FunctionParameter<()> {
             }
         };
 
-        ctx.scope.add_variable(&name, info.type_id.clone());
+        let id = Id {
+            name,
+            info: info.clone(),
+        };
+
+        ctx.scope.add_variable(&id.name, Expression::Id(id.clone()));
 
         Ok(FunctionParameter {
-            name: Id {
-                name,
-                info: info.clone(),
-            },
+            name: id,
             type_name,
             info,
         })

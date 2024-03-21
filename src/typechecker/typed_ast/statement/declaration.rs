@@ -1,7 +1,7 @@
 use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
 use crate::{
-    parser::ast::{Declaration, Id},
+    parser::ast::{Declaration, Expression, Id},
     typechecker::{
         context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
@@ -23,15 +23,17 @@ impl TypeCheckable for Declaration<()> {
 
         let type_id = Rc::new(RefCell::new(Some(type_id)));
 
-        ctx.scope.add_variable(&name, type_id.clone());
+        let id = Id {
+            name,
+            info: TypeInformation {
+                type_id: type_id.clone(),
+            },
+        };
+
+        ctx.scope.add_variable(&id.name, Expression::Id(id.clone()));
 
         Ok(Declaration {
-            name: Id {
-                name,
-                info: TypeInformation {
-                    type_id: type_id.clone(),
-                },
-            },
+            name: id,
             type_name,
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),

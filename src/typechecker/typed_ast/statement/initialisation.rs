@@ -63,7 +63,7 @@ impl TypeCheckable for Initialisation<()> {
 
         let type_id = info.type_id.clone();
 
-        ctx.scope.add_variable(&name, type_id);
+        ctx.scope.add_variable(&name, value.clone());
 
         Ok(Initialisation {
             id: Id { name, info },
@@ -84,7 +84,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
-        parser::ast::{Expression, Id, Initialisation, Num, TypeName},
+        parser::ast::{Expression, Id, Initialisation, Lambda, Num, TypeName},
         typechecker::{
             context::Context,
             error::{TypeCheckError, TypeMismatch},
@@ -205,5 +205,107 @@ mod tests {
                 actual: Type::Integer
             }))
         );
+    }
+
+    #[test]
+    fn test_correct_type_propagation() -> Result<(), Box<dyn Error>> {
+        let mut ctx = Context::default();
+
+        let init = Initialisation {
+            id: Id {
+                name: "foo".into(),
+                info: (),
+            },
+            mutable: false,
+            type_name: None,
+            value: Expression::Lambda(Lambda {
+                parameters: vec![],
+                expression: Box::new(Expression::Num(Num::Integer(42, ()))),
+                info: (),
+            }),
+            info: (),
+        };
+
+        let init = init.check(&mut ctx)?;
+
+        assert_eq!(
+            init,
+            Initialisation {
+                id: Id {
+                    name: "foo".into(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(None))
+                    },
+                },
+                mutable: false,
+                type_name: None,
+                value: Expression::Lambda(Lambda {
+                    parameters: vec![],
+                    expression: Box::new(Expression::Num(Num::Integer(
+                        42,
+                        TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                        }
+                    ))),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(None))
+                    },
+                }),
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Void)))
+                },
+            }
+        );
+
+        let Some(type_id) = ctx.scope.get_variable("foo") else {
+            unreachable!()
+        };
+
+        assert_eq!(type_id, Rc::new(RefCell::new(None)));
+
+        ctx.scope.update_variable(
+            "foo",
+            Type::Function {
+                params: vec![],
+                return_value: Box::new(Type::Integer),
+            },
+        );
+
+        assert_eq!(
+            init,
+            Initialisation {
+                id: Id {
+                    name: "foo".into(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                            params: vec![],
+                            return_value: Box::new(Type::Integer),
+                        })))
+                    },
+                },
+                mutable: false,
+                type_name: None,
+                value: Expression::Lambda(Lambda {
+                    parameters: vec![],
+                    expression: Box::new(Expression::Num(Num::Integer(
+                        42,
+                        TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                        }
+                    ))),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                            params: vec![],
+                            return_value: Box::new(Type::Integer),
+                        })))
+                    },
+                }),
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Void)))
+                },
+            }
+        );
+
+        Ok(())
     }
 }
