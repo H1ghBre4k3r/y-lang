@@ -10,20 +10,29 @@ use crate::{
 impl TypeCheckable for Num<()> {
     type Output = Num<TypeInformation>;
 
-    fn check(self, _context: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         match self {
             Num::Integer(val, _) => Ok(Num::Integer(
                 val,
                 TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                    context: ctx.clone(),
                 },
             )),
             Num::FloatingPoint(val, _) => Ok(Num::FloatingPoint(
                 val,
                 TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::FloatingPoint))),
+                    context: ctx.clone(),
                 },
             )),
+        }
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        match this {
+            Num::Integer(val, _) => Num::Integer(*val, ()),
+            Num::FloatingPoint(val, _) => Num::FloatingPoint(*val, ()),
         }
     }
 }

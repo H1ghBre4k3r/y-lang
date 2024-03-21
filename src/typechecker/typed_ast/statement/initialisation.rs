@@ -22,6 +22,8 @@ impl TypeCheckable for Initialisation<()> {
             ..
         } = self;
 
+        let context = ctx.clone();
+
         let name = id.name;
 
         let mut value = value.check(ctx)?;
@@ -50,7 +52,7 @@ impl TypeCheckable for Initialisation<()> {
                     // oups - no value of associated expression
                     None => {
                         // update type of underlying expression
-                        value.update_type(type_id.clone());
+                        value.update_type(type_id.clone())?;
 
                         // ...and the type of enclosed in the information
                         info.type_id = Rc::new(RefCell::new(Some(type_id)));
@@ -61,8 +63,6 @@ impl TypeCheckable for Initialisation<()> {
             }
         }
 
-        let type_id = info.type_id.clone();
-
         ctx.scope.add_variable(&name, value.clone());
 
         Ok(Initialisation {
@@ -72,8 +72,27 @@ impl TypeCheckable for Initialisation<()> {
             value,
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                context,
             },
         })
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        let Initialisation {
+            id,
+            mutable,
+            type_name,
+            value,
+            ..
+        } = this;
+
+        Initialisation {
+            id: TypeCheckable::revert(id),
+            mutable: *mutable,
+            type_name: type_name.to_owned(),
+            value: TypeCheckable::revert(value),
+            info: (),
+        }
     }
 }
 
@@ -84,7 +103,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
-        parser::ast::{Expression, Id, Initialisation, Lambda, Num, TypeName},
+        parser::ast::{Expression, Id, Initialisation, Lambda, LambdaParameter, Num, TypeName},
         typechecker::{
             context::Context,
             error::{TypeCheckError, TypeMismatch},
@@ -117,7 +136,8 @@ mod tests {
             Expression::Num(Num::Integer(
                 42,
                 TypeInformation {
-                    type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                    context: Context::default(),
                 }
             ))
         );
@@ -169,13 +189,15 @@ mod tests {
         assert_eq!(
             init.info,
             TypeInformation {
-                type_id: Rc::new(RefCell::new(Some(Type::Void)))
+                type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                context: Context::default(),
             }
         );
         assert_eq!(
             init.id.info,
             TypeInformation {
-                type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             }
         );
 
@@ -208,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn test_correct_type_propagation() -> Result<(), Box<dyn Error>> {
+    fn test_correct_type_propagation_simple() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
 
         let init = Initialisation {
@@ -234,7 +256,8 @@ mod tests {
                 id: Id {
                     name: "foo".into(),
                     info: TypeInformation {
-                        type_id: Rc::new(RefCell::new(None))
+                        type_id: Rc::new(RefCell::new(None)),
+                        context: Context::default(),
                     },
                 },
                 mutable: false,
@@ -244,15 +267,18 @@ mod tests {
                     expression: Box::new(Expression::Num(Num::Integer(
                         42,
                         TypeInformation {
-                            type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: Context::default(),
                         }
                     ))),
                     info: TypeInformation {
-                        type_id: Rc::new(RefCell::new(None))
+                        type_id: Rc::new(RefCell::new(None)),
+                        context: Context::default(),
                     },
                 }),
                 info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(Some(Type::Void)))
+                    type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                    context: Context::default(),
                 },
             }
         );
@@ -269,7 +295,7 @@ mod tests {
                 params: vec![],
                 return_value: Box::new(Type::Integer),
             },
-        );
+        )?;
 
         assert_eq!(
             init,
@@ -280,7 +306,8 @@ mod tests {
                         type_id: Rc::new(RefCell::new(Some(Type::Function {
                             params: vec![],
                             return_value: Box::new(Type::Integer),
-                        })))
+                        }))),
+                        context: Context::default(),
                     },
                 },
                 mutable: false,
@@ -290,18 +317,175 @@ mod tests {
                     expression: Box::new(Expression::Num(Num::Integer(
                         42,
                         TypeInformation {
-                            type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: Context::default(),
                         }
                     ))),
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(Some(Type::Function {
                             params: vec![],
                             return_value: Box::new(Type::Integer),
-                        })))
+                        }))),
+                        context: Context::default(),
                     },
                 }),
                 info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(Some(Type::Void)))
+                    type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                    context: Context::default(),
+                },
+            }
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_correct_type_propagation_complex() -> Result<(), Box<dyn Error>> {
+        let mut ctx = Context::default();
+
+        let init = Initialisation {
+            id: Id {
+                name: "foo".into(),
+                info: (),
+            },
+            mutable: false,
+            type_name: None,
+            value: Expression::Lambda(Lambda {
+                parameters: vec![LambdaParameter {
+                    name: Id {
+                        name: "bar".into(),
+                        info: (),
+                    },
+                    info: (),
+                }],
+                expression: Box::new(Expression::Id(Id {
+                    name: "bar".into(),
+                    info: (),
+                })),
+                info: (),
+            }),
+            info: (),
+        };
+
+        let init = init.check(&mut ctx)?;
+
+        assert_eq!(
+            init,
+            Initialisation {
+                id: Id {
+                    name: "foo".into(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(None)),
+                        context: Context::default(),
+                    },
+                },
+                mutable: false,
+                type_name: None,
+                value: Expression::Lambda(Lambda {
+                    parameters: vec![LambdaParameter {
+                        name: Id {
+                            name: "bar".into(),
+                            info: TypeInformation {
+                                type_id: Rc::new(RefCell::new(None)),
+                                context: Context::default(),
+                            }
+                        },
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(None)),
+                            context: Context::default(),
+                        }
+                    }],
+                    expression: Box::new(Expression::Id(Id {
+                        name: "bar".into(),
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(None)),
+                            context: Context::default(),
+                        }
+                    })),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(None)),
+                        context: Context::default(),
+                    },
+                }),
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                    context: Context::default(),
+                },
+            }
+        );
+
+        let Some(type_id) = ctx.scope.get_variable("foo") else {
+            unreachable!()
+        };
+
+        assert_eq!(type_id, Rc::new(RefCell::new(None)));
+
+        assert_eq!(
+            ctx.scope.update_variable("foo", Type::Integer),
+            Err(TypeCheckError::TypeMismatch(TypeMismatch {
+                expected: Type::Function {
+                    params: vec![Type::Unknown],
+                    return_value: Box::new(Type::Unknown),
+                },
+                actual: Type::Integer
+            }))
+        );
+
+        ctx.scope.update_variable(
+            "foo",
+            Type::Function {
+                params: vec![Type::Integer],
+                return_value: Box::new(Type::Integer),
+            },
+        )?;
+
+        assert_eq!(
+            init,
+            Initialisation {
+                id: Id {
+                    name: "foo".into(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                            params: vec![Type::Integer],
+                            return_value: Box::new(Type::Integer),
+                        }))),
+                        context: Context::default(),
+                    },
+                },
+                mutable: false,
+                type_name: None,
+                value: Expression::Lambda(Lambda {
+                    parameters: vec![LambdaParameter {
+                        name: Id {
+                            name: "bar".into(),
+                            info: TypeInformation {
+                                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                                context: Context::default(),
+                            }
+                        },
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: Context::default(),
+                        }
+                    }],
+                    expression: Box::new(Expression::Id(Id {
+                        name: "bar".into(),
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: Context::default(),
+                        }
+                    })),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                            params: vec![Type::Integer],
+                            return_value: Box::new(Type::Integer),
+                        }))),
+                        context: Context::default(),
+                    },
+                }),
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                    context: Context::default(),
                 },
             }
         );

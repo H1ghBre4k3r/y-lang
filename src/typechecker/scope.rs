@@ -2,11 +2,13 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::parser::ast::Expression;
 
-use super::{types::Type, TypeInformation, TypedConstruct};
+use super::{error::TypeCheckError, types::Type, TypeInformation, TypedConstruct};
+
+type StoredVariable = (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>);
 
 #[derive(Debug, Clone, Default)]
 pub struct Stack {
-    variables: HashMap<String, (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>)>,
+    variables: HashMap<String, StoredVariable>,
     types: HashMap<String, Type>,
 }
 
@@ -77,7 +79,11 @@ impl Scope {
             })
     }
 
-    pub fn update_variable(&mut self, name: impl ToString, type_id: Type) {
+    pub fn update_variable(
+        &mut self,
+        name: impl ToString,
+        type_id: Type,
+    ) -> Result<(), TypeCheckError> {
         let name = name.to_string();
         let Some(scope) = self
             .stacks
@@ -92,11 +98,10 @@ impl Scope {
             unreachable!()
         };
 
-        // if let Err(e) = exp.update_type(type_id.clone()) {
-        //     todo!()
-        // }
+        exp.update_type(type_id.clone())?;
 
         *variable_type.borrow_mut() = Some(type_id);
+        Ok(())
     }
 
     pub fn add_type(&mut self, name: impl ToString, type_id: Type) -> Result<(), TypeAddError> {
@@ -130,7 +135,7 @@ mod tests {
 
     use crate::{
         parser::ast::{Expression, Id},
-        typechecker::{types::Type, TypeInformation},
+        typechecker::{context::Context, types::Type, TypeInformation},
     };
 
     use super::Scope;
@@ -149,6 +154,7 @@ mod tests {
             name: "foo".into(),
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             },
         });
 
@@ -168,6 +174,7 @@ mod tests {
             name: "foo".into(),
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             },
         });
 
@@ -190,6 +197,7 @@ mod tests {
             name: "foo".into(),
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             },
         });
 
@@ -214,6 +222,7 @@ mod tests {
             name: "foo".into(),
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             },
         });
 

@@ -3,8 +3,10 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     parser::ast::{Expression, Id, Lambda, LambdaParameter},
     typechecker::{
-        context::Context, error::TypeMismatch, types::Type, TypeCheckable, TypeInformation,
-        TypeResult, TypedConstruct,
+        context::Context,
+        error::{TypeCheckError, TypeMismatch},
+        types::Type,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -17,6 +19,8 @@ impl TypeCheckable for Lambda<()> {
             expression,
             ..
         } = self;
+
+        let context = ctx.clone();
 
         ctx.scope.enter_scope();
 
@@ -35,8 +39,91 @@ impl TypeCheckable for Lambda<()> {
             expression: Box::new(checked_expression),
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(None)),
+                context,
             },
         })
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        let Lambda {
+            parameters,
+            expression,
+            ..
+        } = this;
+
+        Lambda {
+            parameters: parameters.iter().map(TypeCheckable::revert).collect(),
+            expression: Box::new(TypeCheckable::revert(expression.as_ref())),
+            info: (),
+        }
+    }
+}
+
+impl TypedConstruct for Lambda<TypeInformation> {
+    fn update_type(&mut self, type_id: Type) -> Result<(), TypeCheckError> {
+        let err = Err(TypeCheckError::TypeMismatch(TypeMismatch {
+            expected: Type::Function {
+                params: vec![Type::Unknown; self.parameters.len()],
+                return_value: Box::new(Type::Unknown),
+            },
+            actual: type_id.clone(),
+        }));
+
+        // check, if we have function
+        let Type::Function {
+            params,
+            return_value,
+        } = type_id.clone()
+        else {
+            return err;
+        };
+
+        // check for correct arity
+        if params.len() != self.parameters.len() {
+            return err;
+        }
+
+        // clone context to mess nothing up
+        let mut ctx = self.info.context.clone();
+
+        ctx.scope.enter_scope();
+
+        // enter all parameters with their respective types into the scope
+        for (i, t) in params.iter().enumerate() {
+            let name = &self.parameters[i].name.name;
+
+            ctx.scope.add_variable(
+                name,
+                Expression::Id(Id {
+                    name: name.clone(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(t.clone()))),
+                        context: ctx.clone(),
+                    },
+                }),
+            )
+        }
+
+        // check (the reverted) expression
+        let expr =
+            <Expression<()> as TypeCheckable>::revert(self.expression.as_ref()).check(&mut ctx)?;
+
+        // check, if return types match
+        if let Some(expr_type) = expr.get_info().type_id.borrow_mut().as_ref() {
+            if *expr_type != *return_value {
+                return Err(TypeCheckError::TypeMismatch(TypeMismatch {
+                    expected: expr_type.clone(),
+                    actual: *return_value.clone(),
+                }));
+            }
+        }
+
+        // update types of parameters accordingly
+        for (i, t) in params.iter().enumerate() {
+            self.parameters[i].update_type(t.to_owned())?;
+        }
+
+        Ok(())
     }
 }
 
@@ -54,6 +141,7 @@ impl TypeCheckable for LambdaParameter<()> {
             name,
             info: TypeInformation {
                 type_id: type_id.clone(),
+                context: ctx.clone(),
             },
         };
 
@@ -61,28 +149,28 @@ impl TypeCheckable for LambdaParameter<()> {
 
         Ok(LambdaParameter {
             name: id,
-            info: TypeInformation { type_id },
+            info: TypeInformation {
+                type_id,
+                context: ctx.clone(),
+            },
         })
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        let LambdaParameter { name, .. } = this;
+
+        LambdaParameter {
+            name: TypeCheckable::revert(name),
+            info: (),
+        }
     }
 }
 
 impl TypedConstruct for LambdaParameter<TypeInformation> {
-    fn update_type(&mut self, type_id: Type) -> Result<(), TypeMismatch> {
-        // let Type::Function {
-        //     params,
-        //     return_value,
-        // } = type_id.clone()
-        // else {
-        //     return Err(TypeMismatch {
-        //         expected: Type::Function {
-        //             params: vec![],
-        //             return_value: Box::new(Type::Void),
-        //         },
-        //         actual: type_id,
-        //     });
-        // };
+    fn update_type(&mut self, type_id: Type) -> std::result::Result<(), TypeCheckError> {
+        *self.info.type_id.borrow_mut() = Some(type_id);
 
-        todo!()
+        Ok(())
     }
 }
 
@@ -115,11 +203,13 @@ mod tests {
                 name: Id {
                     name: "foo".into(),
                     info: TypeInformation {
-                        type_id: Rc::new(RefCell::new(None))
+                        type_id: Rc::new(RefCell::new(None)),
+                        context: Context::default(),
                     }
                 },
                 info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(None))
+                    type_id: Rc::new(RefCell::new(None)),
+                    context: Context::default(),
                 }
             }
         );
@@ -168,11 +258,13 @@ mod tests {
                 expression: Box::new(Expression::Num(Num::Integer(
                     42,
                     TypeInformation {
-                        type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                        context: Context::default(),
                     }
                 ))),
                 info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(None))
+                    type_id: Rc::new(RefCell::new(None)),
+                    context: Context::default(),
                 }
             }
         );

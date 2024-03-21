@@ -23,16 +23,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let input = fs::read_to_string(args.file)?;
 
-    println!("{input}");
+    // println!("{input}");
 
     let lexer = Lexer::new(&input);
     let tokens = lexer.lex()?;
 
-    println!("{tokens:#?}");
+    // println!("{tokens:#?}");
 
     let statements = parse(&mut tokens.into())?;
 
-    println!("{statements:#?}");
+    // println!("{statements:#?}");
 
     let checked = TypeChecker::new().check(statements)?;
 
