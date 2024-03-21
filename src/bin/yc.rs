@@ -45,7 +45,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{statements:#?}");
     }
 
-    let checked = TypeChecker::new().check(statements)?;
+    let typechecker = TypeChecker::new(statements);
+    let checked = typechecker.check()?;
 
     println!("{checked:#?}");
     Ok(())
