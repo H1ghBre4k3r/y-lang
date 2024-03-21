@@ -6,21 +6,39 @@ use super::{error::TypeCheckError, types::Type, TypeInformation, TypedConstruct}
 
 type StoredVariable = (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct Stack {
     variables: HashMap<String, StoredVariable>,
     types: HashMap<String, Type>,
 }
 
-#[derive(Debug, Clone)]
+impl std::fmt::Debug for Stack {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Stack")
+            .field(
+                "variables",
+                &self
+                    .variables
+                    .iter()
+                    .map(|(name, (_, type_id))| (name, type_id.borrow().as_ref().cloned()))
+                    .collect::<HashMap<_, _>>(),
+            )
+            .field("types", &self.types)
+            .finish()
+    }
+}
+
+type StackFrame = Rc<RefCell<Stack>>;
+
+#[derive(Clone, Debug)]
 pub struct Scope {
-    stacks: Vec<Stack>,
+    stacks: Vec<StackFrame>,
 }
 
 impl Default for Scope {
     fn default() -> Self {
         Scope {
-            stacks: vec![Stack::default()],
+            stacks: vec![StackFrame::default()],
         }
     }
 }
@@ -48,7 +66,7 @@ impl Scope {
     }
 
     pub fn enter_scope(&mut self) {
-        self.stacks.push(Stack::default())
+        self.stacks.push(StackFrame::default())
     }
 
     pub fn exit_scope(&mut self) {
@@ -56,9 +74,10 @@ impl Scope {
     }
 
     pub fn add_variable(&mut self, name: impl ToString, expression: Expression<TypeInformation>) {
-        self.stacks.last_mut().and_then(|scope| {
+        self.stacks.last().and_then(|scope| {
             let type_id = expression.get_info().type_id;
             scope
+                .borrow_mut()
                 .variables
                 .insert(name.to_string(), (expression, type_id))
         });
@@ -69,9 +88,10 @@ impl Scope {
         self.stacks
             .iter()
             .rev()
-            .find(|scope| scope.variables.contains_key(&name))
+            .find(|scope| scope.borrow().variables.contains_key(&name))
             .and_then(|scope| {
                 scope
+                    .borrow_mut()
                     .variables
                     .get(&name)
                     .cloned()
@@ -89,10 +109,12 @@ impl Scope {
             .stacks
             .iter_mut()
             .rev()
-            .find(|scope| scope.variables.contains_key(&name))
+            .find(|scope| scope.borrow().variables.contains_key(&name))
         else {
             todo!()
         };
+
+        let mut scope = scope.borrow_mut();
 
         let Some((exp, variable_type)) = scope.variables.get_mut(&name) else {
             unreachable!()
@@ -110,11 +132,11 @@ impl Scope {
             unreachable!("trying to add type {name} in empty scope");
         };
 
-        if last.types.contains_key(&name) {
+        if last.borrow().types.contains_key(&name) {
             return Err(TypeAddError { name, type_id });
         }
 
-        last.types.insert(name, type_id);
+        last.borrow_mut().types.insert(name, type_id);
 
         Ok(())
     }
@@ -124,8 +146,8 @@ impl Scope {
         self.stacks
             .iter()
             .rev()
-            .find(|scope| scope.types.contains_key(&name))
-            .and_then(|scope| scope.types.get(&name).cloned())
+            .find(|scope| scope.borrow().types.contains_key(&name))
+            .and_then(|scope| scope.borrow().types.get(&name).cloned())
     }
 }
 

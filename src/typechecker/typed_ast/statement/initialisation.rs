@@ -28,7 +28,7 @@ impl TypeCheckable for Initialisation<()> {
 
         let mut value = value.check(ctx)?;
 
-        let mut info = value.get_info();
+        let info = value.get_info();
 
         // check for annotated type
         if let Some(type_name) = type_name.clone() {
@@ -36,7 +36,7 @@ impl TypeCheckable for Initialisation<()> {
             if let Ok(type_id) = Type::try_from((type_name, ctx.borrow())) {
                 // check of type of associated expression
                 let inner = info.type_id.clone();
-                let inner = inner.borrow_mut();
+                let mut inner = inner.borrow_mut();
 
                 match inner.as_ref() {
                     // we have a type...
@@ -55,7 +55,7 @@ impl TypeCheckable for Initialisation<()> {
                         value.update_type(type_id.clone())?;
 
                         // ...and the type of enclosed in the information
-                        info.type_id = Rc::new(RefCell::new(Some(type_id)));
+                        *inner = Some(type_id);
                     }
                 }
             } else if info.type_id.borrow_mut().is_none() {
@@ -367,7 +367,7 @@ mod tests {
             info: (),
         };
 
-        let init = init.check(&mut ctx)?;
+        let mut init = init.check(&mut ctx)?;
 
         assert_eq!(
             init,
@@ -488,6 +488,21 @@ mod tests {
                     context: Context::default(),
                 },
             }
+        );
+
+        let expected_foo_type = Some(Rc::new(RefCell::new(Some(Type::Function {
+            params: vec![Type::Integer],
+            return_value: Box::new(Type::Integer),
+        }))));
+
+        assert_eq!(
+            init.info.context.scope.get_variable("foo"),
+            expected_foo_type
+        );
+
+        assert_eq!(
+            init.value.get_info().context.scope.get_variable("foo"),
+            expected_foo_type
         );
 
         Ok(())
