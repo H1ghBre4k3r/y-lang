@@ -20,7 +20,7 @@ impl<'a> From<&'a mut Context> for &'a Context {
 }
 
 impl PartialEq for Context {
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, _: &Self) -> bool {
         true
     }
 }

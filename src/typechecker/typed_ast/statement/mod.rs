@@ -4,7 +4,7 @@ mod initialisation;
 use crate::{
     parser::ast::Statement,
     typechecker::{
-        context::Context, error::TypeMismatch, types::Type, TypeCheckable, TypeInformation,
+        context::Context, error::TypeCheckError, types::Type, TypeCheckable, TypeInformation,
         TypeResult, TypedConstruct,
     },
 };
@@ -30,10 +30,31 @@ impl TypeCheckable for Statement<()> {
             Statement::StructDeclaration(_) => todo!(),
         }
     }
+
+    fn revert(this: &Self::Output) -> Self {
+        match this {
+            Statement::Function(func) => Statement::Function(TypeCheckable::revert(func)),
+            Statement::If(_) => todo!(),
+            Statement::WhileLoop(_) => todo!(),
+            Statement::Initialization(init) => {
+                Statement::Initialization(TypeCheckable::revert(init))
+            }
+            Statement::Constant(_) => todo!(),
+            Statement::Assignment(_) => todo!(),
+            Statement::Expression(expr) => Statement::Expression(TypeCheckable::revert(expr)),
+            Statement::YieldingExpression(expr) => {
+                Statement::YieldingExpression(TypeCheckable::revert(expr))
+            }
+            Statement::Return(expr) => Statement::Return(TypeCheckable::revert(expr)),
+            Statement::Comment(c) => Statement::Comment(c.to_owned()),
+            Statement::Declaration(dec) => Statement::Declaration(TypeCheckable::revert(dec)),
+            Statement::StructDeclaration(_) => todo!(),
+        }
+    }
 }
 
 impl TypedConstruct for Statement<TypeInformation> {
-    fn update_type(&mut self, type_id: Type) -> Result<(), TypeMismatch> {
+    fn update_type(&mut self, type_id: Type) -> std::result::Result<(), TypeCheckError> {
         match self {
             Statement::Function(_) => todo!(),
             Statement::If(_) => todo!(),

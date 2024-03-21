@@ -21,8 +21,20 @@ impl TypeCheckable for Id<()> {
 
         Ok(Id {
             name,
-            info: TypeInformation { type_id },
+            info: TypeInformation {
+                type_id,
+                context: ctx.clone(),
+            },
         })
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        let Id { name, .. } = this;
+
+        Id {
+            name: name.to_owned(),
+            info: (),
+        }
     }
 }
 
@@ -51,6 +63,7 @@ mod tests {
                 name: "foo".into(),
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                    context: Context::default(),
                 },
             }),
         );
@@ -76,6 +89,7 @@ mod tests {
                 name: "foo".into(),
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                    context: Context::default(),
                 },
             }),
         );
@@ -90,7 +104,8 @@ mod tests {
         assert_eq!(
             id.info,
             TypeInformation {
-                type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             }
         );
 

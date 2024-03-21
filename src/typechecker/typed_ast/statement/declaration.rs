@@ -14,6 +14,7 @@ impl TypeCheckable for Declaration<()> {
         let Declaration {
             name, type_name, ..
         } = self;
+        let context = ctx.clone();
 
         let name = name.name;
 
@@ -27,6 +28,7 @@ impl TypeCheckable for Declaration<()> {
             name,
             info: TypeInformation {
                 type_id: type_id.clone(),
+                context: context.clone(),
             },
         };
 
@@ -37,8 +39,21 @@ impl TypeCheckable for Declaration<()> {
             type_name,
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                context,
             },
         })
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        let Declaration {
+            name, type_name, ..
+        } = this;
+
+        Declaration {
+            name: TypeCheckable::revert(name),
+            type_name: type_name.to_owned(),
+            info: (),
+        }
     }
 }
 

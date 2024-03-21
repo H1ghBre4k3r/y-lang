@@ -8,15 +8,12 @@ use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 use crate::parser::ast::Statement;
 
-use self::{
-    context::Context,
-    error::{TypeCheckError, TypeMismatch},
-    types::Type,
-};
+use self::{context::Context, error::TypeCheckError, types::Type};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {
     pub type_id: Rc<RefCell<Option<Type>>>,
+    pub context: Context,
 }
 
 pub type TypeResult<T> = Result<T, TypeCheckError>;
@@ -30,13 +27,15 @@ trait TypeCheckable {
     type Output;
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output>;
+
+    fn revert(this: &Self::Output) -> Self;
 }
 
 trait TypedConstruct
 where
     Self: Debug,
 {
-    fn update_type(&mut self, type_id: Type) -> Result<(), TypeMismatch> {
+    fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
         unimplemented!(
             "TypedConstruct::update_type({type_id:?}) is not implemented for {:?}",
             self

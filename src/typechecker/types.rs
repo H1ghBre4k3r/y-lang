@@ -13,6 +13,7 @@ pub enum Type {
     FloatingPoint,
     Boolean,
     Void,
+    Unknown,
     Reference(Box<Type>),
     Tuple(Vec<Type>),
     Array(Box<Type>),

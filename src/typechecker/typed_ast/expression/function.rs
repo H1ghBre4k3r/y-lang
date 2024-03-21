@@ -91,6 +91,7 @@ impl TypeCheckable for Function<()> {
 
         let info = TypeInformation {
             type_id: function_type.clone(),
+            context: ctx.clone(),
         };
 
         let id = id.map(|Id { name, .. }| Id {
@@ -113,6 +114,24 @@ impl TypeCheckable for Function<()> {
 
         Ok(func)
     }
+
+    fn revert(this: &Self::Output) -> Self {
+        let Function {
+            id,
+            parameters,
+            return_type,
+            statements,
+            ..
+        } = this;
+
+        Function {
+            id: id.clone().map(|id| TypeCheckable::revert(&id)),
+            parameters: parameters.iter().map(TypeCheckable::revert).collect(),
+            return_type: return_type.to_owned(),
+            statements: statements.iter().map(TypeCheckable::revert).collect(),
+            info: (),
+        }
+    }
 }
 
 impl TypedConstruct for Function<TypeInformation> {}
@@ -129,6 +148,7 @@ impl TypeCheckable for FunctionParameter<()> {
 
         let info = TypeInformation {
             type_id: Rc::new(RefCell::new(None)),
+            context: ctx.clone(),
         };
 
         match Type::try_from((&type_name, &*ctx)) {
@@ -150,6 +170,18 @@ impl TypeCheckable for FunctionParameter<()> {
             type_name,
             info,
         })
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        let FunctionParameter {
+            name, type_name, ..
+        } = this;
+
+        FunctionParameter {
+            name: TypeCheckable::revert(name),
+            type_name: type_name.to_owned(),
+            info: (),
+        }
     }
 }
 
@@ -185,14 +217,16 @@ mod tests {
         assert_eq!(
             param.info,
             TypeInformation {
-                type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             }
         );
 
         assert_eq!(
             param.name.info,
             TypeInformation {
-                type_id: Rc::new(RefCell::new(Some(Type::Integer)))
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                context: Context::default(),
             }
         );
 
@@ -238,7 +272,8 @@ mod tests {
                     type_id: Rc::new(RefCell::new(Some(Type::Function {
                         params: vec![Type::FloatingPoint],
                         return_value: Box::new(Type::Integer)
-                    })))
+                    }))),
+                    context: Context::default(),
                 }
             })
         );
@@ -249,7 +284,8 @@ mod tests {
                 type_id: Rc::new(RefCell::new(Some(Type::Function {
                     params: vec![Type::FloatingPoint],
                     return_value: Box::new(Type::Integer)
-                })))
+                }))),
+                context: Context::default(),
             }
         );
         Ok(())
