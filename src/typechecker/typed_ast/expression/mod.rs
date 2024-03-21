@@ -1,11 +1,13 @@
 mod function;
 mod id;
+mod lambda;
 mod num;
 
 use crate::{
     parser::ast::Expression,
     typechecker::{
-        context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        context::Context, error::TypeMismatch, types::Type, TypeCheckable, TypeInformation,
+        TypeResult, TypedConstruct,
     },
 };
 
@@ -16,8 +18,8 @@ impl TypeCheckable for Expression<()> {
         match self {
             Expression::Id(id) => Ok(Expression::Id(id.check(ctx)?)),
             Expression::Num(num) => Ok(Expression::Num(num.check(ctx)?)),
-            Expression::Function(_) => todo!(),
-            Expression::Lambda(_) => todo!(),
+            Expression::Function(func) => Ok(Expression::Function(func.check(ctx)?)),
+            Expression::Lambda(lambda) => Ok(Expression::Lambda(lambda.check(ctx)?)),
             Expression::If(_) => todo!(),
             Expression::Block(_) => todo!(),
             Expression::Parens(_) => todo!(),
@@ -31,7 +33,7 @@ impl TypeCheckable for Expression<()> {
 }
 
 impl TypedConstruct for Expression<TypeInformation> {
-    fn update_type(&mut self, type_id: Type) {
+    fn update_type(&mut self, type_id: Type) -> Result<(), TypeMismatch> {
         match self {
             Expression::Id(id) => id.update_type(type_id),
             Expression::Num(num) => num.update_type(type_id),

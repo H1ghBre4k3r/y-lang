@@ -4,7 +4,8 @@ mod initialisation;
 use crate::{
     parser::ast::Statement,
     typechecker::{
-        context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        context::Context, error::TypeMismatch, types::Type, TypeCheckable, TypeInformation,
+        TypeResult, TypedConstruct,
     },
 };
 
@@ -32,7 +33,7 @@ impl TypeCheckable for Statement<()> {
 }
 
 impl TypedConstruct for Statement<TypeInformation> {
-    fn update_type(&mut self, type_id: Type) {
+    fn update_type(&mut self, type_id: Type) -> Result<(), TypeMismatch> {
         match self {
             Statement::Function(_) => todo!(),
             Statement::If(_) => todo!(),
@@ -43,7 +44,7 @@ impl TypedConstruct for Statement<TypeInformation> {
             Statement::Expression(expr) => expr.update_type(type_id),
             Statement::YieldingExpression(expr) => expr.update_type(type_id),
             Statement::Return(expr) => expr.update_type(type_id),
-            Statement::Comment(_) => {}
+            Statement::Comment(_) => Ok(()),
             Statement::Declaration(dec) => dec.update_type(type_id),
             Statement::StructDeclaration(_) => todo!(),
         }

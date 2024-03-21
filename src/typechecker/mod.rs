@@ -8,7 +8,11 @@ use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 use crate::parser::ast::Statement;
 
-use self::{context::Context, error::TypeCheckError, types::Type};
+use self::{
+    context::Context,
+    error::{TypeCheckError, TypeMismatch},
+    types::Type,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {
@@ -32,7 +36,7 @@ trait TypedConstruct
 where
     Self: Debug,
 {
-    fn update_type(&mut self, type_id: Type) {
+    fn update_type(&mut self, type_id: Type) -> Result<(), TypeMismatch> {
         unimplemented!(
             "TypedConstruct::update_type({type_id:?}) is not implemented for {:?}",
             self

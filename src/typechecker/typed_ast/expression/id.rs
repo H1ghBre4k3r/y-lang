@@ -33,7 +33,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
-        parser::ast::Id,
+        parser::ast::{Expression, Id},
         typechecker::{
             context::Context,
             error::{TypeCheckError, UndefinedVariable},
@@ -45,8 +45,15 @@ mod tests {
     #[test]
     fn test_no_member_modification() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
-        ctx.scope
-            .add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+        ctx.scope.add_variable(
+            "foo",
+            Expression::Id(Id {
+                name: "foo".into(),
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                },
+            }),
+        );
 
         let id = Id {
             name: "foo".into(),
@@ -63,8 +70,15 @@ mod tests {
     #[test]
     fn test_correct_type_inference() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
-        ctx.scope
-            .add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+        ctx.scope.add_variable(
+            "foo",
+            Expression::Id(Id {
+                name: "foo".into(),
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                },
+            }),
+        );
 
         let id = Id {
             name: "foo".into(),

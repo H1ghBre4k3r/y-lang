@@ -1,10 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
-use super::types::Type;
+use crate::parser::ast::Expression;
+
+use super::{types::Type, TypeInformation, TypedConstruct};
 
 #[derive(Debug, Clone, Default)]
 pub struct Stack {
-    variables: HashMap<String, Rc<RefCell<Option<Type>>>>,
+    variables: HashMap<String, (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>)>,
     types: HashMap<String, Type>,
 }
 
@@ -51,10 +53,13 @@ impl Scope {
         self.stacks.pop();
     }
 
-    pub fn add_variable(&mut self, name: impl ToString, type_id: Rc<RefCell<Option<Type>>>) {
-        self.stacks
-            .last_mut()
-            .and_then(|scope| scope.variables.insert(name.to_string(), type_id));
+    pub fn add_variable(&mut self, name: impl ToString, expression: Expression<TypeInformation>) {
+        self.stacks.last_mut().and_then(|scope| {
+            let type_id = expression.get_info().type_id;
+            scope
+                .variables
+                .insert(name.to_string(), (expression, type_id))
+        });
     }
 
     pub fn get_variable(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
@@ -63,7 +68,35 @@ impl Scope {
             .iter()
             .rev()
             .find(|scope| scope.variables.contains_key(&name))
-            .and_then(|scope| scope.variables.get(&name).cloned())
+            .and_then(|scope| {
+                scope
+                    .variables
+                    .get(&name)
+                    .cloned()
+                    .map(|(_, type_id)| type_id)
+            })
+    }
+
+    pub fn update_variable(&mut self, name: impl ToString, type_id: Type) {
+        let name = name.to_string();
+        let Some(scope) = self
+            .stacks
+            .iter_mut()
+            .rev()
+            .find(|scope| scope.variables.contains_key(&name))
+        else {
+            todo!()
+        };
+
+        let Some((exp, variable_type)) = scope.variables.get_mut(&name) else {
+            unreachable!()
+        };
+
+        // if let Err(e) = exp.update_type(type_id.clone()) {
+        //     todo!()
+        // }
+
+        *variable_type.borrow_mut() = Some(type_id);
     }
 
     pub fn add_type(&mut self, name: impl ToString, type_id: Type) -> Result<(), TypeAddError> {
@@ -95,7 +128,10 @@ impl Scope {
 mod tests {
     use std::{cell::RefCell, rc::Rc};
 
-    use crate::typechecker::types::Type;
+    use crate::{
+        parser::ast::{Expression, Id},
+        typechecker::{types::Type, TypeInformation},
+    };
 
     use super::Scope;
 
@@ -108,7 +144,15 @@ mod tests {
     #[test]
     fn test_add_variable() {
         let mut scope = Scope::new();
-        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+
+        let expression = Expression::Id(Id {
+            name: "foo".into(),
+            info: TypeInformation {
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+            },
+        });
+
+        scope.add_variable("foo", expression);
 
         assert_eq!(
             scope.get_variable("foo"),
@@ -119,8 +163,18 @@ mod tests {
     #[test]
     fn test_add_override() {
         let mut scope = Scope::new();
-        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
-        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Boolean))));
+
+        let expression = Expression::Id(Id {
+            name: "foo".into(),
+            info: TypeInformation {
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+            },
+        });
+
+        scope.add_variable("foo", expression.clone());
+
+        *expression.get_info().type_id.borrow_mut() = Some(Type::Boolean);
+        scope.add_variable("foo", expression);
 
         assert_eq!(
             scope.get_variable("foo"),
@@ -132,10 +186,17 @@ mod tests {
     fn test_enter_scope() {
         let mut scope = Scope::new();
 
+        let expression = Expression::Id(Id {
+            name: "foo".into(),
+            info: TypeInformation {
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+            },
+        });
+
         scope.enter_scope();
         assert_eq!(scope.stacks.len(), 2);
 
-        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+        scope.add_variable("foo", expression);
         assert_eq!(
             scope.get_variable("foo"),
             Some(Rc::new(RefCell::new(Some(Type::Integer))))
@@ -149,7 +210,14 @@ mod tests {
     fn test_shared_variable_values() {
         let mut scope = Scope::new();
 
-        scope.add_variable("foo", Rc::new(RefCell::new(Some(Type::Integer))));
+        let expression = Expression::Id(Id {
+            name: "foo".into(),
+            info: TypeInformation {
+                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+            },
+        });
+
+        scope.add_variable("foo", expression);
 
         let foo = scope.get_variable("foo").unwrap();
         let bar = scope.get_variable("foo").unwrap();

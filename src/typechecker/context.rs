@@ -18,3 +18,11 @@ impl<'a> From<&'a mut Context> for &'a Context {
         value
     }
 }
+
+impl PartialEq for Context {
+    fn eq(&self, other: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for Context {}
