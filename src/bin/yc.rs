@@ -10,6 +10,15 @@ pub struct Cli {
     /// The path to the source file.
     #[arg(index = 1)]
     pub file: std::path::PathBuf,
+
+    #[arg(short = 'l', long)]
+    pub print_lexed: bool,
+
+    #[arg(short = 'p', long)]
+    pub print_parsed: bool,
+
+    #[arg(short, long, default_value = "a.out")]
+    pub output: Option<std::path::PathBuf>,
 }
 
 impl Cli {
@@ -23,16 +32,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let input = fs::read_to_string(args.file)?;
 
-    // println!("{input}");
-
     let lexer = Lexer::new(&input);
     let tokens = lexer.lex()?;
 
-    // println!("{tokens:#?}");
+    if args.print_lexed {
+        println!("{tokens:#?}");
+    }
 
     let statements = parse(&mut tokens.into())?;
 
-    // println!("{statements:#?}");
+    if args.print_parsed {
+        println!("{statements:#?}");
+    }
 
     let checked = TypeChecker::new().check(statements)?;
 
