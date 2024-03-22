@@ -40,13 +40,19 @@ impl From<Id<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
+    use crate::lexer::Span;
+
     use super::*;
 
     #[test]
     fn test_parse() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: (0, 0),
+            position: Span {
+                line: 1,
+                col: 0..0,
+                source: "".into(),
+            },
         }];
         assert_eq!(
             Id::parse(&mut tokens.into()),
@@ -61,7 +67,11 @@ mod tests {
     fn test_error_on_non_id() {
         let tokens = vec![Token::Integer {
             value: 3,
-            position: (0, 0),
+            position: Span {
+                line: 0,
+                col: 0..0,
+                source: "".into(),
+            },
         }];
         assert!(Id::parse(&mut tokens.into()).is_err());
     }

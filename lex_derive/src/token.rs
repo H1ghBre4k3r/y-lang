@@ -127,7 +127,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
             ident: var_ident, ..
         } = variant;
         quote! {
-            #ident::#var_ident { position, .. } => *position,
+            #ident::#var_ident { position, .. } => position.clone(),
         }
     });
 
@@ -187,7 +187,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         impl Eq for #ident {}
 
         impl Terminal {
-            pub fn to_token(&self, position: Position) -> #ident {
+            pub fn to_token(&self, position: Span) -> #ident {
                 match self {
                     #(#matches_to_token)*
                 }
@@ -195,11 +195,11 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         }
 
         pub trait GetPosition {
-            fn position(&self) -> Position;
+            fn position(&self) -> Span;
         }
 
         impl GetPosition for #ident {
-            fn position(&self) -> Position {
+            fn position(&self) -> Span {
                 match self {
                     #(#matches_get_position)*
                 }
@@ -211,7 +211,9 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                 Self::insert(
                     &mut $entries,
                     Regex::new(&$value.escape_unicode().to_string()).unwrap(),
-                    |_, position| Token::$name { position },
+                    |matched, (line, col), source| Token::$name {
+                        position: Span { line, col: (col..(col+matched.as_str().len())), source }
+                    },
                 );
             };
         }
@@ -221,15 +223,17 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                 Self::insert(
                     &mut $entries,
                     Regex::new($value).unwrap(),
-                    |matched, position| Token::$name {
-                        position,
+                    |matched, (line, col), source| Token::$name {
                         value: matched.as_str().parse().unwrap(),
+                        position: Span { line, col: (col..(col+matched.as_str().len())), source }
                     },
                 );
             };
         }
 
-        type Entries = Vec<(Regex, Box<dyn Fn(Match, (usize, usize)) -> Token>)>;
+        type EntryInputSpan = (usize, usize);
+
+        type Entries = Vec<(Regex, Box<dyn Fn(Match, EntryInputSpan, String) -> Token>)>;
 
         pub struct Lexikon {
             entries: Entries,
@@ -246,14 +250,15 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                 Lexikon { entries }
             }
 
-            fn insert<F: Fn(Match, (usize, usize)) -> Token + 'static>(entries: &mut Entries, reg: Regex, f: F) {
+            fn insert<F: Fn(Match, EntryInputSpan, String) -> Token + 'static>(entries: &mut Entries, reg: Regex, f: F) {
                 entries.push((reg, Box::new(f)))
             }
 
             pub fn find_longest_match(
                 &self,
                 pattern: &'a str,
-                position: (usize, usize),
+                position: EntryInputSpan,
+                source: String
             ) -> (usize, Option<Token>) {
                 let mut longest = (0, None);
 
@@ -265,7 +270,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                     let len = res.len();
 
                     if len > longest.0 && res.start() == 0 {
-                        longest = (len, Some(mapper(res, position)));
+                        longest = (len, Some(mapper(res, position, source.clone())));
                     }
                 }
 
