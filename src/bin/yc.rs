@@ -1,4 +1,4 @@
-use std::{error::Error, fs};
+use std::{error::Error, fs, process};
 
 use clap::{command, Parser};
 use pesca_lang::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
@@ -39,7 +39,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{tokens:#?}");
     }
 
-    let statements = parse(&mut tokens.into())?;
+    let statements = match parse(&mut tokens.into()) {
+        Ok(stms) => stms,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(-1);
+        }
+    };
 
     if args.print_parsed {
         println!("{statements:#?}");

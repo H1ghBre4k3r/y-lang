@@ -315,7 +315,7 @@ impl From<Expression<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::ast::{Statement, TypeName},
     };
 
@@ -325,7 +325,11 @@ mod tests {
     fn test_parse_id() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: (0, 0),
+            position: Span {
+                line: 1,
+                col: 0..0,
+                source: "".into(),
+            },
         }];
 
         assert_eq!(
@@ -341,7 +345,11 @@ mod tests {
     fn test_parse_num() {
         let tokens = vec![Token::Integer {
             value: 42,
-            position: (0, 0),
+            position: Span {
+                line: 0,
+                col: 0..0,
+                source: "".into(),
+            },
         }];
 
         assert_eq!(

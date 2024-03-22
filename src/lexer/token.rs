@@ -1,84 +1,139 @@
+use std::ops::Range;
+
 use lex_derive::{LooseEq, Token as ParseToken};
 use regex::{Match, Regex};
 
-type Position = (usize, usize);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Span {
+    pub line: usize,
+    pub col: Range<usize>,
+    pub source: String,
+}
 
-#[derive(Debug, Clone, ParseToken, LooseEq)]
+#[derive(Clone, ParseToken, LooseEq)]
 pub enum Token {
     #[terminal("=")]
-    Assign { position: Position },
+    Assign { position: Span },
     #[terminal("let")]
-    Let { position: Position },
+    Let { position: Span },
     #[terminal("const")]
-    Const { position: Position },
+    Const { position: Span },
     #[terminal("mut")]
-    Mut { position: Position },
+    Mut { position: Span },
     #[literal("[a-zA-Z_][a-zA-Z0-9_]*")]
-    Id { value: String, position: Position },
+    Id { value: String, position: Span },
     #[literal("[0-9]+")]
-    Integer { value: u64, position: Position },
+    Integer { value: u64, position: Span },
     #[literal("[0-9]+\\.[0-9]+")]
-    FloatingPoint { value: f64, position: Position },
+    FloatingPoint { value: f64, position: Span },
     #[terminal(";")]
-    Semicolon { position: Position },
+    Semicolon { position: Span },
     #[literal("//.*")]
-    Comment { value: String, position: Position },
+    Comment { value: String, position: Span },
     #[terminal("+")]
-    Plus { position: Position },
+    Plus { position: Span },
     #[terminal("-")]
-    Minus { position: Position },
+    Minus { position: Span },
     #[terminal("*")]
-    Times { position: Position },
+    Times { position: Span },
     #[terminal("(")]
-    LParen { position: Position },
+    LParen { position: Span },
     #[terminal(")")]
-    RParen { position: Position },
+    RParen { position: Span },
     #[terminal("{")]
-    LBrace { position: Position },
+    LBrace { position: Span },
     #[terminal("}")]
-    RBrace { position: Position },
+    RBrace { position: Span },
     #[terminal("[")]
-    LBracket { position: Position },
+    LBracket { position: Span },
     #[terminal("]")]
-    RBracket { position: Position },
+    RBracket { position: Span },
     #[terminal("fn")]
-    FnKeyword { position: Position },
+    FnKeyword { position: Span },
     #[terminal("if")]
-    IfKeyword { position: Position },
+    IfKeyword { position: Span },
     #[terminal("else")]
-    ElseKeyword { position: Position },
+    ElseKeyword { position: Span },
     #[terminal("while")]
-    WhileKeyword { position: Position },
+    WhileKeyword { position: Span },
     #[terminal("return")]
-    ReturnKeyword { position: Position },
+    ReturnKeyword { position: Span },
     #[terminal(":")]
-    Colon { position: Position },
+    Colon { position: Span },
     #[terminal(",")]
-    Comma { position: Position },
+    Comma { position: Span },
     #[terminal(".")]
-    Dot { position: Position },
+    Dot { position: Span },
     #[terminal("->")]
-    SmallRightArrow { position: Position },
+    SmallRightArrow { position: Span },
     #[terminal("=>")]
-    BigRightArrow { position: Position },
+    BigRightArrow { position: Span },
     #[terminal("\\")]
-    Backslash { position: Position },
+    Backslash { position: Span },
     #[terminal("==")]
-    Equal { position: Position },
+    Equal { position: Span },
     #[terminal(">")]
-    GreaterThan { position: Position },
+    GreaterThan { position: Span },
     #[terminal("<")]
-    LessThan { position: Position },
+    LessThan { position: Span },
     #[terminal(">=")]
-    GreaterOrEqual { position: Position },
+    GreaterOrEqual { position: Span },
     #[terminal("<0")]
-    LessOrEqual { position: Position },
+    LessOrEqual { position: Span },
     #[terminal("&")]
-    Ampersand { position: Position },
+    Ampersand { position: Span },
     #[terminal("declare")]
-    DeclareKeyword { position: Position },
+    DeclareKeyword { position: Span },
     #[terminal("struct")]
-    StructKeyword { position: Position },
+    StructKeyword { position: Span },
     #[terminal("!")]
-    ExclamationMark { position: Position },
+    ExclamationMark { position: Span },
+}
+
+impl std::fmt::Debug for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Assign { .. } => f.debug_struct("Assign").finish(),
+            Self::Let { .. } => f.debug_struct("Let").finish(),
+            Self::Const { .. } => f.debug_struct("Const").finish(),
+            Self::Mut { .. } => f.debug_struct("Mut").finish(),
+            Self::Id { value, .. } => f.debug_struct("Id").field("value", value).finish(),
+            Self::Integer { value, .. } => f.debug_struct("Integer").field("value", value).finish(),
+            Self::FloatingPoint { value, .. } => f
+                .debug_struct("FloatingPoint")
+                .field("value", value)
+                .finish(),
+            Self::Semicolon { .. } => f.debug_struct("Semicolon").finish(),
+            Self::Comment { value, .. } => f.debug_struct("Comment").field("value", value).finish(),
+            Self::Plus { .. } => f.debug_struct("Plus").finish(),
+            Self::Minus { .. } => f.debug_struct("Minus").finish(),
+            Self::Times { .. } => f.debug_struct("Times").finish(),
+            Self::LParen { .. } => f.debug_struct("LParen").finish(),
+            Self::RParen { .. } => f.debug_struct("RParen").finish(),
+            Self::LBrace { .. } => f.debug_struct("LBrace").finish(),
+            Self::RBrace { .. } => f.debug_struct("RBrace").finish(),
+            Self::LBracket { .. } => f.debug_struct("LBracket").finish(),
+            Self::RBracket { .. } => f.debug_struct("RBracket").finish(),
+            Self::FnKeyword { .. } => f.debug_struct("FnKeyword").finish(),
+            Self::IfKeyword { .. } => f.debug_struct("IfKeyword").finish(),
+            Self::ElseKeyword { .. } => f.debug_struct("ElseKeyword").finish(),
+            Self::WhileKeyword { .. } => f.debug_struct("WhileKeyword").finish(),
+            Self::ReturnKeyword { .. } => f.debug_struct("ReturnKeyword").finish(),
+            Self::Colon { .. } => f.debug_struct("Colon").finish(),
+            Self::Comma { .. } => f.debug_struct("Comma").finish(),
+            Self::Dot { .. } => f.debug_struct("Dot").finish(),
+            Self::SmallRightArrow { .. } => f.debug_struct("SmallRightArrow").finish(),
+            Self::BigRightArrow { .. } => f.debug_struct("BigRightArrow").finish(),
+            Self::Backslash { .. } => f.debug_struct("Backslash").finish(),
+            Self::Equal { .. } => f.debug_struct("Equal").finish(),
+            Self::GreaterThan { .. } => f.debug_struct("GreaterThan").finish(),
+            Self::LessThan { .. } => f.debug_struct("LessThan").finish(),
+            Self::GreaterOrEqual { .. } => f.debug_struct("GreaterOrEqual").finish(),
+            Self::LessOrEqual { .. } => f.debug_struct("LessOrEqual").finish(),
+            Self::Ampersand { .. } => f.debug_struct("Ampersand").finish(),
+            Self::DeclareKeyword { .. } => f.debug_struct("DeclareKeyword").finish(),
+            Self::StructKeyword { .. } => f.debug_struct("StructKeyword").finish(),
+            Self::ExclamationMark { .. } => f.debug_struct("ExclamationMark").finish(),
+        }
+    }
 }

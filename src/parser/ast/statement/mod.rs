@@ -12,6 +12,7 @@ pub use self::initialisation::*;
 pub use self::struct_declaration::*;
 pub use self::while_loop::*;
 
+use crate::lexer::GetPosition;
 use crate::{
     lexer::{Token, Tokens},
     parser::{combinators::Comb, FromTokens, ParseError},
@@ -132,7 +133,7 @@ impl FromTokens<Token> for Statement<()> {
 
                 Err(ParseError {
                     message: "could not parse statement".into(),
-                    position: None,
+                    position: Some(next.position()),
                 })
             }
         }

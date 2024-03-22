@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display};
 pub mod ast;
 pub mod combinators;
 
-use crate::lexer::{Token, Tokens};
+use crate::lexer::{Span, Token, Tokens};
 
 use self::{
     ast::{AstNode, Statement},
@@ -13,7 +13,7 @@ use self::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
     pub message: String,
-    pub position: Option<(usize, usize)>,
+    pub position: Option<Span>,
 }
 
 impl ParseError {
@@ -27,8 +27,22 @@ impl ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(pos) = self.position {
-            f.write_fmt(format_args!("{} ({}:{})", self.message, pos.0, pos.1))
+        if let Some(pos) = &self.position {
+            let Span { line, col, source } = pos;
+            let lines = source.lines().collect::<Vec<_>>();
+            let line_str = lines[*line - 1];
+
+            let left_margin = format!("{line}").len();
+            let left_margin_fill = vec![' '; left_margin].iter().collect::<String>();
+
+            let left_padding_fill = vec![' '; col.start - 1].iter().collect::<String>();
+
+            let error_len = vec!['^'; col.end - col.start].iter().collect::<String>();
+
+            f.write_fmt(format_args!(
+                "{left_margin_fill} |\n{line} |{line_str} \n{left_margin_fill} |{left_padding_fill}{error_len}   {}",
+                self.message
+            ))
         } else {
             f.write_str(&self.message)
         }
