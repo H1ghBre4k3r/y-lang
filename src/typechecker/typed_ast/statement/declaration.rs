@@ -32,6 +32,7 @@ impl TypeCheckable for Declaration<()> {
             },
         };
 
+        // TODO: check, if we are actually at top level
         ctx.scope.add_variable(&id.name, Expression::Id(id.clone()));
 
         Ok(Declaration {

@@ -1,3 +1,4 @@
+mod constant;
 mod declaration;
 mod initialisation;
 
@@ -18,7 +19,7 @@ impl TypeCheckable for Statement<()> {
             Statement::If(_) => todo!(),
             Statement::WhileLoop(_) => todo!(),
             Statement::Initialization(init) => Ok(Statement::Initialization(init.check(ctx)?)),
-            Statement::Constant(_) => todo!(),
+            Statement::Constant(constant) => Ok(Statement::Constant(constant.check(ctx)?)),
             Statement::Assignment(_) => todo!(),
             Statement::Expression(exp) => Ok(Statement::Expression(exp.check(ctx)?)),
             Statement::YieldingExpression(exp) => {
@@ -60,7 +61,7 @@ impl TypedConstruct for Statement<TypeInformation> {
             Statement::If(_) => todo!(),
             Statement::WhileLoop(_) => todo!(),
             Statement::Initialization(init) => init.update_type(type_id),
-            Statement::Constant(_) => todo!(),
+            Statement::Constant(constant) => constant.update_type(type_id),
             Statement::Assignment(_) => todo!(),
             Statement::Expression(expr) => expr.update_type(type_id),
             Statement::YieldingExpression(expr) => expr.update_type(type_id),
