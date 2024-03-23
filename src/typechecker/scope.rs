@@ -62,11 +62,11 @@ impl Display for TypeAddError {
 impl std::error::Error for TypeAddError {}
 
 #[derive(Debug, Clone)]
-pub struct ConstantAddError {
+pub struct VariableAddError {
     pub name: String,
 }
 
-impl Display for ConstantAddError {
+impl Display for VariableAddError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "tried to add already existing type '{}'",
@@ -75,7 +75,7 @@ impl Display for ConstantAddError {
     }
 }
 
-impl std::error::Error for ConstantAddError {}
+impl std::error::Error for VariableAddError {}
 
 impl Scope {
     pub fn new() -> Scope {
@@ -90,14 +90,26 @@ impl Scope {
         self.stacks.pop();
     }
 
-    pub fn add_variable(&mut self, name: impl ToString, expression: Expression<TypeInformation>) {
+    pub fn add_variable(
+        &mut self,
+        name: impl ToString,
+        expression: Expression<TypeInformation>,
+    ) -> Result<(), VariableAddError> {
+        let name = name.to_string();
+
+        if self.get_constant(&name).is_some() {
+            return Err(VariableAddError { name });
+        }
+
         self.stacks.last().and_then(|scope| {
             let type_id = expression.get_info().type_id;
             scope
                 .borrow_mut()
                 .variables
-                .insert(name.to_string(), (expression, type_id))
+                .insert(name, (expression, type_id))
         });
+
+        Ok(())
     }
 
     pub fn get_variable(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
@@ -183,20 +195,27 @@ impl Scope {
         &mut self,
         name: impl ToString,
         type_id: Type,
-    ) -> Result<(), ConstantAddError> {
+    ) -> Result<(), VariableAddError> {
         let name = name.to_string();
+
+        if self.resolve_name(&name).is_some() {
+            return Err(VariableAddError { name });
+        }
 
         let Some(last) = self.stacks.last_mut() else {
             unreachable!("trying to add type {name} in empty scope");
         };
 
-        if last.borrow().constants.contains_key(&name) {
-            return Err(ConstantAddError { name });
-        }
-
         last.borrow_mut().constants.insert(name, type_id);
 
         Ok(())
+    }
+
+    pub fn resolve_name(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
+        let name = name.to_string();
+        self.get_constant(&name)
+            .map(|t| Rc::new(RefCell::new(Some(t))))
+            .or_else(|| self.get_variable(&name))
     }
 }
 
@@ -229,7 +248,9 @@ mod tests {
             },
         });
 
-        scope.add_variable("foo", expression);
+        scope
+            .add_variable("foo", expression)
+            .expect("something went wrong");
 
         assert_eq!(
             scope.get_variable("foo"),
@@ -249,10 +270,15 @@ mod tests {
             },
         });
 
-        scope.add_variable("foo", expression.clone());
+        scope
+            .add_variable("foo", expression.clone())
+            .expect("something went wrong");
 
         *expression.get_info().type_id.borrow_mut() = Some(Type::Boolean);
-        scope.add_variable("foo", expression);
+
+        scope
+            .add_variable("foo", expression.clone())
+            .expect("something went wrong");
 
         assert_eq!(
             scope.get_variable("foo"),
@@ -275,7 +301,10 @@ mod tests {
         scope.enter_scope();
         assert_eq!(scope.stacks.len(), 2);
 
-        scope.add_variable("foo", expression);
+        scope
+            .add_variable("foo", expression.clone())
+            .expect("something went wrong");
+
         assert_eq!(
             scope.get_variable("foo"),
             Some(Rc::new(RefCell::new(Some(Type::Integer))))
@@ -297,7 +326,9 @@ mod tests {
             },
         });
 
-        scope.add_variable("foo", expression);
+        scope
+            .add_variable("foo", expression.clone())
+            .expect("something went wrong");
 
         let foo = scope.get_variable("foo").unwrap();
         let bar = scope.get_variable("foo").unwrap();

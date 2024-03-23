@@ -4,7 +4,7 @@ use crate::{
     parser::ast::{Expression, Function, FunctionParameter, Id},
     typechecker::{
         context::Context,
-        error::{TypeCheckError, TypeMismatch, UndefinedType},
+        error::{RedefinedConstant, TypeCheckError, TypeMismatch, UndefinedType},
         types::Type,
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
@@ -108,8 +108,15 @@ impl TypeCheckable for Function<()> {
         };
 
         if let Some(Id { name, .. }) = &func.id {
-            ctx.scope
+            if ctx
+                .scope
                 .add_variable(name, Expression::Function(func.clone()))
+                .is_err()
+            {
+                return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
+                    constant_name: name.to_string(),
+                }));
+            }
         }
 
         Ok(func)
@@ -163,7 +170,15 @@ impl TypeCheckable for FunctionParameter<()> {
             info: info.clone(),
         };
 
-        ctx.scope.add_variable(&id.name, Expression::Id(id.clone()));
+        if ctx
+            .scope
+            .add_variable(&id.name, Expression::Id(id.clone()))
+            .is_err()
+        {
+            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
+                constant_name: id.name,
+            }));
+        };
 
         Ok(FunctionParameter {
             name: id,

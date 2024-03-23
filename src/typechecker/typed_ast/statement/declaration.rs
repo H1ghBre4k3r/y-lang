@@ -3,7 +3,10 @@ use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 use crate::{
     parser::ast::{Declaration, Expression, Id},
     typechecker::{
-        context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        context::Context,
+        error::{RedefinedConstant, TypeCheckError},
+        types::Type,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -33,7 +36,15 @@ impl TypeCheckable for Declaration<()> {
         };
 
         // TODO: check, if we are actually at top level
-        ctx.scope.add_variable(&id.name, Expression::Id(id.clone()));
+        if ctx
+            .scope
+            .add_variable(&id.name, Expression::Id(id.clone()))
+            .is_err()
+        {
+            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
+                constant_name: id.name,
+            }));
+        }
 
         Ok(Declaration {
             name: id,
