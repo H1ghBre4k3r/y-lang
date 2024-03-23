@@ -10,6 +10,7 @@ type StoredVariable = (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>);
 pub struct Stack {
     variables: HashMap<String, StoredVariable>,
     types: HashMap<String, Type>,
+    constants: HashMap<String, Type>,
 }
 
 impl std::fmt::Debug for Stack {
@@ -59,6 +60,22 @@ impl Display for TypeAddError {
 }
 
 impl std::error::Error for TypeAddError {}
+
+#[derive(Debug, Clone)]
+pub struct ConstantAddError {
+    pub name: String,
+}
+
+impl Display for ConstantAddError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "tried to add already existing type '{}'",
+            self.name
+        ))
+    }
+}
+
+impl std::error::Error for ConstantAddError {}
 
 impl Scope {
     pub fn new() -> Scope {
@@ -114,11 +131,14 @@ impl Scope {
             todo!()
         };
 
-        let mut scope = scope.borrow_mut();
+        let scope = scope.borrow_mut();
 
-        let Some((exp, variable_type)) = scope.variables.get_mut(&name) else {
+        let Some((mut exp, variable_type)) = scope.variables.get(&name).cloned() else {
             unreachable!()
         };
+
+        // explicitly drop scope to prevent borrow checker from crashing
+        drop(scope);
 
         exp.update_type(type_id.clone())?;
 
@@ -148,6 +168,35 @@ impl Scope {
             .rev()
             .find(|scope| scope.borrow().types.contains_key(&name))
             .and_then(|scope| scope.borrow().types.get(&name).cloned())
+    }
+
+    pub fn get_constant(&self, name: impl ToString) -> Option<Type> {
+        let name = name.to_string();
+        self.stacks
+            .iter()
+            .rev()
+            .find(|scope| scope.borrow().constants.contains_key(&name))
+            .and_then(|scope| scope.borrow_mut().constants.get(&name).cloned())
+    }
+
+    pub fn add_constant(
+        &mut self,
+        name: impl ToString,
+        type_id: Type,
+    ) -> Result<(), ConstantAddError> {
+        let name = name.to_string();
+
+        let Some(last) = self.stacks.last_mut() else {
+            unreachable!("trying to add type {name} in empty scope");
+        };
+
+        if last.borrow().constants.contains_key(&name) {
+            return Err(ConstantAddError { name });
+        }
+
+        last.borrow_mut().constants.insert(name, type_id);
+
+        Ok(())
     }
 }
 

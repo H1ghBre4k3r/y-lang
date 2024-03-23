@@ -9,6 +9,8 @@ pub enum TypeCheckError {
     TypeMismatch(TypeMismatch),
     UndefinedVariable(UndefinedVariable),
     UndefinedType(UndefinedType),
+    InvalidConstantType(InvalidConstantType),
+    RedefinedConstant(RedefinedConstant),
 }
 
 impl Display for TypeCheckError {
@@ -17,6 +19,8 @@ impl Display for TypeCheckError {
             TypeCheckError::TypeMismatch(e) => f.write_fmt(format_args!("{e}")),
             TypeCheckError::UndefinedVariable(e) => f.write_fmt(format_args!("{e}")),
             TypeCheckError::UndefinedType(e) => f.write_fmt(format_args!("{e}")),
+            TypeCheckError::InvalidConstantType(e) => f.write_fmt(format_args!("{e}")),
+            TypeCheckError::RedefinedConstant(e) => f.write_fmt(format_args!("{e}")),
         }
     }
 }
@@ -71,3 +75,35 @@ impl Display for UndefinedType {
 }
 
 impl Error for UndefinedType {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InvalidConstantType {
+    pub constant_name: String,
+}
+
+impl Display for InvalidConstantType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Constant '{}' needs to have an annotated type",
+            self.constant_name
+        ))
+    }
+}
+
+impl Error for InvalidConstantType {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RedefinedConstant {
+    pub constant_name: String,
+}
+
+impl Display for RedefinedConstant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Constant '{}' is already defined",
+            self.constant_name
+        ))
+    }
+}
+
+impl Error for RedefinedConstant {}

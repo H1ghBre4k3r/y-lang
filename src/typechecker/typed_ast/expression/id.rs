@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     parser::ast::Id,
     typechecker::{
@@ -13,7 +15,18 @@ impl TypeCheckable for Id<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let Id { name, .. } = self;
 
-        let Some(type_id) = ctx.scope.get_variable(&name) else {
+        let constant = ctx.scope.get_constant(&name);
+        let variable = ctx.scope.get_variable(&name);
+
+        if constant.is_some() && variable.is_some() {
+            todo!("same identifier is defined as variable and as constant")
+        }
+
+        let type_id = if let Some(type_id) = constant {
+            Rc::new(RefCell::new(Some(type_id)))
+        } else if let Some(type_id) = variable {
+            type_id
+        } else {
             return Err(TypeCheckError::UndefinedVariable(UndefinedVariable {
                 variable_name: name,
             }));
@@ -129,6 +142,23 @@ mod tests {
                 variable_name: "foo".into()
             }))
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_retrival_of_constant() -> Result<(), Box<dyn Error>> {
+        let mut ctx = Context::default();
+        ctx.scope.add_constant("foo", Type::Integer)?;
+
+        let id = Id {
+            name: "foo".into(),
+            info: (),
+        };
+
+        let id = id.check(&mut ctx)?;
+
+        assert_eq!(id.info.type_id, Rc::new(RefCell::new(Some(Type::Integer))));
 
         Ok(())
     }
