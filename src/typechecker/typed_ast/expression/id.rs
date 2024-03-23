@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::{
     parser::ast::Id,
     typechecker::{
@@ -15,18 +13,7 @@ impl TypeCheckable for Id<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let Id { name, .. } = self;
 
-        let constant = ctx.scope.get_constant(&name);
-        let variable = ctx.scope.get_variable(&name);
-
-        if constant.is_some() && variable.is_some() {
-            todo!("same identifier is defined as variable and as constant")
-        }
-
-        let type_id = if let Some(type_id) = constant {
-            Rc::new(RefCell::new(Some(type_id)))
-        } else if let Some(type_id) = variable {
-            type_id
-        } else {
+        let Some(type_id) = ctx.scope.resolve_name(&name) else {
             return Err(TypeCheckError::UndefinedVariable(UndefinedVariable {
                 variable_name: name,
             }));
@@ -70,16 +57,18 @@ mod tests {
     #[test]
     fn test_no_member_modification() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
-        ctx.scope.add_variable(
-            "foo",
-            Expression::Id(Id {
-                name: "foo".into(),
-                info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
-                    context: Context::default(),
-                },
-            }),
-        );
+        ctx.scope
+            .add_variable(
+                "foo",
+                Expression::Id(Id {
+                    name: "foo".into(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                        context: Context::default(),
+                    },
+                }),
+            )
+            .expect("something went wrong");
 
         let id = Id {
             name: "foo".into(),
@@ -96,16 +85,18 @@ mod tests {
     #[test]
     fn test_correct_type_inference() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
-        ctx.scope.add_variable(
-            "foo",
-            Expression::Id(Id {
-                name: "foo".into(),
-                info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
-                    context: Context::default(),
-                },
-            }),
-        );
+        ctx.scope
+            .add_variable(
+                "foo",
+                Expression::Id(Id {
+                    name: "foo".into(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                        context: Context::default(),
+                    },
+                }),
+            )
+            .expect("something went wrong");
 
         let id = Id {
             name: "foo".into(),

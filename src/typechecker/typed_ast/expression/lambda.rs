@@ -4,7 +4,7 @@ use crate::{
     parser::ast::{Expression, Id, Lambda, LambdaParameter},
     typechecker::{
         context::Context,
-        error::{TypeCheckError, TypeMismatch},
+        error::{RedefinedConstant, TypeCheckError, TypeMismatch},
         types::Type,
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
@@ -92,16 +92,24 @@ impl TypedConstruct for Lambda<TypeInformation> {
         for (i, t) in params.iter().enumerate() {
             let name = &self.parameters[i].name.name;
 
-            ctx.scope.add_variable(
-                name,
-                Expression::Id(Id {
-                    name: name.clone(),
-                    info: TypeInformation {
-                        type_id: Rc::new(RefCell::new(Some(t.clone()))),
-                        context: ctx.clone(),
-                    },
-                }),
-            )
+            if ctx
+                .scope
+                .add_variable(
+                    name,
+                    Expression::Id(Id {
+                        name: name.clone(),
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(t.clone()))),
+                            context: ctx.clone(),
+                        },
+                    }),
+                )
+                .is_err()
+            {
+                return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
+                    constant_name: name.to_string(),
+                }));
+            }
         }
 
         // check (the reverted) expression
@@ -145,7 +153,15 @@ impl TypeCheckable for LambdaParameter<()> {
             },
         };
 
-        ctx.scope.add_variable(&id.name, Expression::Id(id.clone()));
+        if ctx
+            .scope
+            .add_variable(&id.name, Expression::Id(id.clone()))
+            .is_err()
+        {
+            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
+                constant_name: id.name,
+            }));
+        }
 
         Ok(LambdaParameter {
             name: id,

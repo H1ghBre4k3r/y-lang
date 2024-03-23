@@ -4,7 +4,7 @@ use crate::{
     parser::ast::{Id, Initialisation},
     typechecker::{
         context::Context,
-        error::{TypeCheckError, TypeMismatch},
+        error::{RedefinedConstant, TypeCheckError, TypeMismatch},
         types::Type,
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
@@ -63,7 +63,11 @@ impl TypeCheckable for Initialisation<()> {
             }
         }
 
-        ctx.scope.add_variable(&name, value.clone());
+        if ctx.scope.add_variable(&name, value.clone()).is_err() {
+            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
+                constant_name: name.to_string(),
+            }));
+        };
 
         Ok(Initialisation {
             id: Id { name, info },
