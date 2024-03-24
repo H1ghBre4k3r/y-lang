@@ -78,8 +78,16 @@ impl TypedConstruct for Lambda<TypeInformation> {
             return err;
         };
 
-        if self.info.type_id.borrow().is_some() {
-            todo!("tried to update lambda with already defined type")
+        if let Some(current_type) = self.info.type_id.borrow().as_ref() {
+            if *current_type == type_id {
+                return Ok(());
+            }
+
+            // TODO: maybe use different error for this
+            return Err(TypeCheckError::TypeMismatch(TypeMismatch {
+                expected: current_type.clone(),
+                actual: type_id,
+            }));
         }
 
         // check for correct arity
@@ -198,8 +206,10 @@ impl TypedConstruct for LambdaParameter<TypeInformation> {
 mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
+    use anyhow::Result;
+
     use crate::{
-        parser::ast::{Expression, Id, Lambda, LambdaParameter, Num},
+        parser::ast::{Expression, Id, Initialisation, Lambda, LambdaParameter, Num},
         typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation},
     };
 
@@ -289,6 +299,65 @@ mod tests {
             }
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_error_on_type_update() -> Result<()> {
+        let mut ctx = Context::default();
+
+        let init = Initialisation {
+            id: Id {
+                name: "foo".into(),
+                info: (),
+            },
+            mutable: false,
+            type_name: None,
+            value: Expression::Lambda(Lambda {
+                parameters: vec![LambdaParameter {
+                    name: Id {
+                        name: "x".into(),
+                        info: (),
+                    },
+                    info: (),
+                }],
+                expression: Box::new(Expression::Id(Id {
+                    name: "x".into(),
+                    info: (),
+                })),
+                info: (),
+            }),
+            info: (),
+        };
+
+        init.check(&mut ctx)?;
+
+        ctx.scope.update_variable(
+            "foo",
+            Type::Function {
+                params: vec![Type::Integer],
+                return_value: Box::new(Type::Integer),
+            },
+        )?;
+
+        ctx.scope.update_variable(
+            "foo",
+            Type::Function {
+                params: vec![Type::Integer],
+                return_value: Box::new(Type::Integer),
+            },
+        )?;
+
+        assert!(ctx
+            .scope
+            .update_variable(
+                "foo",
+                Type::Function {
+                    params: vec![Type::FloatingPoint],
+                    return_value: Box::new(Type::Integer),
+                },
+            )
+            .is_err());
         Ok(())
     }
 }
