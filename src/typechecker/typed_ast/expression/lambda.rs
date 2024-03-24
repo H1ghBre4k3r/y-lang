@@ -78,6 +78,10 @@ impl TypedConstruct for Lambda<TypeInformation> {
             return err;
         };
 
+        if self.info.type_id.borrow().is_some() {
+            todo!("tried to update lambda with already defined type")
+        }
+
         // check for correct arity
         if params.len() != self.parameters.len() {
             return err;
