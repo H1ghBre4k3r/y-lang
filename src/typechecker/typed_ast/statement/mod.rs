@@ -1,6 +1,7 @@
 mod constant;
 mod declaration;
 mod initialisation;
+mod struct_declaration;
 
 use crate::{
     parser::ast::Statement,
@@ -28,7 +29,7 @@ impl TypeCheckable for Statement<()> {
             Statement::Return(exp) => Ok(Statement::Return(exp.check(ctx)?)),
             Statement::Comment(c) => Ok(Statement::Comment(c)),
             Statement::Declaration(dec) => Ok(Statement::Declaration(dec.check(ctx)?)),
-            Statement::StructDeclaration(_) => todo!(),
+            Statement::StructDeclaration(dec) => Ok(Statement::StructDeclaration(dec.check(ctx)?)),
         }
     }
 
@@ -49,7 +50,9 @@ impl TypeCheckable for Statement<()> {
             Statement::Return(expr) => Statement::Return(TypeCheckable::revert(expr)),
             Statement::Comment(c) => Statement::Comment(c.to_owned()),
             Statement::Declaration(dec) => Statement::Declaration(TypeCheckable::revert(dec)),
-            Statement::StructDeclaration(_) => todo!(),
+            Statement::StructDeclaration(dec) => {
+                Statement::StructDeclaration(TypeCheckable::revert(dec))
+            }
         }
     }
 }
@@ -68,7 +71,7 @@ impl TypedConstruct for Statement<TypeInformation> {
             Statement::Return(expr) => expr.update_type(type_id),
             Statement::Comment(_) => Ok(()),
             Statement::Declaration(dec) => dec.update_type(type_id),
-            Statement::StructDeclaration(_) => todo!(),
+            Statement::StructDeclaration(dec) => dec.update_type(type_id),
         }
     }
 }
