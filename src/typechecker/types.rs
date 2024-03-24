@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap, error::Error, fmt::Display};
+use std::{borrow::Borrow, error::Error, fmt::Display};
 
 use crate::parser::ast::TypeName;
 
@@ -17,7 +17,7 @@ pub enum Type {
     Reference(Box<Type>),
     Tuple(Vec<Type>),
     Array(Box<Type>),
-    Struct(String, HashMap<String, Type>),
+    Struct(String, Vec<(String, Type)>),
     Function {
         params: Vec<Type>,
         return_value: Box<Type>,
