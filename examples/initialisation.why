@@ -11,6 +11,7 @@ struct FooStruct {
 
 struct BarStruct {
     foo: FooStruct;
+    baz: (i64) -> i64;
 };
 
 let foo = FooStruct {
@@ -18,6 +19,11 @@ let foo = FooStruct {
     amount: 1337.0
 };
 
+let LOLLL = \(n) => n;
+
+let ZOOO = LOLLL;
+
 let bar = BarStruct {
-    foo: foo
+    foo: foo,
+    baz: ZOOO
 };

@@ -2,6 +2,7 @@ mod function;
 mod id;
 mod lambda;
 mod num;
+mod struct_initialisation;
 
 use crate::{
     parser::ast::Expression,
@@ -27,7 +28,9 @@ impl TypeCheckable for Expression<()> {
             Expression::Prefix(_) => todo!(),
             Expression::Binary(_) => todo!(),
             Expression::Array(_) => todo!(),
-            Expression::StructInitialisation(_) => todo!(),
+            Expression::StructInitialisation(init) => {
+                Ok(Expression::StructInitialisation(init.check(ctx)?))
+            }
         }
     }
 
