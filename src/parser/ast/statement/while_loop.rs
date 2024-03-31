@@ -1,9 +1,9 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::Token,
     parser::{
         ast::{AstNode, Block, Expression},
         combinators::Comb,
-        FromTokens, ParseError,
+        FromTokens, ParseError, ParseState,
     },
 };
 
@@ -15,7 +15,7 @@ pub struct WhileLoop<T> {
 }
 
 impl FromTokens<Token> for WhileLoop<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let matcher =
             Comb::WHILE_KEYWORD >> Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN >> Comb::BLOCK;
 

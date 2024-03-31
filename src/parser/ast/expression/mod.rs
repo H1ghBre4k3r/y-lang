@@ -22,11 +22,10 @@ pub use self::postfix::*;
 pub use self::prefix::*;
 pub use self::struct_initialisation::*;
 
-use crate::lexer::Tokens;
 use crate::parser::combinators::Comb;
 use crate::{
     lexer::Token,
-    parser::{FromTokens, ParseError},
+    parser::{FromTokens, ParseError, ParseState},
 };
 
 use super::AstNode;
@@ -70,7 +69,7 @@ where
 }
 
 impl FromTokens<Token> for Expression<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let mut expr = match tokens.peek() {
             Some(Token::LParen { .. }) => {
                 let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
@@ -181,7 +180,7 @@ impl FromTokens<Token> for Expression<()> {
 impl Expression<()> {
     fn parse_call(
         expr: Expression<()>,
-        tokens: &mut Tokens<Token>,
+        tokens: &mut ParseState<Token>,
     ) -> Result<Postfix<()>, ParseError> {
         let matcher = Comb::LPAREN >> (Comb::EXPR % Comb::COMMA) >> Comb::RPAREN;
 
@@ -206,7 +205,7 @@ impl Expression<()> {
 
     fn parse_index(
         expr: Expression<()>,
-        tokens: &mut Tokens<Token>,
+        tokens: &mut ParseState<Token>,
     ) -> Result<Postfix<()>, ParseError> {
         let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::RBRACKET;
 
@@ -225,7 +224,7 @@ impl Expression<()> {
 
     fn parse_property_access(
         expr: Expression<()>,
-        tokens: &mut Tokens<Token>,
+        tokens: &mut ParseState<Token>,
     ) -> Result<Postfix<()>, ParseError> {
         let matcher = Comb::DOT >> Comb::ID;
 
@@ -244,7 +243,7 @@ impl Expression<()> {
 
     fn parse_binary(
         lhs: Expression<()>,
-        tokens: &mut Tokens<Token>,
+        tokens: &mut ParseState<Token>,
     ) -> Result<Expression<()>, ParseError> {
         let Some(operation) = tokens.next() else {
             unreachable!()

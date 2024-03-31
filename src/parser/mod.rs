@@ -2,8 +2,11 @@ use std::{error::Error, fmt::Display};
 
 pub mod ast;
 pub mod combinators;
+mod parse_state;
 
-use crate::lexer::{Span, Token, Tokens};
+pub use self::parse_state::*;
+
+use crate::lexer::{Span, Token};
 
 use self::{
     ast::{AstNode, Statement},
@@ -52,10 +55,10 @@ impl Display for ParseError {
 impl Error for ParseError {}
 
 pub trait FromTokens<T> {
-    fn parse(tokens: &mut Tokens<T>) -> Result<AstNode, ParseError>;
+    fn parse(tokens: &mut ParseState<T>) -> Result<AstNode, ParseError>;
 }
 
-pub fn parse(tokens: &mut Tokens<Token>) -> Result<Vec<Statement<()>>, Box<dyn Error>> {
+pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<Statement<()>>, Box<dyn Error>> {
     let mut statements = vec![];
 
     let matcher = Comb::STATEMENT;

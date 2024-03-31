@@ -1,6 +1,6 @@
 use crate::{
-    lexer::{Token, Tokens},
-    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError},
+    lexer::Token,
+    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
 
 use super::{Expression, Num};
@@ -31,7 +31,7 @@ where
 }
 
 impl FromTokens<Token> for Array<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let start = tokens.get_index();
         let matcher = Comb::LBRACKET >> (Comb::EXPR % Comb::COMMA) >> Comb::RBRACKET;
 

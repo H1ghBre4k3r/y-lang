@@ -1,8 +1,8 @@
 use crate::lexer::Token;
-use crate::lexer::Tokens;
 use crate::parser::combinators::Comb;
 use crate::parser::FromTokens;
 use crate::parser::ParseError;
+use crate::parser::ParseState;
 
 use super::AstNode;
 
@@ -25,7 +25,7 @@ impl From<&TypeName> for TypeName {
 }
 
 impl FromTokens<Token> for TypeName {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         if let Ok(type_name) = Self::parse_literal(tokens) {
             return Ok(type_name);
         };
@@ -54,7 +54,7 @@ impl FromTokens<Token> for TypeName {
 }
 
 impl TypeName {
-    fn parse_literal(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_literal(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = !Comb::ID;
@@ -74,7 +74,7 @@ impl TypeName {
         Ok(TypeName::Literal(type_name.name.clone()).into())
     }
 
-    fn parse_tuple(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_tuple(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::LPAREN >> (Comb::TYPE_NAME % Comb::COMMA) >> Comb::RPAREN;
@@ -96,7 +96,7 @@ impl TypeName {
         Ok(TypeName::Tuple(elems).into())
     }
 
-    fn parse_fn(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_fn(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let AstNode::TypeName(TypeName::Tuple(params)) = Self::parse_tuple(tokens)? else {
@@ -121,7 +121,7 @@ impl TypeName {
         .into())
     }
 
-    fn parse_array(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_array(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::LBRACKET >> Comb::TYPE_NAME >> Comb::RBRACKET;
@@ -138,7 +138,7 @@ impl TypeName {
         Ok(TypeName::Array(Box::new(type_name.clone())).into())
     }
 
-    fn parse_reference(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_reference(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::AMPERSAND >> Comb::TYPE_NAME;

@@ -1,6 +1,6 @@
 use crate::{
-    lexer::{GetPosition, Token, Tokens},
-    parser::{ast::AstNode, FromTokens, ParseError},
+    lexer::{GetPosition, Token},
+    parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,7 +10,7 @@ pub struct Id<T> {
 }
 
 impl FromTokens<Token> for Id<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, crate::parser::ParseError>
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, crate::parser::ParseError>
     where
         Self: Sized,
     {

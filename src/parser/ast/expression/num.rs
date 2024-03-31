@@ -1,6 +1,6 @@
 use crate::{
-    lexer::{GetPosition, Token, Tokens},
-    parser::{ast::AstNode, FromTokens, ParseError},
+    lexer::{GetPosition, Token},
+    parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -12,7 +12,7 @@ pub enum Num<T> {
 impl<T> Eq for Num<T> where T: Eq {}
 
 impl FromTokens<Token> for Num<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {

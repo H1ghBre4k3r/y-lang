@@ -14,8 +14,8 @@ pub use self::while_loop::*;
 
 use crate::lexer::GetPosition;
 use crate::{
-    lexer::{Token, Tokens},
-    parser::{combinators::Comb, FromTokens, ParseError},
+    lexer::Token,
+    parser::{combinators::Comb, FromTokens, ParseError, ParseState},
 };
 
 use super::{AstNode, Expression, Function, If};
@@ -37,7 +37,7 @@ pub enum Statement<T> {
 }
 
 impl FromTokens<Token> for Statement<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
@@ -141,7 +141,7 @@ impl FromTokens<Token> for Statement<()> {
 }
 
 impl Statement<()> {
-    fn parse_assignment(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_assignment(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::ASSIGNMENT >> Comb::SEMI;
@@ -157,7 +157,7 @@ impl Statement<()> {
         Ok(Statement::Assignment(assignment.clone()).into())
     }
 
-    fn parse_expression(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse_expression(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
         let matcher = Comb::EXPR;
