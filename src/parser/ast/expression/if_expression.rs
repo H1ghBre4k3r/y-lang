@@ -19,7 +19,7 @@ pub struct If<T> {
 
 impl FromTokens<Token> for If<()> {
     fn parse(
-        tokens: &mut crate::lexer::Tokens<Token>,
+        tokens: &mut crate::parser::ParseState<Token>,
     ) -> Result<crate::parser::ast::AstNode, crate::parser::ParseError> {
         let matcher = Comb::IF_KEYWORD
             >> Comb::LPAREN

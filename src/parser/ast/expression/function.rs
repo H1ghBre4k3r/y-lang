@@ -1,9 +1,9 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::Token,
     parser::{
         ast::{AstNode, Statement, TypeName},
         combinators::Comb,
-        FromTokens, ParseError,
+        FromTokens, ParseError, ParseState,
     },
 };
 
@@ -19,7 +19,7 @@ pub struct Function<T> {
 }
 
 impl FromTokens<Token> for Function<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::FN_KEYWORD
             >> !Comb::ID
             >> Comb::LPAREN
@@ -86,7 +86,7 @@ pub struct FunctionParameter<T> {
 }
 
 impl FromTokens<Token> for FunctionParameter<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME;
         let result = matcher.parse(tokens)?;
 

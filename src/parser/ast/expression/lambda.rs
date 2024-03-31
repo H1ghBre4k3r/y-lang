@@ -1,6 +1,6 @@
 use crate::{
-    lexer::{Token, Tokens},
-    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError},
+    lexer::Token,
+    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
 
 use super::{Expression, Id};
@@ -13,7 +13,7 @@ pub struct Lambda<T> {
 }
 
 impl FromTokens<Token> for Lambda<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::BACKSLASH
             >> Comb::LPAREN
             // parameter list (optional)
@@ -59,7 +59,7 @@ pub struct LambdaParameter<T> {
 }
 
 impl FromTokens<Token> for LambdaParameter<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::ID;
         let result = matcher.parse(tokens)?;
 

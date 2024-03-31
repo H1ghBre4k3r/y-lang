@@ -1,9 +1,9 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::Token,
     parser::{
         ast::{AstNode, Statement},
         combinators::Comb,
-        FromTokens, ParseError,
+        FromTokens, ParseError, ParseState,
     },
 };
 
@@ -14,7 +14,7 @@ pub struct Block<T> {
 }
 
 impl FromTokens<Token> for Block<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError> {
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let matcher = Comb::LBRACE >> (Comb::STATEMENT ^ ()) >> Comb::RBRACE;
 
         let mut result = matcher.parse(tokens)?.into_iter();

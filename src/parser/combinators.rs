@@ -1,6 +1,6 @@
 use std::ops::{BitOr, BitXor, Not, Rem, Shr};
 
-use crate::lexer::{GetPosition, Terminal, Token, Tokens};
+use crate::lexer::{GetPosition, Terminal, Token};
 
 use super::{
     ast::{
@@ -9,7 +9,7 @@ use super::{
         StructDeclaration, StructFieldDeclaration, StructFieldInitialisation, StructInitialisation,
         TypeName, WhileLoop,
     },
-    FromTokens, ParseError,
+    FromTokens, ParseError, ParseState,
 };
 
 #[derive(Clone)]
@@ -17,7 +17,7 @@ pub enum Comb<'a, Tok, Term, Node> {
     /// Combinator for parsing a non terminal symbol. Therefore, we utilize the parsing function of
     /// this respective non-terminal.
     Node {
-        parser: &'a dyn Fn(&mut Tokens<Tok>) -> Result<Node, ParseError>,
+        parser: &'a dyn Fn(&mut ParseState<Tok>) -> Result<Node, ParseError>,
     },
     /// Combinator for matching a terminal.
     Terminal { token: Term },
@@ -249,7 +249,7 @@ where
     Tok: Clone + std::fmt::Debug + GetPosition,
     Term: PartialEq<Tok> + std::fmt::Debug,
 {
-    pub fn parse(&self, tokens: &mut Tokens<Tok>) -> Result<Vec<Node>, ParseError> {
+    pub fn parse(&self, tokens: &mut ParseState<Tok>) -> Result<Vec<Node>, ParseError> {
         let mut matched = vec![];
         match self {
             Comb::Terminal { token } => {

@@ -1,11 +1,14 @@
+use crate::parser::ParseError;
+
 /// Struct for iterating over a vector of tokens.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Tokens<T> {
+pub struct ParseState<T> {
     tokens: Vec<T>,
     index: usize,
+    errors: Vec<ParseError>,
 }
 
-impl<T> Iterator for Tokens<T>
+impl<T> Iterator for ParseState<T>
 where
     T: Clone,
 {
@@ -23,17 +26,21 @@ where
     }
 }
 
-impl<T> Tokens<T>
+impl<T> ParseState<T>
 where
     T: Clone,
 {
     pub fn new(tokens: Vec<T>) -> Self {
-        Self { tokens, index: 0 }
+        Self {
+            tokens,
+            index: 0,
+            errors: vec![],
+        }
     }
 
     /// Peek at the next item.
     pub fn peek(&mut self) -> Option<T> {
-        return self.tokens.get(self.index).cloned();
+        self.tokens.get(self.index).cloned()
     }
 
     /// Get the current index.
@@ -45,9 +52,13 @@ where
     pub fn set_index(&mut self, index: usize) {
         self.index = index;
     }
+
+    pub fn add_error(&mut self, error: ParseError) {
+        self.errors.push(error);
+    }
 }
 
-impl<T> From<Vec<T>> for Tokens<T>
+impl<T> From<Vec<T>> for ParseState<T>
 where
     T: Clone,
 {

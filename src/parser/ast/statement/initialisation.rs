@@ -1,9 +1,9 @@
 use crate::{
-    lexer::{Token, Tokens},
+    lexer::Token,
     parser::{
         ast::{AstNode, Expression, Id, TypeName},
         combinators::Comb,
-        FromTokens, ParseError,
+        FromTokens, ParseError, ParseState,
     },
 };
 
@@ -17,7 +17,7 @@ pub struct Initialisation<T> {
 }
 
 impl FromTokens<Token> for Initialisation<()> {
-    fn parse(tokens: &mut Tokens<Token>) -> Result<AstNode, ParseError>
+    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError>
     where
         Self: Sized,
     {
