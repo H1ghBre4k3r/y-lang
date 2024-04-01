@@ -1,3 +1,4 @@
+use colored::Colorize;
 use std::{error::Error, fmt::Display};
 
 pub mod ast;
@@ -41,7 +42,10 @@ impl Display for ParseError {
 
             let left_padding_fill = vec![' '; col.start - 1].iter().collect::<String>();
 
-            let error_len = vec!['^'; col.end - col.start].iter().collect::<String>();
+            let error_len = vec!['^'; col.end - col.start]
+                .iter()
+                .collect::<String>()
+                .red();
 
             f.write_fmt(format_args!(
                 "{left_margin_fill} |{prev_line} \n{line} |{line_str} \n{left_margin_fill} |{left_padding_fill}{error_len}   {}",
