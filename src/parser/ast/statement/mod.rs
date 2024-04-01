@@ -42,7 +42,10 @@ impl FromTokens<Token> for Statement<()> {
         Self: Sized,
     {
         let Some(next) = tokens.peek() else {
-            todo!();
+            return Err(ParseError {
+                message: "Unexpected EOF!".into(),
+                position: tokens.last_token().map(|token| token.position()),
+            });
         };
 
         match next {
@@ -66,7 +69,10 @@ impl FromTokens<Token> for Statement<()> {
             }
             Token::WhileKeyword { .. } => {
                 let matcher = Comb::WHILE_LOOP >> !Comb::SEMI;
-                let result = matcher.parse(tokens)?;
+                let result = matcher.parse(tokens).map_err(|e| {
+                    tokens.add_error(e.clone());
+                    e
+                })?;
 
                 let [AstNode::WhileLoop(while_loop_statement)] = result.as_slice() else {
                     unreachable!()
@@ -115,7 +121,10 @@ impl FromTokens<Token> for Statement<()> {
             }
             Token::StructKeyword { .. } => {
                 let matcher = Comb::STRUCT_DECLARATION >> Comb::SEMI;
-                let result = matcher.parse(tokens)?;
+                let result = matcher.parse(tokens).map_err(|e| {
+                    tokens.add_error(e.clone());
+                    e
+                })?;
 
                 let Some(AstNode::StructDeclaration(declaration)) = result.first().cloned() else {
                     unreachable!()
@@ -144,7 +153,7 @@ impl Statement<()> {
     fn parse_assignment(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let index = tokens.get_index();
 
-        let matcher = Comb::ASSIGNMENT >> Comb::SEMI;
+        let matcher = Comb::ASSIGNMENT;
         let result = matcher.parse(tokens).map_err(|e| {
             tokens.set_index(index);
             e
@@ -153,6 +162,15 @@ impl Statement<()> {
         let [AstNode::Assignment(assignment)] = result.as_slice() else {
             unreachable!()
         };
+
+        let index = tokens.get_index();
+        let matcher = Comb::SEMI;
+
+        matcher.parse(tokens).map_err(|e| {
+            tokens.set_index(index);
+            tokens.add_error(e.clone());
+            e
+        })?;
 
         Ok(Statement::Assignment(assignment.clone()).into())
     }

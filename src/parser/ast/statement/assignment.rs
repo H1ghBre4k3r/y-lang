@@ -16,7 +16,7 @@ pub struct Assignment<T> {
 
 impl FromTokens<Token> for Assignment<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let matcher = Comb::ID >> Comb::ASSIGN >> Comb::EXPR;
+        let matcher = Comb::ID >> Comb::ASSIGN;
 
         let result = matcher.parse(tokens)?;
 
@@ -24,7 +24,14 @@ impl FromTokens<Token> for Assignment<()> {
             unreachable!()
         };
 
-        let Some(AstNode::Expression(value)) = result.get(1) else {
+        let matcher = Comb::EXPR;
+
+        let result = matcher.parse(tokens).map_err(|e| {
+            tokens.add_error(e.clone());
+            e
+        })?;
+
+        let Some(AstNode::Expression(value)) = result.first() else {
             unreachable!()
         };
 

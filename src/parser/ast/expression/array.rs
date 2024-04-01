@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{GetPosition, Token},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
 
@@ -32,6 +32,7 @@ where
 
 impl FromTokens<Token> for Array<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.peek().map(|token| token.position());
         let start = tokens.get_index();
         let matcher = Comb::LBRACKET >> (Comb::EXPR % Comb::COMMA) >> Comb::RBRACKET;
 
@@ -68,7 +69,7 @@ impl FromTokens<Token> for Array<()> {
 
         Err(ParseError {
             message: "failed to parse array initialization".into(),
-            position: None,
+            position,
         })
     }
 }

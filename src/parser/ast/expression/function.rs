@@ -30,9 +30,7 @@ impl FromTokens<Token> for Function<()> {
             >> Comb::COLON
             >> Comb::TYPE_NAME
             // body of the function
-            >> Comb::LBRACE
-            >> (Comb::STATEMENT ^ ())
-            >> Comb::RBRACE;
+            >> Comb::BLOCK;
 
         let mut result = matcher.parse(tokens)?.into_iter().peekable();
 
@@ -53,19 +51,15 @@ impl FromTokens<Token> for Function<()> {
             unreachable!();
         };
 
-        let mut statements = vec![];
-
-        while let Some(AstNode::Statement(param)) =
-            result.next_if(|item| matches!(item, AstNode::Statement(_)))
-        {
-            statements.push(param);
-        }
+        let Some(AstNode::Block(block)) = result.next() else {
+            unreachable!();
+        };
 
         Ok(Function {
             id,
             parameters,
             return_type,
-            statements,
+            statements: block.statements,
             info: (),
         }
         .into())
