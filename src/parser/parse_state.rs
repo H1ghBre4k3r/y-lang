@@ -5,12 +5,12 @@ use crate::parser::ParseError;
 pub struct ParseState<T> {
     tokens: Vec<T>,
     index: usize,
-    errors: Vec<ParseError>,
+    pub errors: Vec<ParseError>,
 }
 
 impl<T> Iterator for ParseState<T>
 where
-    T: Clone,
+    T: Clone + core::fmt::Debug,
 {
     type Item = T;
 
@@ -55,6 +55,10 @@ where
 
     pub fn add_error(&mut self, error: ParseError) {
         self.errors.push(error);
+    }
+
+    pub fn last_token(&self) -> Option<T> {
+        self.tokens.last().cloned()
     }
 }
 

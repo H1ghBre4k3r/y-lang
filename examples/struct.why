@@ -1,0 +1,7 @@
+fn foo(): void {
+    struct FooStruct {
+        id: i64;
+        amount: f64;
+    };
+}
+

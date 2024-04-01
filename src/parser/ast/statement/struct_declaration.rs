@@ -19,8 +19,7 @@ impl FromTokens<Token> for StructDeclaration<()> {
         let matcher = Comb::STRUCT_KEYWORD
             >> Comb::ID
             >> Comb::LBRACE
-            >> (Comb::STRUCT_FIELD_DECLARATION ^ ())
-            >> Comb::RBRACE;
+            >> (Comb::STRUCT_FIELD_DECLARATION ^ Comb::RBRACE);
 
         let mut result = matcher.parse(tokens)?.into_iter();
 

@@ -1,3 +1,4 @@
+use crate::lexer::GetPosition;
 use crate::lexer::Token;
 use crate::parser::combinators::Comb;
 use crate::parser::FromTokens;
@@ -26,6 +27,7 @@ impl From<&TypeName> for TypeName {
 
 impl FromTokens<Token> for TypeName {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.peek().map(|token| token.position());
         if let Ok(type_name) = Self::parse_literal(tokens) {
             return Ok(type_name);
         };
@@ -48,7 +50,7 @@ impl FromTokens<Token> for TypeName {
 
         Err(ParseError {
             message: "could not parse type name".into(),
-            position: None,
+            position,
         })
     }
 }

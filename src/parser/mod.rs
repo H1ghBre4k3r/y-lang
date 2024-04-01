@@ -33,6 +33,7 @@ impl Display for ParseError {
         if let Some(pos) = &self.position {
             let Span { line, col, source } = pos;
             let lines = source.lines().collect::<Vec<_>>();
+            let prev_line = if *line > 2 { lines[*line - 2] } else { "" };
             let line_str = lines[*line - 1];
 
             let left_margin = format!("{line}").len();
@@ -43,7 +44,7 @@ impl Display for ParseError {
             let error_len = vec!['^'; col.end - col.start].iter().collect::<String>();
 
             f.write_fmt(format_args!(
-                "{left_margin_fill} |\n{line} |{line_str} \n{left_margin_fill} |{left_padding_fill}{error_len}   {}",
+                "{left_margin_fill} |{prev_line} \n{line} |{line_str} \n{left_margin_fill} |{left_padding_fill}{error_len}   {}",
                 self.message
             ))
         } else {
@@ -63,11 +64,24 @@ pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<Statement<()>>, Box<d
 
     let matcher = Comb::STATEMENT;
     while tokens.peek().is_some() {
-        let result = matcher.parse(tokens)?;
-        let [AstNode::Statement(statement)] = result.as_slice() else {
-            unreachable!()
-        };
-        statements.push(statement.clone());
+        match matcher.parse(tokens) {
+            Ok(result) => {
+                let [AstNode::Statement(statement)] = result.as_slice() else {
+                    unreachable!()
+                };
+                statements.push(statement.clone());
+            }
+            Err(e) => {
+                if let Some(e) = tokens.errors.first() {
+                    return Err(Box::new(e.clone()));
+                }
+                return Err(Box::new(e.clone()));
+            }
+        }
+    }
+
+    if let Some(e) = tokens.errors.first() {
+        return Err(Box::new(e.clone()));
     }
 
     Ok(statements)

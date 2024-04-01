@@ -21,13 +21,7 @@ impl FromTokens<Token> for If<()> {
     fn parse(
         tokens: &mut crate::parser::ParseState<Token>,
     ) -> Result<crate::parser::ast::AstNode, crate::parser::ParseError> {
-        let matcher = Comb::IF_KEYWORD
-            >> Comb::LPAREN
-            >> Comb::EXPR
-            >> Comb::RPAREN
-            >> Comb::LBRACE
-            >> (Comb::STATEMENT ^ ())
-            >> Comb::RBRACE;
+        let matcher = Comb::IF_KEYWORD >> Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN >> Comb::BLOCK;
 
         let mut result = matcher.parse(tokens)?.into_iter().peekable();
 
@@ -35,30 +29,23 @@ impl FromTokens<Token> for If<()> {
             unreachable!()
         };
 
-        let mut statements = vec![];
+        let Some(AstNode::Block(if_block)) = result.next() else {
+            unreachable!()
+        };
 
-        while let Some(AstNode::Statement(statement)) =
-            result.next_if(|item| matches!(item, AstNode::Statement(_)))
-        {
-            statements.push(statement);
-        }
-
-        let matcher =
-            !(Comb::ELSE_KEYWORD >> Comb::LBRACE >> (Comb::STATEMENT ^ ()) >> Comb::RBRACE);
+        let matcher = !(Comb::ELSE_KEYWORD >> Comb::BLOCK);
 
         let mut result = matcher.parse(tokens)?.into_iter().peekable();
 
-        let mut else_statements = vec![];
-
-        while let Some(AstNode::Statement(statement)) =
-            result.next_if(|item| matches!(item, AstNode::Statement(_)))
-        {
-            else_statements.push(statement);
-        }
+        let else_statements = match result.next() {
+            Some(AstNode::Block(else_block)) => else_block.statements,
+            None => vec![],
+            _ => unreachable!(),
+        };
 
         Ok(If {
             condition: Box::new(condition),
-            statements,
+            statements: if_block.statements,
             else_statements,
             info: (),
         }

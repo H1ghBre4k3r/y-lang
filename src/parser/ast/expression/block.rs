@@ -15,7 +15,7 @@ pub struct Block<T> {
 
 impl FromTokens<Token> for Block<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let matcher = Comb::LBRACE >> (Comb::STATEMENT ^ ()) >> Comb::RBRACE;
+        let matcher = Comb::LBRACE >> (Comb::STATEMENT ^ Comb::RBRACE);
 
         let mut result = matcher.parse(tokens)?.into_iter();
 

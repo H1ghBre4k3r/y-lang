@@ -46,6 +46,11 @@ pub enum Comb<'a, Tok, Term, Node> {
         inner: Box<Comb<'a, Tok, Term, Node>>,
         amount: Option<usize>,
     },
+    /// Combinator for parsing an repititions of another combinator until "closing" matches.
+    RepeatUntil {
+        repeated: Box<Comb<'a, Tok, Term, Node>>,
+        closing: Box<Comb<'a, Tok, Term, Node>>,
+    },
 }
 
 impl<'a, Tok, Term, Node> PartialEq for Comb<'a, Tok, Term, Node>
@@ -122,6 +127,11 @@ where
                 .debug_struct("Repitition")
                 .field("inner", inner)
                 .field("amount", amount)
+                .finish(),
+            Self::RepeatUntil { repeated, closing } => f
+                .debug_struct("RepeatUntil")
+                .field("repeated", repeated)
+                .field("closing", closing)
                 .finish(),
         }
     }
@@ -248,6 +258,7 @@ impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>
 where
     Tok: Clone + std::fmt::Debug + GetPosition,
     Term: PartialEq<Tok> + std::fmt::Debug,
+    Node: std::fmt::Debug,
 {
     pub fn parse(&self, tokens: &mut ParseState<Tok>) -> Result<Vec<Node>, ParseError> {
         let mut matched = vec![];
@@ -255,8 +266,8 @@ where
             Comb::Terminal { token } => {
                 let Some(t) = tokens.next() else {
                     return Err(ParseError {
-                        message: "Reached EOF!".into(),
-                        position: None,
+                        message: "Unexpected EOF!".into(),
+                        position: tokens.last_token().map(|token| token.position()),
                     });
                 };
 
@@ -307,6 +318,21 @@ where
                         matched.append(&mut result);
                     }
                 } else {
+                    // let mut current_index = tokens.get_index();
+                    // loop {
+                    //     match inner.parse(tokens) {
+                    //         Ok(mut result) => {
+                    //             matched.append(&mut result);
+                    //             current_index = tokens.get_index();
+                    //         }
+                    //         Err(e) => {
+                    //             tokens.add_error(e);
+                    //             break;
+                    //         }
+                    //     }
+                    // }
+                    // tokens.set_index(current_index);
+
                     // match an arbitrary amount of tokens
                     let mut current_index = tokens.get_index();
                     while let Ok(mut result) = inner.parse(tokens) {
@@ -315,6 +341,21 @@ where
                     }
                     tokens.set_index(current_index);
                 }
+            }
+            Comb::RepeatUntil { repeated, closing } => {
+                let mut current_index = tokens.get_index();
+                // TODO: this should check for matches of `closing` before.
+                while let Ok(mut result) = repeated.parse(tokens) {
+                    matched.append(&mut result);
+                    current_index = tokens.get_index();
+                }
+                tokens.set_index(current_index);
+
+                let mut result = closing.parse(tokens).map_err(|e| {
+                    tokens.add_error(e.clone());
+                    e
+                })?;
+                matched.append(&mut result);
             }
         }
 
@@ -372,6 +413,17 @@ impl<'a, Tok, Term, Node> BitXor<usize> for Comb<'a, Tok, Term, Node> {
         Comb::Repitition {
             inner: Box::new(self),
             amount: Some(rhs),
+        }
+    }
+}
+
+impl<'a, Tok, Term, Node> BitXor<Comb<'a, Tok, Term, Node>> for Comb<'a, Tok, Term, Node> {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Comb<'a, Tok, Term, Node>) -> Self::Output {
+        Comb::RepeatUntil {
+            repeated: Box::new(self),
+            closing: Box::new(rhs),
         }
     }
 }
