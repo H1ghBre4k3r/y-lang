@@ -72,7 +72,7 @@ where
         match self {
             Expression::Id(Id { position, .. }) => position.clone(),
             Expression::Num(num) => num.position(),
-            Expression::Function(_) => todo!(),
+            Expression::Function(Function { position, .. }) => position.clone(),
             Expression::Lambda(_) => todo!(),
             Expression::If(_) => todo!(),
             Expression::Block(_) => todo!(),
