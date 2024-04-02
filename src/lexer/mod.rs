@@ -101,11 +101,7 @@ mod tests {
         assert_eq!(
             Ok(vec![Token::Id {
                 value: "letter".into(),
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into()
-                }
+                position: Span::default(),
             }]),
             lexer.lex()
         )
@@ -118,11 +114,7 @@ mod tests {
         assert_eq!(
             Ok(vec![Token::Integer {
                 value: 1337,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into()
-                }
+                position: Span::default(),
             }]),
             lexer.lex()
         )
@@ -135,39 +127,19 @@ mod tests {
         assert_eq!(
             Ok(vec![
                 Token::FnKeyword {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::LParen {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::RParen {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::LBrace {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::RBrace {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 }
             ]),
             lexer.lex()
@@ -181,41 +153,21 @@ mod tests {
         assert_eq!(
             Ok(vec![
                 Token::Let {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::Id {
                     value: "foo".into(),
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::Assign {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::Integer {
                     value: 42,
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 },
                 Token::Semicolon {
-                    position: Span {
-                        line: 0,
-                        col: 0..0,
-                        source: "".into()
-                    }
+                    position: Span::default(),
                 }
             ]),
             lexer.lex()

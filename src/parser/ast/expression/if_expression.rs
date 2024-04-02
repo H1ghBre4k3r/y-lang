@@ -62,7 +62,7 @@ impl From<If<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::ast::{BinaryExpression, Id, Num},
     };
 
@@ -76,7 +76,8 @@ mod tests {
             Ok(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![],
                 else_statements: vec![],
@@ -98,7 +99,8 @@ mod tests {
             Ok(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![],
                 else_statements: vec![],
@@ -120,7 +122,8 @@ mod tests {
             Ok(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
@@ -148,7 +151,8 @@ mod tests {
             Ok(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {

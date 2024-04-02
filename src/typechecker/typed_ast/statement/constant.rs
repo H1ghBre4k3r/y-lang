@@ -23,7 +23,7 @@ impl TypeCheckable for Constant<()> {
 
         let context = ctx.clone();
 
-        let name = id.name;
+        let Id { name, position, .. } = id;
 
         let mut value = value.check(ctx)?;
 
@@ -66,7 +66,11 @@ impl TypeCheckable for Constant<()> {
         };
 
         Ok(Constant {
-            id: Id { name, info },
+            id: Id {
+                name,
+                info,
+                position,
+            },
             type_name,
             value,
             info: TypeInformation {
@@ -100,6 +104,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
+        lexer::Span,
         parser::ast::{Constant, Expression, Id, Num, TypeName},
         typechecker::{
             context::Context,
@@ -117,6 +122,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             type_name: TypeName::Literal("i64".into()),
             value: Expression::Num(Num::Integer(42, ())),
@@ -143,6 +149,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             type_name: TypeName::Literal("".into()),
             value: Expression::Num(Num::Integer(42, ())),
@@ -168,6 +175,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             type_name: TypeName::Literal("".into()),
             value: Expression::Num(Num::Integer(42, ())),

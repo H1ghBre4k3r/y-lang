@@ -42,7 +42,7 @@ impl From<Block<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::ast::{Expression, Id, Initialisation, Num},
     };
 
@@ -77,7 +77,8 @@ mod tests {
             Ok(Block {
                 statements: vec![Statement::YieldingExpression(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }))],
                 info: ()
             }
@@ -106,7 +107,8 @@ mod tests {
                     Statement::Initialization(Initialisation {
                         id: Id {
                             name: "a".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         mutable: false,
                         value: Expression::Num(Num::Integer(42, ())),
@@ -115,7 +117,8 @@ mod tests {
                     },),
                     Statement::YieldingExpression(Expression::Id(Id {
                         name: "a".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }))
                 ],
                 info: ()

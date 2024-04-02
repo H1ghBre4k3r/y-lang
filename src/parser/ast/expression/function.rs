@@ -110,7 +110,7 @@ impl From<FunctionParameter<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::ast::{BinaryExpression, Expression},
     };
 
@@ -153,7 +153,8 @@ mod tests {
                 parameters: vec![FunctionParameter {
                     name: Id {
                         name: "x".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     type_name: TypeName::Literal("i32".into()),
                     info: ()
@@ -183,7 +184,8 @@ mod tests {
                     FunctionParameter {
                         name: Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -191,7 +193,8 @@ mod tests {
                     FunctionParameter {
                         name: Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -222,7 +225,8 @@ mod tests {
                     FunctionParameter {
                         name: Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -230,7 +234,8 @@ mod tests {
                     FunctionParameter {
                         name: Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -241,11 +246,13 @@ mod tests {
                     BinaryExpression::Addition {
                         left: Expression::Id(Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         right: Expression::Id(Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         info: (),
                     }
@@ -270,13 +277,15 @@ mod tests {
             Ok(Function {
                 id: Some(Id {
                     name: "main".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }),
                 parameters: vec![
                     FunctionParameter {
                         name: Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -284,7 +293,8 @@ mod tests {
                     FunctionParameter {
                         name: Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -295,11 +305,13 @@ mod tests {
                     BinaryExpression::Addition {
                         left: Expression::Id(Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         right: Expression::Id(Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         info: (),
                     }

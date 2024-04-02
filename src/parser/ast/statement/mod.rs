@@ -228,7 +228,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::ast::{BinaryExpression, Id, Num, TypeName},
     };
 
@@ -247,7 +247,8 @@ mod tests {
             Ok(Statement::Constant(Constant {
                 id: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 type_name: TypeName::Literal("i32".into()),
                 value: Expression::Num(Num::Integer(42, ())),
@@ -283,7 +284,8 @@ mod tests {
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
@@ -319,7 +321,8 @@ mod tests {
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
@@ -355,7 +358,8 @@ mod tests {
             Ok(Statement::If(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
@@ -388,7 +392,8 @@ mod tests {
             Ok(Statement::Assignment(Assignment {
                 id: Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 value: Expression::Num(Num::Integer(42, ())),
                 info: ()

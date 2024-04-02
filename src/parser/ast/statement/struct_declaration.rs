@@ -86,7 +86,7 @@ impl From<StructFieldDeclaration<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::{
             ast::{Id, StructFieldDeclaration, TypeName},
             FromTokens,
@@ -108,7 +108,8 @@ mod tests {
             Ok(StructDeclaration {
                 id: Id {
                     name: "Foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 fields: vec![],
                 info: ()
@@ -135,12 +136,14 @@ mod tests {
             Ok(StructDeclaration {
                 id: Id {
                     name: "Foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 fields: vec![StructFieldDeclaration {
                     name: Id {
                         name: "foo".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     type_name: TypeName::Literal("u32".into()),
                     info: ()
@@ -170,13 +173,15 @@ mod tests {
             Ok(StructDeclaration {
                 id: Id {
                     name: "Foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 fields: vec![
                     StructFieldDeclaration {
                         name: Id {
                             name: "foo".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("u32".into()),
                         info: ()
@@ -184,7 +189,8 @@ mod tests {
                     StructFieldDeclaration {
                         name: Id {
                             name: "baz".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Array(Box::new(TypeName::Literal("f64".into()))),
                         info: ()

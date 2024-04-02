@@ -56,11 +56,7 @@ mod tests {
     fn test_parse() {
         let tokens = vec![Token::Integer {
             value: 42,
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }];
         assert_eq!(
             Num::parse(&mut tokens.into()),
@@ -72,11 +68,7 @@ mod tests {
     fn test_error_on_non_num() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: Span {
-                line: 1,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }];
         assert!(Num::parse(&mut tokens.into()).is_err());
     }

@@ -56,7 +56,10 @@ impl From<Constant<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::Lexer, parser::ast::Num};
+    use crate::{
+        lexer::{Lexer, Span},
+        parser::ast::Num,
+    };
 
     use super::*;
 
@@ -73,7 +76,8 @@ mod tests {
             Ok(Constant {
                 id: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 type_name: TypeName::Literal("i32".into()),
                 value: Expression::Num(Num::Integer(42, ())),

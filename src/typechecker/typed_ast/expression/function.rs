@@ -94,9 +94,10 @@ impl TypeCheckable for Function<()> {
             context: ctx.clone(),
         };
 
-        let id = id.map(|Id { name, .. }| Id {
+        let id = id.map(|Id { name, position, .. }| Id {
             name,
             info: info.clone(),
+            position: position.clone(),
         });
 
         let func = Function {
@@ -151,7 +152,7 @@ impl TypeCheckable for FunctionParameter<()> {
             name, type_name, ..
         } = self;
 
-        let name = name.name;
+        let Id { name, position, .. } = name;
 
         let info = TypeInformation {
             type_id: Rc::new(RefCell::new(None)),
@@ -166,8 +167,9 @@ impl TypeCheckable for FunctionParameter<()> {
         };
 
         let id = Id {
-            name,
+            name: name.clone(),
             info: info.clone(),
+            position: position.clone(),
         };
 
         if ctx
@@ -205,6 +207,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
+        lexer::Span,
         parser::ast::{Expression, Function, FunctionParameter, Id, Num, Statement, TypeName},
         typechecker::{
             context::Context,
@@ -222,6 +225,7 @@ mod tests {
             name: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),
@@ -261,11 +265,13 @@ mod tests {
             id: Some(Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             }),
             parameters: vec![FunctionParameter {
                 name: Id {
                     name: "bar".into(),
                     info: (),
+                    position: Span::default(),
                 },
                 type_name: TypeName::Literal("f64".into()),
                 info: (),
@@ -289,7 +295,8 @@ mod tests {
                         return_value: Box::new(Type::Integer)
                     }))),
                     context: Context::default(),
-                }
+                },
+                position: Span::default()
             })
         );
 
@@ -314,11 +321,13 @@ mod tests {
             id: Some(Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             }),
             parameters: vec![FunctionParameter {
                 name: Id {
                     name: "bar".into(),
                     info: (),
+                    position: Span::default(),
                 },
                 type_name: TypeName::Literal("f64".into()),
                 info: (),
@@ -352,6 +361,7 @@ mod tests {
             id: Some(Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             }),
             parameters: vec![],
             statements: vec![Statement::YieldingExpression(Expression::Num(

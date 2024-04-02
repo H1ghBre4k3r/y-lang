@@ -19,7 +19,7 @@ impl TypeCheckable for Declaration<()> {
         } = self;
         let context = ctx.clone();
 
-        let name = name.name;
+        let Id { name, position, .. } = name;
 
         let Ok(type_id) = Type::try_from((type_name.clone(), ctx.borrow())) else {
             todo!()
@@ -33,6 +33,7 @@ impl TypeCheckable for Declaration<()> {
                 type_id: type_id.clone(),
                 context: context.clone(),
             },
+            position,
         };
 
         // TODO: check, if we are actually at top level
@@ -76,6 +77,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
+        lexer::Span,
         parser::ast::{Declaration, Id, TypeName},
         typechecker::{context::Context, types::Type, TypeCheckable},
     };
@@ -88,6 +90,7 @@ mod tests {
             name: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),
@@ -109,6 +112,7 @@ mod tests {
             name: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),
@@ -131,6 +135,7 @@ mod tests {
             name: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),

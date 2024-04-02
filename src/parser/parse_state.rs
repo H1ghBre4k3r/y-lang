@@ -39,7 +39,7 @@ where
     }
 
     /// Peek at the next item.
-    pub fn peek(&mut self) -> Option<T> {
+    pub fn peek(&self) -> Option<T> {
         self.tokens.get(self.index).cloned()
     }
 

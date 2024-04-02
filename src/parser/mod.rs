@@ -7,7 +7,7 @@ mod parse_state;
 
 pub use self::parse_state::*;
 
-use crate::lexer::{Span, Token};
+use crate::lexer::{GetPosition, Span, Token};
 
 use self::{
     ast::{AstNode, Statement},
@@ -25,6 +25,18 @@ impl ParseError {
         ParseError {
             message: format!("hit EOF while parsing {item}"),
             position: None,
+        }
+    }
+}
+
+impl ParseState<Token> {
+    pub fn span(&self) -> Result<Span, ParseError> {
+        match self.peek() {
+            Some(token) => Ok(token.position()),
+            None => Err(ParseError {
+                message: "hit EOF".into(),
+                position: None,
+            }),
         }
     }
 }

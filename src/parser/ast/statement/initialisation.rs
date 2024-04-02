@@ -75,7 +75,10 @@ impl From<Initialisation<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::Lexer, parser::ast::Num};
+    use crate::{
+        lexer::{Lexer, Span},
+        parser::ast::Num,
+    };
 
     use super::*;
 
@@ -92,7 +95,8 @@ mod tests {
             Ok(Initialisation {
                 id: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 mutable: false,
                 type_name: None,
@@ -117,7 +121,8 @@ mod tests {
             Ok(Initialisation {
                 id: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 mutable: false,
                 type_name: Some(TypeName::Literal("i32".into())),
@@ -142,7 +147,8 @@ mod tests {
             Ok(Initialisation {
                 id: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 mutable: true,
                 type_name: None,

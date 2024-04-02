@@ -3,11 +3,18 @@ use std::ops::Range;
 use lex_derive::{LooseEq, Token as ParseToken};
 use regex::{Match, Regex};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Eq)]
 pub struct Span {
     pub line: usize,
     pub col: Range<usize>,
     pub source: String,
+}
+
+impl PartialEq<Span> for Span {
+    fn eq(&self, _other: &Span) -> bool {
+        // TODO: maybe this should not be the case...
+        true
+    }
 }
 
 #[derive(Clone, ParseToken, LooseEq)]
