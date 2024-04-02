@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Statement, TypeName},
         combinators::Comb,
@@ -16,10 +16,13 @@ pub struct Function<T> {
     pub return_type: TypeName,
     pub statements: Vec<Statement<T>>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Function<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::FN_KEYWORD
             >> !Comb::ID
             >> Comb::LPAREN
@@ -61,6 +64,7 @@ impl FromTokens<Token> for Function<()> {
             return_type,
             statements: block.statements,
             info: (),
+            position,
         }
         .into())
     }
@@ -77,10 +81,12 @@ pub struct FunctionParameter<T> {
     pub name: Id<T>,
     pub type_name: TypeName,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for FunctionParameter<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
         let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME;
         let result = matcher.parse(tokens)?;
 
@@ -96,6 +102,7 @@ impl FromTokens<Token> for FunctionParameter<()> {
             name: name.clone(),
             type_name: type_name.clone(),
             info: (),
+            position,
         }
         .into())
     }
@@ -131,7 +138,8 @@ mod tests {
                 parameters: vec![],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -157,11 +165,13 @@ mod tests {
                         position: Span::default()
                     },
                     type_name: TypeName::Literal("i32".into()),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -188,7 +198,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     FunctionParameter {
                         name: Id {
@@ -197,12 +208,14 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
                 statements: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -229,7 +242,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     FunctionParameter {
                         name: Id {
@@ -238,7 +252,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
@@ -257,7 +272,8 @@ mod tests {
                         info: (),
                     }
                 )))],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -288,7 +304,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     FunctionParameter {
                         name: Id {
@@ -297,7 +314,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
@@ -316,7 +334,8 @@ mod tests {
                         info: (),
                     }
                 )))],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
