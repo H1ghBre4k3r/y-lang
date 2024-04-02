@@ -80,7 +80,7 @@ mod tests {
                     position: Span::default()
                 },
                 type_name: TypeName::Literal("i32".into()),
-                value: Expression::Num(Num::Integer(42, ())),
+                value: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: ()
             }
             .into()),

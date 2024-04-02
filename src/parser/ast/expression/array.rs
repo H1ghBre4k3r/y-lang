@@ -82,7 +82,7 @@ impl From<Array<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::Lexer;
+    use crate::lexer::{Lexer, Span};
 
     use super::*;
 
@@ -112,8 +112,8 @@ mod tests {
         assert_eq!(
             Ok(Array::Literal {
                 values: vec![
-                    Expression::Num(Num::Integer(42, ())),
-                    Expression::Num(Num::Integer(1337, ())),
+                    Expression::Num(Num::Integer(42, (), Span::default())),
+                    Expression::Num(Num::Integer(1337, (), Span::default())),
                 ],
                 info: ()
             }
@@ -132,8 +132,8 @@ mod tests {
         let result = Array::parse(&mut tokens);
         assert_eq!(
             Ok(Array::Default {
-                initial_value: Box::new(Expression::Num(Num::Integer(42, ()))),
-                length: Num::Integer(5, ()),
+                initial_value: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
+                length: Num::Integer(5, (), Span::default()),
                 info: ()
             }
             .into()),

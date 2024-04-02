@@ -346,7 +346,11 @@ mod tests {
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
-            Ok(AstNode::Expression(Expression::Num(Num::Integer(42, ()))))
+            Ok(AstNode::Expression(Expression::Num(Num::Integer(
+                42,
+                (),
+                Span::default()
+            ))))
         )
     }
 
@@ -443,7 +447,7 @@ mod tests {
         assert_eq!(
             Ok(Expression::Lambda(Lambda {
                 parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(42, ()))),
+                expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
                 info: (),
             })
             .into()),
@@ -521,15 +525,15 @@ mod tests {
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
-                        left: Expression::Num(Num::Integer(3, ())),
-                        right: Expression::Num(Num::Integer(4, ())),
+                        left: Expression::Num(Num::Integer(3, (), Span::default())),
+                        right: Expression::Num(Num::Integer(4, (), Span::default())),
                         info: (),
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
-                        left: Expression::Num(Num::Integer(42, ())),
-                        right: Expression::Num(Num::Integer(1337, ())),
+                        left: Expression::Num(Num::Integer(42, (), Span::default())),
+                        right: Expression::Num(Num::Integer(1337, (), Span::default())),
                         info: (),
                     }
                 )))],
@@ -609,8 +613,8 @@ mod tests {
                     info: (),
                 })))),
                 args: vec![
-                    Expression::Num(Num::Integer(42, ())),
-                    Expression::Num(Num::Integer(1337, ()))
+                    Expression::Num(Num::Integer(42, (), Span::default())),
+                    Expression::Num(Num::Integer(1337, (), Span::default()))
                 ],
                 info: (),
             })
@@ -645,8 +649,8 @@ mod tests {
         assert_eq!(
             Ok(Expression::Array(Array::Literal {
                 values: vec![
-                    Expression::Num(Num::Integer(42, ())),
-                    Expression::Num(Num::Integer(1337, ()))
+                    Expression::Num(Num::Integer(42, (), Span::default())),
+                    Expression::Num(Num::Integer(1337, (), Span::default()))
                 ],
                 info: ()
             })
@@ -671,7 +675,7 @@ mod tests {
                     info: (),
                     position: Span::default()
                 })),
-                index: Box::new(Expression::Num(Num::Integer(42, ()))),
+                index: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
                 info: ()
             })
             .into()),
@@ -702,7 +706,7 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        value: Expression::Num(Num::Integer(42, ())),
+                        value: Expression::Num(Num::Integer(42, (), Span::default())),
                         info: ()
                     },
                     StructFieldInitialisation {
@@ -815,7 +819,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Minus {
-                expr: Box::new(Expression::Num(Num::Integer(42, ())))
+                expr: Box::new(Expression::Num(Num::Integer(42, (), Span::default())))
             })
             .into()),
             result
@@ -856,7 +860,7 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Negation {
-                expr: Box::new(Expression::Num(Num::Integer(42, ())))
+                expr: Box::new(Expression::Num(Num::Integer(42, (), Span::default())))
             })
             .into()),
             result

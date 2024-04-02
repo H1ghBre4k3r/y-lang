@@ -100,7 +100,7 @@ mod tests {
                 },
                 mutable: false,
                 type_name: None,
-                value: Expression::Num(Num::Integer(42, ())),
+                value: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: ()
             }
             .into()),
@@ -126,7 +126,7 @@ mod tests {
                 },
                 mutable: false,
                 type_name: Some(TypeName::Literal("i32".into())),
-                value: Expression::Num(Num::Integer(42, ())),
+                value: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: ()
             }
             .into()),
@@ -152,7 +152,7 @@ mod tests {
                 },
                 mutable: true,
                 type_name: None,
-                value: Expression::Num(Num::Integer(42, ())),
+                value: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: ()
             }
             .into()),

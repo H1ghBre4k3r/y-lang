@@ -277,7 +277,7 @@ mod tests {
                 info: (),
             }],
             statements: vec![Statement::YieldingExpression(Expression::Num(
-                Num::Integer(42, ()),
+                Num::Integer(42, (), Span::default()),
             ))],
             return_type: TypeName::Literal("i64".into()),
             info: (),
@@ -333,7 +333,7 @@ mod tests {
                 info: (),
             }],
             statements: vec![Statement::YieldingExpression(Expression::Num(
-                Num::Integer(42, ()),
+                Num::Integer(42, (), Span::default()),
             ))],
             return_type: TypeName::Literal("i64".into()),
             info: (),
@@ -365,7 +365,7 @@ mod tests {
             }),
             parameters: vec![],
             statements: vec![Statement::YieldingExpression(Expression::Num(
-                Num::Integer(42, ()),
+                Num::Integer(42, (), Span::default()),
             ))],
             return_type: TypeName::Literal("void".into()),
             info: (),

@@ -561,7 +561,10 @@ mod tests {
         .into();
         let result = a.parse(&mut tokens);
 
-        assert_eq!(Ok(vec![AstNode::Num(Num::Integer(42, ()))]), result);
+        assert_eq!(
+            Ok(vec![AstNode::Num(Num::Integer(42, (), Span::default()))]),
+            result
+        );
         assert_eq!(tokens.get_index(), 1);
     }
 
@@ -696,9 +699,9 @@ mod tests {
 
         assert_eq!(
             Ok(vec![
-                AstNode::Num(Num::Integer(42, ())),
-                AstNode::Num(Num::Integer(1337, ())),
-                AstNode::Num(Num::Integer(17, ()))
+                AstNode::Num(Num::Integer(42, (), Span::default())),
+                AstNode::Num(Num::Integer(1337, (), Span::default())),
+                AstNode::Num(Num::Integer(17, (), Span::default()))
             ]),
             result
         );
@@ -733,9 +736,9 @@ mod tests {
 
         assert_eq!(
             Ok(vec![
-                AstNode::Num(Num::Integer(42, ())),
-                AstNode::Num(Num::Integer(1337, ())),
-                AstNode::Num(Num::Integer(17, ()))
+                AstNode::Num(Num::Integer(42, (), Span::default())),
+                AstNode::Num(Num::Integer(1337, (), Span::default())),
+                AstNode::Num(Num::Integer(17, (), Span::default()))
             ]),
             result
         );
@@ -765,7 +768,10 @@ mod tests {
         .into();
         let result = a.parse(&mut tokens);
 
-        assert_eq!(Ok(vec![AstNode::Num(Num::Integer(42, ()))]), result);
+        assert_eq!(
+            Ok(vec![AstNode::Num(Num::Integer(42, (), Span::default()))]),
+            result
+        );
         assert_eq!(tokens.get_index(), 1);
     }
 
@@ -783,7 +789,10 @@ mod tests {
         ]
         .into();
         let result = matcher.parse(&mut tokens);
-        assert_eq!(Ok(vec![AstNode::Num(Num::Integer(42, ()))]), result);
+        assert_eq!(
+            Ok(vec![AstNode::Num(Num::Integer(42, (), Span::default()))]),
+            result
+        );
         assert_eq!(tokens.get_index(), 2);
     }
 
@@ -797,7 +806,10 @@ mod tests {
         .into();
         let result = matcher.parse(&mut tokens);
 
-        assert_eq!(Ok(vec![AstNode::Num(Num::Integer(42, ()))]), result);
+        assert_eq!(
+            Ok(vec![AstNode::Num(Num::Integer(42, (), Span::default()))]),
+            result
+        );
         assert_eq!(tokens.get_index(), 1);
 
         let mut tokens = vec![Token::Id {

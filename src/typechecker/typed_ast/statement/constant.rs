@@ -125,7 +125,7 @@ mod tests {
                 position: Span::default(),
             },
             type_name: TypeName::Literal("i64".into()),
-            value: Expression::Num(Num::Integer(42, ())),
+            value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
         };
 
@@ -152,7 +152,7 @@ mod tests {
                 position: Span::default(),
             },
             type_name: TypeName::Literal("".into()),
-            value: Expression::Num(Num::Integer(42, ())),
+            value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
         };
 
@@ -178,7 +178,7 @@ mod tests {
                 position: Span::default(),
             },
             type_name: TypeName::Literal("".into()),
-            value: Expression::Num(Num::Integer(42, ())),
+            value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
         };
 

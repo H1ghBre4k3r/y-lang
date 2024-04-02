@@ -225,17 +225,20 @@ impl BinaryExpression<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::ast::{Expression, Num};
+    use crate::{
+        lexer::Span,
+        parser::ast::{Expression, Num},
+    };
 
     use super::BinaryExpression;
 
     #[test]
     fn test_simple_balance() {
         let testee = BinaryExpression::Multiplication {
-            left: Expression::Num(Num::Integer(42, ())),
+            left: Expression::Num(Num::Integer(42, (), Span::default())),
             right: Expression::Binary(Box::new(BinaryExpression::Addition {
-                left: Expression::Num(Num::Integer(1, ())),
-                right: Expression::Num(Num::Integer(2, ())),
+                left: Expression::Num(Num::Integer(1, (), Span::default())),
+                right: Expression::Num(Num::Integer(2, (), Span::default())),
                 info: (),
             })),
             info: (),
@@ -243,11 +246,11 @@ mod tests {
 
         let expected = BinaryExpression::Addition {
             left: Expression::Binary(Box::new(BinaryExpression::Multiplication {
-                left: Expression::Num(Num::Integer(42, ())),
-                right: Expression::Num(Num::Integer(1, ())),
+                left: Expression::Num(Num::Integer(42, (), Span::default())),
+                right: Expression::Num(Num::Integer(1, (), Span::default())),
                 info: (),
             })),
-            right: Expression::Num(Num::Integer(2, ())),
+            right: Expression::Num(Num::Integer(2, (), Span::default())),
             info: (),
         };
 
@@ -258,11 +261,11 @@ mod tests {
     fn test_unneeded_balance() {
         let testee = BinaryExpression::Addition {
             left: Expression::Binary(Box::new(BinaryExpression::Multiplication {
-                left: Expression::Num(Num::Integer(42, ())),
-                right: Expression::Num(Num::Integer(1, ())),
+                left: Expression::Num(Num::Integer(42, (), Span::default())),
+                right: Expression::Num(Num::Integer(1, (), Span::default())),
                 info: (),
             })),
-            right: Expression::Num(Num::Integer(2, ())),
+            right: Expression::Num(Num::Integer(2, (), Span::default())),
             info: (),
         };
 
