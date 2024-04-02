@@ -41,6 +41,13 @@ where
             Num::FloatingPoint(_, info, ..) => info.clone(),
         }
     }
+
+    pub fn position(&self) -> Span {
+        match self {
+            Num::Integer(_, _, position) => position.clone(),
+            Num::FloatingPoint(_, _, position) => position.clone(),
+        }
+    }
 }
 
 impl From<Num<()>> for AstNode {

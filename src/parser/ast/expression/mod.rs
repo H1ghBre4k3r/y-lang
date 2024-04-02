@@ -22,6 +22,7 @@ pub use self::postfix::*;
 pub use self::prefix::*;
 pub use self::struct_initialisation::*;
 
+use crate::lexer::Span;
 use crate::parser::combinators::Comb;
 use crate::{
     lexer::Token,
@@ -64,6 +65,23 @@ where
             Expression::Binary(binary) => binary.get_info(),
             Expression::Array(arr) => arr.get_info(),
             Expression::StructInitialisation(StructInitialisation { info, .. }) => info.clone(),
+        }
+    }
+
+    pub fn position(&self) -> Span {
+        match self {
+            Expression::Id(Id { position, .. }) => position.clone(),
+            Expression::Num(num) => num.position(),
+            Expression::Function(_) => todo!(),
+            Expression::Lambda(_) => todo!(),
+            Expression::If(_) => todo!(),
+            Expression::Block(_) => todo!(),
+            Expression::Parens(_) => todo!(),
+            Expression::Postfix(_) => todo!(),
+            Expression::Prefix(_) => todo!(),
+            Expression::Binary(_) => todo!(),
+            Expression::Array(_) => todo!(),
+            Expression::StructInitialisation(_) => todo!(),
         }
     }
 }
