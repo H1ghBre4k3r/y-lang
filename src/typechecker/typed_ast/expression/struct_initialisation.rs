@@ -18,7 +18,7 @@ impl TypeCheckable for StructInitialisation<()> {
 
         let StructInitialisation { id, fields, .. } = self;
 
-        let name = id.name;
+        let Id { name, position, .. } = id;
 
         let Some(Type::Struct(struct_type_name, struct_type_fields)) = ctx.scope.get_type(&name)
         else {
@@ -89,6 +89,7 @@ impl TypeCheckable for StructInitialisation<()> {
             id: Id {
                 name,
                 info: info.clone(),
+                position,
             },
             fields: checked_fields,
             info,
@@ -102,6 +103,7 @@ impl TypeCheckable for StructInitialisation<()> {
             id: Id {
                 name: id.name.clone(),
                 info: (),
+                position: id.position.clone(),
             },
             fields: fields.iter().map(TypeCheckable::revert).collect(),
             info: (),
@@ -117,7 +119,7 @@ impl TypeCheckable for StructFieldInitialisation<()> {
 
         let StructFieldInitialisation { name, value, .. } = self;
 
-        let name = name.name;
+        let Id { name, position, .. } = name;
 
         let value = value.check(ctx)?;
 
@@ -129,6 +131,7 @@ impl TypeCheckable for StructFieldInitialisation<()> {
             name: Id {
                 name,
                 info: info.clone(),
+                position,
             },
             value,
             info,
@@ -142,6 +145,7 @@ impl TypeCheckable for StructFieldInitialisation<()> {
             name: Id {
                 name: name.name.clone(),
                 info: (),
+                position: name.position.clone(),
             },
             value: TypeCheckable::revert(value),
             info: (),
@@ -156,6 +160,7 @@ mod tests {
     use anyhow::{Ok, Result};
 
     use crate::{
+        lexer::Span,
         parser::ast::{
             Expression, Id, Initialisation, Lambda, LambdaParameter, Num, StructDeclaration,
             StructFieldDeclaration, StructFieldInitialisation, StructInitialisation, TypeName,
@@ -171,6 +176,7 @@ mod tests {
             id: Id {
                 name: "BarStruct".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![],
             info: (),
@@ -182,6 +188,7 @@ mod tests {
             id: Id {
                 name: "BarStruct".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![],
             info: (),
@@ -205,12 +212,14 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![
                 StructFieldDeclaration {
                     name: Id {
                         name: "bar".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("i64".into()),
                     info: (),
@@ -219,6 +228,7 @@ mod tests {
                     name: Id {
                         name: "baz".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),
@@ -233,12 +243,14 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![
                 StructFieldInitialisation {
                     name: Id {
                         name: "bar".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     value: Expression::Num(Num::Integer(42, ())),
                     info: (),
@@ -247,6 +259,7 @@ mod tests {
                     name: Id {
                         name: "baz".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     value: Expression::Num(Num::FloatingPoint(133.7, ())),
                     info: (),
@@ -289,12 +302,14 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![
                 StructFieldDeclaration {
                     name: Id {
                         name: "bar".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("i64".into()),
                     info: (),
@@ -303,6 +318,7 @@ mod tests {
                     name: Id {
                         name: "baz".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),
@@ -317,12 +333,14 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![
                 StructFieldInitialisation {
                     name: Id {
                         name: "baz".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     value: Expression::Num(Num::FloatingPoint(133.7, ())),
                     info: (),
@@ -331,6 +349,7 @@ mod tests {
                     name: Id {
                         name: "bar".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     value: Expression::Num(Num::Integer(42, ())),
                     info: (),
@@ -373,6 +392,7 @@ mod tests {
             id: Id {
                 name: "baz".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: None,
@@ -381,12 +401,14 @@ mod tests {
                     name: Id {
                         name: "x".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     info: (),
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "x".into(),
                     info: (),
+                    position: Span::default(),
                 })),
                 info: (),
             }),
@@ -399,11 +421,13 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![StructFieldDeclaration {
                 name: Id {
                     name: "bar".into(),
                     info: (),
+                    position: Span::default(),
                 },
                 type_name: TypeName::Fn {
                     params: vec![TypeName::Literal("i64".into())],
@@ -420,15 +444,18 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![StructFieldInitialisation {
                 name: Id {
                     name: "bar".into(),
                     info: (),
+                    position: Span::default(),
                 },
                 value: Expression::Id(Id {
                     name: "baz".into(),
                     info: (),
+                    position: Span::default(),
                 }),
                 info: (),
             }],

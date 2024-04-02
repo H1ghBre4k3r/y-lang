@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
+    lexer::Span,
     parser::ast::{Id, StructDeclaration, StructFieldDeclaration},
     typechecker::{
         context::Context,
@@ -56,6 +57,7 @@ impl TypeCheckable for StructDeclaration<()> {
             id: Id {
                 name,
                 info: info.clone(),
+                position: Span::default(),
             },
             fields: checked_fields,
             info,
@@ -69,6 +71,7 @@ impl TypeCheckable for StructDeclaration<()> {
             id: Id {
                 name: id.name.clone(),
                 info: (),
+                position: Span::default(),
             },
             fields: fields.iter().map(TypeCheckable::revert).collect::<Vec<_>>(),
             info: (),
@@ -100,6 +103,7 @@ impl TypeCheckable for StructFieldDeclaration<()> {
             name: Id {
                 name: name.name,
                 info: info.clone(),
+                position: Span::default(),
             },
             type_name,
             info,
@@ -115,6 +119,7 @@ impl TypeCheckable for StructFieldDeclaration<()> {
             name: Id {
                 name: name.name.clone(),
                 info: (),
+                position: Span::default(),
             },
             type_name: type_name.clone(),
             info: (),
@@ -128,6 +133,7 @@ mod tests {
     use std::{cell::RefCell, rc::Rc};
 
     use crate::{
+        lexer::Span,
         parser::ast::{Id, StructDeclaration, StructFieldDeclaration, TypeName},
         typechecker::{context::Context, types::Type, TypeCheckable},
     };
@@ -140,6 +146,7 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![],
             info: (),
@@ -165,12 +172,14 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![
                 StructFieldDeclaration {
                     name: Id {
                         name: "bar".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("i64".into()),
                     info: (),
@@ -179,6 +188,7 @@ mod tests {
                     name: Id {
                         name: "baz".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),
@@ -213,6 +223,7 @@ mod tests {
             id: Id {
                 name: "BarStruct".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![],
             info: (),
@@ -224,12 +235,14 @@ mod tests {
             id: Id {
                 name: "Foo".into(),
                 info: (),
+                position: Span::default(),
             },
             fields: vec![
                 StructFieldDeclaration {
                     name: Id {
                         name: "bar".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("BarStruct".into()),
                     info: (),
@@ -238,6 +251,7 @@ mod tests {
                     name: Id {
                         name: "baz".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),

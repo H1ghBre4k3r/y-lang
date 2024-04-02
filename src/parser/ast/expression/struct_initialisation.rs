@@ -85,7 +85,7 @@ impl From<StructFieldInitialisation<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::{
             ast::{BinaryExpression, Expression, Id, Lambda, LambdaParameter, Num},
             FromTokens,
@@ -107,7 +107,8 @@ mod tests {
             Ok(StructFieldInitialisation {
                 name: Id {
                     name: "bar".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 value: Expression::Num(Num::Integer(42, ())),
                 info: ()
@@ -130,7 +131,8 @@ mod tests {
             Ok(StructInitialisation {
                 id: Id {
                     name: "Foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 fields: vec![],
                 info: ()
@@ -153,12 +155,14 @@ mod tests {
             Ok(StructInitialisation {
                 id: Id {
                     name: "Foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 fields: vec![StructFieldInitialisation {
                     name: Id {
                         name: "bar".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     value: Expression::Num(Num::Integer(42, ())),
                     info: ()
@@ -183,13 +187,15 @@ mod tests {
             Ok(StructInitialisation {
                 id: Id {
                     name: "Foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 fields: vec![
                     StructFieldInitialisation {
                         name: Id {
                             name: "bar".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         value: Expression::Num(Num::Integer(42, ())),
                         info: ()
@@ -197,13 +203,15 @@ mod tests {
                     StructFieldInitialisation {
                         name: Id {
                             name: "baz".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         value: Expression::Lambda(Lambda {
                             parameters: vec![LambdaParameter {
                                 name: Id {
                                     name: "x".into(),
-                                    info: ()
+                                    info: (),
+                                    position: Span::default()
                                 },
                                 info: ()
                             }],
@@ -211,11 +219,13 @@ mod tests {
                                 BinaryExpression::Addition {
                                     left: Expression::Id(Id {
                                         name: "x".into(),
-                                        info: ()
+                                        info: (),
+                                        position: Span::default()
                                     }),
                                     right: Expression::Id(Id {
                                         name: "x".into(),
-                                        info: ()
+                                        info: (),
+                                        position: Span::default()
                                     }),
                                     info: (),
                                 }

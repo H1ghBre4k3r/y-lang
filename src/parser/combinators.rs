@@ -529,11 +529,7 @@ mod tests {
     fn test_parse_optional_matching_terminal() {
         let a = !Comb::LET;
         let mut tokens = vec![Token::Let {
-            position: Span {
-                line: 1,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -546,11 +542,7 @@ mod tests {
     fn test_parse_optional_not_matching_terminal() {
         let a = !Comb::LET;
         let mut tokens = vec![Token::Assign {
-            position: Span {
-                line: 1,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -564,11 +556,7 @@ mod tests {
         let a = !Comb::NUM;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: Span {
-                line: 1,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -582,11 +570,7 @@ mod tests {
         let a = !Comb::NUM;
         let mut tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: Span {
-                line: 1,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -618,39 +602,19 @@ mod tests {
         let a = Comb::LET ^ 5;
         let mut tokens = vec![
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
         ]
         .into();
@@ -664,39 +628,19 @@ mod tests {
         let a = Comb::LET ^ 5;
         let mut tokens = vec![
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Assign {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
         ]
         .into();
@@ -709,39 +653,19 @@ mod tests {
         let a = Comb::LET ^ ();
         let mut tokens = vec![
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Assign {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
         ]
         .into();
@@ -756,27 +680,15 @@ mod tests {
         let mut tokens = vec![
             Token::Integer {
                 value: 42,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Integer {
                 value: 1337,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Integer {
                 value: 17,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
         ]
         .into();
@@ -799,41 +711,21 @@ mod tests {
         let mut tokens = vec![
             Token::Integer {
                 value: 42,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Integer {
                 value: 1337,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Integer {
                 value: 17,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
         ]
         .into();
@@ -854,11 +746,7 @@ mod tests {
     fn test_parse_terminal_simple() {
         let a = Comb::LET;
         let mut tokens = vec![Token::Let {
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -872,11 +760,7 @@ mod tests {
         let a = Comb::NUM;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = a.parse(&mut tokens);
@@ -890,19 +774,11 @@ mod tests {
         let matcher = Comb::LET >> Comb::NUM;
         let mut tokens = vec![
             Token::Let {
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
             Token::Integer {
                 value: 42,
-                position: Span {
-                    line: 0,
-                    col: 0..0,
-                    source: "".into(),
-                },
+                position: Span::default(),
             },
         ]
         .into();
@@ -916,11 +792,7 @@ mod tests {
         let matcher = Comb::ID | Comb::NUM;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = matcher.parse(&mut tokens);
@@ -930,18 +802,15 @@ mod tests {
 
         let mut tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = matcher.parse(&mut tokens);
         assert_eq!(
             Ok(vec![AstNode::Id(Id {
                 name: "some_id".into(),
-                info: ()
+                info: (),
+                position: Span::default(),
             })]),
             result
         );
@@ -953,11 +822,7 @@ mod tests {
         let a = Comb::LET;
         let mut tokens = vec![Token::Integer {
             value: 42,
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }]
         .into();
         let result = a.parse(&mut tokens);

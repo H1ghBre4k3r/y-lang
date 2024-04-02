@@ -103,6 +103,7 @@ impl TypedConstruct for Lambda<TypeInformation> {
         // enter all parameters with their respective types into the scope
         for (i, t) in params.iter().enumerate() {
             let name = &self.parameters[i].name.name;
+            let position = &self.parameters[i].name.position;
 
             if ctx
                 .scope
@@ -114,6 +115,7 @@ impl TypedConstruct for Lambda<TypeInformation> {
                             type_id: Rc::new(RefCell::new(Some(t.clone()))),
                             context: ctx.clone(),
                         },
+                        position: position.clone(),
                     }),
                 )
                 .is_err()
@@ -153,7 +155,7 @@ impl TypeCheckable for LambdaParameter<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let LambdaParameter { name, .. } = self;
 
-        let name = name.name;
+        let Id { name, position, .. } = name;
 
         let type_id = Rc::new(RefCell::new(None));
 
@@ -163,6 +165,7 @@ impl TypeCheckable for LambdaParameter<()> {
                 type_id: type_id.clone(),
                 context: ctx.clone(),
             },
+            position,
         };
 
         if ctx
@@ -209,6 +212,7 @@ mod tests {
     use anyhow::Result;
 
     use crate::{
+        lexer::Span,
         parser::ast::{Expression, Id, Initialisation, Lambda, LambdaParameter, Num},
         typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation},
     };
@@ -221,6 +225,7 @@ mod tests {
             name: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             info: (),
         };
@@ -235,7 +240,8 @@ mod tests {
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(None)),
                         context: Context::default(),
-                    }
+                    },
+                    position: Span::default(),
                 },
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(None)),
@@ -255,6 +261,7 @@ mod tests {
             name: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             info: (),
         };
@@ -310,6 +317,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: None,
@@ -318,12 +326,14 @@ mod tests {
                     name: Id {
                         name: "x".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     info: (),
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "x".into(),
                     info: (),
+                    position: Span::default(),
                 })),
                 info: (),
             }),

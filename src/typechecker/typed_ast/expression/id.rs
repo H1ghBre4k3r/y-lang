@@ -12,7 +12,7 @@ impl TypeCheckable for Id<()> {
     type Output = Id<TypeInformation>;
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
-        let Id { name, .. } = self;
+        let Id { name, position, .. } = self;
 
         let Some(type_id) = ctx.scope.resolve_name(&name) else {
             return Err(TypeCheckError::UndefinedVariable(UndefinedVariable {
@@ -26,15 +26,17 @@ impl TypeCheckable for Id<()> {
                 type_id,
                 context: ctx.clone(),
             },
+            position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
-        let Id { name, .. } = this;
+        let Id { name, position, .. } = this;
 
         Id {
             name: name.to_owned(),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -51,6 +53,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
+        lexer::Span,
         parser::ast::{Expression, Id},
         typechecker::{
             context::Context,
@@ -72,6 +75,7 @@ mod tests {
                         type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 }),
             )
             .expect("something went wrong");
@@ -79,6 +83,7 @@ mod tests {
         let id = Id {
             name: "foo".into(),
             info: (),
+            position: Span::default(),
         };
 
         let id = id.check(&mut ctx)?;
@@ -100,6 +105,7 @@ mod tests {
                         type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 }),
             )
             .expect("something went wrong");
@@ -107,6 +113,7 @@ mod tests {
         let id = Id {
             name: "foo".into(),
             info: (),
+            position: Span::default(),
         };
 
         let id = id.check(&mut ctx)?;
@@ -129,6 +136,7 @@ mod tests {
         let id = Id {
             name: "foo".into(),
             info: (),
+            position: Span::default(),
         };
 
         let res = id.check(&mut ctx);
@@ -151,6 +159,7 @@ mod tests {
         let id = Id {
             name: "foo".into(),
             info: (),
+            position: Span::default(),
         };
 
         let id = id.check(&mut ctx)?;

@@ -46,7 +46,7 @@ impl From<Declaration<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::{
             ast::{Id, TypeName},
             FromTokens,
@@ -68,7 +68,8 @@ mod tests {
             Ok(Declaration {
                 name: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 type_name: TypeName::Literal("i32".into()),
                 info: ()
@@ -90,7 +91,8 @@ mod tests {
             Ok(Declaration {
                 name: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 type_name: TypeName::Tuple(vec![TypeName::Literal("i32".into()); 2]),
                 info: ()
@@ -112,7 +114,8 @@ mod tests {
             Ok(Declaration {
                 name: Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 type_name: TypeName::Fn {
                     params: vec![TypeName::Literal("i32".into()); 2],

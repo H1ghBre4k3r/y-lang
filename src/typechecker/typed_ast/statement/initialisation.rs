@@ -24,7 +24,7 @@ impl TypeCheckable for Initialisation<()> {
 
         let context = ctx.clone();
 
-        let name = id.name;
+        let Id { name, position, .. } = id;
 
         let mut value = value.check(ctx)?;
 
@@ -70,7 +70,11 @@ impl TypeCheckable for Initialisation<()> {
         };
 
         Ok(Initialisation {
-            id: Id { name, info },
+            id: Id {
+                name,
+                info,
+                position,
+            },
             mutable,
             type_name,
             value,
@@ -107,6 +111,7 @@ mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
     use crate::{
+        lexer::Span,
         parser::ast::{Expression, Id, Initialisation, Lambda, LambdaParameter, Num, TypeName},
         typechecker::{
             context::Context,
@@ -124,6 +129,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: None,
@@ -157,6 +163,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: None,
@@ -181,6 +188,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: None,
@@ -216,6 +224,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: Some(TypeName::Literal("f64".into())),
@@ -241,6 +250,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: None,
@@ -263,6 +273,7 @@ mod tests {
                         type_id: Rc::new(RefCell::new(None)),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 },
                 mutable: false,
                 type_name: None,
@@ -313,6 +324,7 @@ mod tests {
                         }))),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 },
                 mutable: false,
                 type_name: None,
@@ -351,6 +363,7 @@ mod tests {
             id: Id {
                 name: "foo".into(),
                 info: (),
+                position: Span::default(),
             },
             mutable: false,
             type_name: None,
@@ -359,12 +372,14 @@ mod tests {
                     name: Id {
                         name: "bar".into(),
                         info: (),
+                        position: Span::default(),
                     },
                     info: (),
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "bar".into(),
                     info: (),
+                    position: Span::default(),
                 })),
                 info: (),
             }),
@@ -382,6 +397,7 @@ mod tests {
                         type_id: Rc::new(RefCell::new(None)),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 },
                 mutable: false,
                 type_name: None,
@@ -392,7 +408,8 @@ mod tests {
                             info: TypeInformation {
                                 type_id: Rc::new(RefCell::new(None)),
                                 context: Context::default(),
-                            }
+                            },
+                            position: Span::default(),
                         },
                         info: TypeInformation {
                             type_id: Rc::new(RefCell::new(None)),
@@ -404,7 +421,8 @@ mod tests {
                         info: TypeInformation {
                             type_id: Rc::new(RefCell::new(None)),
                             context: Context::default(),
-                        }
+                        },
+                        position: Span::default(),
                     })),
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(None)),
@@ -455,6 +473,7 @@ mod tests {
                         }))),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 },
                 mutable: false,
                 type_name: None,
@@ -465,7 +484,8 @@ mod tests {
                             info: TypeInformation {
                                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                                 context: Context::default(),
-                            }
+                            },
+                            position: Span::default(),
                         },
                         info: TypeInformation {
                             type_id: Rc::new(RefCell::new(Some(Type::Integer))),
@@ -477,7 +497,8 @@ mod tests {
                         info: TypeInformation {
                             type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                             context: Context::default(),
-                        }
+                        },
+                        position: Span::default(),
                     })),
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(Some(Type::Function {

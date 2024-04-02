@@ -84,7 +84,7 @@ impl From<LambdaParameter<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lexer::Lexer,
+        lexer::{Lexer, Span},
         parser::ast::{BinaryExpression, Block, Id, Num, Statement},
     };
 
@@ -125,14 +125,16 @@ mod tests {
                     LambdaParameter {
                         name: Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         info: ()
                     },
                     LambdaParameter {
                         name: Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         info: ()
                     }
@@ -140,11 +142,13 @@ mod tests {
                 expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition {
                     left: Expression::Id(Id {
                         name: "x".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }),
                     right: Expression::Id(Id {
                         name: "y".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }),
                     info: (),
                 }))),
@@ -169,13 +173,15 @@ mod tests {
                 parameters: vec![LambdaParameter {
                     name: Id {
                         name: "x".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     info: ()
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 info: ()
             }
@@ -198,14 +204,16 @@ mod tests {
                 parameters: vec![LambdaParameter {
                     name: Id {
                         name: "x".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     info: ()
                 }],
                 expression: Box::new(Expression::Block(Block {
                     statements: vec![Statement::YieldingExpression(Expression::Id(Id {
                         name: "x".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }))],
                     info: ()
                 })),

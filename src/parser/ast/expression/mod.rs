@@ -52,7 +52,7 @@ where
 {
     pub fn get_info(&self) -> T {
         match self {
-            Expression::Id(Id { name: _, info }) => info.clone(),
+            Expression::Id(Id { name: _, info, .. }) => info.clone(),
             Expression::Num(num) => num.get_info(),
             Expression::Function(Function { info, .. }) => info.clone(),
             Expression::Lambda(Lambda { info, .. }) => info.clone(),
@@ -324,18 +324,15 @@ mod tests {
     fn test_parse_id() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: Span {
-                line: 1,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }];
 
         assert_eq!(
             Expression::parse(&mut tokens.into()),
             Ok(AstNode::Expression(Expression::Id(Id {
                 name: "some_id".into(),
-                info: ()
+                info: (),
+                position: Span::default()
             })))
         )
     }
@@ -344,11 +341,7 @@ mod tests {
     fn test_parse_num() {
         let tokens = vec![Token::Integer {
             value: 42,
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }];
 
         assert_eq!(
@@ -399,7 +392,8 @@ mod tests {
                     FunctionParameter {
                         name: Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -407,7 +401,8 @@ mod tests {
                     FunctionParameter {
                         name: Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
                         info: ()
@@ -418,11 +413,13 @@ mod tests {
                     BinaryExpression::Addition {
                         left: Expression::Id(Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         right: Expression::Id(Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         info: (),
                     }
@@ -469,14 +466,16 @@ mod tests {
                     LambdaParameter {
                         name: Id {
                             name: "x".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         info: (),
                     },
                     LambdaParameter {
                         name: Id {
                             name: "y".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         info: (),
                     }
@@ -486,11 +485,13 @@ mod tests {
                         BinaryExpression::Addition {
                             left: Expression::Id(Id {
                                 name: "x".into(),
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             }),
                             right: Expression::Id(Id {
                                 name: "y".into(),
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             }),
                             info: (),
                         }
@@ -515,7 +516,8 @@ mod tests {
             Ok(Expression::If(If {
                 condition: Box::new(Expression::Id(Id {
                     name: "x".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
@@ -548,7 +550,8 @@ mod tests {
             Ok(Expression::Postfix(Postfix::Call {
                 expr: Box::new(Expression::Id(Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 args: vec![],
                 info: ()
@@ -574,14 +577,16 @@ mod tests {
                         LambdaParameter {
                             name: Id {
                                 name: "x".into(),
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             },
                             info: (),
                         },
                         LambdaParameter {
                             name: Id {
                                 name: "y".into(),
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             },
                             info: (),
                         }
@@ -590,11 +595,13 @@ mod tests {
                         BinaryExpression::Addition {
                             left: Expression::Id(Id {
                                 name: "x".into(),
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             }),
                             right: Expression::Id(Id {
                                 name: "y".into(),
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             }),
                             info: (),
                         }
@@ -661,7 +668,8 @@ mod tests {
             Ok(Expression::Postfix(Postfix::Index {
                 expr: Box::new(Expression::Id(Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 index: Box::new(Expression::Num(Num::Integer(42, ()))),
                 info: ()
@@ -684,13 +692,15 @@ mod tests {
             Ok(Expression::StructInitialisation(StructInitialisation {
                 id: Id {
                     name: "Foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 fields: vec![
                     StructFieldInitialisation {
                         name: Id {
                             name: "bar".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         value: Expression::Num(Num::Integer(42, ())),
                         info: ()
@@ -698,13 +708,15 @@ mod tests {
                     StructFieldInitialisation {
                         name: Id {
                             name: "baz".into(),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         },
                         value: Expression::Lambda(Lambda {
                             parameters: vec![LambdaParameter {
                                 name: Id {
                                     name: "x".into(),
-                                    info: ()
+                                    info: (),
+                                    position: Span::default()
                                 },
                                 info: ()
                             }],
@@ -712,11 +724,13 @@ mod tests {
                                 BinaryExpression::Addition {
                                     left: Expression::Id(Id {
                                         name: "x".into(),
-                                        info: ()
+                                        info: (),
+                                        position: Span::default()
                                     }),
                                     right: Expression::Id(Id {
                                         name: "x".into(),
-                                        info: ()
+                                        info: (),
+                                        position: Span::default()
                                     }),
                                     info: (),
                                 }
@@ -746,11 +760,13 @@ mod tests {
             Ok(Expression::Postfix(Postfix::PropertyAccess {
                 expr: Box::new(Expression::Id(Id {
                     name: "foo".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 property: Id {
                     name: "bar".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 info: ()
             })
@@ -773,14 +789,16 @@ mod tests {
                 expr: Box::new(Expression::Postfix(Postfix::Call {
                     expr: Box::new(Expression::Id(Id {
                         name: "foo".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     })),
                     args: vec![],
                     info: ()
                 })),
                 property: Id {
                     name: "bar".into(),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 },
                 info: ()
             })
@@ -818,7 +836,8 @@ mod tests {
                 expr: Box::new(Expression::Postfix(Postfix::Call {
                     expr: Box::new(Expression::Id(Id {
                         name: "someFunction".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     })),
                     args: vec![],
                     info: ()
@@ -858,7 +877,8 @@ mod tests {
                 expr: Box::new(Expression::Postfix(Postfix::Call {
                     expr: Box::new(Expression::Id(Id {
                         name: "someFunction".into(),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     })),
                     args: vec![],
                     info: ()

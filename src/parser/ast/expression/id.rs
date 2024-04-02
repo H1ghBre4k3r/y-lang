@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{GetPosition, Token},
+    lexer::{GetPosition, Span, Token},
     parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
 
@@ -7,6 +7,7 @@ use crate::{
 pub struct Id<T> {
     pub name: String,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Id<()> {
@@ -14,6 +15,7 @@ impl FromTokens<Token> for Id<()> {
     where
         Self: Sized,
     {
+        let position = tokens.span()?;
         let value = match tokens.next() {
             Some(Token::Id { value, .. }) => value,
             Some(token) => {
@@ -27,6 +29,7 @@ impl FromTokens<Token> for Id<()> {
         Ok(Id {
             name: value,
             info: (),
+            position,
         }
         .into())
     }
@@ -48,17 +51,14 @@ mod tests {
     fn test_parse() {
         let tokens = vec![Token::Id {
             value: "some_id".into(),
-            position: Span {
-                line: 1,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }];
         assert_eq!(
             Id::parse(&mut tokens.into()),
             Ok(AstNode::Id(Id {
                 name: "some_id".into(),
-                info: ()
+                info: (),
+                position: Span::default()
             }))
         );
     }
@@ -67,11 +67,7 @@ mod tests {
     fn test_error_on_non_id() {
         let tokens = vec![Token::Integer {
             value: 3,
-            position: Span {
-                line: 0,
-                col: 0..0,
-                source: "".into(),
-            },
+            position: Span::default(),
         }];
         assert!(Id::parse(&mut tokens.into()).is_err());
     }

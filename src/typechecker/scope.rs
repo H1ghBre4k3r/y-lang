@@ -224,6 +224,7 @@ mod tests {
     use std::{cell::RefCell, rc::Rc};
 
     use crate::{
+        lexer::Span,
         parser::ast::{Expression, Id},
         typechecker::{context::Context, types::Type, TypeInformation},
     };
@@ -246,6 +247,7 @@ mod tests {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                 context: Context::default(),
             },
+            position: Span::default(),
         });
 
         scope
@@ -268,6 +270,7 @@ mod tests {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                 context: Context::default(),
             },
+            position: Span::default(),
         });
 
         scope
@@ -296,6 +299,7 @@ mod tests {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                 context: Context::default(),
             },
+            position: Span::default(),
         });
 
         scope.enter_scope();
@@ -324,6 +328,7 @@ mod tests {
                 type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                 context: Context::default(),
             },
+            position: Span::default(),
         });
 
         scope
