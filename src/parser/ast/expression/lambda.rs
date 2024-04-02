@@ -102,7 +102,7 @@ mod tests {
         assert_eq!(
             Ok(Lambda {
                 parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(42, ()))),
+                expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
                 info: ()
             }
             .into()),

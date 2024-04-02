@@ -133,7 +133,7 @@ mod tests {
             },
             mutable: false,
             type_name: None,
-            value: Expression::Num(Num::Integer(42, ())),
+            value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
         }
         .check(&mut ctx)?;
@@ -148,7 +148,8 @@ mod tests {
                 TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                     context: Context::default(),
-                }
+                },
+                Span::default()
             ))
         );
 
@@ -167,7 +168,7 @@ mod tests {
             },
             mutable: false,
             type_name: None,
-            value: Expression::Num(Num::Integer(42, ())),
+            value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
         };
 
@@ -192,7 +193,7 @@ mod tests {
             },
             mutable: false,
             type_name: None,
-            value: Expression::Num(Num::Integer(42, ())),
+            value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
         };
 
@@ -228,7 +229,7 @@ mod tests {
             },
             mutable: false,
             type_name: Some(TypeName::Literal("f64".into())),
-            value: Expression::Num(Num::Integer(42, ())),
+            value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
         };
 
@@ -256,7 +257,7 @@ mod tests {
             type_name: None,
             value: Expression::Lambda(Lambda {
                 parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(42, ()))),
+                expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
                 info: (),
             }),
             info: (),
@@ -284,7 +285,8 @@ mod tests {
                         TypeInformation {
                             type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                             context: Context::default(),
-                        }
+                        },
+                        Span::default()
                     ))),
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(None)),
@@ -335,7 +337,8 @@ mod tests {
                         TypeInformation {
                             type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                             context: Context::default(),
-                        }
+                        },
+                        Span::default()
                     ))),
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(Some(Type::Function {

@@ -1,12 +1,12 @@
 use crate::{
-    lexer::{GetPosition, Token},
+    lexer::{GetPosition, Span, Token},
     parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Num<T> {
-    Integer(u64, T),
-    FloatingPoint(f64, T),
+    Integer(u64, T, Span),
+    FloatingPoint(f64, T, Span),
 }
 
 impl<T> Eq for Num<T> where T: Eq {}
@@ -16,9 +16,12 @@ impl FromTokens<Token> for Num<()> {
     where
         Self: Sized,
     {
+        let position = tokens.span()?;
         match tokens.next() {
-            Some(Token::Integer { value, .. }) => Ok(Num::Integer(value, ()).into()),
-            Some(Token::FloatingPoint { value, .. }) => Ok(Num::FloatingPoint(value, ()).into()),
+            Some(Token::Integer { value, .. }) => Ok(Num::Integer(value, (), position).into()),
+            Some(Token::FloatingPoint { value, .. }) => {
+                Ok(Num::FloatingPoint(value, (), position).into())
+            }
             Some(token) => Err(ParseError {
                 message: "Tried to parse Num from non Num token".into(),
                 position: Some(token.position()),
@@ -34,8 +37,8 @@ where
 {
     pub fn get_info(&self) -> T {
         match self {
-            Num::Integer(_, info) => info.clone(),
-            Num::FloatingPoint(_, info) => info.clone(),
+            Num::Integer(_, info, ..) => info.clone(),
+            Num::FloatingPoint(_, info, ..) => info.clone(),
         }
     }
 }
@@ -60,7 +63,7 @@ mod tests {
         }];
         assert_eq!(
             Num::parse(&mut tokens.into()),
-            Ok(AstNode::Num(Num::Integer(42, ())))
+            Ok(AstNode::Num(Num::Integer(42, (), Span::default())))
         );
     }
 
@@ -85,6 +88,9 @@ mod tests {
 
         let result = Num::parse(&mut tokens);
 
-        assert_eq!(Ok(Num::FloatingPoint(1337.42, ()).into()), result);
+        assert_eq!(
+            Ok(Num::FloatingPoint(1337.42, (), Span::default()).into()),
+            result
+        );
     }
 }

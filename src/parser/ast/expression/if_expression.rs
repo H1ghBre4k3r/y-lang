@@ -127,8 +127,8 @@ mod tests {
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
-                        left: Expression::Num(Num::Integer(3, ())),
-                        right: Expression::Num(Num::Integer(4, ())),
+                        left: Expression::Num(Num::Integer(3, (), Span::default())),
+                        right: Expression::Num(Num::Integer(4, (), Span::default())),
                         info: (),
                     }
                 )))],
@@ -156,15 +156,15 @@ mod tests {
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
-                        left: Expression::Num(Num::Integer(3, ())),
-                        right: Expression::Num(Num::Integer(4, ())),
+                        left: Expression::Num(Num::Integer(3, (), Span::default())),
+                        right: Expression::Num(Num::Integer(4, (), Span::default())),
                         info: (),
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
-                        left: Expression::Num(Num::Integer(42, ())),
-                        right: Expression::Num(Num::Integer(1337, ())),
+                        left: Expression::Num(Num::Integer(42, (), Span::default())),
+                        right: Expression::Num(Num::Integer(1337, (), Span::default())),
                         info: (),
                     }
                 )))],

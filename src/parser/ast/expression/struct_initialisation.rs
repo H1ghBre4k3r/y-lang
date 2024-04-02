@@ -110,7 +110,7 @@ mod tests {
                     info: (),
                     position: Span::default()
                 },
-                value: Expression::Num(Num::Integer(42, ())),
+                value: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: ()
             }
             .into()),
@@ -164,7 +164,7 @@ mod tests {
                         info: (),
                         position: Span::default()
                     },
-                    value: Expression::Num(Num::Integer(42, ())),
+                    value: Expression::Num(Num::Integer(42, (), Span::default())),
                     info: ()
                 }],
                 info: ()
@@ -197,7 +197,7 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        value: Expression::Num(Num::Integer(42, ())),
+                        value: Expression::Num(Num::Integer(42, (), Span::default())),
                         info: ()
                     },
                     StructFieldInitialisation {
