@@ -387,7 +387,8 @@ mod tests {
                 parameters: vec![],
                 statements: vec![],
                 return_type: TypeName::Literal("i32".into()),
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -418,7 +419,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     FunctionParameter {
                         name: Id {
@@ -427,7 +429,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("i32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
                 return_type: TypeName::Literal("i32".into()),
@@ -446,7 +449,8 @@ mod tests {
                         info: (),
                     }
                 )))],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result

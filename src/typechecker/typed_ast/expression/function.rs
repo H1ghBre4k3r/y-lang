@@ -22,6 +22,7 @@ impl TypeCheckable for Function<()> {
             parameters,
             return_type,
             statements,
+            position,
             ..
         } = self;
 
@@ -106,6 +107,7 @@ impl TypeCheckable for Function<()> {
             return_type,
             statements: checked_statements,
             info,
+            position,
         };
 
         if let Some(Id { name, .. }) = &func.id {
@@ -129,6 +131,7 @@ impl TypeCheckable for Function<()> {
             parameters,
             return_type,
             statements,
+            position,
             ..
         } = this;
 
@@ -138,6 +141,7 @@ impl TypeCheckable for Function<()> {
             return_type: return_type.to_owned(),
             statements: statements.iter().map(TypeCheckable::revert).collect(),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -149,10 +153,17 @@ impl TypeCheckable for FunctionParameter<()> {
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let FunctionParameter {
-            name, type_name, ..
+            name,
+            type_name,
+            position: param_position,
+            ..
         } = self;
 
-        let Id { name, position, .. } = name;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = name;
 
         let info = TypeInformation {
             type_id: Rc::new(RefCell::new(None)),
@@ -169,7 +180,7 @@ impl TypeCheckable for FunctionParameter<()> {
         let id = Id {
             name: name.clone(),
             info: info.clone(),
-            position: position.clone(),
+            position: id_position.clone(),
         };
 
         if ctx
@@ -186,18 +197,23 @@ impl TypeCheckable for FunctionParameter<()> {
             name: id,
             type_name,
             info,
+            position: param_position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
         let FunctionParameter {
-            name, type_name, ..
+            name,
+            type_name,
+            position,
+            ..
         } = this;
 
         FunctionParameter {
             name: TypeCheckable::revert(name),
             type_name: type_name.to_owned(),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -229,6 +245,7 @@ mod tests {
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),
+            position: Span::default(),
         };
 
         let param = param.check(&mut ctx)?;
@@ -275,12 +292,14 @@ mod tests {
                 },
                 type_name: TypeName::Literal("f64".into()),
                 info: (),
+                position: Span::default(),
             }],
             statements: vec![Statement::YieldingExpression(Expression::Num(
                 Num::Integer(42, (), Span::default()),
             ))],
             return_type: TypeName::Literal("i64".into()),
             info: (),
+            position: Span::default(),
         };
 
         let func = func.check(&mut ctx)?;
@@ -331,12 +350,14 @@ mod tests {
                 },
                 type_name: TypeName::Literal("f64".into()),
                 info: (),
+                position: Span::default(),
             }],
             statements: vec![Statement::YieldingExpression(Expression::Num(
                 Num::Integer(42, (), Span::default()),
             ))],
             return_type: TypeName::Literal("i64".into()),
             info: (),
+            position: Span::default(),
         };
 
         func.check(&mut ctx)?;
@@ -369,6 +390,7 @@ mod tests {
             ))],
             return_type: TypeName::Literal("void".into()),
             info: (),
+            position: Span::default(),
         };
 
         let res = func.check(&mut ctx);
