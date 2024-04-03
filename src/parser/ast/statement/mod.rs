@@ -301,7 +301,8 @@ mod tests {
                         info: (),
                     }
                 )))],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -338,7 +339,8 @@ mod tests {
                         info: (),
                     }
                 )))],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -375,7 +377,8 @@ mod tests {
                         info: (),
                     }
                 )))],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result

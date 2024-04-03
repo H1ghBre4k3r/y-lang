@@ -73,8 +73,8 @@ where
             Expression::Id(Id { position, .. }) => position.clone(),
             Expression::Num(num) => num.position(),
             Expression::Function(Function { position, .. }) => position.clone(),
-            Expression::Lambda(_) => todo!(),
-            Expression::If(_) => todo!(),
+            Expression::Lambda(Lambda { position, .. }) => position.clone(),
+            Expression::If(If { position, .. }) => position.clone(),
             Expression::Block(_) => todo!(),
             Expression::Parens(_) => todo!(),
             Expression::Postfix(_) => todo!(),
@@ -471,6 +471,7 @@ mod tests {
                 parameters: vec![],
                 expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
                 info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -496,6 +497,7 @@ mod tests {
                             position: Span::default()
                         },
                         info: (),
+                        position: Span::default()
                     },
                     LambdaParameter {
                         name: Id {
@@ -504,6 +506,7 @@ mod tests {
                             position: Span::default()
                         },
                         info: (),
+                        position: Span::default()
                     }
                 ],
                 expression: Box::new(Expression::Block(Block {
@@ -525,6 +528,7 @@ mod tests {
                     info: (),
                 })),
                 info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -560,6 +564,7 @@ mod tests {
                     }
                 )))],
                 info: (),
+                position: Span::default()
             })
             .into()),
             Expression::parse(&mut tokens)
@@ -607,6 +612,7 @@ mod tests {
                                 position: Span::default()
                             },
                             info: (),
+                            position: Span::default()
                         },
                         LambdaParameter {
                             name: Id {
@@ -615,6 +621,7 @@ mod tests {
                                 position: Span::default()
                             },
                             info: (),
+                            position: Span::default()
                         }
                     ],
                     expression: Box::new(Expression::Binary(Box::new(
@@ -633,6 +640,7 @@ mod tests {
                         }
                     ))),
                     info: (),
+                    position: Span::default()
                 })))),
                 args: vec![
                     Expression::Num(Num::Integer(42, (), Span::default())),
@@ -744,7 +752,8 @@ mod tests {
                                     info: (),
                                     position: Span::default()
                                 },
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             }],
                             expression: Box::new(Expression::Binary(Box::new(
                                 BinaryExpression::Addition {
@@ -761,7 +770,8 @@ mod tests {
                                     info: (),
                                 }
                             ))),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         info: ()
                     }
