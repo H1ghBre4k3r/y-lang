@@ -229,7 +229,8 @@ mod tests {
                         info: (),
                         position: Span::default()
                     }))],
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 info: (),
                 position: Span::default()

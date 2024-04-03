@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Statement},
         combinators::Comb,
@@ -11,10 +11,13 @@ use crate::{
 pub struct Block<T> {
     pub statements: Vec<Statement<T>>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Block<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::LBRACE >> (Comb::STATEMENT ^ Comb::RBRACE);
 
         let mut result = matcher.parse(tokens)?.into_iter();
@@ -28,6 +31,7 @@ impl FromTokens<Token> for Block<()> {
         Ok(Block {
             statements,
             info: (),
+            position,
         }
         .into())
     }
@@ -57,7 +61,8 @@ mod tests {
         assert_eq!(
             Ok(Block {
                 statements: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -80,7 +85,8 @@ mod tests {
                     info: (),
                     position: Span::default()
                 }))],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -121,7 +127,8 @@ mod tests {
                         position: Span::default()
                     }))
                 ],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
