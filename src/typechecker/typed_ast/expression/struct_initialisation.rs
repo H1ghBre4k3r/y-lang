@@ -31,9 +31,12 @@ impl TypeCheckable for StructInitialisation<()> {
 
         let Some(Type::Struct(struct_type_name, struct_type_fields)) = ctx.scope.get_type(&name)
         else {
-            return Err(TypeCheckError::UndefinedType(UndefinedType {
-                type_name: TypeName::Literal(name),
-            }));
+            return Err(TypeCheckError::UndefinedType(
+                UndefinedType {
+                    type_name: TypeName::Literal(name),
+                },
+                struct_position,
+            ));
         };
 
         let mut checked_fields = vec![];
@@ -53,9 +56,13 @@ impl TypeCheckable for StructInitialisation<()> {
             let Some(mut initialised_field) =
                 checked_fields_map.get_mut(struct_field_name).cloned()
             else {
-                return Err(TypeCheckError::UndefinedVariable(UndefinedVariable {
-                    variable_name: format!("{name}.{struct_field_name}"),
-                }));
+                // TODO: use different error for this
+                return Err(TypeCheckError::UndefinedVariable(
+                    UndefinedVariable {
+                        variable_name: format!("{name}.{struct_field_name}"),
+                    },
+                    struct_position,
+                ));
             };
 
             let field_type = initialised_field.info.type_id.clone();
@@ -68,10 +75,13 @@ impl TypeCheckable for StructInitialisation<()> {
             match initialised_field_type {
                 Some(field_type) => {
                     if field_type != *struct_field_type {
-                        return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                            expected: struct_field_type.clone(),
-                            actual: field_type,
-                        }));
+                        return Err(TypeCheckError::TypeMismatch(
+                            TypeMismatch {
+                                expected: struct_field_type.clone(),
+                                actual: field_type,
+                            },
+                            initialised_field.position,
+                        ));
                     }
                 }
                 None => {

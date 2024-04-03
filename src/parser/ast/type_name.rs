@@ -7,6 +7,7 @@ use crate::parser::ParseState;
 
 use super::AstNode;
 
+// TODO: include Span aswell
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeName {
     Literal(String),

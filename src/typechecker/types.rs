@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, error::Error, fmt::Display};
 
-use crate::parser::ast::TypeName;
+use crate::{lexer::Span, parser::ast::TypeName};
 
 use super::{
     context::Context,
@@ -42,9 +42,12 @@ impl Error for TypeFromTypeNameError {}
 
 impl From<TypeFromTypeNameError> for TypeCheckError {
     fn from(value: TypeFromTypeNameError) -> Self {
-        TypeCheckError::UndefinedType(UndefinedType {
-            type_name: value.source,
-        })
+        TypeCheckError::UndefinedType(
+            UndefinedType {
+                type_name: value.source,
+            },
+            Span::default(),
+        )
     }
 }
 

@@ -1,0 +1,9 @@
+let foo = \(x) => x;
+
+struct Bar {
+    baz: (i64) -> f64;
+};
+
+let inst = Bar {
+    baz: foo
+};

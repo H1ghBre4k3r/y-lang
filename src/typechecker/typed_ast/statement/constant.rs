@@ -35,9 +35,13 @@ impl TypeCheckable for Constant<()> {
         let info = value.get_info();
 
         let Ok(type_id) = Type::try_from((&type_name, &*ctx)) else {
-            return Err(TypeCheckError::InvalidConstantType(InvalidConstantType {
-                constant_name: name,
-            }));
+            return Err(TypeCheckError::InvalidConstantType(
+                InvalidConstantType {
+                    constant_name: name,
+                },
+                // TODO: use typename position
+                id_position,
+            ));
         };
 
         {
@@ -47,10 +51,13 @@ impl TypeCheckable for Constant<()> {
             match inner.as_ref() {
                 Some(inner_type) => {
                     if type_id != *inner_type {
-                        return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                            expected: type_id,
-                            actual: inner_type.clone(),
-                        }));
+                        return Err(TypeCheckError::TypeMismatch(
+                            TypeMismatch {
+                                expected: type_id,
+                                actual: inner_type.clone(),
+                            },
+                            value.position(),
+                        ));
                     }
                 }
                 // oups - no value of associated expression
@@ -65,9 +72,12 @@ impl TypeCheckable for Constant<()> {
         }
 
         if ctx.scope.add_constant(&name, type_id).is_err() {
-            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
-                constant_name: name,
-            }));
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: name,
+                },
+                id_position,
+            ));
         };
 
         Ok(Constant {
@@ -170,9 +180,12 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(TypeCheckError::InvalidConstantType(InvalidConstantType {
-                constant_name: "foo".into()
-            }))
+            Err(TypeCheckError::InvalidConstantType(
+                InvalidConstantType {
+                    constant_name: "foo".into()
+                },
+                Span::default()
+            ))
         );
     }
 
@@ -197,9 +210,12 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(TypeCheckError::InvalidConstantType(InvalidConstantType {
-                constant_name: "foo".into()
-            }))
+            Err(TypeCheckError::InvalidConstantType(
+                InvalidConstantType {
+                    constant_name: "foo".into()
+                },
+                Span::default()
+            ))
         );
 
         Ok(())

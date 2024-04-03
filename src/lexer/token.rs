@@ -1,3 +1,4 @@
+use colored::Colorize;
 use std::ops::Range;
 
 use lex_derive::{LooseEq, Token as ParseToken};
@@ -8,6 +9,27 @@ pub struct Span {
     pub line: usize,
     pub col: Range<usize>,
     pub source: String,
+}
+
+impl Span {
+    pub fn to_string(&self, msg: impl ToString) -> String {
+        let Span { line, col, source } = self;
+        let lines = source.lines().collect::<Vec<_>>();
+        let prev_line = if *line > 2 { lines[*line - 2] } else { "" };
+        let line_str = lines[*line - 1];
+
+        let left_margin = format!("{line}").len();
+        let left_margin_fill = vec![' '; left_margin].iter().collect::<String>();
+
+        let left_padding_fill = vec![' '; col.start - 1].iter().collect::<String>();
+
+        let error_len = vec!['^'; col.end - col.start]
+            .iter()
+            .collect::<String>()
+            .red();
+
+        format!("{left_margin_fill} |{prev_line} \n{line} |{line_str} \n{left_margin_fill} |{left_padding_fill}{error_len}   {}", msg.to_string())
+    }
 }
 
 impl PartialEq<Span> for Span {

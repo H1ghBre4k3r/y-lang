@@ -48,10 +48,13 @@ impl TypeCheckable for Initialisation<()> {
                     Some(inner_type) => {
                         // check, if they are equal
                         if type_id != *inner_type {
-                            return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                                expected: type_id,
-                                actual: inner_type.clone(),
-                            }));
+                            return Err(TypeCheckError::TypeMismatch(
+                                TypeMismatch {
+                                    expected: type_id,
+                                    actual: inner_type.clone(),
+                                },
+                                value.position(),
+                            ));
                         }
                     }
                     // oups - no value of associated expression
@@ -69,9 +72,12 @@ impl TypeCheckable for Initialisation<()> {
         }
 
         if ctx.scope.add_variable(&name, value.clone()).is_err() {
-            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
-                constant_name: name.to_string(),
-            }));
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: name.to_string(),
+                },
+                id_position,
+            ));
         };
 
         Ok(Initialisation {
@@ -248,10 +254,13 @@ mod tests {
         let init = init.check(&mut ctx);
         assert_eq!(
             init,
-            Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                expected: Type::FloatingPoint,
-                actual: Type::Integer
-            }))
+            Err(TypeCheckError::TypeMismatch(
+                TypeMismatch {
+                    expected: Type::FloatingPoint,
+                    actual: Type::Integer
+                },
+                Span::default()
+            ))
         );
     }
 
@@ -471,13 +480,16 @@ mod tests {
 
         assert_eq!(
             ctx.scope.update_variable("foo", Type::Integer),
-            Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                expected: Type::Function {
-                    params: vec![Type::Unknown],
-                    return_value: Box::new(Type::Unknown),
+            Err(TypeCheckError::TypeMismatch(
+                TypeMismatch {
+                    expected: Type::Function {
+                        params: vec![Type::Unknown],
+                        return_value: Box::new(Type::Unknown),
+                    },
+                    actual: Type::Integer
                 },
-                actual: Type::Integer
-            }))
+                Span::default()
+            ))
         );
 
         ctx.scope.update_variable(
