@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Id, TypeName},
         combinators::Comb,
@@ -12,10 +12,13 @@ pub struct StructDeclaration<T> {
     pub id: Id<T>,
     pub fields: Vec<StructFieldDeclaration<T>>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for StructDeclaration<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::STRUCT_KEYWORD
             >> Comb::ID
             >> Comb::LBRACE
@@ -37,6 +40,7 @@ impl FromTokens<Token> for StructDeclaration<()> {
             id,
             fields,
             info: (),
+            position,
         }
         .into())
     }
@@ -53,10 +57,13 @@ pub struct StructFieldDeclaration<T> {
     pub name: Id<T>,
     pub type_name: TypeName,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for StructFieldDeclaration<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME >> Comb::SEMI;
         let result = matcher.parse(tokens)?;
 
@@ -72,6 +79,7 @@ impl FromTokens<Token> for StructFieldDeclaration<()> {
             name: name.clone(),
             type_name: type_name.clone(),
             info: (),
+            position,
         }
         .into())
     }
@@ -112,7 +120,8 @@ mod tests {
                     position: Span::default()
                 },
                 fields: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -146,9 +155,11 @@ mod tests {
                         position: Span::default()
                     },
                     type_name: TypeName::Literal("u32".into()),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -184,7 +195,8 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Literal("u32".into()),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     StructFieldDeclaration {
                         name: Id {
@@ -193,10 +205,12 @@ mod tests {
                             position: Span::default()
                         },
                         type_name: TypeName::Array(Box::new(TypeName::Literal("f64".into()))),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
