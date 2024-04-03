@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Id, TypeName},
         combinators::Comb,
@@ -12,10 +12,13 @@ pub struct Declaration<T> {
     pub name: Id<T>,
     pub type_name: TypeName,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Declaration<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::DECLARE_KEYWORD >> Comb::ID >> Comb::COLON >> Comb::TYPE_NAME;
 
         let result = matcher.parse(tokens)?;
@@ -32,6 +35,7 @@ impl FromTokens<Token> for Declaration<()> {
             name,
             type_name,
             info: (),
+            position,
         }
         .into())
     }
@@ -72,7 +76,8 @@ mod tests {
                     position: Span::default()
                 },
                 type_name: TypeName::Literal("i32".into()),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -95,7 +100,8 @@ mod tests {
                     position: Span::default()
                 },
                 type_name: TypeName::Tuple(vec![TypeName::Literal("i32".into()); 2]),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -121,7 +127,8 @@ mod tests {
                     params: vec![TypeName::Literal("i32".into()); 2],
                     return_type: Box::new(TypeName::Literal("i32".into()))
                 },
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
