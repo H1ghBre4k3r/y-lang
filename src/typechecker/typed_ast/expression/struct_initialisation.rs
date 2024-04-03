@@ -16,9 +16,18 @@ impl TypeCheckable for StructInitialisation<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let context = ctx.clone();
 
-        let StructInitialisation { id, fields, .. } = self;
+        let StructInitialisation {
+            id,
+            fields,
+            position: struct_position,
+            ..
+        } = self;
 
-        let Id { name, position, .. } = id;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = id;
 
         let Some(Type::Struct(struct_type_name, struct_type_fields)) = ctx.scope.get_type(&name)
         else {
@@ -89,15 +98,21 @@ impl TypeCheckable for StructInitialisation<()> {
             id: Id {
                 name,
                 info: info.clone(),
-                position,
+                position: id_position,
             },
             fields: checked_fields,
             info,
+            position: struct_position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
-        let StructInitialisation { id, fields, .. } = this;
+        let StructInitialisation {
+            id,
+            fields,
+            position,
+            ..
+        } = this;
 
         StructInitialisation {
             id: Id {
@@ -107,6 +122,7 @@ impl TypeCheckable for StructInitialisation<()> {
             },
             fields: fields.iter().map(TypeCheckable::revert).collect(),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -117,9 +133,18 @@ impl TypeCheckable for StructFieldInitialisation<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let context = ctx.clone();
 
-        let StructFieldInitialisation { name, value, .. } = self;
+        let StructFieldInitialisation {
+            name,
+            value,
+            position: struct_position,
+            ..
+        } = self;
 
-        let Id { name, position, .. } = name;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = name;
 
         let value = value.check(ctx)?;
 
@@ -131,15 +156,21 @@ impl TypeCheckable for StructFieldInitialisation<()> {
             name: Id {
                 name,
                 info: info.clone(),
-                position,
+                position: id_position,
             },
             value,
             info,
+            position: struct_position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
-        let StructFieldInitialisation { name, value, .. } = this;
+        let StructFieldInitialisation {
+            name,
+            value,
+            position,
+            ..
+        } = this;
 
         StructFieldInitialisation {
             name: Id {
@@ -149,6 +180,7 @@ impl TypeCheckable for StructFieldInitialisation<()> {
             },
             value: TypeCheckable::revert(value),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -192,6 +224,7 @@ mod tests {
             },
             fields: vec![],
             info: (),
+            position: Span::default(),
         };
 
         let init = init.check(&mut ctx)?;
@@ -254,6 +287,7 @@ mod tests {
                     },
                     value: Expression::Num(Num::Integer(42, (), Span::default())),
                     info: (),
+                    position: Span::default(),
                 },
                 StructFieldInitialisation {
                     name: Id {
@@ -263,9 +297,11 @@ mod tests {
                     },
                     value: Expression::Num(Num::FloatingPoint(133.7, (), Span::default())),
                     info: (),
+                    position: Span::default(),
                 },
             ],
             info: (),
+            position: Span::default(),
         };
 
         let init = init.check(&mut ctx)?;
@@ -344,6 +380,7 @@ mod tests {
                     },
                     value: Expression::Num(Num::FloatingPoint(133.7, (), Span::default())),
                     info: (),
+                    position: Span::default(),
                 },
                 StructFieldInitialisation {
                     name: Id {
@@ -353,9 +390,11 @@ mod tests {
                     },
                     value: Expression::Num(Num::Integer(42, (), Span::default())),
                     info: (),
+                    position: Span::default(),
                 },
             ],
             info: (),
+            position: Span::default(),
         };
 
         let init = init.check(&mut ctx)?;
@@ -460,8 +499,10 @@ mod tests {
                     position: Span::default(),
                 }),
                 info: (),
+                position: Span::default(),
             }],
             info: (),
+            position: Span::default(),
         };
 
         init.check(&mut ctx)?;
