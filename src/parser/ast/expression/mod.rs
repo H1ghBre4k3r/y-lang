@@ -75,9 +75,9 @@ where
             Expression::Function(Function { position, .. }) => position.clone(),
             Expression::Lambda(Lambda { position, .. }) => position.clone(),
             Expression::If(If { position, .. }) => position.clone(),
-            Expression::Block(_) => todo!(),
-            Expression::Parens(_) => todo!(),
-            Expression::Postfix(_) => todo!(),
+            Expression::Block(Block { position, .. }) => position.clone(),
+            Expression::Parens(expr) => expr.position(),
+            Expression::Postfix(postfix_expr) => postfix_expr.position(),
             Expression::Prefix(_) => todo!(),
             Expression::Binary(_) => todo!(),
             Expression::Array(_) => todo!(),
@@ -200,6 +200,8 @@ impl Expression<()> {
         expr: Expression<()>,
         tokens: &mut ParseState<Token>,
     ) -> Result<Postfix<()>, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::LPAREN >> (Comb::EXPR % Comb::COMMA) >> Comb::RPAREN;
 
         let result = matcher.parse(tokens)?.into_iter();
@@ -218,6 +220,7 @@ impl Expression<()> {
             expr: Box::new(expr),
             args,
             info: (),
+            position,
         })
     }
 
@@ -225,6 +228,8 @@ impl Expression<()> {
         expr: Expression<()>,
         tokens: &mut ParseState<Token>,
     ) -> Result<Postfix<()>, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::RBRACKET;
 
         let result = matcher.parse(tokens)?;
@@ -237,6 +242,7 @@ impl Expression<()> {
             expr: Box::new(expr),
             index: Box::new(index),
             info: (),
+            position,
         })
     }
 
@@ -244,6 +250,8 @@ impl Expression<()> {
         expr: Expression<()>,
         tokens: &mut ParseState<Token>,
     ) -> Result<Postfix<()>, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::DOT >> Comb::ID;
 
         let result = matcher.parse(tokens)?;
@@ -256,6 +264,7 @@ impl Expression<()> {
             expr: Box::new(expr),
             property,
             info: (),
+            position,
         })
     }
 
@@ -526,6 +535,7 @@ mod tests {
                         }
                     )))],
                     info: (),
+                    position: Span::default()
                 })),
                 info: (),
                 position: Span::default()
@@ -585,7 +595,8 @@ mod tests {
                     position: Span::default()
                 })),
                 args: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -647,6 +658,7 @@ mod tests {
                     Expression::Num(Num::Integer(1337, (), Span::default()))
                 ],
                 info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -706,7 +718,8 @@ mod tests {
                     position: Span::default()
                 })),
                 index: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -804,7 +817,8 @@ mod tests {
                     info: (),
                     position: Span::default()
                 },
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -829,14 +843,16 @@ mod tests {
                         position: Span::default()
                     })),
                     args: vec![],
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 })),
                 property: Id {
                     name: "bar".into(),
                     info: (),
                     position: Span::default()
                 },
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -876,7 +892,8 @@ mod tests {
                         position: Span::default()
                     })),
                     args: vec![],
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }))
             })
             .into()),
@@ -917,7 +934,8 @@ mod tests {
                         position: Span::default()
                     })),
                     args: vec![],
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }))
             })
             .into()),
