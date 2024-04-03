@@ -232,7 +232,7 @@ where
             Statement::WhileLoop(_) => todo!(),
             Statement::Initialization(_) => todo!(),
             Statement::Constant(_) => todo!(),
-            Statement::Assignment(_) => todo!(),
+            Statement::Assignment(Assignment { position, .. }) => position.clone(),
             Statement::Expression(exp) => exp.position(),
             Statement::YieldingExpression(exp) => exp.position(),
             Statement::Return(exp) => exp.position(),
@@ -423,7 +423,8 @@ mod tests {
                     position: Span::default()
                 },
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
