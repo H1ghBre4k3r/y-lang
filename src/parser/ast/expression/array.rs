@@ -1,5 +1,5 @@
 use crate::{
-    lexer::{GetPosition, Token},
+    lexer::{Span, Token},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
 
@@ -10,11 +10,13 @@ pub enum Array<T> {
     Literal {
         values: Vec<Expression<T>>,
         info: T,
+        position: Span,
     },
     Default {
         initial_value: Box<Expression<T>>,
         length: Num<T>,
         info: T,
+        position: Span,
     },
 }
 
@@ -28,11 +30,18 @@ where
             Array::Default { info, .. } => info.clone(),
         }
     }
+
+    pub fn position(&self) -> Span {
+        match self {
+            Array::Literal { position, .. } => position.clone(),
+            Array::Default { position, .. } => position.clone(),
+        }
+    }
 }
 
 impl FromTokens<Token> for Array<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.peek().map(|token| token.position());
+        let position = tokens.span()?;
         let start = tokens.get_index();
         let matcher = Comb::LBRACKET >> (Comb::EXPR % Comb::COMMA) >> Comb::RBRACKET;
 
@@ -45,7 +54,12 @@ impl FromTokens<Token> for Array<()> {
                 };
                 values.push(value);
             }
-            return Ok(Array::Literal { values, info: () }.into());
+            return Ok(Array::Literal {
+                values,
+                info: (),
+                position,
+            }
+            .into());
         }
         tokens.set_index(start);
 
@@ -63,13 +77,14 @@ impl FromTokens<Token> for Array<()> {
                 initial_value: Box::new(initial_value),
                 length,
                 info: (),
+                position,
             }
             .into());
         };
 
         Err(ParseError {
             message: "failed to parse array initialization".into(),
-            position,
+            position: Some(position),
         })
     }
 }
@@ -94,7 +109,8 @@ mod tests {
         assert_eq!(
             Ok(Array::Literal {
                 values: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -115,7 +131,8 @@ mod tests {
                     Expression::Num(Num::Integer(42, (), Span::default())),
                     Expression::Num(Num::Integer(1337, (), Span::default())),
                 ],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -134,7 +151,8 @@ mod tests {
             Ok(Array::Default {
                 initial_value: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
                 length: Num::Integer(5, (), Span::default()),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result

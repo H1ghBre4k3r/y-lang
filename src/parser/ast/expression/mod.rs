@@ -80,7 +80,7 @@ where
             Expression::Postfix(postfix_expr) => postfix_expr.position(),
             Expression::Prefix(prefix_expr) => prefix_expr.position(),
             Expression::Binary(binary_exp) => binary_exp.position(),
-            Expression::Array(_) => todo!(),
+            Expression::Array(arr) => arr.position(),
             Expression::StructInitialisation(_) => todo!(),
         }
     }
@@ -691,7 +691,8 @@ mod tests {
         assert_eq!(
             Ok(Expression::Array(Array::Literal {
                 values: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
@@ -712,7 +713,8 @@ mod tests {
                     Expression::Num(Num::Integer(42, (), Span::default())),
                     Expression::Num(Num::Integer(1337, (), Span::default()))
                 ],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result
