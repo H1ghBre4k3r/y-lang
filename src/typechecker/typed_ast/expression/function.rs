@@ -40,9 +40,12 @@ impl TypeCheckable for Function<()> {
         }
 
         let Ok(return_type_id) = Type::try_from((&return_type, &*ctx)) else {
-            return Err(TypeCheckError::UndefinedType(UndefinedType {
-                type_name: return_type,
-            }));
+            return Err(TypeCheckError::UndefinedType(
+                UndefinedType {
+                    type_name: return_type,
+                },
+                position,
+            ));
         };
 
         let mut checked_statements = vec![];
@@ -59,27 +62,36 @@ impl TypeCheckable for Function<()> {
                 match inner.as_ref() {
                     Some(inner_type) => {
                         if *inner_type != return_type_id {
-                            return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                                expected: return_type_id,
-                                actual: inner_type.clone(),
-                            }));
+                            return Err(TypeCheckError::TypeMismatch(
+                                TypeMismatch {
+                                    expected: return_type_id,
+                                    actual: inner_type.clone(),
+                                },
+                                last_stmt.position(),
+                            ));
                         }
                     }
                     None if return_type_id == Type::Void => {}
                     None => {
-                        return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                            expected: return_type_id,
-                            actual: Type::Void,
-                        }))
+                        return Err(TypeCheckError::TypeMismatch(
+                            TypeMismatch {
+                                expected: return_type_id,
+                                actual: Type::Void,
+                            },
+                            position,
+                        ))
                     }
                 }
             }
             None if return_type_id == Type::Void => {}
             None => {
-                return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                    expected: return_type_id,
-                    actual: Type::Void,
-                }))
+                return Err(TypeCheckError::TypeMismatch(
+                    TypeMismatch {
+                        expected: return_type_id,
+                        actual: Type::Void,
+                    },
+                    position,
+                ))
             }
         }
 
@@ -110,15 +122,18 @@ impl TypeCheckable for Function<()> {
             position,
         };
 
-        if let Some(Id { name, .. }) = &func.id {
+        if let Some(Id { name, position, .. }) = &func.id {
             if ctx
                 .scope
                 .add_variable(name, Expression::Function(func.clone()))
                 .is_err()
             {
-                return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
-                    constant_name: name.to_string(),
-                }));
+                return Err(TypeCheckError::RedefinedConstant(
+                    RedefinedConstant {
+                        constant_name: name.to_string(),
+                    },
+                    position.clone(),
+                ));
             }
         }
 
@@ -188,9 +203,12 @@ impl TypeCheckable for FunctionParameter<()> {
             .add_variable(&id.name, Expression::Id(id.clone()))
             .is_err()
         {
-            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
-                constant_name: id.name,
-            }));
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: id.name,
+                },
+                id_position,
+            ));
         };
 
         Ok(FunctionParameter {
@@ -397,10 +415,13 @@ mod tests {
 
         assert_eq!(
             res,
-            Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                expected: Type::Void,
-                actual: Type::Integer
-            }))
+            Err(TypeCheckError::TypeMismatch(
+                TypeMismatch {
+                    expected: Type::Void,
+                    actual: Type::Integer
+                },
+                Span::default()
+            ))
         );
 
         Ok(())

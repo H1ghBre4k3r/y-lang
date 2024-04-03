@@ -65,13 +65,16 @@ impl TypeCheckable for Lambda<()> {
 
 impl TypedConstruct for Lambda<TypeInformation> {
     fn update_type(&mut self, type_id: Type) -> Result<(), TypeCheckError> {
-        let err = Err(TypeCheckError::TypeMismatch(TypeMismatch {
-            expected: Type::Function {
-                params: vec![Type::Unknown; self.parameters.len()],
-                return_value: Box::new(Type::Unknown),
+        let err = Err(TypeCheckError::TypeMismatch(
+            TypeMismatch {
+                expected: Type::Function {
+                    params: vec![Type::Unknown; self.parameters.len()],
+                    return_value: Box::new(Type::Unknown),
+                },
+                actual: type_id.clone(),
             },
-            actual: type_id.clone(),
-        }));
+            self.position.clone(),
+        ));
 
         // check, if we have function
         let Type::Function {
@@ -88,10 +91,13 @@ impl TypedConstruct for Lambda<TypeInformation> {
             }
 
             // TODO: maybe use different error for this
-            return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                expected: current_type.clone(),
-                actual: type_id,
-            }));
+            return Err(TypeCheckError::TypeMismatch(
+                TypeMismatch {
+                    expected: current_type.clone(),
+                    actual: type_id,
+                },
+                self.position.clone(),
+            ));
         }
 
         // check for correct arity
@@ -124,9 +130,12 @@ impl TypedConstruct for Lambda<TypeInformation> {
                 )
                 .is_err()
             {
-                return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
-                    constant_name: name.to_string(),
-                }));
+                return Err(TypeCheckError::RedefinedConstant(
+                    RedefinedConstant {
+                        constant_name: name.to_string(),
+                    },
+                    position.clone(),
+                ));
             }
         }
 
@@ -137,10 +146,13 @@ impl TypedConstruct for Lambda<TypeInformation> {
         // check, if return types match
         if let Some(expr_type) = expr.get_info().type_id.borrow_mut().as_ref() {
             if *expr_type != *return_value {
-                return Err(TypeCheckError::TypeMismatch(TypeMismatch {
-                    expected: expr_type.clone(),
-                    actual: *return_value.clone(),
-                }));
+                return Err(TypeCheckError::TypeMismatch(
+                    TypeMismatch {
+                        expected: expr_type.clone(),
+                        actual: *return_value.clone(),
+                    },
+                    expr.position(),
+                ));
             }
         }
 
@@ -185,9 +197,12 @@ impl TypeCheckable for LambdaParameter<()> {
             .add_variable(&id.name, Expression::Id(id.clone()))
             .is_err()
         {
-            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
-                constant_name: id.name,
-            }));
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: id.name,
+                },
+                param_position,
+            ));
         }
 
         Ok(LambdaParameter {

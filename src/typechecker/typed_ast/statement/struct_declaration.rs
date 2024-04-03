@@ -109,7 +109,12 @@ impl TypeCheckable for StructFieldDeclaration<()> {
 
         let type_id = match Type::try_from((&type_name, &*ctx)) {
             Ok(type_id) => type_id,
-            Err(_) => return Err(TypeCheckError::UndefinedType(UndefinedType { type_name })),
+            Err(_) => {
+                return Err(TypeCheckError::UndefinedType(
+                    UndefinedType { type_name },
+                    position,
+                ))
+            }
         };
 
         let info = TypeInformation {

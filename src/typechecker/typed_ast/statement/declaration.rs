@@ -49,9 +49,12 @@ impl TypeCheckable for Declaration<()> {
             .add_variable(&id.name, Expression::Id(id.clone()))
             .is_err()
         {
-            return Err(TypeCheckError::RedefinedConstant(RedefinedConstant {
-                constant_name: id.name,
-            }));
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: id.name,
+                },
+                id.position,
+            ));
         }
 
         Ok(Declaration {

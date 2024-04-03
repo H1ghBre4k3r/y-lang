@@ -52,7 +52,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let typechecker = TypeChecker::new(statements);
-    let checked = typechecker.check()?;
+    let checked = match typechecker.check() {
+        Ok(checked) => checked,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(-1);
+        }
+    };
 
     println!("{checked:#?}");
     Ok(())

@@ -15,9 +15,12 @@ impl TypeCheckable for Id<()> {
         let Id { name, position, .. } = self;
 
         let Some(type_id) = ctx.scope.resolve_name(&name) else {
-            return Err(TypeCheckError::UndefinedVariable(UndefinedVariable {
-                variable_name: name,
-            }));
+            return Err(TypeCheckError::UndefinedVariable(
+                UndefinedVariable {
+                    variable_name: name,
+                },
+                position,
+            ));
         };
 
         Ok(Id {
@@ -143,9 +146,12 @@ mod tests {
 
         assert_eq!(
             res,
-            Err(TypeCheckError::UndefinedVariable(UndefinedVariable {
-                variable_name: "foo".into()
-            }))
+            Err(TypeCheckError::UndefinedVariable(
+                UndefinedVariable {
+                    variable_name: "foo".into()
+                },
+                Span::default()
+            ))
         );
 
         Ok(())

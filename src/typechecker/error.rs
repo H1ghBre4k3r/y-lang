@@ -1,26 +1,42 @@
 use std::{error::Error, fmt::Display};
 
-use crate::parser::ast::TypeName;
+use crate::{lexer::Span, parser::ast::TypeName};
 
 use super::types::Type;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TypeCheckError {
-    TypeMismatch(TypeMismatch),
-    UndefinedVariable(UndefinedVariable),
-    UndefinedType(UndefinedType),
-    InvalidConstantType(InvalidConstantType),
-    RedefinedConstant(RedefinedConstant),
+    TypeMismatch(TypeMismatch, Span),
+    UndefinedVariable(UndefinedVariable, Span),
+    UndefinedType(UndefinedType, Span),
+    InvalidConstantType(InvalidConstantType, Span),
+    RedefinedConstant(RedefinedConstant, Span),
 }
 
 impl Display for TypeCheckError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.span().to_string(self.err()).as_str())
+    }
+}
+
+impl TypeCheckError {
+    fn span(&self) -> Span {
         match self {
-            TypeCheckError::TypeMismatch(e) => f.write_fmt(format_args!("{e}")),
-            TypeCheckError::UndefinedVariable(e) => f.write_fmt(format_args!("{e}")),
-            TypeCheckError::UndefinedType(e) => f.write_fmt(format_args!("{e}")),
-            TypeCheckError::InvalidConstantType(e) => f.write_fmt(format_args!("{e}")),
-            TypeCheckError::RedefinedConstant(e) => f.write_fmt(format_args!("{e}")),
+            TypeCheckError::TypeMismatch(_, span) => span.clone(),
+            TypeCheckError::UndefinedVariable(_, span) => span.clone(),
+            TypeCheckError::UndefinedType(_, span) => span.clone(),
+            TypeCheckError::InvalidConstantType(_, span) => span.clone(),
+            TypeCheckError::RedefinedConstant(_, span) => span.clone(),
+        }
+    }
+
+    fn err(&self) -> Box<dyn Error> {
+        match self {
+            TypeCheckError::TypeMismatch(e, _) => Box::new(e.clone()),
+            TypeCheckError::UndefinedVariable(e, _) => Box::new(e.clone()),
+            TypeCheckError::UndefinedType(e, _) => Box::new(e.clone()),
+            TypeCheckError::InvalidConstantType(e, _) => Box::new(e.clone()),
+            TypeCheckError::RedefinedConstant(e, _) => Box::new(e.clone()),
         }
     }
 }
