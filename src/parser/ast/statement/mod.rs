@@ -292,6 +292,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(3, (), Span::default())),
                         right: Expression::Num(Num::Integer(4, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
@@ -299,6 +300,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(42, (), Span::default())),
                         right: Expression::Num(Num::Integer(1337, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 info: (),
@@ -330,6 +332,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(3, (), Span::default())),
                         right: Expression::Num(Num::Integer(4, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
@@ -337,6 +340,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(42, (), Span::default())),
                         right: Expression::Num(Num::Integer(1337, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 info: (),
@@ -368,6 +372,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(3, (), Span::default())),
                         right: Expression::Num(Num::Integer(4, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
@@ -375,6 +380,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(42, (), Span::default())),
                         right: Expression::Num(Num::Integer(1337, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 info: (),
