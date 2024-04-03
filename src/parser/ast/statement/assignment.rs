@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Expression, Id},
         combinators::Comb,
@@ -12,10 +12,13 @@ pub struct Assignment<T> {
     pub id: Id<T>,
     pub value: Expression<T>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Assignment<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::ID >> Comb::ASSIGN;
 
         let result = matcher.parse(tokens)?;
@@ -39,6 +42,7 @@ impl FromTokens<Token> for Assignment<()> {
             id: id.clone(),
             value: value.clone(),
             info: (),
+            position,
         }
         .into())
     }
