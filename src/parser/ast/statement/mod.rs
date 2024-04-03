@@ -229,7 +229,7 @@ where
         match self {
             Statement::Function(Function { position, .. }) => position.clone(),
             Statement::If(If { position, .. }) => position.clone(),
-            Statement::WhileLoop(_) => todo!(),
+            Statement::WhileLoop(WhileLoop { position, .. }) => position.clone(),
             Statement::Initialization(Initialisation { position, .. }) => position.clone(),
             Statement::Constant(Constant { position, .. }) => position.clone(),
             Statement::Assignment(Assignment { position, .. }) => position.clone(),
