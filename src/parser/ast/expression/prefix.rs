@@ -1,9 +1,17 @@
+use crate::lexer::Span;
+
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prefix<T> {
-    Negation { expr: Box<Expression<T>> },
-    Minus { expr: Box<Expression<T>> },
+    Negation {
+        expr: Box<Expression<T>>,
+        position: Span,
+    },
+    Minus {
+        expr: Box<Expression<T>>,
+        position: Span,
+    },
 }
 
 impl<T> Prefix<T>
@@ -12,8 +20,15 @@ where
 {
     pub fn get_info(&self) -> T {
         match self {
-            Prefix::Negation { expr } => expr.get_info(),
-            Prefix::Minus { expr } => expr.get_info(),
+            Prefix::Negation { expr, .. } => expr.get_info(),
+            Prefix::Minus { expr, .. } => expr.get_info(),
+        }
+    }
+
+    pub fn position(&self) -> Span {
+        match self {
+            Prefix::Negation { position, .. } => position.clone(),
+            Prefix::Minus { position, .. } => position.clone(),
         }
     }
 }
