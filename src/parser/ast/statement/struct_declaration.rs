@@ -154,7 +154,7 @@ mod tests {
                         info: (),
                         position: Span::default()
                     },
-                    type_name: TypeName::Literal("u32".into()),
+                    type_name: TypeName::Literal("u32".into(), Span::default()),
                     info: (),
                     position: Span::default()
                 }],
@@ -194,7 +194,7 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        type_name: TypeName::Literal("u32".into()),
+                        type_name: TypeName::Literal("u32".into(), Span::default()),
                         info: (),
                         position: Span::default()
                     },
@@ -204,7 +204,10 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        type_name: TypeName::Array(Box::new(TypeName::Literal("f64".into()))),
+                        type_name: TypeName::Array(
+                            Box::new(TypeName::Literal("f64".into(), Span::default())),
+                            Span::default()
+                        ),
                         info: (),
                         position: Span::default()
                     }

@@ -60,7 +60,7 @@ where
     fn try_from((value, ctx): (T, &Context)) -> Result<Self, Self::Error> {
         let value = value.into();
         match &value {
-            TypeName::Literal(lit) => match lit.as_str() {
+            TypeName::Literal(lit, _) => match lit.as_str() {
                 "i64" => Ok(Type::Integer),
                 "f64" => Ok(Type::FloatingPoint),
                 "void" => Ok(Type::Void),
@@ -72,6 +72,7 @@ where
             TypeName::Fn {
                 params,
                 return_type,
+                ..
             } => {
                 let mut new_params = vec![];
 
@@ -84,7 +85,7 @@ where
                     return_value: Box::new((return_type.borrow(), ctx).try_into()?),
                 })
             }
-            TypeName::Tuple(inner) => {
+            TypeName::Tuple(inner, _) => {
                 let mut elements = vec![];
 
                 for el in inner.iter() {
@@ -93,8 +94,10 @@ where
 
                 Ok(Type::Tuple(elements))
             }
-            TypeName::Array(inner) => Ok(Type::Array(Box::new((inner.borrow(), ctx).try_into()?))),
-            TypeName::Reference(inner) => {
+            TypeName::Array(inner, _) => {
+                Ok(Type::Array(Box::new((inner.borrow(), ctx).try_into()?)))
+            }
+            TypeName::Reference(inner, _) => {
                 Ok(Type::Reference(Box::new((inner.borrow(), ctx).try_into()?)))
             }
         }
@@ -106,6 +109,7 @@ mod tests {
     use std::error::Error;
 
     use crate::{
+        lexer::Span,
         parser::ast::TypeName,
         typechecker::{context::Context, types::Type},
     };
@@ -115,12 +119,12 @@ mod tests {
         let ctx = Context::default();
 
         assert_eq!(
-            Type::try_from((TypeName::Literal("i64".into()), &ctx)),
+            Type::try_from((TypeName::Literal("i64".into(), Span::default()), &ctx)),
             Ok(Type::Integer)
         );
 
         assert_eq!(
-            Type::try_from((TypeName::Literal("f64".into()), &ctx)),
+            Type::try_from((TypeName::Literal("f64".into(), Span::default()), &ctx)),
             Ok(Type::FloatingPoint)
         );
     }
@@ -128,9 +132,9 @@ mod tests {
     #[test]
     fn test_invalid_literal() {
         let ctx = Context::default();
-        assert!(Type::try_from((TypeName::Literal("f32".into()), &ctx)).is_err());
-        assert!(Type::try_from((TypeName::Literal("i32".into()), &ctx)).is_err());
-        assert!(Type::try_from((TypeName::Literal("foo".into()), &ctx)).is_err());
+        assert!(Type::try_from((TypeName::Literal("f32".into(), Span::default()), &ctx)).is_err());
+        assert!(Type::try_from((TypeName::Literal("i32".into(), Span::default()), &ctx)).is_err());
+        assert!(Type::try_from((TypeName::Literal("foo".into(), Span::default()), &ctx)).is_err());
     }
 
     #[test]
@@ -140,7 +144,7 @@ mod tests {
             .add_type("Foo", Type::Array(Box::new(Type::Integer)))?;
 
         assert_eq!(
-            Type::try_from((TypeName::Literal("Foo".into()), &ctx)),
+            Type::try_from((TypeName::Literal("Foo".into(), Span::default()), &ctx)),
             Ok(Type::Array(Box::new(Type::Integer)))
         );
 
@@ -153,7 +157,10 @@ mod tests {
 
         assert_eq!(
             Type::try_from((
-                TypeName::Reference(Box::new(TypeName::Literal("i64".into()))),
+                TypeName::Reference(
+                    Box::new(TypeName::Literal("i64".into(), Span::default())),
+                    Span::default()
+                ),
                 &ctx
             )),
             Ok(Type::Reference(Box::new(Type::Integer)))
@@ -166,10 +173,13 @@ mod tests {
 
         assert_eq!(
             Type::try_from((
-                TypeName::Tuple(vec![
-                    TypeName::Literal("i64".into()),
-                    TypeName::Literal("f64".into())
-                ]),
+                TypeName::Tuple(
+                    vec![
+                        TypeName::Literal("i64".into(), Span::default()),
+                        TypeName::Literal("f64".into(), Span::default())
+                    ],
+                    Span::default()
+                ),
                 &ctx
             )),
             Ok(Type::Tuple(vec![Type::Integer, Type::FloatingPoint]))
@@ -182,7 +192,10 @@ mod tests {
 
         assert_eq!(
             Type::try_from((
-                TypeName::Array(Box::new(TypeName::Literal("i64".into()))),
+                TypeName::Array(
+                    Box::new(TypeName::Literal("i64".into(), Span::default())),
+                    Span::default()
+                ),
                 &ctx
             )),
             Ok(Type::Array(Box::new(Type::Integer)))
@@ -195,10 +208,11 @@ mod tests {
 
         let func = TypeName::Fn {
             params: vec![
-                TypeName::Literal("i64".into()),
-                TypeName::Literal("f64".into()),
+                TypeName::Literal("i64".into(), Span::default()),
+                TypeName::Literal("f64".into(), Span::default()),
             ],
-            return_type: Box::new(TypeName::Literal("f64".into())),
+            return_type: Box::new(TypeName::Literal("f64".into(), Span::default())),
+            position: Span::default(),
         };
 
         assert_eq!(

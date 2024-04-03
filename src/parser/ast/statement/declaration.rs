@@ -75,7 +75,7 @@ mod tests {
                     info: (),
                     position: Span::default()
                 },
-                type_name: TypeName::Literal("i32".into()),
+                type_name: TypeName::Literal("i32".into(), Span::default()),
                 info: (),
                 position: Span::default()
             }
@@ -99,7 +99,10 @@ mod tests {
                     info: (),
                     position: Span::default()
                 },
-                type_name: TypeName::Tuple(vec![TypeName::Literal("i32".into()); 2]),
+                type_name: TypeName::Tuple(
+                    vec![TypeName::Literal("i32".into(), Span::default()); 2],
+                    Span::default()
+                ),
                 info: (),
                 position: Span::default()
             }
@@ -124,8 +127,9 @@ mod tests {
                     position: Span::default()
                 },
                 type_name: TypeName::Fn {
-                    params: vec![TypeName::Literal("i32".into()); 2],
-                    return_type: Box::new(TypeName::Literal("i32".into()))
+                    params: vec![TypeName::Literal("i32".into(), Span::default()); 2],
+                    return_type: Box::new(TypeName::Literal("i32".into(), Span::default())),
+                    position: Span::default()
                 },
                 info: (),
                 position: Span::default()

@@ -4,7 +4,7 @@ use crate::{
     parser::ast::{Id, Initialisation},
     typechecker::{
         context::Context,
-        error::{RedefinedConstant, TypeCheckError, TypeMismatch},
+        error::{RedefinedConstant, TypeCheckError, TypeMismatch, UndefinedType},
         types::Type,
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
@@ -38,7 +38,7 @@ impl TypeCheckable for Initialisation<()> {
         // check for annotated type
         if let Some(type_name) = type_name.clone() {
             // is it actually a valid type?
-            if let Ok(type_id) = Type::try_from((type_name, ctx.borrow())) {
+            if let Ok(type_id) = Type::try_from((&type_name, ctx.borrow())) {
                 // check of type of associated expression
                 let inner = info.type_id.clone();
                 let mut inner = inner.borrow_mut();
@@ -66,8 +66,12 @@ impl TypeCheckable for Initialisation<()> {
                         *inner = Some(type_id);
                     }
                 }
-            } else if info.type_id.borrow_mut().is_none() {
-                todo!()
+            } else {
+                let position = type_name.position();
+                return Err(TypeCheckError::UndefinedType(
+                    UndefinedType { type_name },
+                    position,
+                ));
             }
         }
 
@@ -245,7 +249,7 @@ mod tests {
                 position: Span::default(),
             },
             mutable: false,
-            type_name: Some(TypeName::Literal("f64".into())),
+            type_name: Some(TypeName::Literal("f64".into(), Span::default())),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
             position: Span::default(),

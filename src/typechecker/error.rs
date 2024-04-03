@@ -83,10 +83,7 @@ pub struct UndefinedType {
 
 impl Display for UndefinedType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "Tried to use undefined type {:?}",
-            self.type_name
-        ))
+        f.write_fmt(format_args!("Undefined type {}", self.type_name))
     }
 }
 
@@ -100,7 +97,7 @@ pub struct InvalidConstantType {
 impl Display for InvalidConstantType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "Constant '{}' needs to have an annotated type",
+            "Constant '{}' needs to have a valid annotated type",
             self.constant_name
         ))
     }

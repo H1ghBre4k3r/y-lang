@@ -130,7 +130,7 @@ mod tests {
                     position: Span::default()
                 },
                 mutable: false,
-                type_name: Some(TypeName::Literal("i32".into())),
+                type_name: Some(TypeName::Literal("i32".into(), Span::default())),
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: (),
                 position: Span::default()

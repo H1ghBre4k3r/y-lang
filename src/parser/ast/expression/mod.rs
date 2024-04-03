@@ -410,7 +410,7 @@ mod tests {
                 id: None,
                 parameters: vec![],
                 statements: vec![],
-                return_type: TypeName::Literal("i32".into()),
+                return_type: TypeName::Literal("i32".into(), Span::default()),
                 info: (),
                 position: Span::default()
             })
@@ -442,7 +442,7 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        type_name: TypeName::Literal("i32".into()),
+                        type_name: TypeName::Literal("i32".into(), Span::default()),
                         info: (),
                         position: Span::default()
                     },
@@ -452,12 +452,12 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        type_name: TypeName::Literal("i32".into()),
+                        type_name: TypeName::Literal("i32".into(), Span::default()),
                         info: (),
                         position: Span::default()
                     }
                 ],
-                return_type: TypeName::Literal("i32".into()),
+                return_type: TypeName::Literal("i32".into(), Span::default()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
                     BinaryExpression::Addition {
                         left: Expression::Id(Id {
