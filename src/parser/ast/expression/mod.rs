@@ -81,7 +81,9 @@ where
             Expression::Prefix(prefix_expr) => prefix_expr.position(),
             Expression::Binary(binary_exp) => binary_exp.position(),
             Expression::Array(arr) => arr.position(),
-            Expression::StructInitialisation(_) => todo!(),
+            Expression::StructInitialisation(StructInitialisation { position, .. }) => {
+                position.clone()
+            }
         }
     }
 }
@@ -770,7 +772,8 @@ mod tests {
                             position: Span::default()
                         },
                         value: Expression::Num(Num::Integer(42, (), Span::default())),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     StructFieldInitialisation {
                         name: Id {
@@ -807,10 +810,12 @@ mod tests {
                             info: (),
                             position: Span::default()
                         }),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result

@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
 
@@ -10,10 +10,13 @@ pub struct StructInitialisation<T> {
     pub id: Id<T>,
     pub fields: Vec<StructFieldInitialisation<T>>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for StructInitialisation<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::ID
             >> Comb::LBRACE
             >> (Comb::STRUCT_FIELD_INITIALISATION % Comb::COMMA)
@@ -35,6 +38,7 @@ impl FromTokens<Token> for StructInitialisation<()> {
             id,
             fields,
             info: (),
+            position,
         }
         .into())
     }
@@ -51,10 +55,13 @@ pub struct StructFieldInitialisation<T> {
     pub name: Id<T>,
     pub value: Expression<T>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for StructFieldInitialisation<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::ID >> Comb::COLON >> Comb::EXPR;
 
         let result = matcher.parse(tokens)?;
@@ -71,6 +78,7 @@ impl FromTokens<Token> for StructFieldInitialisation<()> {
             name: name.clone(),
             value: value.clone(),
             info: (),
+            position,
         }
         .into())
     }
@@ -111,7 +119,8 @@ mod tests {
                     position: Span::default()
                 },
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -135,7 +144,8 @@ mod tests {
                     position: Span::default()
                 },
                 fields: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -165,9 +175,11 @@ mod tests {
                         position: Span::default()
                     },
                     value: Expression::Num(Num::Integer(42, (), Span::default())),
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -198,7 +210,8 @@ mod tests {
                             position: Span::default()
                         },
                         value: Expression::Num(Num::Integer(42, (), Span::default())),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     StructFieldInitialisation {
                         name: Id {
@@ -235,10 +248,12 @@ mod tests {
                             info: (),
                             position: Span::default()
                         }),
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
