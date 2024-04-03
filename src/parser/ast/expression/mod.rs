@@ -79,7 +79,7 @@ where
             Expression::Parens(expr) => expr.position(),
             Expression::Postfix(postfix_expr) => postfix_expr.position(),
             Expression::Prefix(prefix_expr) => prefix_expr.position(),
-            Expression::Binary(_) => todo!(),
+            Expression::Binary(binary_exp) => binary_exp.position(),
             Expression::Array(_) => todo!(),
             Expression::StructInitialisation(_) => todo!(),
         }
@@ -276,6 +276,8 @@ impl Expression<()> {
         lhs: Expression<()>,
         tokens: &mut ParseState<Token>,
     ) -> Result<Expression<()>, ParseError> {
+        let position = tokens.span()?;
+
         let Some(operation) = tokens.next() else {
             unreachable!()
         };
@@ -291,43 +293,50 @@ impl Expression<()> {
             Token::Plus { .. } => BinaryExpression::Addition {
                 left: lhs,
                 right: rhs,
-
                 info: (),
+                position,
             },
             Token::Minus { .. } => BinaryExpression::Substraction {
                 left: lhs,
                 right: rhs,
                 info: (),
+                position,
             },
             Token::Times { .. } => BinaryExpression::Multiplication {
                 left: lhs,
                 right: rhs,
                 info: (),
+                position,
             },
             Token::Equal { .. } => BinaryExpression::Equal {
                 left: lhs,
                 right: rhs,
                 info: (),
+                position,
             },
             Token::GreaterThan { .. } => BinaryExpression::GreaterThan {
                 left: lhs,
                 right: rhs,
                 info: (),
+                position,
             },
             Token::LessThan { .. } => BinaryExpression::LessThen {
                 left: lhs,
                 right: rhs,
                 info: (),
+                position,
             },
             Token::GreaterOrEqual { .. } => BinaryExpression::GreaterOrEqual {
                 left: lhs,
                 right: rhs,
                 info: (),
+                position,
             },
             Token::LessOrEqual { .. } => BinaryExpression::LessOrEqual {
                 left: lhs,
                 right: rhs,
                 info: (),
+                position,
             },
             _ => unreachable!(),
         };
@@ -460,6 +469,7 @@ mod tests {
                             position: Span::default()
                         }),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 info: (),
@@ -536,6 +546,7 @@ mod tests {
                                 position: Span::default()
                             }),
                             info: (),
+                            position: Span::default()
                         }
                     )))],
                     info: (),
@@ -568,6 +579,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(3, (), Span::default())),
                         right: Expression::Num(Num::Integer(4, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
@@ -575,6 +587,7 @@ mod tests {
                         left: Expression::Num(Num::Integer(42, (), Span::default())),
                         right: Expression::Num(Num::Integer(1337, (), Span::default())),
                         info: (),
+                        position: Span::default()
                     }
                 )))],
                 info: (),
@@ -652,6 +665,7 @@ mod tests {
                                 position: Span::default()
                             }),
                             info: (),
+                            position: Span::default()
                         }
                     ))),
                     info: (),
@@ -785,6 +799,7 @@ mod tests {
                                         position: Span::default()
                                     }),
                                     info: (),
+                                    position: Span::default()
                                 }
                             ))),
                             info: (),

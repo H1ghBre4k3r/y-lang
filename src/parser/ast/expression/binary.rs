@@ -1,3 +1,5 @@
+use crate::lexer::Span;
+
 use super::Expression;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -6,46 +8,55 @@ pub enum BinaryExpression<T> {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     Substraction {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     Multiplication {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     Division {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     Equal {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     GreaterThan {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     LessThen {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     GreaterOrEqual {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
     LessOrEqual {
         left: Expression<T>,
         right: Expression<T>,
         info: T,
+        position: Span,
     },
 }
 
@@ -116,73 +127,98 @@ where
             BinaryExpression::LessOrEqual { info, .. } => info.clone(),
         }
     }
+
+    pub fn position(&self) -> Span {
+        match self {
+            BinaryExpression::Addition { position, .. } => position.clone(),
+            BinaryExpression::Substraction { position, .. } => position.clone(),
+            BinaryExpression::Multiplication { position, .. } => position.clone(),
+            BinaryExpression::Division { position, .. } => position.clone(),
+            BinaryExpression::Equal { position, .. } => position.clone(),
+            BinaryExpression::GreaterThan { position, .. } => position.clone(),
+            BinaryExpression::LessThen { position, .. } => position.clone(),
+            BinaryExpression::GreaterOrEqual { position, .. } => position.clone(),
+            BinaryExpression::LessOrEqual { position, .. } => position.clone(),
+        }
+    }
 }
 
 impl BinaryExpression<()> {
-    pub fn converter(&self) -> impl Fn(Expression<()>, Expression<()>) -> BinaryExpression<()> {
+    pub fn converter(
+        &self,
+    ) -> impl Fn(Expression<()>, Expression<()>, Span) -> BinaryExpression<()> {
         match self {
             Self::Addition {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::Addition {
+            } => |left, right, position| BinaryExpression::Addition {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::Substraction {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::Substraction {
+            } => |left, right, position| BinaryExpression::Substraction {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::Multiplication {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::Multiplication {
+            } => |left, right, position| BinaryExpression::Multiplication {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::Division {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::Division {
+            } => |left, right, position| BinaryExpression::Division {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::Equal {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::Equal {
+            } => |left, right, position| BinaryExpression::Equal {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::GreaterThan {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::GreaterThan {
+            } => |left, right, position| BinaryExpression::GreaterThan {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::LessThen {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::LessThen {
+            } => |left, right, position| BinaryExpression::LessThen {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::GreaterOrEqual {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::GreaterOrEqual {
+            } => |left, right, position| BinaryExpression::GreaterOrEqual {
                 left,
                 right,
                 info: (),
+                position,
             },
             Self::LessOrEqual {
                 left: _, right: _, ..
-            } => |left, right| BinaryExpression::LessOrEqual {
+            } => |left, right, position| BinaryExpression::LessOrEqual {
                 left,
                 right,
                 info: (),
+                position,
             },
         }
     }
@@ -191,6 +227,7 @@ impl BinaryExpression<()> {
     ///
     /// Attetention: This function assumes the left hand side to be a non-binary expression!
     pub fn balance(&self) -> BinaryExpression<()> {
+        let position = self.position();
         let converter = self.converter();
         let (mut lhs, mut rhs) = self.inner();
 
@@ -198,11 +235,12 @@ impl BinaryExpression<()> {
             let precedence = rhs_binary.precedence();
             let (inner_lhs, inner_rhs) = rhs_binary.inner();
             let inner_converter = rhs_binary.converter();
+            let inner_position = rhs_binary.position();
 
             if precedence < self.precedence() {
-                lhs = Expression::Binary(Box::new(converter(lhs, inner_lhs).balance()));
+                lhs = Expression::Binary(Box::new(converter(lhs, inner_lhs, position).balance()));
                 rhs = inner_rhs;
-                return inner_converter(lhs, rhs);
+                return inner_converter(lhs, rhs, inner_position);
             }
         }
         self.clone()
@@ -240,8 +278,10 @@ mod tests {
                 left: Expression::Num(Num::Integer(1, (), Span::default())),
                 right: Expression::Num(Num::Integer(2, (), Span::default())),
                 info: (),
+                position: Span::default(),
             })),
             info: (),
+            position: Span::default(),
         };
 
         let expected = BinaryExpression::Addition {
@@ -249,9 +289,11 @@ mod tests {
                 left: Expression::Num(Num::Integer(42, (), Span::default())),
                 right: Expression::Num(Num::Integer(1, (), Span::default())),
                 info: (),
+                position: Span::default(),
             })),
             right: Expression::Num(Num::Integer(2, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         assert_eq!(expected, testee.balance());
@@ -264,9 +306,11 @@ mod tests {
                 left: Expression::Num(Num::Integer(42, (), Span::default())),
                 right: Expression::Num(Num::Integer(1, (), Span::default())),
                 info: (),
+                position: Span::default(),
             })),
             right: Expression::Num(Num::Integer(2, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         assert_eq!(testee, testee.balance());
