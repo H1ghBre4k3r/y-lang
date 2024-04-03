@@ -13,6 +13,7 @@ pub use self::struct_declaration::*;
 pub use self::while_loop::*;
 
 use crate::lexer::GetPosition;
+use crate::lexer::Span;
 use crate::{
     lexer::Token,
     parser::{combinators::Comb, FromTokens, ParseError, ParseState},
@@ -221,6 +222,23 @@ where
             Statement::Comment(_) => unimplemented!("Comments to not have type information"),
             Statement::Declaration(Declaration { info, .. }) => info.clone(),
             Statement::StructDeclaration(StructDeclaration { info, .. }) => info.clone(),
+        }
+    }
+
+    pub fn position(&self) -> Span {
+        match self {
+            Statement::Function(Function { position, .. }) => position.clone(),
+            Statement::If(If { position, .. }) => position.clone(),
+            Statement::WhileLoop(_) => todo!(),
+            Statement::Initialization(_) => todo!(),
+            Statement::Constant(_) => todo!(),
+            Statement::Assignment(_) => todo!(),
+            Statement::Expression(exp) => exp.position(),
+            Statement::YieldingExpression(exp) => exp.position(),
+            Statement::Return(exp) => exp.position(),
+            Statement::Comment(_) => todo!(),
+            Statement::Declaration(_) => todo!(),
+            Statement::StructDeclaration(_) => todo!(),
         }
     }
 }
