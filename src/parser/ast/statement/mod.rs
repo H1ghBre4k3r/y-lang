@@ -231,7 +231,7 @@ where
             Statement::If(If { position, .. }) => position.clone(),
             Statement::WhileLoop(_) => todo!(),
             Statement::Initialization(_) => todo!(),
-            Statement::Constant(_) => todo!(),
+            Statement::Constant(Constant { position, .. }) => position.clone(),
             Statement::Assignment(Assignment { position, .. }) => position.clone(),
             Statement::Expression(exp) => exp.position(),
             Statement::YieldingExpression(exp) => exp.position(),
@@ -270,7 +270,8 @@ mod tests {
                 },
                 type_name: TypeName::Literal("i32".into()),
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: ()
+                info: (),
+                position: Span::default()
             })
             .into()),
             result

@@ -18,12 +18,17 @@ impl TypeCheckable for Constant<()> {
             id,
             type_name,
             value,
+            position: const_position,
             ..
         } = self;
 
         let context = ctx.clone();
 
-        let Id { name, position, .. } = id;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = id;
 
         let mut value = value.check(ctx)?;
 
@@ -69,7 +74,7 @@ impl TypeCheckable for Constant<()> {
             id: Id {
                 name,
                 info,
-                position,
+                position: id_position,
             },
             type_name,
             value,
@@ -77,6 +82,7 @@ impl TypeCheckable for Constant<()> {
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },
+            position: const_position,
         })
     }
 
@@ -85,6 +91,7 @@ impl TypeCheckable for Constant<()> {
             id,
             type_name,
             value,
+            position,
             ..
         } = this;
 
@@ -93,6 +100,7 @@ impl TypeCheckable for Constant<()> {
             type_name: type_name.clone(),
             value: TypeCheckable::revert(value),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -127,6 +135,7 @@ mod tests {
             type_name: TypeName::Literal("i64".into()),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         let constant = constant.check(&mut ctx)?;
@@ -154,6 +163,7 @@ mod tests {
             type_name: TypeName::Literal("".into()),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         let result = constant.check(&mut ctx);
@@ -180,6 +190,7 @@ mod tests {
             type_name: TypeName::Literal("".into()),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         let result = constant.check(&mut ctx);

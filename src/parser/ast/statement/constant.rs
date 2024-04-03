@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Expression, Id, TypeName},
         combinators::Comb,
@@ -13,6 +13,7 @@ pub struct Constant<T> {
     pub type_name: TypeName,
     pub value: Expression<T>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Constant<()> {
@@ -20,6 +21,8 @@ impl FromTokens<Token> for Constant<()> {
     where
         Self: Sized,
     {
+        let position = tokens.span()?;
+
         Comb::CONST_KEYWORD.parse(tokens)?;
 
         let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME >> Comb::ASSIGN >> Comb::EXPR;
@@ -43,6 +46,7 @@ impl FromTokens<Token> for Constant<()> {
             value: value.clone(),
             type_name,
             info: (),
+            position,
         }
         .into())
     }
@@ -81,7 +85,8 @@ mod tests {
                 },
                 type_name: TypeName::Literal("i32".into()),
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
