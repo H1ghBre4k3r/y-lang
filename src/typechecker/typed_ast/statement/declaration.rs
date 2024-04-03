@@ -15,11 +15,18 @@ impl TypeCheckable for Declaration<()> {
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let Declaration {
-            name, type_name, ..
+            name,
+            type_name,
+            position: dec_position,
+            ..
         } = self;
         let context = ctx.clone();
 
-        let Id { name, position, .. } = name;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = name;
 
         let Ok(type_id) = Type::try_from((type_name.clone(), ctx.borrow())) else {
             todo!()
@@ -33,7 +40,7 @@ impl TypeCheckable for Declaration<()> {
                 type_id: type_id.clone(),
                 context: context.clone(),
             },
-            position,
+            position: id_position,
         };
 
         // TODO: check, if we are actually at top level
@@ -54,18 +61,23 @@ impl TypeCheckable for Declaration<()> {
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },
+            position: dec_position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
         let Declaration {
-            name, type_name, ..
+            name,
+            type_name,
+            position,
+            ..
         } = this;
 
         Declaration {
             name: TypeCheckable::revert(name),
             type_name: type_name.to_owned(),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -94,6 +106,7 @@ mod tests {
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),
+            position: Span::default(),
         };
 
         let dec = dec.check(&mut ctx)?;
@@ -116,6 +129,7 @@ mod tests {
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),
+            position: Span::default(),
         };
 
         dec.check(&mut ctx)?;
@@ -139,6 +153,7 @@ mod tests {
             },
             type_name: TypeName::Literal("i64".into()),
             info: (),
+            position: Span::default(),
         };
 
         let dec = dec.check(&mut ctx)?;

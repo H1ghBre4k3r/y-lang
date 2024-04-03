@@ -237,7 +237,7 @@ where
             Statement::YieldingExpression(exp) => exp.position(),
             Statement::Return(exp) => exp.position(),
             Statement::Comment(_) => todo!(),
-            Statement::Declaration(_) => todo!(),
+            Statement::Declaration(Declaration { position, .. }) => position.clone(),
             Statement::StructDeclaration(_) => todo!(),
         }
     }
