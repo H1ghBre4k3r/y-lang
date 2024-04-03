@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Expression, Id, TypeName},
         combinators::Comb,
@@ -14,6 +14,7 @@ pub struct Initialisation<T> {
     pub type_name: Option<TypeName>,
     pub value: Expression<T>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Initialisation<()> {
@@ -21,6 +22,8 @@ impl FromTokens<Token> for Initialisation<()> {
     where
         Self: Sized,
     {
+        let position = tokens.span()?;
+
         Comb::LET.parse(tokens)?;
 
         let mutable = matches!(tokens.peek(), Some(Token::Mut { .. }));
@@ -62,6 +65,7 @@ impl FromTokens<Token> for Initialisation<()> {
             value: value.clone(),
             type_name,
             info: (),
+            position,
         }
         .into())
     }
@@ -101,7 +105,8 @@ mod tests {
                 mutable: false,
                 type_name: None,
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -127,7 +132,8 @@ mod tests {
                 mutable: false,
                 type_name: Some(TypeName::Literal("i32".into())),
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -153,7 +159,8 @@ mod tests {
                 mutable: true,
                 type_name: None,
                 value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result

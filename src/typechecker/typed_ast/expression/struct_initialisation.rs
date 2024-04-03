@@ -454,6 +454,7 @@ mod tests {
                 position: Span::default(),
             }),
             info: (),
+            position: Span::default(),
         };
 
         let bar = baz.check(&mut ctx)?;

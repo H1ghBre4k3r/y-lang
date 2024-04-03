@@ -360,6 +360,7 @@ mod tests {
                 position: Span::default(),
             }),
             info: (),
+            position: Span::default(),
         };
 
         init.check(&mut ctx)?;
