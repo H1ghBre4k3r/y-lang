@@ -212,6 +212,7 @@ mod tests {
             },
             fields: vec![],
             info: (),
+            position: Span::default(),
         };
 
         dec.check(&mut ctx)?;
@@ -256,6 +257,7 @@ mod tests {
                     },
                     type_name: TypeName::Literal("i64".into()),
                     info: (),
+                    position: Span::default(),
                 },
                 StructFieldDeclaration {
                     name: Id {
@@ -265,9 +267,11 @@ mod tests {
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),
+                    position: Span::default(),
                 },
             ],
             info: (),
+            position: Span::default(),
         };
 
         dec.check(&mut ctx)?;
@@ -349,6 +353,7 @@ mod tests {
                     },
                     type_name: TypeName::Literal("i64".into()),
                     info: (),
+                    position: Span::default(),
                 },
                 StructFieldDeclaration {
                     name: Id {
@@ -358,9 +363,11 @@ mod tests {
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),
+                    position: Span::default(),
                 },
             ],
             info: (),
+            position: Span::default(),
         };
 
         dec.check(&mut ctx)?;
@@ -476,8 +483,10 @@ mod tests {
                     return_type: Box::new(TypeName::Literal("i64".into())),
                 },
                 info: (),
+                position: Span::default(),
             }],
             info: (),
+            position: Span::default(),
         };
 
         dec.check(&mut ctx)?;

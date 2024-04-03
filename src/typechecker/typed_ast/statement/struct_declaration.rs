@@ -1,7 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    lexer::Span,
     parser::ast::{Id, StructDeclaration, StructFieldDeclaration},
     typechecker::{
         context::Context,
@@ -15,11 +14,20 @@ impl TypeCheckable for StructDeclaration<()> {
     type Output = StructDeclaration<TypeInformation>;
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
-        let StructDeclaration { id, fields, .. } = self;
+        let StructDeclaration {
+            id,
+            fields,
+            position: struct_position,
+            ..
+        } = self;
 
         let context = ctx.clone();
 
-        let name = id.name;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = id;
 
         let mut checked_fields = vec![];
 
@@ -57,24 +65,31 @@ impl TypeCheckable for StructDeclaration<()> {
             id: Id {
                 name,
                 info: info.clone(),
-                position: Span::default(),
+                position: id_position,
             },
             fields: checked_fields,
             info,
+            position: struct_position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
-        let StructDeclaration { id, fields, .. } = this;
+        let StructDeclaration {
+            id,
+            fields,
+            position,
+            ..
+        } = this;
 
         StructDeclaration {
             id: Id {
                 name: id.name.clone(),
                 info: (),
-                position: Span::default(),
+                position: id.position.clone(),
             },
             fields: fields.iter().map(TypeCheckable::revert).collect::<Vec<_>>(),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -86,7 +101,10 @@ impl TypeCheckable for StructFieldDeclaration<()> {
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let StructFieldDeclaration {
-            name, type_name, ..
+            name,
+            type_name,
+            position,
+            ..
         } = self;
 
         let type_id = match Type::try_from((&type_name, &*ctx)) {
@@ -103,26 +121,31 @@ impl TypeCheckable for StructFieldDeclaration<()> {
             name: Id {
                 name: name.name,
                 info: info.clone(),
-                position: Span::default(),
+                position: name.position,
             },
             type_name,
             info,
+            position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
         let StructFieldDeclaration {
-            name, type_name, ..
+            name,
+            type_name,
+            position,
+            ..
         } = this;
 
         StructFieldDeclaration {
             name: Id {
                 name: name.name.clone(),
                 info: (),
-                position: Span::default(),
+                position: name.position.clone(),
             },
             type_name: type_name.clone(),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -150,6 +173,7 @@ mod tests {
             },
             fields: vec![],
             info: (),
+            position: Span::default(),
         };
 
         let dec = dec.check(&mut ctx)?;
@@ -183,6 +207,7 @@ mod tests {
                     },
                     type_name: TypeName::Literal("i64".into()),
                     info: (),
+                    position: Span::default(),
                 },
                 StructFieldDeclaration {
                     name: Id {
@@ -192,9 +217,11 @@ mod tests {
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),
+                    position: Span::default(),
                 },
             ],
             info: (),
+            position: Span::default(),
         };
 
         let dec = dec.check(&mut ctx)?;
@@ -227,6 +254,7 @@ mod tests {
             },
             fields: vec![],
             info: (),
+            position: Span::default(),
         };
 
         dec.check(&mut ctx)?;
@@ -246,6 +274,7 @@ mod tests {
                     },
                     type_name: TypeName::Literal("BarStruct".into()),
                     info: (),
+                    position: Span::default(),
                 },
                 StructFieldDeclaration {
                     name: Id {
@@ -255,9 +284,11 @@ mod tests {
                     },
                     type_name: TypeName::Literal("f64".into()),
                     info: (),
+                    position: Span::default(),
                 },
             ],
             info: (),
+            position: Span::default(),
         };
 
         let dec = dec.check(&mut ctx)?;
