@@ -39,8 +39,7 @@ impl TypeCheckable for Constant<()> {
                 InvalidConstantType {
                     constant_name: name,
                 },
-                // TODO: use typename position
-                id_position,
+                type_name.position(),
             ));
         };
 
@@ -142,7 +141,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             },
-            type_name: TypeName::Literal("i64".into()),
+            type_name: TypeName::Literal("i64".into(), Span::default()),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
             position: Span::default(),
@@ -170,7 +169,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             },
-            type_name: TypeName::Literal("".into()),
+            type_name: TypeName::Literal("".into(), Span::default()),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
             position: Span::default(),
@@ -200,7 +199,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             },
-            type_name: TypeName::Literal("".into()),
+            type_name: TypeName::Literal("".into(), Span::default()),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
             position: Span::default(),

@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
+    lexer::Span,
     parser::ast::{Id, StructFieldInitialisation, StructInitialisation, TypeName},
     typechecker::{
         context::Context,
@@ -33,7 +34,7 @@ impl TypeCheckable for StructInitialisation<()> {
         else {
             return Err(TypeCheckError::UndefinedType(
                 UndefinedType {
-                    type_name: TypeName::Literal(name),
+                    type_name: TypeName::Literal(name, Span::default()),
                 },
                 struct_position,
             ));
@@ -265,7 +266,7 @@ mod tests {
                         info: (),
                         position: Span::default(),
                     },
-                    type_name: TypeName::Literal("i64".into()),
+                    type_name: TypeName::Literal("i64".into(), Span::default()),
                     info: (),
                     position: Span::default(),
                 },
@@ -275,7 +276,7 @@ mod tests {
                         info: (),
                         position: Span::default(),
                     },
-                    type_name: TypeName::Literal("f64".into()),
+                    type_name: TypeName::Literal("f64".into(), Span::default()),
                     info: (),
                     position: Span::default(),
                 },
@@ -361,7 +362,7 @@ mod tests {
                         info: (),
                         position: Span::default(),
                     },
-                    type_name: TypeName::Literal("i64".into()),
+                    type_name: TypeName::Literal("i64".into(), Span::default()),
                     info: (),
                     position: Span::default(),
                 },
@@ -371,7 +372,7 @@ mod tests {
                         info: (),
                         position: Span::default(),
                     },
-                    type_name: TypeName::Literal("f64".into()),
+                    type_name: TypeName::Literal("f64".into(), Span::default()),
                     info: (),
                     position: Span::default(),
                 },
@@ -489,8 +490,9 @@ mod tests {
                     position: Span::default(),
                 },
                 type_name: TypeName::Fn {
-                    params: vec![TypeName::Literal("i64".into())],
-                    return_type: Box::new(TypeName::Literal("i64".into())),
+                    params: vec![TypeName::Literal("i64".into(), Span::default())],
+                    return_type: Box::new(TypeName::Literal("i64".into(), Span::default())),
+                    position: Span::default(),
                 },
                 info: (),
                 position: Span::default(),

@@ -4,7 +4,7 @@ use crate::{
     parser::ast::{Declaration, Expression, Id},
     typechecker::{
         context::Context,
-        error::{RedefinedConstant, TypeCheckError},
+        error::{RedefinedConstant, TypeCheckError, UndefinedType},
         types::Type,
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
@@ -28,8 +28,12 @@ impl TypeCheckable for Declaration<()> {
             ..
         } = name;
 
-        let Ok(type_id) = Type::try_from((type_name.clone(), ctx.borrow())) else {
-            todo!()
+        let Ok(type_id) = Type::try_from((&type_name, ctx.borrow())) else {
+            let position = type_name.position();
+            return Err(TypeCheckError::UndefinedType(
+                UndefinedType { type_name },
+                position,
+            ));
         };
 
         let type_id = Rc::new(RefCell::new(Some(type_id)));
@@ -107,7 +111,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             },
-            type_name: TypeName::Literal("i64".into()),
+            type_name: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
         };
@@ -115,7 +119,10 @@ mod tests {
         let dec = dec.check(&mut ctx)?;
 
         assert_eq!(dec.name.name, "foo".to_string());
-        assert_eq!(dec.type_name, TypeName::Literal("i64".into()));
+        assert_eq!(
+            dec.type_name,
+            TypeName::Literal("i64".into(), Span::default())
+        );
 
         Ok(())
     }
@@ -130,7 +137,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             },
-            type_name: TypeName::Literal("i64".into()),
+            type_name: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
         };
@@ -154,7 +161,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             },
-            type_name: TypeName::Literal("i64".into()),
+            type_name: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
         };

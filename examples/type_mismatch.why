@@ -1,9 +1,2 @@
-let foo = \(x) => x;
+let test: i32 = 42;
 
-struct Bar {
-    baz: (i64) -> f64;
-};
-
-let inst = Bar {
-    baz: foo
-};

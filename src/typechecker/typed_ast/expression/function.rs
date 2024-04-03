@@ -40,6 +40,7 @@ impl TypeCheckable for Function<()> {
         }
 
         let Ok(return_type_id) = Type::try_from((&return_type, &*ctx)) else {
+            let position = return_type.position();
             return Err(TypeCheckError::UndefinedType(
                 UndefinedType {
                     type_name: return_type,
@@ -187,8 +188,13 @@ impl TypeCheckable for FunctionParameter<()> {
 
         match Type::try_from((&type_name, &*ctx)) {
             Ok(type_id) => *info.type_id.borrow_mut() = Some(type_id),
-            Err(e) => {
-                unimplemented!("{e}")
+            Err(_) => {
+                return Err(TypeCheckError::UndefinedType(
+                    UndefinedType {
+                        type_name: type_name.clone(),
+                    },
+                    type_name.position(),
+                ));
             }
         };
 
@@ -261,7 +267,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             },
-            type_name: TypeName::Literal("i64".into()),
+            type_name: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
         };
@@ -308,14 +314,14 @@ mod tests {
                     info: (),
                     position: Span::default(),
                 },
-                type_name: TypeName::Literal("f64".into()),
+                type_name: TypeName::Literal("f64".into(), Span::default()),
                 info: (),
                 position: Span::default(),
             }],
             statements: vec![Statement::YieldingExpression(Expression::Num(
                 Num::Integer(42, (), Span::default()),
             ))],
-            return_type: TypeName::Literal("i64".into()),
+            return_type: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
         };
@@ -366,14 +372,14 @@ mod tests {
                     info: (),
                     position: Span::default(),
                 },
-                type_name: TypeName::Literal("f64".into()),
+                type_name: TypeName::Literal("f64".into(), Span::default()),
                 info: (),
                 position: Span::default(),
             }],
             statements: vec![Statement::YieldingExpression(Expression::Num(
                 Num::Integer(42, (), Span::default()),
             ))],
-            return_type: TypeName::Literal("i64".into()),
+            return_type: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
         };
@@ -406,7 +412,7 @@ mod tests {
             statements: vec![Statement::YieldingExpression(Expression::Num(
                 Num::Integer(42, (), Span::default()),
             ))],
-            return_type: TypeName::Literal("void".into()),
+            return_type: TypeName::Literal("void".into(), Span::default()),
             info: (),
             position: Span::default(),
         };

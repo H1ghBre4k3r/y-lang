@@ -1,4 +1,7 @@
+use std::fmt::Display;
+
 use crate::lexer::GetPosition;
+use crate::lexer::Span;
 use crate::lexer::Token;
 use crate::parser::combinators::Comb;
 use crate::parser::FromTokens;
@@ -7,17 +10,58 @@ use crate::parser::ParseState;
 
 use super::AstNode;
 
-// TODO: include Span aswell
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeName {
-    Literal(String),
+    Literal(String, Span),
     Fn {
         params: Vec<TypeName>,
         return_type: Box<TypeName>,
+        position: Span,
     },
-    Tuple(Vec<TypeName>),
-    Array(Box<TypeName>),
-    Reference(Box<TypeName>),
+    Tuple(Vec<TypeName>, Span),
+    Array(Box<TypeName>, Span),
+    Reference(Box<TypeName>, Span),
+}
+
+impl TypeName {
+    pub fn position(&self) -> Span {
+        match self {
+            TypeName::Literal(_, position) => position.clone(),
+            TypeName::Fn { position, .. } => position.clone(),
+            TypeName::Tuple(_, position) => position.clone(),
+            TypeName::Array(_, position) => position.clone(),
+            TypeName::Reference(_, position) => position.clone(),
+        }
+    }
+}
+
+impl Display for TypeName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TypeName::Literal(lit, _) => f.write_str(lit.as_str()),
+            TypeName::Fn {
+                params,
+                return_type,
+                ..
+            } => f.write_fmt(format_args!(
+                "({}) -> {return_type}",
+                params
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
+            TypeName::Tuple(lits, _) => f.write_fmt(format_args!(
+                "({})",
+                lits.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
+            TypeName::Array(el, _) => f.write_fmt(format_args!("[{el}]")),
+            TypeName::Reference(el, _) => f.write_fmt(format_args!("&{el}")),
+        }
+    }
 }
 
 impl From<&TypeName> for TypeName {
@@ -58,6 +102,8 @@ impl FromTokens<Token> for TypeName {
 
 impl TypeName {
     fn parse_literal(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let index = tokens.get_index();
 
         let matcher = !Comb::ID;
@@ -74,10 +120,12 @@ impl TypeName {
             });
         };
 
-        Ok(TypeName::Literal(type_name.name.clone()).into())
+        Ok(TypeName::Literal(type_name.name.clone(), position).into())
     }
 
     fn parse_tuple(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let index = tokens.get_index();
 
         let matcher = Comb::LPAREN >> (Comb::TYPE_NAME % Comb::COMMA) >> Comb::RPAREN;
@@ -96,13 +144,15 @@ impl TypeName {
             elems.push(type_name.clone());
         }
 
-        Ok(TypeName::Tuple(elems).into())
+        Ok(TypeName::Tuple(elems, position).into())
     }
 
     fn parse_fn(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let index = tokens.get_index();
 
-        let AstNode::TypeName(TypeName::Tuple(params)) = Self::parse_tuple(tokens)? else {
+        let AstNode::TypeName(TypeName::Tuple(params, _)) = Self::parse_tuple(tokens)? else {
             unreachable!()
         };
 
@@ -120,11 +170,14 @@ impl TypeName {
         Ok(TypeName::Fn {
             params,
             return_type: Box::new(type_name.clone()),
+            position,
         }
         .into())
     }
 
     fn parse_array(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let index = tokens.get_index();
 
         let matcher = Comb::LBRACKET >> Comb::TYPE_NAME >> Comb::RBRACKET;
@@ -138,10 +191,12 @@ impl TypeName {
             unreachable!()
         };
 
-        Ok(TypeName::Array(Box::new(type_name.clone())).into())
+        Ok(TypeName::Array(Box::new(type_name.clone()), position).into())
     }
 
     fn parse_reference(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let index = tokens.get_index();
 
         let matcher = Comb::AMPERSAND >> Comb::TYPE_NAME;
@@ -155,7 +210,7 @@ impl TypeName {
             unreachable!()
         };
 
-        Ok(TypeName::Reference(Box::new(type_name.clone())).into())
+        Ok(TypeName::Reference(Box::new(type_name.clone()), position).into())
     }
 }
 
@@ -167,7 +222,10 @@ impl From<TypeName> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::Lexer, parser::FromTokens};
+    use crate::{
+        lexer::{Lexer, Span},
+        parser::FromTokens,
+    };
 
     use super::TypeName;
 
@@ -179,7 +237,10 @@ mod tests {
             .into();
 
         let result = TypeName::parse(&mut tokens);
-        assert_eq!(Ok(TypeName::Literal("i32".into()).into()), result);
+        assert_eq!(
+            Ok(TypeName::Literal("i32".into(), Span::default()).into()),
+            result
+        );
     }
 
     #[test]
@@ -191,7 +252,11 @@ mod tests {
 
         let result = TypeName::parse(&mut tokens);
         assert_eq!(
-            Ok(TypeName::Tuple(vec![TypeName::Literal("i32".into()); 2]).into()),
+            Ok(TypeName::Tuple(
+                vec![TypeName::Literal("i32".into(), Span::default()); 2],
+                Span::default()
+            )
+            .into()),
             result
         );
     }
@@ -207,7 +272,8 @@ mod tests {
         assert_eq!(
             Ok(TypeName::Fn {
                 params: vec![],
-                return_type: Box::new(TypeName::Literal("i32".into()))
+                return_type: Box::new(TypeName::Literal("i32".into(), Span::default())),
+                position: Span::default()
             }
             .into()),
             result
@@ -223,7 +289,11 @@ mod tests {
 
         let result = TypeName::parse(&mut tokens);
         assert_eq!(
-            Ok(TypeName::Reference(Box::new(TypeName::Literal("i32".into()))).into()),
+            Ok(TypeName::Reference(
+                Box::new(TypeName::Literal("i32".into(), Span::default())),
+                Span::default()
+            )
+            .into()),
             result
         );
     }
@@ -238,12 +308,13 @@ mod tests {
         let result = TypeName::parse(&mut tokens);
 
         assert_eq!(
-            Ok(TypeName::Reference(Box::new(TypeName::Tuple(vec![
-                TypeName::Literal(
-                    "i32".into()
-                );
-                2
-            ])))
+            Ok(TypeName::Reference(
+                Box::new(TypeName::Tuple(
+                    vec![TypeName::Literal("i32".into(), Span::default()); 2],
+                    Span::default()
+                )),
+                Span::default()
+            )
             .into()),
             result
         );
@@ -259,12 +330,16 @@ mod tests {
         let result = TypeName::parse(&mut tokens);
 
         assert_eq!(
-            Ok(TypeName::Tuple(vec![
-                TypeName::Reference(Box::new(TypeName::Literal(
-                    "i32".into()
-                )));
-                2
-            ])
+            Ok(TypeName::Tuple(
+                vec![
+                    TypeName::Reference(
+                        Box::new(TypeName::Literal("i32".into(), Span::default())),
+                        Span::default()
+                    );
+                    2
+                ],
+                Span::default()
+            )
             .into()),
             result
         )
