@@ -119,8 +119,9 @@ mod tests {
                         mutable: false,
                         value: Expression::Num(Num::Integer(42, (), Span::default())),
                         type_name: None,
-                        info: ()
-                    },),
+                        info: (),
+                        position: Span::default()
+                    }),
                     Statement::YieldingExpression(Expression::Id(Id {
                         name: "a".into(),
                         info: (),

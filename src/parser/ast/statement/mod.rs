@@ -230,7 +230,7 @@ where
             Statement::Function(Function { position, .. }) => position.clone(),
             Statement::If(If { position, .. }) => position.clone(),
             Statement::WhileLoop(_) => todo!(),
-            Statement::Initialization(_) => todo!(),
+            Statement::Initialization(Initialisation { position, .. }) => position.clone(),
             Statement::Constant(Constant { position, .. }) => position.clone(),
             Statement::Assignment(Assignment { position, .. }) => position.clone(),
             Statement::Expression(exp) => exp.position(),

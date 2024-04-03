@@ -19,12 +19,17 @@ impl TypeCheckable for Initialisation<()> {
             mutable,
             type_name,
             value,
+            position: init_position,
             ..
         } = self;
 
         let context = ctx.clone();
 
-        let Id { name, position, .. } = id;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = id;
 
         let mut value = value.check(ctx)?;
 
@@ -73,7 +78,7 @@ impl TypeCheckable for Initialisation<()> {
             id: Id {
                 name,
                 info,
-                position,
+                position: id_position,
             },
             mutable,
             type_name,
@@ -82,6 +87,7 @@ impl TypeCheckable for Initialisation<()> {
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },
+            position: init_position,
         })
     }
 
@@ -91,6 +97,7 @@ impl TypeCheckable for Initialisation<()> {
             mutable,
             type_name,
             value,
+            position,
             ..
         } = this;
 
@@ -100,6 +107,7 @@ impl TypeCheckable for Initialisation<()> {
             type_name: type_name.to_owned(),
             value: TypeCheckable::revert(value),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -135,6 +143,7 @@ mod tests {
             type_name: None,
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
+            position: Span::default(),
         }
         .check(&mut ctx)?;
 
@@ -170,6 +179,7 @@ mod tests {
             type_name: None,
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         init.check(&mut ctx)?;
@@ -195,6 +205,7 @@ mod tests {
             type_name: None,
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         let init = init.check(&mut ctx)?;
@@ -231,6 +242,7 @@ mod tests {
             type_name: Some(TypeName::Literal("f64".into())),
             value: Expression::Num(Num::Integer(42, (), Span::default())),
             info: (),
+            position: Span::default(),
         };
 
         let init = init.check(&mut ctx);
@@ -262,6 +274,7 @@ mod tests {
                 position: Span::default(),
             }),
             info: (),
+            position: Span::default(),
         };
 
         let init = init.check(&mut ctx)?;
@@ -299,6 +312,7 @@ mod tests {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
                     context: Context::default(),
                 },
+                position: Span::default()
             }
         );
 
@@ -355,6 +369,7 @@ mod tests {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
                     context: Context::default(),
                 },
+                position: Span::default()
             }
         );
 
@@ -392,6 +407,7 @@ mod tests {
                 position: Span::default(),
             }),
             info: (),
+            position: Span::default(),
         };
 
         let mut init = init.check(&mut ctx)?;
@@ -443,6 +459,7 @@ mod tests {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
                     context: Context::default(),
                 },
+                position: Span::default()
             }
         );
 
@@ -524,6 +541,7 @@ mod tests {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
                     context: Context::default(),
                 },
+                position: Span::default()
             }
         );
 
