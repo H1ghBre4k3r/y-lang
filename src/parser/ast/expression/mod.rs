@@ -78,7 +78,7 @@ where
             Expression::Block(Block { position, .. }) => position.clone(),
             Expression::Parens(expr) => expr.position(),
             Expression::Postfix(postfix_expr) => postfix_expr.position(),
-            Expression::Prefix(_) => todo!(),
+            Expression::Prefix(prefix_expr) => prefix_expr.position(),
             Expression::Binary(_) => todo!(),
             Expression::Array(_) => todo!(),
             Expression::StructInitialisation(_) => todo!(),
@@ -88,6 +88,8 @@ where
 
 impl FromTokens<Token> for Expression<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let mut expr = match tokens.peek() {
             Some(Token::LParen { .. }) => {
                 let matcher = Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN;
@@ -108,6 +110,7 @@ impl FromTokens<Token> for Expression<()> {
 
                 Expression::Prefix(Prefix::Minus {
                     expr: Box::new(expr.clone()),
+                    position,
                 })
             }
             Some(Token::ExclamationMark { .. }) => {
@@ -120,6 +123,7 @@ impl FromTokens<Token> for Expression<()> {
 
                 Expression::Prefix(Prefix::Negation {
                     expr: Box::new(expr.clone()),
+                    position,
                 })
             }
             Some(Token::LBrace { .. }) => {
@@ -867,7 +871,8 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Minus {
-                expr: Box::new(Expression::Num(Num::Integer(42, (), Span::default())))
+                expr: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
+                position: Span::default()
             })
             .into()),
             result
@@ -894,7 +899,8 @@ mod tests {
                     args: vec![],
                     info: (),
                     position: Span::default()
-                }))
+                })),
+                position: Span::default()
             })
             .into()),
             result
@@ -909,7 +915,8 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Prefix(Prefix::Negation {
-                expr: Box::new(Expression::Num(Num::Integer(42, (), Span::default())))
+                expr: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
+                position: Span::default()
             })
             .into()),
             result
@@ -936,7 +943,8 @@ mod tests {
                     args: vec![],
                     info: (),
                     position: Span::default()
-                }))
+                })),
+                position: Span::default()
             })
             .into()),
             result
