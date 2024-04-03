@@ -259,6 +259,7 @@ mod tests {
                 parameters: vec![],
                 expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
                 info: (),
+                position: Span::default(),
             }),
             info: (),
         };
@@ -292,6 +293,7 @@ mod tests {
                         type_id: Rc::new(RefCell::new(None)),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 }),
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
@@ -347,6 +349,7 @@ mod tests {
                         }))),
                         context: Context::default(),
                     },
+                    position: Span::default(),
                 }),
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
@@ -378,6 +381,7 @@ mod tests {
                         position: Span::default(),
                     },
                     info: (),
+                    position: Span::default(),
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "bar".into(),
@@ -385,6 +389,7 @@ mod tests {
                     position: Span::default(),
                 })),
                 info: (),
+                position: Span::default(),
             }),
             info: (),
         };
@@ -417,7 +422,8 @@ mod tests {
                         info: TypeInformation {
                             type_id: Rc::new(RefCell::new(None)),
                             context: Context::default(),
-                        }
+                        },
+                        position: Span::default()
                     }],
                     expression: Box::new(Expression::Id(Id {
                         name: "bar".into(),
@@ -431,6 +437,7 @@ mod tests {
                         type_id: Rc::new(RefCell::new(None)),
                         context: Context::default(),
                     },
+                    position: Span::default()
                 }),
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
@@ -493,7 +500,8 @@ mod tests {
                         info: TypeInformation {
                             type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                             context: Context::default(),
-                        }
+                        },
+                        position: Span::default()
                     }],
                     expression: Box::new(Expression::Id(Id {
                         name: "bar".into(),
@@ -510,6 +518,7 @@ mod tests {
                         }))),
                         context: Context::default(),
                     },
+                    position: Span::default()
                 }),
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),

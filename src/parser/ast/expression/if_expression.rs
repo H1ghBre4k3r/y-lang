@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{
         ast::{AstNode, Statement},
         combinators::Comb,
@@ -15,12 +15,15 @@ pub struct If<T> {
     pub statements: Vec<Statement<T>>,
     pub else_statements: Vec<Statement<T>>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for If<()> {
     fn parse(
         tokens: &mut crate::parser::ParseState<Token>,
     ) -> Result<crate::parser::ast::AstNode, crate::parser::ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::IF_KEYWORD >> Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN >> Comb::BLOCK;
 
         let mut result = matcher.parse(tokens)?.into_iter().peekable();
@@ -48,6 +51,7 @@ impl FromTokens<Token> for If<()> {
             statements: if_block.statements,
             else_statements,
             info: (),
+            position,
         }
         .into())
     }
@@ -81,7 +85,8 @@ mod tests {
                 })),
                 statements: vec![],
                 else_statements: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             If::parse(&mut tokens)
@@ -104,7 +109,8 @@ mod tests {
                 })),
                 statements: vec![],
                 else_statements: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             If::parse(&mut tokens)
@@ -133,7 +139,8 @@ mod tests {
                     }
                 )))],
                 else_statements: vec![],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             If::parse(&mut tokens)
@@ -168,7 +175,8 @@ mod tests {
                         info: (),
                     }
                 )))],
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             If::parse(&mut tokens)

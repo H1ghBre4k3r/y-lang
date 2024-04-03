@@ -17,6 +17,7 @@ impl TypeCheckable for Lambda<()> {
         let Lambda {
             parameters,
             expression,
+            position,
             ..
         } = self;
 
@@ -41,6 +42,7 @@ impl TypeCheckable for Lambda<()> {
                 type_id: Rc::new(RefCell::new(None)),
                 context,
             },
+            position,
         })
     }
 
@@ -48,6 +50,7 @@ impl TypeCheckable for Lambda<()> {
         let Lambda {
             parameters,
             expression,
+            position,
             ..
         } = this;
 
@@ -55,6 +58,7 @@ impl TypeCheckable for Lambda<()> {
             parameters: parameters.iter().map(TypeCheckable::revert).collect(),
             expression: Box::new(TypeCheckable::revert(expression.as_ref())),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -153,9 +157,17 @@ impl TypeCheckable for LambdaParameter<()> {
     type Output = LambdaParameter<TypeInformation>;
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
-        let LambdaParameter { name, .. } = self;
+        let LambdaParameter {
+            name,
+            position: param_position,
+            ..
+        } = self;
 
-        let Id { name, position, .. } = name;
+        let Id {
+            name,
+            position: id_position,
+            ..
+        } = name;
 
         let type_id = Rc::new(RefCell::new(None));
 
@@ -165,7 +177,7 @@ impl TypeCheckable for LambdaParameter<()> {
                 type_id: type_id.clone(),
                 context: ctx.clone(),
             },
-            position,
+            position: id_position,
         };
 
         if ctx
@@ -184,15 +196,17 @@ impl TypeCheckable for LambdaParameter<()> {
                 type_id,
                 context: ctx.clone(),
             },
+            position: param_position,
         })
     }
 
     fn revert(this: &Self::Output) -> Self {
-        let LambdaParameter { name, .. } = this;
+        let LambdaParameter { name, position, .. } = this;
 
         LambdaParameter {
             name: TypeCheckable::revert(name),
             info: (),
+            position: position.clone(),
         }
     }
 }
@@ -228,6 +242,7 @@ mod tests {
                 position: Span::default(),
             },
             info: (),
+            position: Span::default(),
         };
 
         let param = param.check(&mut ctx)?;
@@ -246,7 +261,8 @@ mod tests {
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(None)),
                     context: Context::default(),
-                }
+                },
+                position: Span::default(),
             }
         );
 
@@ -264,6 +280,7 @@ mod tests {
                 position: Span::default(),
             },
             info: (),
+            position: Span::default(),
         };
 
         param.check(&mut ctx)?;
@@ -284,6 +301,7 @@ mod tests {
             parameters: vec![],
             expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
             info: (),
+            position: Span::default(),
         };
 
         let lambda = lambda.check(&mut ctx)?;
@@ -303,7 +321,8 @@ mod tests {
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(None)),
                     context: Context::default(),
-                }
+                },
+                position: Span::default(),
             }
         );
 
@@ -330,6 +349,7 @@ mod tests {
                         position: Span::default(),
                     },
                     info: (),
+                    position: Span::default(),
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "x".into(),
@@ -337,6 +357,7 @@ mod tests {
                     position: Span::default(),
                 })),
                 info: (),
+                position: Span::default(),
             }),
             info: (),
         };

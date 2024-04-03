@@ -404,6 +404,7 @@ mod tests {
                         position: Span::default(),
                     },
                     info: (),
+                    position: Span::default(),
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "x".into(),
@@ -411,6 +412,7 @@ mod tests {
                     position: Span::default(),
                 })),
                 info: (),
+                position: Span::default(),
             }),
             info: (),
         };

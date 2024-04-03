@@ -213,7 +213,8 @@ mod tests {
                                     info: (),
                                     position: Span::default()
                                 },
-                                info: ()
+                                info: (),
+                                position: Span::default()
                             }],
                             expression: Box::new(Expression::Binary(Box::new(
                                 BinaryExpression::Addition {
@@ -230,7 +231,8 @@ mod tests {
                                     info: (),
                                 }
                             ))),
-                            info: ()
+                            info: (),
+                            position: Span::default()
                         }),
                         info: ()
                     }

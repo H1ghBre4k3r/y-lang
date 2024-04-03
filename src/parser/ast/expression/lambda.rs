@@ -1,5 +1,5 @@
 use crate::{
-    lexer::Token,
+    lexer::{Span, Token},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
 
@@ -10,10 +10,13 @@ pub struct Lambda<T> {
     pub parameters: Vec<LambdaParameter<T>>,
     pub expression: Box<Expression<T>>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for Lambda<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
+
         let matcher = Comb::BACKSLASH
             >> Comb::LPAREN
             // parameter list (optional)
@@ -41,6 +44,7 @@ impl FromTokens<Token> for Lambda<()> {
             parameters,
             expression: Box::new(expression),
             info: (),
+            position,
         }
         .into())
     }
@@ -56,10 +60,12 @@ impl From<Lambda<()>> for AstNode {
 pub struct LambdaParameter<T> {
     pub name: Id<T>,
     pub info: T,
+    pub position: Span,
 }
 
 impl FromTokens<Token> for LambdaParameter<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
+        let position = tokens.span()?;
         let matcher = Comb::ID;
         let result = matcher.parse(tokens)?;
 
@@ -70,6 +76,7 @@ impl FromTokens<Token> for LambdaParameter<()> {
         Ok(LambdaParameter {
             name: name.clone(),
             info: (),
+            position,
         }
         .into())
     }
@@ -103,7 +110,8 @@ mod tests {
             Ok(Lambda {
                 parameters: vec![],
                 expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -128,7 +136,8 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     },
                     LambdaParameter {
                         name: Id {
@@ -136,7 +145,8 @@ mod tests {
                             info: (),
                             position: Span::default()
                         },
-                        info: ()
+                        info: (),
+                        position: Span::default()
                     }
                 ],
                 expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition {
@@ -152,7 +162,8 @@ mod tests {
                     }),
                     info: (),
                 }))),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -176,14 +187,16 @@ mod tests {
                         info: (),
                         position: Span::default()
                     },
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }],
                 expression: Box::new(Expression::Id(Id {
                     name: "x".into(),
                     info: (),
                     position: Span::default()
                 })),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
@@ -207,7 +220,8 @@ mod tests {
                         info: (),
                         position: Span::default()
                     },
-                    info: ()
+                    info: (),
+                    position: Span::default()
                 }],
                 expression: Box::new(Expression::Block(Block {
                     statements: vec![Statement::YieldingExpression(Expression::Id(Id {
@@ -217,7 +231,8 @@ mod tests {
                     }))],
                     info: ()
                 })),
-                info: ()
+                info: (),
+                position: Span::default()
             }
             .into()),
             result
