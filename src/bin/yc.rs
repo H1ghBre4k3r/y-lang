@@ -1,7 +1,7 @@
 use std::{error::Error, fs, process};
 
 use clap::{command, Parser};
-use pesca_lang::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
+use why_lib::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]

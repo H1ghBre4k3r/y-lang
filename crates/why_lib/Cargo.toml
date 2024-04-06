@@ -1,5 +1,5 @@
 [package]
-name = "pesca-lang"
+name = "why_lib"
 version = "0.1.0"
 edition = "2021"
 authors = ["Louis Meyer (H1ghBre4k3r) <h1ghbe4k3r@dev.bre4k3r.de>"]
@@ -7,9 +7,8 @@ license = "GPL-3.0"
 readme = "README.md"
 repository = "https://github.com/H1ghBre4k3r/pesca-parser"
 
-[workspace]
-members = ["crates/why_lib", "crates/lex_derive"]
-
 [dependencies]
-clap = { version = "4.4.7", features = ["derive"] }
-why_lib = { path = "./crates/why_lib" }
+anyhow = "1.0.81"
+colored = "2.1.0"
+lex_derive = { path = "../lex_derive/" }
+regex = "1.10.2"
