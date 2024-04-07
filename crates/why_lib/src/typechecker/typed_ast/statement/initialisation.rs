@@ -194,7 +194,7 @@ mod tests {
 
         init.check(&mut ctx)?;
 
-        let var = ctx.scope.get_variable("foo");
+        let var = ctx.scope.resolve_name("foo");
 
         assert_eq!(var, Some(Rc::new(RefCell::new(Some(Type::Integer)))));
 
@@ -329,7 +329,7 @@ mod tests {
             }
         );
 
-        let Some(type_id) = ctx.scope.get_variable("foo") else {
+        let Some(type_id) = ctx.scope.resolve_name("foo") else {
             unreachable!()
         };
 
@@ -476,7 +476,7 @@ mod tests {
             }
         );
 
-        let Some(type_id) = ctx.scope.get_variable("foo") else {
+        let Some(type_id) = ctx.scope.resolve_name("foo") else {
             unreachable!()
         };
 
@@ -567,12 +567,12 @@ mod tests {
         }))));
 
         assert_eq!(
-            init.info.context.scope.get_variable("foo"),
+            init.info.context.scope.resolve_name("foo"),
             expected_foo_type
         );
 
         assert_eq!(
-            init.value.get_info().context.scope.get_variable("foo"),
+            init.value.get_info().context.scope.resolve_name("foo"),
             expected_foo_type
         );
 

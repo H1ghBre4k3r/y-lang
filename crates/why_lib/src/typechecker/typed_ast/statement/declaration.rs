@@ -144,7 +144,7 @@ mod tests {
 
         dec.check(&mut ctx)?;
 
-        let var = ctx.scope.get_variable("foo");
+        let var = ctx.scope.resolve_name("foo");
 
         assert_eq!(var, Some(Rc::new(RefCell::new(Some(Type::Integer)))));
 

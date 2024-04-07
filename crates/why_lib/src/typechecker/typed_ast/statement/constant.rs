@@ -154,7 +154,10 @@ mod tests {
             Rc::new(RefCell::new(Some(Type::Integer)))
         );
 
-        assert_eq!(ctx.scope.get_constant("foo"), Some(Type::Integer));
+        assert_eq!(
+            ctx.scope.resolve_name("foo"),
+            Some(Rc::new(RefCell::new(Some(Type::Integer))))
+        );
 
         Ok(())
     }
