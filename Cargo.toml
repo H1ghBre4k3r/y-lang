@@ -11,5 +11,6 @@ repository = "https://github.com/H1ghBre4k3r/pesca-parser"
 members = ["crates/why_lib", "crates/lex_derive"]
 
 [dependencies]
+anyhow = "1.0.81"
 clap = { version = "4.4.7", features = ["derive"] }
 why_lib = { path = "./crates/why_lib" }
