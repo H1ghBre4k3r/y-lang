@@ -398,7 +398,7 @@ mod tests {
 
     #[test]
     fn test_parse_function_simple() {
-        let mut tokens = Lexer::new("fn (): i32 {}")
+        let mut tokens = Lexer::new("fn foo(): i32 {}")
             .lex()
             .expect("something is wrong")
             .into();
@@ -407,7 +407,11 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Function(Function {
-                id: None,
+                id: Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default()
+                },
                 parameters: vec![],
                 statements: vec![],
                 return_type: TypeName::Literal("i32".into(), Span::default()),
@@ -422,7 +426,7 @@ mod tests {
     #[test]
     fn test_parse_function_complex() {
         let mut tokens = Lexer::new(
-            "fn (x: i32, y: i32): i32 {
+            "fn foo(x: i32, y: i32): i32 {
             return x + y;
         }",
         )
@@ -434,7 +438,11 @@ mod tests {
 
         assert_eq!(
             Ok(Expression::Function(Function {
-                id: None,
+                id: Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default()
+                },
                 parameters: vec![
                     FunctionParameter {
                         name: Id {

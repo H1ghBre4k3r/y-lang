@@ -98,44 +98,40 @@ impl TypeCheckable for Function<()> {
 
         ctx.scope.exit_scope();
 
-        let function_type = Rc::new(RefCell::new(Some(Type::Function {
+        let function_type_id = Type::Function {
             params: param_types,
             return_value: Box::new(return_type_id),
-        })));
+        };
+
+        let function_type = Rc::new(RefCell::new(Some(function_type_id.clone())));
 
         let info = TypeInformation {
             type_id: function_type.clone(),
             context: ctx.clone(),
         };
 
-        let id = id.map(|Id { name, position, .. }| Id {
-            name,
+        let id = Id {
+            name: id.name,
+            position: id.position,
             info: info.clone(),
-            position: position.clone(),
-        });
+        };
 
         let func = Function {
-            id,
+            id: id.clone(),
             parameters: checked_parameters,
             return_type,
             statements: checked_statements,
             info,
-            position,
+            position: position.clone(),
         };
 
-        if let Some(Id { name, position, .. }) = &func.id {
-            if ctx
-                .scope
-                .add_variable(name, Expression::Function(func.clone()))
-                .is_err()
-            {
-                return Err(TypeCheckError::RedefinedConstant(
-                    RedefinedConstant {
-                        constant_name: name.to_string(),
-                    },
-                    position.clone(),
-                ));
-            }
+        if ctx.scope.add_constant(&id.name, function_type_id).is_err() {
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: id.name,
+                },
+                position.clone(),
+            ));
         }
 
         Ok(func)
@@ -152,7 +148,7 @@ impl TypeCheckable for Function<()> {
         } = this;
 
         Function {
-            id: id.clone().map(|id| TypeCheckable::revert(&id)),
+            id: TypeCheckable::revert(id),
             parameters: parameters.iter().map(TypeCheckable::revert).collect(),
             return_type: return_type.to_owned(),
             statements: statements.iter().map(TypeCheckable::revert).collect(),
@@ -286,7 +282,7 @@ mod tests {
         );
 
         assert_eq!(
-            ctx.scope.get_variable("foo"),
+            ctx.scope.resolve_name("foo"),
             Some(Rc::new(RefCell::new(Some(Type::Integer))))
         );
 
@@ -298,11 +294,11 @@ mod tests {
         let mut ctx = Context::default();
 
         let func = Function {
-            id: Some(Id {
+            id: Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
-            }),
+            },
             parameters: vec![FunctionParameter {
                 name: Id {
                     name: "bar".into(),
@@ -325,7 +321,7 @@ mod tests {
 
         assert_eq!(
             func.id,
-            Some(Id {
+            Id {
                 name: "foo".into(),
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Function {
@@ -335,7 +331,7 @@ mod tests {
                     context: Context::default(),
                 },
                 position: Span::default()
-            })
+            }
         );
 
         assert_eq!(
@@ -356,11 +352,11 @@ mod tests {
         let mut ctx = Context::default();
 
         let func = Function {
-            id: Some(Id {
+            id: Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
-            }),
+            },
             parameters: vec![FunctionParameter {
                 name: Id {
                     name: "bar".into(),
@@ -381,7 +377,7 @@ mod tests {
 
         func.check(&mut ctx)?;
 
-        let type_id = ctx.scope.get_variable("foo");
+        let type_id = ctx.scope.resolve_name("foo");
 
         assert_eq!(
             type_id,
@@ -398,11 +394,11 @@ mod tests {
         let mut ctx = Context::default();
 
         let func = Function {
-            id: Some(Id {
+            id: Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
-            }),
+            },
             parameters: vec![],
             statements: vec![Statement::YieldingExpression(Expression::Num(
                 Num::Integer(42, (), Span::default()),

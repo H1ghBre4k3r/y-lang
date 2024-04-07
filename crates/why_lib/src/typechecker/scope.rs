@@ -112,7 +112,7 @@ impl Scope {
         Ok(())
     }
 
-    pub fn get_variable(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
+    fn get_variable(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
         let name = name.to_string();
         self.stacks
             .iter()
@@ -182,7 +182,7 @@ impl Scope {
             .and_then(|scope| scope.borrow().types.get(&name).cloned())
     }
 
-    pub fn get_constant(&self, name: impl ToString) -> Option<Type> {
+    fn get_constant(&self, name: impl ToString) -> Option<Type> {
         let name = name.to_string();
         self.stacks
             .iter()

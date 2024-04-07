@@ -11,7 +11,7 @@ use super::Id;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function<T> {
-    pub id: Option<Id<T>>,
+    pub id: Id<T>,
     pub parameters: Vec<FunctionParameter<T>>,
     pub return_type: TypeName,
     pub statements: Vec<Statement<T>>,
@@ -24,7 +24,7 @@ impl FromTokens<Token> for Function<()> {
         let position = tokens.span()?;
 
         let matcher = Comb::FN_KEYWORD
-            >> !Comb::ID
+            >> Comb::ID
             >> Comb::LPAREN
             // parameter list (optional)
             >> (Comb::PARAMETER % Comb::COMMA)
@@ -37,9 +37,8 @@ impl FromTokens<Token> for Function<()> {
 
         let mut result = matcher.parse(tokens)?.into_iter().peekable();
 
-        let id = match result.next_if(|item| matches!(item, AstNode::Id(_))) {
-            Some(AstNode::Id(id)) => Some(id),
-            _ => None,
+        let Some(AstNode::Id(id)) = result.next() else {
+            unreachable!()
         };
 
         let mut parameters = vec![];
@@ -125,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_simple_function() {
-        let mut tokens = Lexer::new("fn (): i32 {}")
+        let mut tokens = Lexer::new("fn foo(): i32 {}")
             .lex()
             .expect("something is wrong")
             .into();
@@ -134,7 +133,11 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
-                id: None,
+                id: Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default()
+                },
                 parameters: vec![],
                 return_type: TypeName::Literal("i32".into(), Span::default()),
                 statements: vec![],
@@ -148,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_function_with_single_param() {
-        let mut tokens = Lexer::new("fn (x: i32): i32 {}")
+        let mut tokens = Lexer::new("fn foo(x: i32): i32 {}")
             .lex()
             .expect("something is wrong")
             .into();
@@ -157,7 +160,11 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
-                id: None,
+                id: Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default()
+                },
                 parameters: vec![FunctionParameter {
                     name: Id {
                         name: "x".into(),
@@ -180,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_function_with_multiple_params() {
-        let mut tokens = Lexer::new("fn (x: i32, y: i32): i32 {}")
+        let mut tokens = Lexer::new("fn foo(x: i32, y: i32): i32 {}")
             .lex()
             .expect("something is wrong")
             .into();
@@ -189,7 +196,11 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
-                id: None,
+                id: Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default()
+                },
                 parameters: vec![
                     FunctionParameter {
                         name: Id {
@@ -224,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_function_with_statements() {
-        let mut tokens = Lexer::new("fn (x: i32, y: i32): i32 { return x + y; }")
+        let mut tokens = Lexer::new("fn foo(x: i32, y: i32): i32 { return x + y; }")
             .lex()
             .expect("something is wrong")
             .into();
@@ -233,7 +244,11 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
-                id: None,
+                id: Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default()
+                },
                 parameters: vec![
                     FunctionParameter {
                         name: Id {
@@ -292,11 +307,11 @@ mod tests {
 
         assert_eq!(
             Ok(Function {
-                id: Some(Id {
+                id: Id {
                     name: "main".into(),
                     info: (),
                     position: Span::default()
-                }),
+                },
                 parameters: vec![
                     FunctionParameter {
                         name: Id {

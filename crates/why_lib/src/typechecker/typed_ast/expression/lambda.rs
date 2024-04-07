@@ -301,7 +301,7 @@ mod tests {
         param.check(&mut ctx)?;
 
         assert_eq!(
-            ctx.scope.get_variable("foo"),
+            ctx.scope.resolve_name("foo"),
             Some(Rc::new(RefCell::new(None)))
         );
 
