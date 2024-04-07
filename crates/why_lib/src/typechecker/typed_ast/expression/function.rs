@@ -188,13 +188,8 @@ impl TypeCheckable for FunctionParameter<()> {
 
         match Type::try_from((&type_name, &*ctx)) {
             Ok(type_id) => *info.type_id.borrow_mut() = Some(type_id),
-            Err(_) => {
-                return Err(TypeCheckError::UndefinedType(
-                    UndefinedType {
-                        type_name: type_name.clone(),
-                    },
-                    type_name.position(),
-                ));
+            Err(e) => {
+                return Err(e);
             }
         };
 

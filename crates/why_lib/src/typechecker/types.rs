@@ -55,18 +55,23 @@ impl<T> TryFrom<(T, &Context)> for Type
 where
     T: Into<TypeName>,
 {
-    type Error = TypeFromTypeNameError;
+    type Error = TypeCheckError;
 
     fn try_from((value, ctx): (T, &Context)) -> Result<Self, Self::Error> {
         let value = value.into();
         match &value {
-            TypeName::Literal(lit, _) => match lit.as_str() {
+            TypeName::Literal(lit, span) => match lit.as_str() {
                 "i64" => Ok(Type::Integer),
                 "f64" => Ok(Type::FloatingPoint),
                 "void" => Ok(Type::Void),
                 literal => match ctx.scope.get_type(literal) {
                     Some(type_id) => Ok(type_id),
-                    None => Err(TypeFromTypeNameError { source: value }),
+                    None => Err(TypeCheckError::UndefinedType(
+                        UndefinedType {
+                            type_name: value.clone(),
+                        },
+                        span.clone(),
+                    )),
                 },
             },
             TypeName::Fn {
