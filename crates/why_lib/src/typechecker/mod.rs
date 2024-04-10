@@ -16,6 +16,12 @@ pub struct TypeInformation {
     pub context: Context,
 }
 
+impl TypeInformation {
+    pub fn has_type(&self) -> bool {
+        self.type_id.borrow().is_some()
+    }
+}
+
 pub type TypeResult<T> = Result<T, TypeCheckError>;
 
 #[derive(Debug, Clone, Default)]
