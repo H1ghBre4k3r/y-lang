@@ -15,7 +15,7 @@ impl Span {
     pub fn to_string(&self, msg: impl ToString) -> String {
         let Span { line, col, source } = self;
         let lines = source.lines().collect::<Vec<_>>();
-        let prev_line = if *line > 2 { lines[*line - 2] } else { "" };
+        let prev_line = if *line > 1 { lines[*line - 2] } else { "" };
         let line_str = lines[*line - 1];
 
         let left_margin = format!("{line}").len();
