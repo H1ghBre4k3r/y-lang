@@ -1,5 +1,7 @@
+mod binary;
 mod function;
 mod id;
+mod if_expression;
 mod lambda;
 mod num;
 mod struct_initialisation;
@@ -21,7 +23,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Num(num) => Ok(Expression::Num(num.check(ctx)?)),
             Expression::Function(func) => Ok(Expression::Function(func.check(ctx)?)),
             Expression::Lambda(lambda) => Ok(Expression::Lambda(lambda.check(ctx)?)),
-            Expression::If(_) => todo!(),
+            Expression::If(if_exp) => Ok(Expression::If(if_exp.check(ctx)?)),
             Expression::Block(_) => todo!(),
             Expression::Parens(_) => todo!(),
             Expression::Postfix(_) => todo!(),
@@ -40,7 +42,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Num(num) => Expression::Num(TypeCheckable::revert(num)),
             Expression::Function(func) => Expression::Function(TypeCheckable::revert(func)),
             Expression::Lambda(lambda) => Expression::Lambda(TypeCheckable::revert(lambda)),
-            Expression::If(_) => todo!(),
+            Expression::If(if_exp) => Expression::If(TypeCheckable::revert(if_exp)),
             Expression::Block(_) => todo!(),
             Expression::Parens(_) => todo!(),
             Expression::Postfix(_) => todo!(),

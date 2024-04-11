@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     parser::ast::{Id, Initialisation},
@@ -38,10 +38,10 @@ impl TypeCheckable for Initialisation<()> {
         // check for annotated type
         if let Some(type_name) = type_name.clone() {
             // is it actually a valid type?
-            if let Ok(type_id) = Type::try_from((&type_name, ctx.borrow())) {
+            if let Ok(type_id) = Type::try_from((&type_name, &*ctx)) {
                 // check of type of associated expression
                 let inner = info.type_id.clone();
-                let mut inner = inner.borrow_mut();
+                let inner = inner.borrow_mut().clone();
 
                 match inner.as_ref() {
                     // we have a type...
@@ -63,7 +63,7 @@ impl TypeCheckable for Initialisation<()> {
                         value.update_type(type_id.clone())?;
 
                         // ...and the type of enclosed in the information
-                        *inner = Some(type_id);
+                        *info.type_id.borrow_mut() = Some(type_id);
                     }
                 }
             } else {

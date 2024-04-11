@@ -17,7 +17,7 @@ impl TypeCheckable for Statement<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         match self {
             Statement::Function(func) => Ok(Statement::Function(func.check(ctx)?)),
-            Statement::If(_) => todo!(),
+            Statement::If(if_exp) => Ok(Statement::If(if_exp.check(ctx)?)),
             Statement::WhileLoop(_) => todo!(),
             Statement::Initialization(init) => Ok(Statement::Initialization(init.check(ctx)?)),
             Statement::Constant(constant) => Ok(Statement::Constant(constant.check(ctx)?)),
@@ -36,7 +36,7 @@ impl TypeCheckable for Statement<()> {
     fn revert(this: &Self::Output) -> Self {
         match this {
             Statement::Function(func) => Statement::Function(TypeCheckable::revert(func)),
-            Statement::If(_) => todo!(),
+            Statement::If(if_exp) => Statement::If(TypeCheckable::revert(if_exp)),
             Statement::WhileLoop(_) => todo!(),
             Statement::Initialization(init) => {
                 Statement::Initialization(TypeCheckable::revert(init))
