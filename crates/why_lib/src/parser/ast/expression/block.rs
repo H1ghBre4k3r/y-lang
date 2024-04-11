@@ -20,12 +20,23 @@ impl FromTokens<Token> for Block<()> {
 
         let matcher = Comb::LBRACE >> (Comb::STATEMENT ^ Comb::RBRACE);
 
-        let mut result = matcher.parse(tokens)?.into_iter();
+        let mut result = matcher.parse(tokens)?.into_iter().peekable();
 
         let mut statements = vec![];
 
         while let Some(AstNode::Statement(statement)) = result.next() {
-            statements.push(statement);
+            statements.push(statement.clone());
+            if let Statement::YieldingExpression(exp) = statement {
+                if result.peek().is_some() {
+                    let err = ParseError {
+                        position: Some(exp.position()),
+                        message: "A YieldingExpression is only allowed at the end of a block"
+                            .into(),
+                    };
+                    tokens.add_error(err.clone());
+                    return Err(err);
+                }
+            }
         }
 
         Ok(Block {
@@ -134,5 +145,20 @@ mod tests {
             .into()),
             result
         )
+    }
+
+    #[test]
+    fn test_error_with_yielding_expression_not_at_end() {
+        let mut tokens = Lexer::new(
+            "{
+                42
+                42
+            }",
+        )
+        .lex()
+        .expect("something is wrong")
+        .into();
+
+        assert!(Block::parse(&mut tokens).is_err());
     }
 }

@@ -51,7 +51,7 @@ impl FromTokens<Token> for Statement<()> {
 
         match next {
             Token::IfKeyword { .. } => {
-                let matcher = Comb::IF >> !Comb::SEMI;
+                let matcher = Comb::IF;
                 let result = matcher.parse(tokens)?;
 
                 let [AstNode::If(if_statement)] = result.as_slice() else {
@@ -60,7 +60,7 @@ impl FromTokens<Token> for Statement<()> {
                 Ok(Statement::If(if_statement.clone()).into())
             }
             Token::FnKeyword { .. } => {
-                let matcher = Comb::FUNCTION >> !Comb::SEMI;
+                let matcher = Comb::FUNCTION;
                 let result = matcher.parse(tokens)?;
 
                 let [AstNode::Function(function)] = result.as_slice() else {
@@ -69,7 +69,7 @@ impl FromTokens<Token> for Statement<()> {
                 Ok(Statement::Function(function.clone()).into())
             }
             Token::WhileKeyword { .. } => {
-                let matcher = Comb::WHILE_LOOP >> !Comb::SEMI;
+                let matcher = Comb::WHILE_LOOP;
                 let result = matcher.parse(tokens).map_err(|e| {
                     tokens.add_error(e.clone());
                     e
@@ -121,7 +121,7 @@ impl FromTokens<Token> for Statement<()> {
                 Ok(Statement::Comment(value).into())
             }
             Token::StructKeyword { .. } => {
-                let matcher = Comb::STRUCT_DECLARATION >> Comb::SEMI;
+                let matcher = Comb::STRUCT_DECLARATION;
                 let result = matcher.parse(tokens).map_err(|e| {
                     tokens.add_error(e.clone());
                     e

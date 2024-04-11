@@ -1,0 +1,8 @@
+fn main(): void {
+    4
+    if (y) {
+        4
+    } else {
+        3
+    }
+}
