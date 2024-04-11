@@ -1,8 +1,13 @@
-fn main(): void {
-    4
-    if (y) {
-        4
-    } else {
-        3
-    }
+let foo = \(x, cond) => if (cond) {
+    2
+} else {
+    x
+};
+
+struct T {
+    func: (i64, bool) -> i64;
 }
+
+let bar = T {
+    func: foo
+};

@@ -64,6 +64,7 @@ where
                 "i64" => Ok(Type::Integer),
                 "f64" => Ok(Type::FloatingPoint),
                 "void" => Ok(Type::Void),
+                "bool" => Ok(Type::Boolean),
                 literal => match ctx.scope.get_type(literal) {
                     Some(type_id) => Ok(type_id),
                     None => Err(TypeCheckError::UndefinedType(
