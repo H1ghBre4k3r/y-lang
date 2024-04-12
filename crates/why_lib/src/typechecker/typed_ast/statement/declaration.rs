@@ -50,7 +50,7 @@ impl TypeCheckable for Declaration<()> {
         // TODO: check, if we are actually at top level
         if ctx
             .scope
-            .add_variable(&id.name, Expression::Id(id.clone()))
+            .add_variable(&id.name, Expression::Id(id.clone()), false)
             .is_err()
         {
             return Err(TypeCheckError::RedefinedConstant(

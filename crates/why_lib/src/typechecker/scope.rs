@@ -4,7 +4,7 @@ use crate::parser::ast::Expression;
 
 use super::{error::TypeCheckError, types::Type, TypeInformation, TypedConstruct};
 
-type StoredVariable = (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>);
+type StoredVariable = (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>, bool);
 
 #[derive(Clone, Default)]
 pub struct Stack {
@@ -21,7 +21,7 @@ impl std::fmt::Debug for Stack {
                 &self
                     .variables
                     .iter()
-                    .map(|(name, (_, type_id))| (name, type_id.borrow().as_ref().cloned()))
+                    .map(|(name, (_, type_id, _))| (name, type_id.borrow().as_ref().cloned()))
                     .collect::<HashMap<_, _>>(),
             )
             .field("types", &self.types)
@@ -94,6 +94,7 @@ impl Scope {
         &mut self,
         name: impl ToString,
         expression: Expression<TypeInformation>,
+        mutable: bool,
     ) -> Result<(), VariableAddError> {
         let name = name.to_string();
 
@@ -106,7 +107,7 @@ impl Scope {
             scope
                 .borrow_mut()
                 .variables
-                .insert(name, (expression, type_id))
+                .insert(name, (expression, type_id, mutable))
         });
 
         Ok(())
@@ -124,7 +125,23 @@ impl Scope {
                     .variables
                     .get(&name)
                     .cloned()
-                    .map(|(_, type_id)| type_id)
+                    .map(|(_, type_id, _)| type_id)
+            })
+    }
+
+    pub fn is_variable_mutable(&mut self, name: impl ToString) -> Option<bool> {
+        let name = name.to_string();
+        self.stacks
+            .iter()
+            .rev()
+            .find(|scope| scope.borrow().variables.contains_key(&name))
+            .and_then(|scope| {
+                scope
+                    .borrow_mut()
+                    .variables
+                    .get(&name)
+                    .cloned()
+                    .map(|(_, _, mutable)| mutable)
             })
     }
 
@@ -145,7 +162,7 @@ impl Scope {
 
         let scope = scope.borrow_mut();
 
-        let Some((mut exp, variable_type)) = scope.variables.get(&name).cloned() else {
+        let Some((mut exp, variable_type, _)) = scope.variables.get(&name).cloned() else {
             unreachable!()
         };
 
@@ -251,7 +268,7 @@ mod tests {
         });
 
         scope
-            .add_variable("foo", expression)
+            .add_variable("foo", expression, false)
             .expect("something went wrong");
 
         assert_eq!(
@@ -274,13 +291,13 @@ mod tests {
         });
 
         scope
-            .add_variable("foo", expression.clone())
+            .add_variable("foo", expression.clone(), false)
             .expect("something went wrong");
 
         *expression.get_info().type_id.borrow_mut() = Some(Type::Boolean);
 
         scope
-            .add_variable("foo", expression.clone())
+            .add_variable("foo", expression.clone(), false)
             .expect("something went wrong");
 
         assert_eq!(
@@ -306,7 +323,7 @@ mod tests {
         assert_eq!(scope.stacks.len(), 2);
 
         scope
-            .add_variable("foo", expression.clone())
+            .add_variable("foo", expression.clone(), false)
             .expect("something went wrong");
 
         assert_eq!(
@@ -332,7 +349,7 @@ mod tests {
         });
 
         scope
-            .add_variable("foo", expression.clone())
+            .add_variable("foo", expression.clone(), false)
             .expect("something went wrong");
 
         let foo = scope.get_variable("foo").unwrap();

@@ -75,7 +75,11 @@ impl TypeCheckable for Initialisation<()> {
             }
         }
 
-        if ctx.scope.add_variable(&name, value.clone()).is_err() {
+        if ctx
+            .scope
+            .add_variable(&name, value.clone(), mutable)
+            .is_err()
+        {
             return Err(TypeCheckError::RedefinedConstant(
                 RedefinedConstant {
                     constant_name: name.to_string(),

@@ -93,6 +93,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
 
         let while_l = WhileLoop {
@@ -134,6 +135,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
 
         let while_l = WhileLoop {

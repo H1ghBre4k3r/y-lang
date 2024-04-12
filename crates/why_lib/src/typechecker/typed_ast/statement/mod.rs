@@ -1,3 +1,4 @@
+mod assignment;
 mod constant;
 mod declaration;
 mod initialisation;
@@ -22,7 +23,7 @@ impl TypeCheckable for Statement<()> {
             Statement::WhileLoop(while_l) => Ok(Statement::WhileLoop(while_l.check(ctx)?)),
             Statement::Initialization(init) => Ok(Statement::Initialization(init.check(ctx)?)),
             Statement::Constant(constant) => Ok(Statement::Constant(constant.check(ctx)?)),
-            Statement::Assignment(_) => todo!(),
+            Statement::Assignment(assign) => Ok(Statement::Assignment(assign.check(ctx)?)),
             Statement::Expression(exp) => Ok(Statement::Expression(exp.check(ctx)?)),
             Statement::YieldingExpression(exp) => {
                 Ok(Statement::YieldingExpression(exp.check(ctx)?))
@@ -43,7 +44,7 @@ impl TypeCheckable for Statement<()> {
                 Statement::Initialization(TypeCheckable::revert(init))
             }
             Statement::Constant(_) => todo!(),
-            Statement::Assignment(_) => todo!(),
+            Statement::Assignment(assign) => Statement::Assignment(TypeCheckable::revert(assign)),
             Statement::Expression(expr) => Statement::Expression(TypeCheckable::revert(expr)),
             Statement::YieldingExpression(expr) => {
                 Statement::YieldingExpression(TypeCheckable::revert(expr))
