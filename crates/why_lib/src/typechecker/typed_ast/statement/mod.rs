@@ -2,6 +2,7 @@ mod constant;
 mod declaration;
 mod initialisation;
 mod struct_declaration;
+mod while_loop;
 
 use crate::{
     parser::ast::Statement,
@@ -18,7 +19,7 @@ impl TypeCheckable for Statement<()> {
         match self {
             Statement::Function(func) => Ok(Statement::Function(func.check(ctx)?)),
             Statement::If(if_exp) => Ok(Statement::If(if_exp.check(ctx)?)),
-            Statement::WhileLoop(_) => todo!(),
+            Statement::WhileLoop(while_l) => Ok(Statement::WhileLoop(while_l.check(ctx)?)),
             Statement::Initialization(init) => Ok(Statement::Initialization(init.check(ctx)?)),
             Statement::Constant(constant) => Ok(Statement::Constant(constant.check(ctx)?)),
             Statement::Assignment(_) => todo!(),
@@ -37,7 +38,7 @@ impl TypeCheckable for Statement<()> {
         match this {
             Statement::Function(func) => Statement::Function(TypeCheckable::revert(func)),
             Statement::If(if_exp) => Statement::If(TypeCheckable::revert(if_exp)),
-            Statement::WhileLoop(_) => todo!(),
+            Statement::WhileLoop(while_l) => Statement::WhileLoop(TypeCheckable::revert(while_l)),
             Statement::Initialization(init) => {
                 Statement::Initialization(TypeCheckable::revert(init))
             }

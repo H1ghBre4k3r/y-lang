@@ -12,6 +12,7 @@ use super::Expression;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct If<T> {
     pub condition: Box<Expression<T>>,
+    // TODO: This should/could just be a block
     pub statements: Vec<Statement<T>>,
     pub else_statements: Vec<Statement<T>>,
     pub info: T,
