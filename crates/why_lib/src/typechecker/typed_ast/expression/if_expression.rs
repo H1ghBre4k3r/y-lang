@@ -37,15 +37,7 @@ impl TypeCheckable for If<()> {
                     condition.position(),
                 ))
             }
-            _ => {
-                // return Err(TypeCheckError::TypeMismatch(
-                //     TypeMismatch {
-                //         expected: Type::Boolean,
-                //         actual: Type::Unknown,
-                //     },
-                //     condition.position(),
-                // ))
-            }
+            _ => {}
         };
 
         let mut checked_statements = vec![];
@@ -65,8 +57,10 @@ impl TypeCheckable for If<()> {
                 let first_type = { first.get_info().type_id.borrow().clone() };
                 let last_type = { last.get_info().type_id.borrow().clone() };
 
+                // check, if types of if and else match
                 match (first_type, last_type) {
                     (Some(first_type), Some(last_type)) => {
+                        // if they do not match, we have a fucky wucky
                         if first_type != last_type {
                             return Err(TypeCheckError::TypeMismatch(
                                 TypeMismatch {
@@ -76,11 +70,14 @@ impl TypeCheckable for If<()> {
                                 first.position(),
                             ));
                         }
+                        // otherwise (e.g., in case of both being None), we simply return the type
+                        // of the if branch
                         Rc::new(RefCell::new(Some(first_type)))
                     }
                     _ => Rc::new(RefCell::new(None)),
                 }
             }
+            // if we do not have if & else, we simply return void as a type
             _ => Rc::new(RefCell::new(Some(Type::Void))),
         };
 

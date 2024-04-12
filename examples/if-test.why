@@ -5,7 +5,7 @@ let foo = \(x, cond) => if (cond) {
 };
 
 struct T {
-    func: (i64, bool) -> i64;
+    func: (f64, bool) -> f64;
 }
 
 let bar = T {

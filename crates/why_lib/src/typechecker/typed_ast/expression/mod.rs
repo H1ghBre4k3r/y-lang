@@ -1,4 +1,5 @@
 mod binary;
+mod block;
 mod function;
 mod id;
 mod if_expression;
@@ -24,8 +25,8 @@ impl TypeCheckable for Expression<()> {
             Expression::Function(func) => Ok(Expression::Function(func.check(ctx)?)),
             Expression::Lambda(lambda) => Ok(Expression::Lambda(lambda.check(ctx)?)),
             Expression::If(if_exp) => Ok(Expression::If(if_exp.check(ctx)?)),
-            Expression::Block(_) => todo!(),
-            Expression::Parens(_) => todo!(),
+            Expression::Block(block) => Ok(Expression::Block(block.check(ctx)?)),
+            Expression::Parens(exp) => Ok(Expression::Parens(Box::new(exp.check(ctx)?))),
             Expression::Postfix(_) => todo!(),
             Expression::Prefix(_) => todo!(),
             Expression::Binary(_) => todo!(),
@@ -43,8 +44,10 @@ impl TypeCheckable for Expression<()> {
             Expression::Function(func) => Expression::Function(TypeCheckable::revert(func)),
             Expression::Lambda(lambda) => Expression::Lambda(TypeCheckable::revert(lambda)),
             Expression::If(if_exp) => Expression::If(TypeCheckable::revert(if_exp)),
-            Expression::Block(_) => todo!(),
-            Expression::Parens(_) => todo!(),
+            Expression::Block(block) => Expression::Block(TypeCheckable::revert(block)),
+            Expression::Parens(exp) => {
+                Expression::Parens(Box::new(TypeCheckable::revert(exp.as_ref())))
+            }
             Expression::Postfix(_) => todo!(),
             Expression::Prefix(_) => todo!(),
             Expression::Binary(_) => todo!(),
@@ -63,7 +66,7 @@ impl TypedConstruct for Expression<TypeInformation> {
             Expression::Lambda(func) => func.update_type(type_id),
             Expression::If(_) => todo!(),
             Expression::Block(_) => todo!(),
-            Expression::Parens(_) => todo!(),
+            Expression::Parens(exp) => exp.update_type(type_id),
             Expression::Postfix(_) => todo!(),
             Expression::Prefix(_) => todo!(),
             Expression::Binary(_) => todo!(),
