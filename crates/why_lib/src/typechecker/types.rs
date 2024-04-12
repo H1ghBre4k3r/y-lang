@@ -7,7 +7,7 @@ use super::{
     error::{TypeCheckError, UndefinedType},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Type {
     Integer,
     FloatingPoint,
@@ -22,6 +22,33 @@ pub enum Type {
         params: Vec<Type>,
         return_value: Box<Type>,
     },
+}
+
+impl std::fmt::Debug for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Integer => write!(f, "Integer"),
+            Self::FloatingPoint => write!(f, "FloatingPoint"),
+            Self::Boolean => write!(f, "Boolean"),
+            Self::Void => write!(f, "Void"),
+            Self::Unknown => write!(f, "Unknown"),
+            Self::Reference(arg0) => f.debug_tuple("Reference").field(arg0).finish(),
+            Self::Tuple(arg0) => f.debug_tuple("Tuple").field(arg0).finish(),
+            Self::Array(arg0) => f.debug_tuple("Array").field(arg0).finish(),
+            Self::Struct(arg0, arg1) => f.debug_tuple("Struct").field(arg0).field(arg1).finish(),
+            Self::Function {
+                params,
+                return_value,
+            } => f.write_fmt(format_args!(
+                "({}) -> {return_value:?}",
+                params
+                    .iter()
+                    .map(|i| format!("{i:?}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -127,6 +127,7 @@ impl TypedConstruct for Lambda<TypeInformation> {
                         },
                         position: position.clone(),
                     }),
+                    false,
                 )
                 .is_err()
             {
@@ -194,7 +195,7 @@ impl TypeCheckable for LambdaParameter<()> {
 
         if ctx
             .scope
-            .add_variable(&id.name, Expression::Id(id.clone()))
+            .add_variable(&id.name, Expression::Id(id.clone()), false)
             .is_err()
         {
             return Err(TypeCheckError::RedefinedConstant(

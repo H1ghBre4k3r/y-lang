@@ -139,6 +139,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
 
         let if_exp = If {
@@ -173,6 +174,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
 
         let if_exp = If {
@@ -216,6 +218,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
         ctx.scope.add_variable(
             "bar",
@@ -227,6 +230,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
         ctx.scope.add_variable(
             "baz",
@@ -238,6 +242,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
 
         let if_exp = If {
@@ -289,6 +294,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
         ctx.scope.add_variable(
             "bar",
@@ -300,6 +306,7 @@ mod tests {
                 },
                 position: Span::default(),
             }),
+            false,
         )?;
 
         let if_exp = If {

@@ -11,6 +11,7 @@ pub enum TypeCheckError {
     UndefinedType(UndefinedType, Span),
     InvalidConstantType(InvalidConstantType, Span),
     RedefinedConstant(RedefinedConstant, Span),
+    ImmutableReassign(ImmutableReassign, Span),
 }
 
 impl Display for TypeCheckError {
@@ -27,6 +28,7 @@ impl TypeCheckError {
             TypeCheckError::UndefinedType(_, span) => span.clone(),
             TypeCheckError::InvalidConstantType(_, span) => span.clone(),
             TypeCheckError::RedefinedConstant(_, span) => span.clone(),
+            TypeCheckError::ImmutableReassign(_, span) => span.clone(),
         }
     }
 
@@ -37,6 +39,7 @@ impl TypeCheckError {
             TypeCheckError::UndefinedType(e, _) => Box::new(e.clone()),
             TypeCheckError::InvalidConstantType(e, _) => Box::new(e.clone()),
             TypeCheckError::RedefinedConstant(e, _) => Box::new(e.clone()),
+            TypeCheckError::ImmutableReassign(e, _) => Box::new(e.clone()),
         }
     }
 }
@@ -120,3 +123,19 @@ impl Display for RedefinedConstant {
 }
 
 impl Error for RedefinedConstant {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImmutableReassign {
+    pub variable_name: String,
+}
+
+impl Display for ImmutableReassign {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Can not reassign immutable variable '{}'",
+            self.variable_name
+        ))
+    }
+}
+
+impl Error for ImmutableReassign {}

@@ -80,6 +80,7 @@ mod tests {
                     },
                     position: Span::default(),
                 }),
+                false,
             )
             .expect("something went wrong");
 
@@ -110,6 +111,7 @@ mod tests {
                     },
                     position: Span::default(),
                 }),
+                false,
             )
             .expect("something went wrong");
 
