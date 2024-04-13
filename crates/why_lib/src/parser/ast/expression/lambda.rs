@@ -92,7 +92,7 @@ impl From<LambdaParameter<()>> for AstNode {
 mod tests {
     use crate::{
         lexer::{Lexer, Span},
-        parser::ast::{BinaryExpression, Block, Id, Num, Statement},
+        parser::ast::{BinaryExpression, BinaryOperator, Block, Id, Num, Statement},
     };
 
     use super::*;
@@ -149,7 +149,7 @@ mod tests {
                         position: Span::default()
                     }
                 ],
-                expression: Box::new(Expression::Binary(Box::new(BinaryExpression::Addition {
+                expression: Box::new(Expression::Binary(Box::new(BinaryExpression {
                     left: Expression::Id(Id {
                         name: "x".into(),
                         info: (),
@@ -160,6 +160,7 @@ mod tests {
                         info: (),
                         position: Span::default()
                     }),
+                    operator: BinaryOperator::Add,
                     info: (),
                     position: Span::default()
                 }))),

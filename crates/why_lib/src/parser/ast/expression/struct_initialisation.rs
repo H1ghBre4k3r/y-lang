@@ -95,7 +95,7 @@ mod tests {
     use crate::{
         lexer::{Lexer, Span},
         parser::{
-            ast::{BinaryExpression, Expression, Id, Lambda, LambdaParameter, Num},
+            ast::{BinaryExpression, BinaryOperator, Expression, Id, Lambda, LambdaParameter, Num},
             FromTokens,
         },
     };
@@ -229,22 +229,21 @@ mod tests {
                                 info: (),
                                 position: Span::default()
                             }],
-                            expression: Box::new(Expression::Binary(Box::new(
-                                BinaryExpression::Addition {
-                                    left: Expression::Id(Id {
-                                        name: "x".into(),
-                                        info: (),
-                                        position: Span::default()
-                                    }),
-                                    right: Expression::Id(Id {
-                                        name: "x".into(),
-                                        info: (),
-                                        position: Span::default()
-                                    }),
+                            expression: Box::new(Expression::Binary(Box::new(BinaryExpression {
+                                left: Expression::Id(Id {
+                                    name: "x".into(),
                                     info: (),
                                     position: Span::default()
-                                }
-                            ))),
+                                }),
+                                right: Expression::Id(Id {
+                                    name: "x".into(),
+                                    info: (),
+                                    position: Span::default()
+                                }),
+                                operator: BinaryOperator::Add,
+                                info: (),
+                                position: Span::default()
+                            }))),
                             info: (),
                             position: Span::default()
                         }),

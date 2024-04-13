@@ -117,7 +117,7 @@ impl From<FunctionParameter<()>> for AstNode {
 mod tests {
     use crate::{
         lexer::{Lexer, Span},
-        parser::ast::{BinaryExpression, Expression},
+        parser::ast::{BinaryExpression, BinaryOperator, Expression},
     };
 
     use super::*;
@@ -273,7 +273,7 @@ mod tests {
                 ],
                 return_type: TypeName::Literal("i32".into(), Span::default()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Id(Id {
                             name: "x".into(),
                             info: (),
@@ -284,6 +284,7 @@ mod tests {
                             info: (),
                             position: Span::default()
                         }),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }
@@ -336,7 +337,7 @@ mod tests {
                 ],
                 return_type: TypeName::Literal("i32".into(), Span::default()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Id(Id {
                             name: "x".into(),
                             info: (),
@@ -347,6 +348,7 @@ mod tests {
                             info: (),
                             position: Span::default()
                         }),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }

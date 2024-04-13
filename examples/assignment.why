@@ -1,4 +1,11 @@
-let mut foo: (i64) -> i64 = \(x) => x;
+struct Foo {
+    func: (i64) -> i64;
+}
 
-foo = \() => 42;
+let foo = \(n) => n;
 
+let t = Foo {
+    func: foo
+};
+
+t.func();
