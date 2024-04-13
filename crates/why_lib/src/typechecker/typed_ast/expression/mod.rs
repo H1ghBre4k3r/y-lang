@@ -29,7 +29,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Parens(exp) => Ok(Expression::Parens(Box::new(exp.check(ctx)?))),
             Expression::Postfix(_) => todo!(),
             Expression::Prefix(_) => todo!(),
-            Expression::Binary(_) => todo!(),
+            Expression::Binary(bin) => Ok(Expression::Binary(Box::new(bin.check(ctx)?))),
             Expression::Array(_) => todo!(),
             Expression::StructInitialisation(init) => {
                 Ok(Expression::StructInitialisation(init.check(ctx)?))
@@ -50,7 +50,9 @@ impl TypeCheckable for Expression<()> {
             }
             Expression::Postfix(_) => todo!(),
             Expression::Prefix(_) => todo!(),
-            Expression::Binary(_) => todo!(),
+            Expression::Binary(bin) => {
+                Expression::Binary(Box::new(TypeCheckable::revert(bin.as_ref())))
+            }
             Expression::Array(_) => todo!(),
             Expression::StructInitialisation(_) => todo!(),
         }
