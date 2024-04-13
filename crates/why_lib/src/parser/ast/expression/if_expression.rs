@@ -68,7 +68,7 @@ impl From<If<()>> for AstNode {
 mod tests {
     use crate::{
         lexer::{Lexer, Span},
-        parser::ast::{BinaryExpression, Id, Num},
+        parser::ast::{BinaryExpression, BinaryOperator, Id, Num},
     };
 
     use super::*;
@@ -133,9 +133,10 @@ mod tests {
                     position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Num(Num::Integer(3, (), Span::default())),
                         right: Expression::Num(Num::Integer(4, (), Span::default())),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }
@@ -164,17 +165,19 @@ mod tests {
                     position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Num(Num::Integer(3, (), Span::default())),
                         right: Expression::Num(Num::Integer(4, (), Span::default())),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Num(Num::Integer(42, (), Span::default())),
                         right: Expression::Num(Num::Integer(1337, (), Span::default())),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }

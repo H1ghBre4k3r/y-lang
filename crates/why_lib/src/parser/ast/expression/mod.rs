@@ -292,51 +292,59 @@ impl Expression<()> {
         };
 
         let binary = match operation {
-            Token::Plus { .. } => BinaryExpression::Addition {
+            Token::Plus { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::Add,
                 info: (),
                 position,
             },
-            Token::Minus { .. } => BinaryExpression::Substraction {
+            Token::Minus { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::Substract,
                 info: (),
                 position,
             },
-            Token::Times { .. } => BinaryExpression::Multiplication {
+            Token::Times { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::Multiply,
                 info: (),
                 position,
             },
-            Token::Equal { .. } => BinaryExpression::Equal {
+            Token::Equal { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::Equals,
                 info: (),
                 position,
             },
-            Token::GreaterThan { .. } => BinaryExpression::GreaterThan {
+            Token::GreaterThan { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::GreaterThan,
                 info: (),
                 position,
             },
-            Token::LessThan { .. } => BinaryExpression::LessThen {
+            Token::LessThan { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::LessThan,
                 info: (),
                 position,
             },
-            Token::GreaterOrEqual { .. } => BinaryExpression::GreaterOrEqual {
+            Token::GreaterOrEqual { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::GreaterOrEqual,
                 info: (),
                 position,
             },
-            Token::LessOrEqual { .. } => BinaryExpression::LessOrEqual {
+            Token::LessOrEqual { .. } => BinaryExpression {
                 left: lhs,
                 right: rhs,
+                operator: BinaryOperator::LessOrEqual,
                 info: (),
                 position,
             },
@@ -467,7 +475,7 @@ mod tests {
                 ],
                 return_type: TypeName::Literal("i32".into(), Span::default()),
                 statements: vec![Statement::Return(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Id(Id {
                             name: "x".into(),
                             info: (),
@@ -478,6 +486,7 @@ mod tests {
                             info: (),
                             position: Span::default()
                         }),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }
@@ -544,7 +553,7 @@ mod tests {
                 ],
                 expression: Box::new(Expression::Block(Block {
                     statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                        BinaryExpression::Addition {
+                        BinaryExpression {
                             left: Expression::Id(Id {
                                 name: "x".into(),
                                 info: (),
@@ -555,6 +564,7 @@ mod tests {
                                 info: (),
                                 position: Span::default()
                             }),
+                            operator: BinaryOperator::Add,
                             info: (),
                             position: Span::default()
                         }
@@ -585,17 +595,19 @@ mod tests {
                     position: Span::default()
                 })),
                 statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Num(Num::Integer(3, (), Span::default())),
                         right: Expression::Num(Num::Integer(4, (), Span::default())),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }
                 )))],
                 else_statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                    BinaryExpression::Addition {
+                    BinaryExpression {
                         left: Expression::Num(Num::Integer(42, (), Span::default())),
                         right: Expression::Num(Num::Integer(1337, (), Span::default())),
+                        operator: BinaryOperator::Add,
                         info: (),
                         position: Span::default()
                     }
@@ -662,22 +674,21 @@ mod tests {
                             position: Span::default()
                         }
                     ],
-                    expression: Box::new(Expression::Binary(Box::new(
-                        BinaryExpression::Addition {
-                            left: Expression::Id(Id {
-                                name: "x".into(),
-                                info: (),
-                                position: Span::default()
-                            }),
-                            right: Expression::Id(Id {
-                                name: "y".into(),
-                                info: (),
-                                position: Span::default()
-                            }),
+                    expression: Box::new(Expression::Binary(Box::new(BinaryExpression {
+                        left: Expression::Id(Id {
+                            name: "x".into(),
                             info: (),
                             position: Span::default()
-                        }
-                    ))),
+                        }),
+                        right: Expression::Id(Id {
+                            name: "y".into(),
+                            info: (),
+                            position: Span::default()
+                        }),
+                        operator: BinaryOperator::Add,
+                        info: (),
+                        position: Span::default()
+                    }))),
                     info: (),
                     position: Span::default()
                 })))),
@@ -799,22 +810,21 @@ mod tests {
                                 info: (),
                                 position: Span::default()
                             }],
-                            expression: Box::new(Expression::Binary(Box::new(
-                                BinaryExpression::Addition {
-                                    left: Expression::Id(Id {
-                                        name: "x".into(),
-                                        info: (),
-                                        position: Span::default()
-                                    }),
-                                    right: Expression::Id(Id {
-                                        name: "x".into(),
-                                        info: (),
-                                        position: Span::default()
-                                    }),
+                            expression: Box::new(Expression::Binary(Box::new(BinaryExpression {
+                                left: Expression::Id(Id {
+                                    name: "x".into(),
                                     info: (),
                                     position: Span::default()
-                                }
-                            ))),
+                                }),
+                                right: Expression::Id(Id {
+                                    name: "x".into(),
+                                    info: (),
+                                    position: Span::default()
+                                }),
+                                operator: BinaryOperator::Add,
+                                info: (),
+                                position: Span::default()
+                            }))),
                             info: (),
                             position: Span::default()
                         }),
