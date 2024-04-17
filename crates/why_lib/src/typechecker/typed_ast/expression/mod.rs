@@ -1,3 +1,4 @@
+mod array;
 mod binary;
 mod block;
 mod function;
@@ -30,7 +31,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Postfix(_) => todo!(),
             Expression::Prefix(_) => todo!(),
             Expression::Binary(bin) => Ok(Expression::Binary(Box::new(bin.check(ctx)?))),
-            Expression::Array(_) => todo!(),
+            Expression::Array(arr) => Ok(Expression::Array(arr.check(ctx)?)),
             Expression::StructInitialisation(init) => {
                 Ok(Expression::StructInitialisation(init.check(ctx)?))
             }
@@ -53,7 +54,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Binary(bin) => {
                 Expression::Binary(Box::new(TypeCheckable::revert(bin.as_ref())))
             }
-            Expression::Array(_) => todo!(),
+            Expression::Array(arr) => Expression::Array(TypeCheckable::revert(arr)),
             Expression::StructInitialisation(_) => todo!(),
         }
     }

@@ -7,19 +7,19 @@ const a: i64 = 1337;
 struct FooStruct {
     id: i64;
     amount: f64;
-};
+}
 
 struct BarStruct {
     foo: FooStruct;
     baz: (i64) -> i64;
-};
+}
 
 let foo = FooStruct {
     id: 42,
     amount: 1337.0
 };
 
-let LOLLL = \(n) => n;
+let LOLLL = \(n) => n + 42;
 
 let ZOOO = LOLLL;
 

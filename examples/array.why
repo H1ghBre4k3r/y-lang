@@ -1,0 +1,3 @@
+let foo = \(x) => [x; 42];
+
+let bar: (f64) -> [f64] = foo;
