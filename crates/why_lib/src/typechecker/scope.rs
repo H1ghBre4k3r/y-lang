@@ -24,6 +24,10 @@ impl std::fmt::Debug for Stack {
                     .map(|(name, (_, type_id, _))| (name, type_id.borrow().as_ref().cloned()))
                     .collect::<HashMap<_, _>>(),
             )
+            .field(
+                "constants",
+                &self.constants.iter().collect::<HashMap<_, _>>(),
+            )
             .field("types", &self.types)
             .finish()
     }

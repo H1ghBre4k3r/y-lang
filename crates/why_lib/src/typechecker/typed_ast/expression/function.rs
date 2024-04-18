@@ -31,7 +31,7 @@ impl TypeCheckable for Function<()> {
 
         for param in parameters.into_iter() {
             let param = param.check(ctx)?;
-            let Some(param_type) = param.info.type_id.clone().take() else {
+            let Some(param_type) = { param.info.type_id.borrow() }.clone() else {
                 todo!()
             };
 
@@ -237,9 +237,14 @@ impl TypeCheckable for FunctionParameter<()> {
 mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
+    use anyhow::Result;
+
     use crate::{
         lexer::Span,
-        parser::ast::{Expression, Function, FunctionParameter, Id, Num, Statement, TypeName},
+        parser::ast::{
+            BinaryExpression, BinaryOperator, Expression, Function, FunctionParameter, Id, Num,
+            Statement, TypeName,
+        },
         typechecker::{
             context::Context,
             error::{TypeCheckError, TypeMismatch},
@@ -421,6 +426,64 @@ mod tests {
             ))
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_add_function() -> Result<()> {
+        let mut ctx = Context::default();
+
+        let func = Function {
+            id: Id {
+                name: "foo".into(),
+                info: (),
+                position: Span::default(),
+            },
+            parameters: vec![
+                FunctionParameter {
+                    name: Id {
+                        name: "x".into(),
+                        position: Span::default(),
+                        info: (),
+                    },
+                    type_name: TypeName::Literal("i64".into(), Span::default()),
+                    info: (),
+                    position: Span::default(),
+                },
+                FunctionParameter {
+                    name: Id {
+                        name: "y".into(),
+                        position: Span::default(),
+                        info: (),
+                    },
+                    type_name: TypeName::Literal("i64".into(), Span::default()),
+                    info: (),
+                    position: Span::default(),
+                },
+            ],
+            statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                BinaryExpression {
+                    left: Expression::Id(Id {
+                        name: "x".into(),
+                        position: Span::default(),
+                        info: (),
+                    }),
+                    right: Expression::Id(Id {
+                        name: "y".into(),
+                        position: Span::default(),
+                        info: (),
+                    }),
+                    operator: BinaryOperator::Add,
+                    position: Span::default(),
+                    info: (),
+                },
+            )))],
+            return_type: TypeName::Literal("i64".into(), Span::default()),
+            info: (),
+            position: Span::default(),
+        };
+
+        func.check(&mut ctx)?;
         Ok(())
     }
 }
