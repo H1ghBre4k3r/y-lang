@@ -48,6 +48,7 @@ impl TypeCheckable for Declaration<()> {
         };
 
         // TODO: check, if we are actually at top level
+        // TODO: should this maybe be a constant?
         if ctx
             .scope
             .add_variable(&id.name, Expression::Id(id.clone()), false)

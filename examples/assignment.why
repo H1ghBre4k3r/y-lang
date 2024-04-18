@@ -8,4 +8,4 @@ let t = Foo {
     func: foo
 };
 
-t.func();
+t.func(42);

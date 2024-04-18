@@ -6,6 +6,7 @@ mod id;
 mod if_expression;
 mod lambda;
 mod num;
+mod postfix;
 mod prefix;
 mod struct_initialisation;
 
@@ -29,7 +30,7 @@ impl TypeCheckable for Expression<()> {
             Expression::If(if_exp) => Ok(Expression::If(if_exp.check(ctx)?)),
             Expression::Block(block) => Ok(Expression::Block(block.check(ctx)?)),
             Expression::Parens(exp) => Ok(Expression::Parens(Box::new(exp.check(ctx)?))),
-            Expression::Postfix(_) => todo!(),
+            Expression::Postfix(post) => Ok(Expression::Postfix(post.check(ctx)?)),
             Expression::Prefix(pref) => Ok(Expression::Prefix(pref.check(ctx)?)),
             Expression::Binary(bin) => Ok(Expression::Binary(Box::new(bin.check(ctx)?))),
             Expression::Array(arr) => Ok(Expression::Array(arr.check(ctx)?)),
@@ -50,7 +51,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Parens(exp) => {
                 Expression::Parens(Box::new(TypeCheckable::revert(exp.as_ref())))
             }
-            Expression::Postfix(_) => todo!(),
+            Expression::Postfix(post) => Expression::Postfix(TypeCheckable::revert(post)),
             Expression::Prefix(pref) => Expression::Prefix(TypeCheckable::revert(pref)),
             Expression::Binary(bin) => {
                 Expression::Binary(Box::new(TypeCheckable::revert(bin.as_ref())))

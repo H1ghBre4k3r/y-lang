@@ -1,0 +1,33 @@
+let foo = [42; 5];
+
+let bar = foo[2];
+
+const PI: f64 = 3.1415;
+
+declare TWO_PI: f64;
+
+fn test(x: i64, y: i64): i64 {
+    x + y
+}
+
+let baz = test(42, 1337);
+
+fn twoPi(): f64 {
+    PI * 2.0
+}
+
+struct TestStruct {
+    x: i64;
+}
+
+let test_struct = TestStruct {
+    x: 42
+};
+
+fn double(x: i64): i64 {
+    x * 2
+}
+
+let test_struct_x = test_struct.x;
+
+let test_result = test(test_struct.x, double(42));
