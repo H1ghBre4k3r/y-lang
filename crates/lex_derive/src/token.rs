@@ -212,7 +212,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                     &mut $entries,
                     Regex::new(&$value.escape_unicode().to_string()).unwrap(),
                     |matched, (line, col), source| Token::$name {
-                        position: Span { line, col: (col..(col+matched.as_str().len())), source }
+                        position: Span { start: (line, col), end: (line, (col+matched.as_str().len())), source }
                     },
                 );
             };
@@ -225,7 +225,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
                     Regex::new($value).unwrap(),
                     |matched, (line, col), source| Token::$name {
                         value: matched.as_str().parse().unwrap(),
-                        position: Span { line, col: (col..(col+matched.as_str().len())), source }
+                        position: Span { start: (line, col), end: (line, (col+matched.as_str().len())), source }
                     },
                 );
             };
