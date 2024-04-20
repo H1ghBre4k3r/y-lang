@@ -37,6 +37,77 @@ pub enum Statement<T> {
     StructDeclaration(StructDeclaration<T>),
 }
 
+/// Everything that is allowed at toplevel
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TopLevelStatement<T> {
+    Comment(String),
+    Function(Function<T>),
+    Constant(Constant<T>),
+    Declaration(Declaration<T>),
+    StructDeclaration(StructDeclaration<T>),
+}
+
+impl TopLevelStatement<()> {
+    pub fn parse(tokens: &mut ParseState<Token>) -> Result<TopLevelStatement<()>, ParseError> {
+        let Some(next) = tokens.peek() else {
+            return Err(ParseError {
+                message: "Unexpected EOF!".into(),
+                position: tokens.last_token().map(|token| token.position()),
+            });
+        };
+
+        match next {
+            Token::FnKeyword { .. } => {
+                let matcher = Comb::FUNCTION;
+                let result = matcher.parse(tokens)?;
+
+                let [AstNode::Function(function)] = result.as_slice() else {
+                    unreachable!()
+                };
+                Ok(TopLevelStatement::Function(function.clone()))
+            }
+            Token::Const { .. } => {
+                let matcher = Comb::CONSTANT >> Comb::SEMI;
+                let result = matcher.parse(tokens)?;
+
+                let [AstNode::Constant(constant)] = result.as_slice() else {
+                    unreachable!()
+                };
+                Ok(TopLevelStatement::Constant(constant.clone()))
+            }
+            Token::DeclareKeyword { .. } => {
+                let matcher = Comb::DECLARATION >> Comb::SEMI;
+                let result = matcher.parse(tokens)?;
+
+                let Some(AstNode::Declaration(declaration)) = result.first().cloned() else {
+                    unreachable!()
+                };
+                Ok(TopLevelStatement::Declaration(declaration))
+            }
+            Token::Comment { value, .. } => {
+                tokens.next();
+                Ok(TopLevelStatement::Comment(value))
+            }
+            Token::StructKeyword { .. } => {
+                let matcher = Comb::STRUCT_DECLARATION;
+                let result = matcher.parse(tokens).map_err(|e| {
+                    tokens.add_error(e.clone());
+                    e
+                })?;
+
+                let Some(AstNode::StructDeclaration(declaration)) = result.first().cloned() else {
+                    unreachable!()
+                };
+                Ok(TopLevelStatement::StructDeclaration(declaration))
+            }
+            token => Err(ParseError {
+                message: format!("unexpected {token:?} at toplevel!"),
+                position: Some(token.position()),
+            }),
+        }
+    }
+}
+
 impl FromTokens<Token> for Statement<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError>
     where
@@ -132,7 +203,7 @@ impl FromTokens<Token> for Statement<()> {
                 };
                 Ok(Statement::StructDeclaration(declaration).into())
             }
-            _ => {
+            token => {
                 if let Ok(assignment) = Self::parse_assignment(tokens) {
                     return Ok(assignment);
                 };
@@ -142,8 +213,8 @@ impl FromTokens<Token> for Statement<()> {
                 };
 
                 Err(ParseError {
-                    message: "could not parse statement".into(),
-                    position: Some(next.position()),
+                    message: format!("unexpected {token:?} while trying to parse statement",),
+                    position: Some(token.position()),
                 })
             }
         }

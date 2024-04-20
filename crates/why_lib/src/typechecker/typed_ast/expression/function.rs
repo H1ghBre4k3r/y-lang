@@ -6,7 +6,7 @@ use crate::{
         context::Context,
         error::{RedefinedConstant, TypeCheckError, TypeMismatch, UndefinedType},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -125,15 +125,6 @@ impl TypeCheckable for Function<()> {
             position: position.clone(),
         };
 
-        if ctx.scope.add_constant(&id.name, function_type_id).is_err() {
-            return Err(TypeCheckError::RedefinedConstant(
-                RedefinedConstant {
-                    constant_name: id.name,
-                },
-                position.clone(),
-            ));
-        }
-
         Ok(func)
     }
 
@@ -155,6 +146,63 @@ impl TypeCheckable for Function<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl ShallowCheck for Function<()> {
+    fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
+        let Function {
+            id,
+            parameters,
+            return_type,
+            position,
+            ..
+        } = self;
+
+        let mut param_types = vec![];
+
+        for FunctionParameter { type_name, .. } in parameters.iter() {
+            let Ok(param_type) = Type::try_from((type_name, &*ctx)) else {
+                return Err(TypeCheckError::UndefinedType(
+                    UndefinedType {
+                        type_name: type_name.clone(),
+                    },
+                    type_name.position(),
+                ));
+            };
+
+            param_types.push(param_type);
+        }
+
+        let Ok(return_type) = Type::try_from((return_type, &*ctx)) else {
+            return Err(TypeCheckError::UndefinedType(
+                UndefinedType {
+                    type_name: return_type.clone(),
+                },
+                return_type.position(),
+            ));
+        };
+
+        if ctx
+            .scope
+            .add_constant(
+                &id.name,
+                Type::Function {
+                    params: param_types,
+                    return_value: Box::new(return_type),
+                },
+            )
+            .is_err()
+        {
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: id.name.clone(),
+                },
+                position.clone(),
+            ));
+        }
+
+        Ok(())
     }
 }
 
@@ -249,7 +297,7 @@ mod tests {
             context::Context,
             error::{TypeCheckError, TypeMismatch},
             types::Type,
-            TypeCheckable, TypeInformation,
+            ShallowCheck, TypeCheckable, TypeInformation,
         },
     };
 
@@ -380,7 +428,7 @@ mod tests {
             position: Span::default(),
         };
 
-        func.check(&mut ctx)?;
+        func.shallow_check(&mut ctx)?;
 
         let type_id = ctx.scope.resolve_name("foo");
 

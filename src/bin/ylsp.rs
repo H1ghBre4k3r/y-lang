@@ -105,6 +105,21 @@ impl LanguageServer for Backend {
                         ..Default::default()
                     },
                 )),
+                workspace: Some(WorkspaceServerCapabilities {
+                    workspace_folders: None,
+                    file_operations: Some(WorkspaceFileOperationsServerCapabilities {
+                        did_create: Some(FileOperationRegistrationOptions {
+                            filters: vec![FileOperationFilter {
+                                scheme: None,
+                                pattern: FileOperationPattern {
+                                    glob: "**/*.why".into(),
+                                    ..Default::default()
+                                },
+                            }],
+                        }),
+                        ..Default::default()
+                    }),
+                }),
                 ..Default::default()
             },
             ..Default::default()
@@ -137,6 +152,10 @@ impl LanguageServer for Backend {
             ..
         } = params;
         self.check_diagnostics(uri).await;
+    }
+
+    async fn did_create_files(&self, params: CreateFilesParams) {
+        error!("CREATED: {params:?}")
     }
 
     async fn diagnostic(

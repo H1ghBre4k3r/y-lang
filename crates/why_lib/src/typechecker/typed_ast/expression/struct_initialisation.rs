@@ -208,7 +208,7 @@ mod tests {
             Expression, Id, Initialisation, Lambda, LambdaParameter, Num, StructDeclaration,
             StructFieldDeclaration, StructFieldInitialisation, StructInitialisation, TypeName,
         },
-        typechecker::{context::Context, types::Type, TypeCheckable},
+        typechecker::{context::Context, types::Type, ShallowCheck, TypeCheckable},
     };
 
     #[test]
@@ -226,6 +226,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         dec.check(&mut ctx)?;
 
         let init = StructInitialisation {
@@ -285,6 +286,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         dec.check(&mut ctx)?;
 
         let init = StructInitialisation {
@@ -381,6 +383,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         dec.check(&mut ctx)?;
 
         let init = StructInitialisation {
@@ -501,6 +504,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         dec.check(&mut ctx)?;
 
         let init = StructInitialisation {
