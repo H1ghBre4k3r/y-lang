@@ -79,7 +79,7 @@ impl TypeCheckable for Function<()> {
                                 expected: return_type_id,
                                 actual: Type::Void,
                             },
-                            position,
+                            return_type.position(),
                         ))
                     }
                 }
@@ -91,7 +91,7 @@ impl TypeCheckable for Function<()> {
                         expected: return_type_id,
                         actual: Type::Void,
                     },
-                    position,
+                    return_type.position(),
                 ))
             }
         }

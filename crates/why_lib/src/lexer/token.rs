@@ -15,13 +15,13 @@ impl Span {
     pub fn to_string(&self, msg: impl ToString) -> String {
         let Span { line, col, source } = self;
         let lines = source.lines().collect::<Vec<_>>();
-        let prev_line = if *line > 1 { lines[*line - 2] } else { "" };
-        let line_str = lines[*line - 1];
+        let prev_line = if *line > 0 { lines[*line - 1] } else { "" };
+        let line_str = lines[*line];
 
         let left_margin = format!("{line}").len();
         let left_margin_fill = vec![' '; left_margin].iter().collect::<String>();
 
-        let left_padding_fill = vec![' '; col.start - 1].iter().collect::<String>();
+        let left_padding_fill = vec![' '; col.start].iter().collect::<String>();
 
         let error_len = vec!['^'; col.end - col.start]
             .iter()

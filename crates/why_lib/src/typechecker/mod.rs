@@ -8,7 +8,8 @@ use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 use crate::parser::ast::Statement;
 
-use self::{context::Context, error::TypeCheckError, types::Type};
+pub use self::error::TypeCheckError;
+use self::{context::Context, types::Type};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {

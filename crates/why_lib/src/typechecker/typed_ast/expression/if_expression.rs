@@ -67,7 +67,7 @@ impl TypeCheckable for If<()> {
                                     expected: first_type,
                                     actual: last_type,
                                 },
-                                first.position(),
+                                last.position(),
                             ));
                         }
                         // otherwise (e.g., in case of both being None), we simply return the type

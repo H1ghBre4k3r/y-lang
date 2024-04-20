@@ -34,8 +34,8 @@ impl<'a> Lexer<'a> {
             tokens: vec![],
             lexikon: Lexikon::new(),
             position: 0,
-            col: 1,
-            line: 1,
+            col: 0,
+            line: 0,
             input,
         }
     }
@@ -48,7 +48,7 @@ impl<'a> Lexer<'a> {
 
             if *c == b'\n' {
                 self.line += 1;
-                self.col = 1;
+                self.col = 0;
             } else {
                 self.col += 1;
             }

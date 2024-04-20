@@ -1,15 +1,155 @@
-use anyhow::Result;
+use std::fs;
 
-use lsp_types::{
-    request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
-};
-use lsp_types::{DiagnosticOptions, DiagnosticServerCapabilities, HoverProviderCapability, OneOf};
-
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
+use tower_lsp::jsonrpc::{Error, Result};
+use tower_lsp::lsp_types::notification::PublishDiagnostics;
+use tower_lsp::lsp_types::*;
+use tower_lsp::{Client, LanguageServer, LspService, Server};
 use tracing::error;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
+use why_lib::lexer::{self, Span};
+use why_lib::parser::{self, ParseError};
+use why_lib::typechecker::{self};
 
-fn main() -> Result<()> {
+#[derive(Debug)]
+struct Backend {
+    client: Client,
+}
+
+impl Backend {
+    async fn check_diagnostics(&self, uri: Url) {
+        let path = uri.path();
+        self.client
+            .send_notification::<PublishDiagnostics>(PublishDiagnosticsParams {
+                uri: uri.clone(),
+                version: None,
+                diagnostics: self.get_diagnostics_for_file(path),
+            })
+            .await;
+    }
+
+    fn get_diagnostics_for_file(&self, filename: &str) -> Vec<Diagnostic> {
+        let Ok(content) = fs::read_to_string(filename) else {
+            return vec![];
+        };
+        self.get_diagnostics_for_code(&content)
+    }
+
+    fn get_diagnostics_for_code(&self, input: &str) -> Vec<Diagnostic> {
+        let Some((message, pos)) = self.perform_code_analysis(input) else {
+            return vec![];
+        };
+
+        let Span { line, col, .. } = pos;
+
+        vec![Diagnostic {
+            range: Range {
+                start: Position {
+                    line: line as u32,
+                    character: col.start as u32,
+                },
+                end: Position {
+                    line: line as u32,
+                    character: col.end as u32,
+                },
+            },
+            message,
+            ..Default::default()
+        }]
+    }
+
+    fn perform_code_analysis(&self, input: &str) -> Option<(String, Span)> {
+        let lexed = match lexer::Lexer::new(input).lex() {
+            Ok(lexed) => lexed,
+            Err(e) => {
+                error!("LexError: {e}");
+                return None;
+            }
+        };
+
+        let parsed = match parser::parse(&mut lexed.into()) {
+            Ok(parsed) => parsed,
+            Err(e) => {
+                error!("{e}");
+                let ParseError { message, position } = e;
+                let position = position.unwrap_or(Span::default());
+                return Some((message, position));
+            }
+        };
+
+        let _ = match typechecker::TypeChecker::new(parsed).check() {
+            Ok(checked) => checked,
+            Err(e) => {
+                let position = e.span();
+                let message = e.err().to_string();
+                return Some((message, position));
+            }
+        };
+
+        None
+    }
+}
+
+#[tower_lsp::async_trait]
+impl LanguageServer for Backend {
+    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
+        Ok(InitializeResult {
+            capabilities: ServerCapabilities {
+                text_document_sync: Some(TextDocumentSyncCapability::Kind(
+                    TextDocumentSyncKind::FULL,
+                )),
+                diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
+                    DiagnosticOptions {
+                        identifier: Some("ylsp".into()),
+                        inter_file_dependencies: true,
+                        workspace_diagnostics: true,
+                        ..Default::default()
+                    },
+                )),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+    }
+
+    async fn initialized(&self, _: InitializedParams) {
+        self.client
+            .log_message(MessageType::ERROR, "server initialized!")
+            .await;
+    }
+
+    async fn shutdown(&self) -> Result<()> {
+        self.client
+            .log_message(MessageType::ERROR, "server shutdown!")
+            .await;
+        Ok(())
+    }
+
+    async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        let DidOpenTextDocumentParams {
+            text_document: TextDocumentItem { uri, .. },
+        } = params;
+        self.check_diagnostics(uri).await;
+    }
+
+    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        let DidSaveTextDocumentParams {
+            text_document: TextDocumentIdentifier { uri },
+            ..
+        } = params;
+        self.check_diagnostics(uri).await;
+    }
+
+    async fn diagnostic(
+        &self,
+        params: DocumentDiagnosticParams,
+    ) -> Result<DocumentDiagnosticReportResult> {
+        let _ = params;
+        error!("Got a textDocument/diagnostic request, but it is not implemented");
+        Err(Error::method_not_found())
+    }
+}
+
+fn init() {
     let filter = filter::Targets::new().with_target("ylsp", tracing::metadata::LevelFilter::TRACE);
     tracing_subscriber::registry()
         .with(
@@ -20,87 +160,15 @@ fn main() -> Result<()> {
         )
         .with(filter)
         .init();
-
-    // Note that  we must have our logging only write out to stderr.
-    error!("starting generic LSP server");
-
-    // Create the transport. Includes the stdio (stdin and stdout) versions but this could
-    // also be implemented to use sockets or HTTP.
-    let (connection, io_threads) = Connection::stdio();
-
-    // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
-    let server_capabilities = serde_json::to_value(ServerCapabilities {
-        definition_provider: Some(OneOf::Left(true)),
-        hover_provider: Some(HoverProviderCapability::Simple(true)),
-        diagnostic_provider: Some(DiagnosticServerCapabilities::Options(DiagnosticOptions {
-            identifier: Some(String::from("ylsp")),
-            inter_file_dependencies: true,
-            ..Default::default()
-        })),
-        ..Default::default()
-    })
-    .unwrap();
-    let initialization_params = match connection.initialize(server_capabilities) {
-        Ok(it) => it,
-        Err(e) => {
-            if e.channel_is_disconnected() {
-                io_threads.join()?;
-            }
-            return Err(e.into());
-        }
-    };
-    main_loop(connection, initialization_params)?;
-    io_threads.join()?;
-
-    // Shut down gracefully.
-    error!("shutting down server");
-    Ok(())
 }
 
-fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
-    let _params: InitializeParams = serde_json::from_value(params).unwrap();
-    error!("starting example main loop");
-    for msg in &connection.receiver {
-        error!("got msg: {msg:?}");
-        match msg {
-            Message::Request(req) => {
-                if connection.handle_shutdown(&req)? {
-                    return Ok(());
-                }
-                error!("got request: {req:?}");
-                match cast::<GotoDefinition>(req) {
-                    Ok((id, params)) => {
-                        eprintln!("got gotoDefinition request #{id}: {params:?}");
-                        let result = Some(GotoDefinitionResponse::Array(Vec::new()));
-                        let result = serde_json::to_value(&result).unwrap();
-                        let resp = Response {
-                            id,
-                            result: Some(result),
-                            error: None,
-                        };
-                        connection.sender.send(Message::Response(resp))?;
-                        continue;
-                    }
-                    Err(err @ ExtractError::JsonError { .. }) => panic!("{err:?}"),
-                    Err(ExtractError::MethodMismatch(req)) => req,
-                };
-                // ...
-            }
-            Message::Response(resp) => {
-                error!("got response: {resp:?}");
-            }
-            Message::Notification(not) => {
-                error!("got notification: {not:?}");
-            }
-        }
-    }
-    Ok(())
-}
+#[tokio::main]
+async fn main() {
+    init();
 
-fn cast<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
-where
-    R: lsp_types::request::Request,
-    R::Params: serde::de::DeserializeOwned,
-{
-    req.extract(R::METHOD)
+    let stdin = tokio::io::stdin();
+    let stdout = tokio::io::stdout();
+
+    let (service, socket) = LspService::new(|client| Backend { client });
+    Server::new(stdin, stdout, socket).serve(service).await;
 }
