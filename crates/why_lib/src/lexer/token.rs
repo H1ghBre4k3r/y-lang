@@ -1,32 +1,29 @@
 use colored::Colorize;
-use std::ops::Range;
 
 use lex_derive::{LooseEq, Token as ParseToken};
 use regex::{Match, Regex};
 
 #[derive(Default, Debug, Clone, Eq)]
 pub struct Span {
-    pub line: usize,
-    pub col: Range<usize>,
+    pub start: (usize, usize),
+    pub end: (usize, usize),
     pub source: String,
 }
 
 impl Span {
     pub fn to_string(&self, msg: impl ToString) -> String {
-        let Span { line, col, source } = self;
+        let Span { start, end, source } = self;
+        let line = start.0;
         let lines = source.lines().collect::<Vec<_>>();
-        let prev_line = if *line > 0 { lines[*line - 1] } else { "" };
-        let line_str = lines[*line];
+        let prev_line = if line > 0 { lines[line - 1] } else { "" };
+        let line_str = lines[line];
 
         let left_margin = format!("{line}").len();
         let left_margin_fill = vec![' '; left_margin].iter().collect::<String>();
 
-        let left_padding_fill = vec![' '; col.start].iter().collect::<String>();
+        let left_padding_fill = vec![' '; start.1].iter().collect::<String>();
 
-        let error_len = vec!['^'; col.end - col.start]
-            .iter()
-            .collect::<String>()
-            .red();
+        let error_len = vec!['^'; end.1 - start.1].iter().collect::<String>().red();
 
         format!("{left_margin_fill} |{prev_line} \n{line} |{line_str} \n{left_margin_fill} |{left_padding_fill}{error_len}   {}", msg.to_string())
     }

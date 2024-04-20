@@ -39,17 +39,17 @@ impl Backend {
             return vec![];
         };
 
-        let Span { line, col, .. } = pos;
+        let Span { start, end, .. } = pos;
 
         vec![Diagnostic {
             range: Range {
                 start: Position {
-                    line: line as u32,
-                    character: col.start as u32,
+                    line: start.0 as u32,
+                    character: start.1 as u32,
                 },
                 end: Position {
-                    line: line as u32,
-                    character: col.end as u32,
+                    line: end.0 as u32,
+                    character: end.1 as u32,
                 },
             },
             message,
