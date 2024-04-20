@@ -47,12 +47,17 @@ impl FromTokens<Token> for If<()> {
             _ => unreachable!(),
         };
 
+        let Span { end, .. } = tokens.prev_span()?;
         Ok(If {
             condition: Box::new(condition),
             statements: if_block.statements,
             else_statements,
             info: (),
-            position,
+            position: Span {
+                start: position.start,
+                end,
+                source: position.source,
+            },
         }
         .into())
     }

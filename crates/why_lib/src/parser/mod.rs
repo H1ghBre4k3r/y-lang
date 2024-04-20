@@ -29,6 +29,16 @@ impl ParseError {
 }
 
 impl ParseState<Token> {
+    pub fn prev_span(&self) -> Result<Span, ParseError> {
+        match self.peek_reverse() {
+            Some(token) => Ok(token.position()),
+            None => Err(ParseError {
+                message: "hit EOF".into(),
+                position: None,
+            }),
+        }
+    }
+
     pub fn span(&self) -> Result<Span, ParseError> {
         match self.peek() {
             Some(token) => Ok(token.position()),

@@ -144,7 +144,17 @@ impl TypeName {
             elems.push(type_name.clone());
         }
 
-        Ok(TypeName::Tuple(elems, position).into())
+        let Span { end, .. } = tokens.prev_span()?;
+
+        Ok(TypeName::Tuple(
+            elems,
+            Span {
+                start: position.start,
+                end,
+                source: position.source,
+            },
+        )
+        .into())
     }
 
     fn parse_fn(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
@@ -167,10 +177,15 @@ impl TypeName {
             unreachable!()
         };
 
+        let Span { end, .. } = tokens.prev_span()?;
         Ok(TypeName::Fn {
             params,
             return_type: Box::new(type_name.clone()),
-            position,
+            position: Span {
+                start: position.start,
+                end,
+                source: position.source,
+            },
         }
         .into())
     }
@@ -191,7 +206,16 @@ impl TypeName {
             unreachable!()
         };
 
-        Ok(TypeName::Array(Box::new(type_name.clone()), position).into())
+        let Span { end, .. } = tokens.prev_span()?;
+        Ok(TypeName::Array(
+            Box::new(type_name.clone()),
+            Span {
+                start: position.start,
+                end,
+                source: position.source,
+            },
+        )
+        .into())
     }
 
     fn parse_reference(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
@@ -210,7 +234,16 @@ impl TypeName {
             unreachable!()
         };
 
-        Ok(TypeName::Reference(Box::new(type_name.clone()), position).into())
+        let Span { end, .. } = tokens.prev_span()?;
+        Ok(TypeName::Reference(
+            Box::new(type_name.clone()),
+            Span {
+                start: position.start,
+                end,
+                source: position.source,
+            },
+        )
+        .into())
     }
 }
 

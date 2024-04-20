@@ -43,6 +43,14 @@ where
         self.tokens.get(self.index).cloned()
     }
 
+    pub fn peek_reverse(&self) -> Option<T> {
+        if self.index > 0 {
+            return self.tokens.get(self.index - 1).cloned();
+        }
+
+        None
+    }
+
     /// Get the current index.
     pub fn get_index(&self) -> usize {
         self.index
