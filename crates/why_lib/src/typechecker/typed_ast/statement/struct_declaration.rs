@@ -6,7 +6,7 @@ use crate::{
         context::Context,
         error::{TypeCheckError, UndefinedType},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -34,27 +34,6 @@ impl TypeCheckable for StructDeclaration<()> {
         for field in fields.into_iter() {
             checked_fields.push(field.check(ctx)?);
         }
-
-        let struct_fields = checked_fields
-            .iter()
-            .map(
-                |StructFieldDeclaration {
-                     name: Id { name, .. },
-                     info: TypeInformation { type_id, .. },
-                     ..
-                 }| {
-                    let inner = type_id.borrow();
-                    let inner = inner.as_ref().cloned();
-                    (name.clone(), inner.expect("something went wrong"))
-                },
-            )
-            .collect::<Vec<_>>();
-
-        let type_id = Type::Struct(name.clone(), struct_fields);
-
-        if let Err(e) = ctx.scope.add_type(&name, type_id) {
-            eprintln!("{e}")
-        };
 
         let info = TypeInformation {
             type_id: Rc::new(RefCell::new(Some(Type::Void))),
@@ -95,6 +74,38 @@ impl TypeCheckable for StructDeclaration<()> {
 }
 
 impl TypedConstruct for StructDeclaration<TypeInformation> {}
+
+impl ShallowCheck for StructDeclaration<()> {
+    fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
+        let StructDeclaration { id, fields, .. } = self;
+
+        let mut field_types = vec![];
+
+        for StructFieldDeclaration {
+            name, type_name, ..
+        } in fields.iter()
+        {
+            let Ok(type_id) = Type::try_from((type_name, &*ctx)) else {
+                return Err(TypeCheckError::UndefinedType(
+                    UndefinedType {
+                        type_name: type_name.clone(),
+                    },
+                    type_name.position(),
+                ));
+            };
+
+            field_types.push((name.name.clone(), type_id));
+        }
+
+        let type_id = Type::Struct(id.name.clone(), field_types);
+
+        if let Err(e) = ctx.scope.add_type(&id.name, type_id) {
+            eprintln!("{e}")
+        };
+
+        Ok(())
+    }
+}
 
 impl TypeCheckable for StructFieldDeclaration<()> {
     type Output = StructFieldDeclaration<TypeInformation>;
@@ -163,7 +174,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Id, StructDeclaration, StructFieldDeclaration, TypeName},
-        typechecker::{context::Context, types::Type, TypeCheckable},
+        typechecker::{context::Context, types::Type, ShallowCheck, TypeCheckable},
     };
 
     #[test]
@@ -181,6 +192,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         let dec = dec.check(&mut ctx)?;
 
         assert_eq!(dec.info.type_id, Rc::new(RefCell::new(Some(Type::Void))));
@@ -229,6 +241,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         let dec = dec.check(&mut ctx)?;
 
         assert_eq!(dec.info.type_id, Rc::new(RefCell::new(Some(Type::Void))));
@@ -262,6 +275,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         dec.check(&mut ctx)?;
 
         let dec = StructDeclaration {
@@ -296,6 +310,7 @@ mod tests {
             position: Span::default(),
         };
 
+        dec.shallow_check(&mut ctx)?;
         let dec = dec.check(&mut ctx)?;
 
         assert_eq!(dec.info.type_id, Rc::new(RefCell::new(Some(Type::Void))));

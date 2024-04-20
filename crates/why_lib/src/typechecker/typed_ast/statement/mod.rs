@@ -6,12 +6,62 @@ mod struct_declaration;
 mod while_loop;
 
 use crate::{
-    parser::ast::Statement,
+    parser::ast::{Statement, TopLevelStatement},
     typechecker::{
-        context::Context, error::TypeCheckError, types::Type, TypeCheckable, TypeInformation,
-        TypeResult, TypedConstruct,
+        context::Context, error::TypeCheckError, types::Type, ShallowCheck, TypeCheckable,
+        TypeInformation, TypeResult, TypedConstruct,
     },
 };
+
+impl TypeCheckable for TopLevelStatement<()> {
+    type Output = TopLevelStatement<TypeInformation>;
+
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+        match self {
+            TopLevelStatement::Function(func) => Ok(TopLevelStatement::Function(func.check(ctx)?)),
+            TopLevelStatement::Constant(constant) => {
+                Ok(TopLevelStatement::Constant(constant.check(ctx)?))
+            }
+            TopLevelStatement::Comment(c) => Ok(TopLevelStatement::Comment(c)),
+            TopLevelStatement::Declaration(dec) => {
+                Ok(TopLevelStatement::Declaration(dec.check(ctx)?))
+            }
+            TopLevelStatement::StructDeclaration(dec) => {
+                Ok(TopLevelStatement::StructDeclaration(dec.check(ctx)?))
+            }
+        }
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        match this {
+            TopLevelStatement::Function(func) => {
+                TopLevelStatement::Function(TypeCheckable::revert(func))
+            }
+            TopLevelStatement::Constant(_) => {
+                unimplemented!("TypeCheckable::revert is not implemented for Constants")
+            }
+            TopLevelStatement::Comment(c) => TopLevelStatement::Comment(c.to_owned()),
+            TopLevelStatement::Declaration(dec) => {
+                TopLevelStatement::Declaration(TypeCheckable::revert(dec))
+            }
+            TopLevelStatement::StructDeclaration(dec) => {
+                TopLevelStatement::StructDeclaration(TypeCheckable::revert(dec))
+            }
+        }
+    }
+}
+
+impl ShallowCheck for TopLevelStatement<()> {
+    fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
+        match self {
+            TopLevelStatement::Comment(_) => Ok(()),
+            TopLevelStatement::Function(inner) => inner.shallow_check(ctx),
+            TopLevelStatement::Constant(inner) => inner.shallow_check(ctx),
+            TopLevelStatement::Declaration(inner) => inner.shallow_check(ctx),
+            TopLevelStatement::StructDeclaration(inner) => inner.shallow_check(ctx),
+        }
+    }
+}
 
 impl TypeCheckable for Statement<()> {
     type Output = Statement<TypeInformation>;

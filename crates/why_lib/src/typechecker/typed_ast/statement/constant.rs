@@ -6,7 +6,7 @@ use crate::{
         context::Context,
         error::{InvalidConstantType, RedefinedConstant, TypeCheckError, TypeMismatch},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -70,15 +70,6 @@ impl TypeCheckable for Constant<()> {
             }
         }
 
-        if ctx.scope.add_constant(&name, type_id).is_err() {
-            return Err(TypeCheckError::RedefinedConstant(
-                RedefinedConstant {
-                    constant_name: name,
-                },
-                id_position,
-            ));
-        };
-
         Ok(Constant {
             id: Id {
                 name,
@@ -116,6 +107,34 @@ impl TypeCheckable for Constant<()> {
 
 impl TypedConstruct for Constant<TypeInformation> {}
 
+impl ShallowCheck for Constant<()> {
+    fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
+        let Constant { id, type_name, .. } = self;
+
+        let name = id.name.clone();
+
+        let Ok(type_id) = Type::try_from((type_name, &*ctx)) else {
+            return Err(TypeCheckError::InvalidConstantType(
+                InvalidConstantType {
+                    constant_name: name,
+                },
+                type_name.position(),
+            ));
+        };
+
+        if ctx.scope.add_constant(&name, type_id).is_err() {
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: name,
+                },
+                id.position.clone(),
+            ));
+        };
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
@@ -127,7 +146,7 @@ mod tests {
             context::Context,
             error::{InvalidConstantType, TypeCheckError},
             types::Type,
-            TypeCheckable,
+            ShallowCheck, TypeCheckable,
         },
     };
 
@@ -147,6 +166,7 @@ mod tests {
             position: Span::default(),
         };
 
+        constant.shallow_check(&mut ctx)?;
         let constant = constant.check(&mut ctx)?;
 
         assert_eq!(

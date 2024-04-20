@@ -1,12 +1,12 @@
-use std::{borrow::Borrow, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    parser::ast::{Declaration, Expression, Id},
+    parser::ast::{Declaration, Id},
     typechecker::{
         context::Context,
         error::{RedefinedConstant, TypeCheckError, UndefinedType},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -28,7 +28,7 @@ impl TypeCheckable for Declaration<()> {
             ..
         } = name;
 
-        let Ok(type_id) = Type::try_from((&type_name, ctx.borrow())) else {
+        let Ok(type_id) = Type::try_from((&type_name, &*ctx)) else {
             let position = type_name.position();
             return Err(TypeCheckError::UndefinedType(
                 UndefinedType { type_name },
@@ -46,21 +46,6 @@ impl TypeCheckable for Declaration<()> {
             },
             position: id_position,
         };
-
-        // TODO: check, if we are actually at top level
-        // TODO: should this maybe be a constant?
-        if ctx
-            .scope
-            .add_variable(&id.name, Expression::Id(id.clone()), false)
-            .is_err()
-        {
-            return Err(TypeCheckError::RedefinedConstant(
-                RedefinedConstant {
-                    constant_name: id.name,
-                },
-                id.position,
-            ));
-        }
 
         Ok(Declaration {
             name: id,
@@ -92,6 +77,35 @@ impl TypeCheckable for Declaration<()> {
 
 impl TypedConstruct for Declaration<TypeInformation> {}
 
+impl ShallowCheck for Declaration<()> {
+    fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
+        let Declaration {
+            name, type_name, ..
+        } = self;
+
+        let Ok(type_id) = Type::try_from((type_name, &*ctx)) else {
+            let position = type_name.position();
+            return Err(TypeCheckError::UndefinedType(
+                UndefinedType {
+                    type_name: type_name.clone(),
+                },
+                position,
+            ));
+        };
+
+        if ctx.scope.add_constant(&name.name, type_id).is_err() {
+            return Err(TypeCheckError::RedefinedConstant(
+                RedefinedConstant {
+                    constant_name: name.name.clone(),
+                },
+                name.position.clone(),
+            ));
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
@@ -99,7 +113,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Declaration, Id, TypeName},
-        typechecker::{context::Context, types::Type, TypeCheckable},
+        typechecker::{context::Context, types::Type, ShallowCheck, TypeCheckable},
     };
 
     #[test]
@@ -143,7 +157,7 @@ mod tests {
             position: Span::default(),
         };
 
-        dec.check(&mut ctx)?;
+        dec.shallow_check(&mut ctx)?;
 
         let var = ctx.scope.resolve_name("foo");
 

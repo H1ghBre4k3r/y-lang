@@ -8,10 +8,7 @@ pub use self::parse_state::*;
 
 use crate::lexer::{GetPosition, Span, Token};
 
-use self::{
-    ast::{AstNode, Statement},
-    combinators::Comb,
-};
+use self::ast::{AstNode, TopLevelStatement};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
@@ -66,17 +63,13 @@ pub trait FromTokens<T> {
     fn parse(tokens: &mut ParseState<T>) -> Result<AstNode, ParseError>;
 }
 
-pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<Statement<()>>, ParseError> {
+pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<TopLevelStatement<()>>, ParseError> {
     let mut statements = vec![];
 
-    let matcher = Comb::STATEMENT;
     while tokens.peek().is_some() {
-        match matcher.parse(tokens) {
+        match TopLevelStatement::parse(tokens) {
             Ok(result) => {
-                let [AstNode::Statement(statement)] = result.as_slice() else {
-                    unreachable!()
-                };
-                statements.push(statement.clone());
+                statements.push(result);
             }
             Err(e) => {
                 if let Some(e) = tokens.errors.first() {
