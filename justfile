@@ -10,3 +10,12 @@ build-release:
 
 test:
     cargo test --workspace
+
+bins:
+    cargo build --bins
+
+bins-release:
+    cargo build --bins --release
+
+watch:
+    cargo watch -x "build --bins"

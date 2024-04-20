@@ -21,7 +21,7 @@ impl Display for TypeCheckError {
 }
 
 impl TypeCheckError {
-    fn span(&self) -> Span {
+    pub fn span(&self) -> Span {
         match self {
             TypeCheckError::TypeMismatch(_, span) => span.clone(),
             TypeCheckError::UndefinedVariable(_, span) => span.clone(),
@@ -32,7 +32,7 @@ impl TypeCheckError {
         }
     }
 
-    fn err(&self) -> Box<dyn Error> {
+    pub fn err(&self) -> Box<dyn Error + Send> {
         match self {
             TypeCheckError::TypeMismatch(e, _) => Box::new(e.clone()),
             TypeCheckError::UndefinedVariable(e, _) => Box::new(e.clone()),

@@ -56,7 +56,7 @@ pub trait FromTokens<T> {
     fn parse(tokens: &mut ParseState<T>) -> Result<AstNode, ParseError>;
 }
 
-pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<Statement<()>>, Box<dyn Error>> {
+pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<Statement<()>>, ParseError> {
     let mut statements = vec![];
 
     let matcher = Comb::STATEMENT;
@@ -70,15 +70,15 @@ pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<Statement<()>>, Box<d
             }
             Err(e) => {
                 if let Some(e) = tokens.errors.first() {
-                    return Err(Box::new(e.clone()));
+                    return Err(e.clone());
                 }
-                return Err(Box::new(e.clone()));
+                return Err(e.clone());
             }
         }
     }
 
     if let Some(e) = tokens.errors.first() {
-        return Err(Box::new(e.clone()));
+        return Err(e.clone());
     }
 
     Ok(statements)
