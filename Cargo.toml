@@ -13,7 +13,7 @@ clap = { version = "4.5.4", features = ["derive"]}
 log = "0.4.21"
 pest = "2.7"
 pest_derive = "2.7"
-simple_logger = { version = "4.3.3", default-features = false, features = ["colored", "colors"]}
+simple_logger = { version = "5.0.0", default-features = false, features = ["colored", "colors"]}
 unescape = "0.1.0"
 once_cell = "1.19"
 home = "0.5.9"
