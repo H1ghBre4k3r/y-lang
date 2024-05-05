@@ -3,32 +3,21 @@ struct FooStruct {
     amount: f64;
 }
 
-fn foo(): i64 {
-    let a = FooStruct {
-        id: 1337,
-        amount: 42.0
-    };
-
-    a.id
-}
-
 instance FooStruct {
     fn get_id(): i64 {
         this.id
     }
+
+    fn get_amount(): f64 {
+        this.amount
+    }
 }
 
-// declare foo: i32;
+fn main(): void {
+    let foo = FooStruct {
+        id: 42,
+        amount: 133.7
+    };
 
-// declare print: (str) -> void;
-
-
-// class Test {
-//     fn get_id(): i64;
-// }
-// 
-// instance FooStruct : Test {
-//     fn get_id(): i64 {
-//         self.id
-//     }
-// }
+    let id = foo.get_id();
+}

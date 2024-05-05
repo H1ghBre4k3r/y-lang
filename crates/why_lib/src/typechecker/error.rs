@@ -11,6 +11,8 @@ pub enum TypeCheckError {
     UndefinedType(UndefinedType, Span),
     InvalidConstantType(InvalidConstantType, Span),
     RedefinedConstant(RedefinedConstant, Span),
+    RedefinedFunction(RedefinedFunction, Span),
+    RedefinedMethod(RedefinedMethod, Span),
     ImmutableReassign(ImmutableReassign, Span),
 }
 
@@ -28,6 +30,8 @@ impl TypeCheckError {
             TypeCheckError::UndefinedType(_, span) => span.clone(),
             TypeCheckError::InvalidConstantType(_, span) => span.clone(),
             TypeCheckError::RedefinedConstant(_, span) => span.clone(),
+            TypeCheckError::RedefinedFunction(_, span) => span.clone(),
+            TypeCheckError::RedefinedMethod(_, span) => span.clone(),
             TypeCheckError::ImmutableReassign(_, span) => span.clone(),
         }
     }
@@ -39,6 +43,8 @@ impl TypeCheckError {
             TypeCheckError::UndefinedType(e, _) => Box::new(e.clone()),
             TypeCheckError::InvalidConstantType(e, _) => Box::new(e.clone()),
             TypeCheckError::RedefinedConstant(e, _) => Box::new(e.clone()),
+            TypeCheckError::RedefinedFunction(e, _) => Box::new(e.clone()),
+            TypeCheckError::RedefinedMethod(e, _) => Box::new(e.clone()),
             TypeCheckError::ImmutableReassign(e, _) => Box::new(e.clone()),
         }
     }
@@ -123,6 +129,39 @@ impl Display for RedefinedConstant {
 }
 
 impl Error for RedefinedConstant {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RedefinedFunction {
+    pub function_name: String,
+}
+
+impl Display for RedefinedFunction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Function '{}' is already defined",
+            self.function_name
+        ))
+    }
+}
+
+impl Error for RedefinedFunction {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RedefinedMethod {
+    pub type_id: Type,
+    pub function_name: String,
+}
+
+impl Display for RedefinedMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Method '{}' is already defined for type '{:?}'",
+            self.function_name, self.type_id
+        ))
+    }
+}
+
+impl Error for RedefinedMethod {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImmutableReassign {

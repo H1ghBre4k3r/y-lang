@@ -30,7 +30,7 @@ impl TypeCheckable for BinaryExpression<()> {
         let right_type = { right.get_info().type_id.borrow() }.clone();
 
         let compount_type = if let (Some(left_type), Some(right_type)) = (left_type, right_type) {
-            if left_type != right_type {
+            if !left_type.does_eq(&right_type) {
                 return Err(TypeCheckError::TypeMismatch(
                     TypeMismatch {
                         expected: left_type,
