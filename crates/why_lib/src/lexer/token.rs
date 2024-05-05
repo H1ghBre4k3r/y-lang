@@ -71,6 +71,13 @@ impl Span {
 
         error_string
     }
+
+    pub fn merge(&self, other: &Span) -> Span {
+        let Span { start, source, .. } = self.clone();
+        let Span { end, .. } = other.clone();
+
+        Span { start, end, source }
+    }
 }
 
 impl PartialEq<Span> for Span {

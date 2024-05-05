@@ -3,6 +3,7 @@ mod constant;
 mod declaration;
 mod initialisation;
 mod instance;
+mod method_declaration;
 mod struct_declaration;
 mod while_loop;
 
@@ -11,6 +12,7 @@ pub use self::constant::*;
 pub use self::declaration::*;
 pub use self::initialisation::*;
 pub use self::instance::*;
+pub use self::method_declaration::*;
 pub use self::struct_declaration::*;
 pub use self::while_loop::*;
 

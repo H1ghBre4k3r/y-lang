@@ -20,6 +20,7 @@ impl TypeCheckable for Instance<()> {
             name,
             functions,
             position,
+            declarations,
             ..
         } = self;
 
@@ -45,11 +46,18 @@ impl TypeCheckable for Instance<()> {
             checked_functions.push(function.check(ctx)?);
         }
 
+        let mut checked_declarations = vec![];
+
+        for declaration in declarations.into_iter() {
+            checked_declarations.push(declaration.check(ctx)?);
+        }
+
         ctx.scope.exit_scope();
 
         Ok(Instance {
             name,
             functions: checked_functions,
+            declarations: checked_declarations,
             info: TypeInformation {
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
@@ -63,12 +71,14 @@ impl TypeCheckable for Instance<()> {
             name,
             functions,
             position,
+            declarations,
             ..
         } = this;
 
         Instance {
             name: name.clone(),
             functions: functions.iter().map(TypeCheckable::revert).collect(),
+            declarations: declarations.iter().map(TypeCheckable::revert).collect(),
             info: (),
             position: position.clone(),
         }
@@ -78,7 +88,10 @@ impl TypeCheckable for Instance<()> {
 impl ShallowCheck for Instance<()> {
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
         let Instance {
-            name, functions, ..
+            name,
+            functions,
+            declarations,
+            ..
         } = self;
 
         let type_id = match Type::try_from((name, &*ctx)) {
@@ -103,6 +116,23 @@ impl ShallowCheck for Instance<()> {
             };
         }
 
+        for declaration in declarations.iter() {
+            let declaration_type = declaration.simple_shallow_check(ctx)?;
+            if ctx
+                .scope
+                .add_method_to_type(type_id.clone(), &declaration.id.name, declaration_type)
+                .is_err()
+            {
+                return Err(TypeCheckError::RedefinedMethod(
+                    RedefinedMethod {
+                        type_id,
+                        function_name: declaration.id.name.clone(),
+                    },
+                    declaration.position.clone(),
+                ));
+            }
+        }
+
         Ok(())
     }
 }
@@ -115,7 +145,9 @@ mod tests {
 
     use crate::{
         lexer::Span,
-        parser::ast::{Expression, Function, Id, Instance, Postfix, Statement, TypeName},
+        parser::ast::{
+            Expression, Function, Id, Instance, MethodDeclaration, Postfix, Statement, TypeName,
+        },
         typechecker::{
             context::Context, error::UndefinedType, types::Type, TypeCheckError, TypeCheckable,
             TypeInformation,
@@ -129,6 +161,7 @@ mod tests {
         let inst = Instance {
             name: TypeName::Literal("i64".into(), Span::default()),
             functions: vec![],
+            declarations: vec![],
             info: (),
             position: Span::default(),
         };
@@ -140,6 +173,7 @@ mod tests {
             Instance {
                 name: TypeName::Literal("i64".into(), Span::default()),
                 functions: vec![],
+                declarations: vec![],
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
                     context: ctx
@@ -158,6 +192,7 @@ mod tests {
         let inst = Instance {
             name: TypeName::Literal("Foo".into(), Span::default()),
             functions: vec![],
+            declarations: vec![],
             info: (),
             position: Span::default(),
         };
@@ -187,6 +222,7 @@ mod tests {
         let inst = Instance {
             name: TypeName::Literal("Foo".into(), Span::default()),
             functions: vec![],
+            declarations: vec![],
             info: (),
             position: Span::default(),
         };
@@ -198,6 +234,7 @@ mod tests {
             Instance {
                 name: TypeName::Literal("Foo".into(), Span::default()),
                 functions: vec![],
+                declarations: vec![],
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
                     context: ctx
@@ -231,6 +268,7 @@ mod tests {
                 info: (),
                 position: Span::default(),
             }],
+            declarations: vec![],
             info: (),
             position: Span::default(),
         };
@@ -272,6 +310,7 @@ mod tests {
                     },
                     position: Span::default(),
                 }],
+                declarations: vec![],
                 info: TypeInformation {
                     type_id: Rc::new(RefCell::new(Some(Type::Void))),
                     context: Context::default()
@@ -317,6 +356,137 @@ mod tests {
                         position: Span::default(),
                     },
                 ))],
+                info: (),
+                position: Span::default(),
+            }],
+            declarations: vec![],
+            info: (),
+            position: Span::default(),
+        };
+
+        let result = inst.check(&mut ctx)?;
+
+        assert_eq!(
+            result,
+            Instance {
+                name: TypeName::Literal("Foo".into(), Span::default()),
+                functions: vec![Function {
+                    id: Id {
+                        name: "bar".into(),
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Function {
+                                params: vec![],
+                                return_value: Box::new(Type::Integer),
+                            }))),
+                            context: Context::default(),
+                        },
+                        position: Span::default(),
+                    },
+                    parameters: vec![],
+                    return_type: TypeName::Literal("i64".into(), Span::default()),
+                    statements: vec![Statement::YieldingExpression(Expression::Postfix(
+                        Postfix::PropertyAccess {
+                            expr: Box::new(Expression::Id(Id {
+                                name: "this".into(),
+                                info: TypeInformation {
+                                    type_id: Rc::new(RefCell::new(Some(Type::Struct(
+                                        "Foo".into(),
+                                        vec![("baz".into(), Type::Integer)],
+                                    )))),
+                                    context: Context::default(),
+                                },
+                                position: Span::default(),
+                            })),
+                            property: Id {
+                                name: "baz".into(),
+                                info: TypeInformation {
+                                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                                    context: Context::default(),
+                                },
+                                position: Span::default(),
+                            },
+                            info: TypeInformation {
+                                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                                context: Context::default(),
+                            },
+                            position: Span::default(),
+                        },
+                    ))],
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                            params: vec![],
+                            return_value: Box::new(Type::Integer),
+                        }))),
+                        context: Context::default(),
+                    },
+                    position: Span::default(),
+                }],
+                declarations: vec![],
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                    context: Context::default(),
+                },
+                position: Span::default(),
+            }
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_complex_instance() -> anyhow::Result<()> {
+        let mut ctx = Context::default();
+        ctx.scope.add_type(
+            "Foo",
+            Type::Struct("Foo".into(), vec![("baz".into(), Type::Integer)]),
+        )?;
+
+        let inst = Instance {
+            name: TypeName::Literal("Foo".into(), Span::default()),
+            functions: vec![Function {
+                id: Id {
+                    name: "bar".into(),
+                    info: (),
+                    position: Span::default(),
+                },
+                parameters: vec![],
+                return_type: TypeName::Literal("i64".into(), Span::default()),
+                statements: vec![Statement::YieldingExpression(Expression::Postfix(
+                    Postfix::PropertyAccess {
+                        expr: Box::new(Expression::Id(Id {
+                            name: "this".into(),
+                            info: (),
+                            position: Span::default(),
+                        })),
+                        property: Id {
+                            name: "baz".into(),
+                            info: (),
+                            position: Span::default(),
+                        },
+                        info: (),
+                        position: Span::default(),
+                    },
+                ))],
+                info: (),
+                position: Span::default(),
+            }],
+            declarations: vec![MethodDeclaration {
+                id: Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default(),
+                },
+                parameter_types: vec![
+                    TypeName::Literal("i64".into(), Span::default()),
+                    TypeName::Tuple(
+                        vec![
+                            TypeName::Literal("i64".into(), Span::default()),
+                            TypeName::Literal("f64".into(), Span::default()),
+                        ],
+                        Span::default(),
+                    ),
+                ],
+                return_type: TypeName::Literal("i64".into(), Span::default()),
                 info: (),
                 position: Span::default(),
             }],
@@ -378,6 +548,38 @@ mod tests {
                             return_value: Box::new(Type::Integer),
                         }))),
                         context: Context::default(),
+                    },
+                    position: Span::default(),
+                }],
+                declarations: vec![MethodDeclaration {
+                    id: Id {
+                        name: "foo".into(),
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Function {
+                                params: vec![
+                                    Type::Integer,
+                                    Type::Tuple(vec![Type::Integer, Type::FloatingPoint])
+                                ],
+                                return_value: Box::new(Type::Integer)
+                            }))),
+                            context: ctx.clone()
+                        },
+                        position: Span::default(),
+                    },
+                    parameter_types: vec![
+                        TypeName::Literal("i64".into(), Span::default()),
+                        TypeName::Tuple(
+                            vec![
+                                TypeName::Literal("i64".into(), Span::default()),
+                                TypeName::Literal("f64".into(), Span::default()),
+                            ],
+                            Span::default(),
+                        ),
+                    ],
+                    return_type: TypeName::Literal("i64".into(), Span::default()),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                        context: ctx.clone()
                     },
                     position: Span::default(),
                 }],
