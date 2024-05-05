@@ -38,12 +38,14 @@ type StackFrame = Rc<RefCell<Stack>>;
 #[derive(Clone, Debug)]
 pub struct Scope {
     stacks: Vec<StackFrame>,
+    methods: Rc<RefCell<HashMap<Type, HashMap<String, Type>>>>,
 }
 
 impl Default for Scope {
     fn default() -> Self {
         Scope {
             stacks: vec![StackFrame::default()],
+            methods: Rc::default(),
         }
     }
 }
@@ -80,6 +82,22 @@ impl Display for VariableAddError {
 }
 
 impl std::error::Error for VariableAddError {}
+
+#[derive(Debug, Clone)]
+pub struct MethodAddError {
+    pub name: String,
+}
+
+impl Display for MethodAddError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "tried to add already existing method or property '{}'",
+            self.name
+        ))
+    }
+}
+
+impl std::error::Error for MethodAddError {}
 
 impl Scope {
     pub fn new() -> Scope {
@@ -237,6 +255,71 @@ impl Scope {
         self.get_constant(&name)
             .map(|t| Rc::new(RefCell::new(Some(t))))
             .or_else(|| self.get_variable(&name))
+    }
+
+    /// Add a method (i.e., an associated function) to a type. This function will panic if you try
+    /// to add a non-function.
+    pub fn add_method_to_type(
+        &mut self,
+        type_id: Type,
+        method_name: impl ToString,
+        method_type: Type,
+    ) -> Result<(), MethodAddError> {
+        assert!(
+            matches!(method_type, Type::Function { .. }),
+            "tried to add non function as method"
+        );
+        let method_name = method_name.to_string();
+
+        if let Type::Struct(_, props) = &type_id {
+            if props.iter().any(|(name, _)| *name == method_name) {
+                return Err(MethodAddError { name: method_name });
+            }
+        };
+
+        let mut current_methods = {
+            self.methods
+                .borrow()
+                .get(&type_id)
+                .cloned()
+                .unwrap_or(HashMap::default())
+        };
+
+        if current_methods.contains_key(&method_name) {
+            return Err(MethodAddError { name: method_name });
+        }
+
+        current_methods.insert(method_name, method_type);
+
+        self.methods.borrow_mut().insert(type_id, current_methods);
+
+        Ok(())
+    }
+
+    /// Try to resolve a property associated with a given type. For structs, fields are checked
+    /// first. After that (and by default for every other type), associated functions are checked.
+    pub fn resolve_property_for_type(
+        &mut self,
+        type_id: Type,
+        property: impl ToString,
+    ) -> Option<Type> {
+        let property_name = property.to_string();
+
+        if let Type::Struct(_, props) = &type_id {
+            if let Some(prop) = props
+                .iter()
+                .find(|(name, _)| *name == property_name)
+                .map(|(_, prop)| prop.clone())
+            {
+                return Some(prop);
+            }
+        }
+
+        self.methods
+            .borrow()
+            .get(&type_id)
+            .and_then(|methods| methods.get(&property_name))
+            .cloned()
     }
 }
 

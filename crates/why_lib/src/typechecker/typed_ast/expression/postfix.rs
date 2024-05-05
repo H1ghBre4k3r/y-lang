@@ -163,28 +163,18 @@ impl TypeCheckable for Postfix<()> {
                 let expr_type = { expr.get_info().type_id.borrow() }.clone();
 
                 let type_id = match expr_type {
-                    Some(Type::Struct(_, fields)) => {
-                        let Some((_, type_id)) =
-                            fields.iter().find(|(name, _)| name == &property_name)
-                        else {
-                            return Err(TypeCheckError::UndefinedVariable(
-                                UndefinedVariable {
-                                    variable_name: property_name.clone(),
-                                },
-                                property_position,
-                            ));
-                        };
-
-                        Some(type_id.clone())
-                    }
-                    Some(other) => {
-                        return Err(TypeCheckError::TypeMismatch(
-                            TypeMismatch {
-                                expected: Type::Struct("_".into(), vec![]),
-                                actual: other,
-                            },
-                            position,
-                        ))
+                    Some(type_id) => {
+                        match ctx.scope.resolve_property_for_type(type_id, &property_name) {
+                            Some(type_id) => Some(type_id),
+                            None => {
+                                return Err(TypeCheckError::UndefinedVariable(
+                                    UndefinedVariable {
+                                        variable_name: property_name.clone(),
+                                    },
+                                    property_position,
+                                ));
+                            }
+                        }
                     }
                     None => None,
                 };

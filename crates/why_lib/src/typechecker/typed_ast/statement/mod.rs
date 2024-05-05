@@ -2,6 +2,7 @@ mod assignment;
 mod constant;
 mod declaration;
 mod initialisation;
+mod instance;
 mod struct_declaration;
 mod while_loop;
 
@@ -29,9 +30,7 @@ impl TypeCheckable for TopLevelStatement<()> {
             TopLevelStatement::StructDeclaration(dec) => {
                 Ok(TopLevelStatement::StructDeclaration(dec.check(ctx)?))
             }
-            TopLevelStatement::Instance(inst) => {
-                todo!()
-            }
+            TopLevelStatement::Instance(inst) => Ok(TopLevelStatement::Instance(inst.check(ctx)?)),
         }
     }
 
@@ -51,7 +50,7 @@ impl TypeCheckable for TopLevelStatement<()> {
                 TopLevelStatement::StructDeclaration(TypeCheckable::revert(dec))
             }
             TopLevelStatement::Instance(inst) => {
-                todo!()
+                TopLevelStatement::Instance(TypeCheckable::revert(inst))
             }
         }
     }
@@ -65,9 +64,7 @@ impl ShallowCheck for TopLevelStatement<()> {
             TopLevelStatement::Constant(inner) => inner.shallow_check(ctx),
             TopLevelStatement::Declaration(inner) => inner.shallow_check(ctx),
             TopLevelStatement::StructDeclaration(inner) => inner.shallow_check(ctx),
-            TopLevelStatement::Instance(inst) => {
-                todo!()
-            }
+            TopLevelStatement::Instance(inner) => inner.shallow_check(ctx),
         }
     }
 }
