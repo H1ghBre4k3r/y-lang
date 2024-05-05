@@ -1,0 +1,25 @@
+struct FooStruct {
+    id: i64;
+}
+
+instance FooStruct {
+    fn get_id(): i64 {
+        this.id
+    }
+}
+
+instance i64 {
+    declare add(i64): i64;
+}
+
+struct System {}
+
+instance System {
+    declare print(i64): void;
+}
+
+declare Sys: System;
+
+fn main(): void {
+    Sys.print(42);
+}

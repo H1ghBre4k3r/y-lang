@@ -3,6 +3,7 @@ mod constant;
 mod declaration;
 mod initialisation;
 mod instance;
+mod method_declaration;
 mod struct_declaration;
 mod while_loop;
 
