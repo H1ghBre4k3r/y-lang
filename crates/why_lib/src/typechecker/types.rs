@@ -7,7 +7,7 @@ use super::{
     error::{TypeCheckError, UndefinedType},
 };
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Eq)]
 pub enum Type {
     Integer,
     FloatingPoint,
@@ -22,6 +22,29 @@ pub enum Type {
         params: Vec<Type>,
         return_value: Box<Type>,
     },
+}
+
+impl PartialEq for Type {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Reference(l0), r0) => l0.as_ref() == r0,
+            (l0, Self::Reference(r0)) => l0 == r0.as_ref(),
+            (Self::Tuple(l0), Self::Tuple(r0)) => l0 == r0,
+            (Self::Array(l0), Self::Array(r0)) => l0 == r0,
+            (Self::Struct(l0, l1), Self::Struct(r0, r1)) => l0 == r0 && l1 == r1,
+            (
+                Self::Function {
+                    params: l_params,
+                    return_value: l_return_value,
+                },
+                Self::Function {
+                    params: r_params,
+                    return_value: r_return_value,
+                },
+            ) => l_params == r_params && l_return_value == r_return_value,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 impl std::fmt::Debug for Type {

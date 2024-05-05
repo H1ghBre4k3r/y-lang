@@ -2,6 +2,7 @@ mod assignment;
 mod constant;
 mod declaration;
 mod initialisation;
+mod instance;
 mod struct_declaration;
 mod while_loop;
 
@@ -9,6 +10,7 @@ pub use self::assignment::*;
 pub use self::constant::*;
 pub use self::declaration::*;
 pub use self::initialisation::*;
+pub use self::instance::*;
 pub use self::struct_declaration::*;
 pub use self::while_loop::*;
 
@@ -45,6 +47,7 @@ pub enum TopLevelStatement<T> {
     Constant(Constant<T>),
     Declaration(Declaration<T>),
     StructDeclaration(StructDeclaration<T>),
+    Instance(Instance<T>),
 }
 
 impl TopLevelStatement<()> {
@@ -99,6 +102,18 @@ impl TopLevelStatement<()> {
                     unreachable!()
                 };
                 Ok(TopLevelStatement::StructDeclaration(declaration))
+            }
+            Token::InstanceKeyword { .. } => {
+                let matcher = Comb::INSTANCE;
+                let result = matcher.parse(tokens).map_err(|e| {
+                    tokens.add_error(e.clone());
+                    e
+                })?;
+
+                let Some(AstNode::Instance(instance)) = result.first().cloned() else {
+                    unreachable!()
+                };
+                Ok(TopLevelStatement::Instance(instance))
             }
             token => Err(ParseError {
                 message: format!("unexpected {token:?} at toplevel!"),
