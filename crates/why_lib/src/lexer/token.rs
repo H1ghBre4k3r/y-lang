@@ -156,8 +156,14 @@ pub enum Token {
     DeclareKeyword { position: Span },
     #[terminal("struct")]
     StructKeyword { position: Span },
+    #[terminal("class")]
+    ClassKeyword { position: Span },
+    #[terminal("instance")]
+    InstanceKeyword { position: Span },
     #[terminal("!")]
     ExclamationMark { position: Span },
+    #[terminal("#")]
+    Hash { position: Span },
 }
 
 impl std::fmt::Debug for Token {
@@ -203,7 +209,10 @@ impl std::fmt::Debug for Token {
             Self::Ampersand { .. } => f.debug_struct("Ampersand").finish(),
             Self::DeclareKeyword { .. } => f.debug_struct("DeclareKeyword").finish(),
             Self::StructKeyword { .. } => f.debug_struct("StructKeyword").finish(),
+            Self::ClassKeyword { .. } => f.debug_struct("ClassKeyword").finish(),
+            Self::InstanceKeyword { .. } => f.debug_struct("InstanceKeyword ").finish(),
             Self::ExclamationMark { .. } => f.debug_struct("ExclamationMark").finish(),
+            Self::Hash { .. } => f.debug_struct("Hash").finish(),
         }
     }
 }

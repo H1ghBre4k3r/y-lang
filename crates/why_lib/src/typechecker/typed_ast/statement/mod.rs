@@ -29,6 +29,9 @@ impl TypeCheckable for TopLevelStatement<()> {
             TopLevelStatement::StructDeclaration(dec) => {
                 Ok(TopLevelStatement::StructDeclaration(dec.check(ctx)?))
             }
+            TopLevelStatement::Instance(inst) => {
+                todo!()
+            }
         }
     }
 
@@ -47,6 +50,9 @@ impl TypeCheckable for TopLevelStatement<()> {
             TopLevelStatement::StructDeclaration(dec) => {
                 TopLevelStatement::StructDeclaration(TypeCheckable::revert(dec))
             }
+            TopLevelStatement::Instance(inst) => {
+                todo!()
+            }
         }
     }
 }
@@ -59,6 +65,9 @@ impl ShallowCheck for TopLevelStatement<()> {
             TopLevelStatement::Constant(inner) => inner.shallow_check(ctx),
             TopLevelStatement::Declaration(inner) => inner.shallow_check(ctx),
             TopLevelStatement::StructDeclaration(inner) => inner.shallow_check(ctx),
+            TopLevelStatement::Instance(inst) => {
+                todo!()
+            }
         }
     }
 }

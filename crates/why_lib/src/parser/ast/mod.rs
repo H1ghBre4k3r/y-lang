@@ -29,4 +29,5 @@ pub enum AstNode {
     StructFieldDeclaration(StructFieldDeclaration<()>),
     StructInitialisation(StructInitialisation<()>),
     StructFieldInitialisation(StructFieldInitialisation<()>),
+    Instance(Instance<()>),
 }
