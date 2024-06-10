@@ -11,4 +11,4 @@ repository = "https://github.com/H1ghBre4k3r/pesca-parser"
 anyhow = "1.0.86"
 colored = "2.1.0"
 lex_derive = { path = "../lex_derive/" }
-regex = "1.10.2"
+regex = "1.10.5"
