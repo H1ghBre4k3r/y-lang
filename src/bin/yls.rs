@@ -18,6 +18,10 @@ struct Backend {
 impl Backend {
     async fn check_diagnostics(&self, uri: Url) {
         let path = uri.path();
+        if !path.ends_with(".why") {
+            return;
+        }
+
         self.client
             .send_notification::<PublishDiagnostics>(PublishDiagnosticsParams {
                 uri: uri.clone(),
