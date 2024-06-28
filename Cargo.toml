@@ -10,7 +10,7 @@ repository = "https://github.com/H1ghBre4k3r/y-lang"
 
 [dependencies]
 clap = { version = "4.5.7", features = ["derive"]}
-log = "0.4.21"
+log = "0.4.22"
 pest = "2.7"
 pest_derive = "2.7"
 simple_logger = { version = "5.0.0", default-features = false, features = ["colored", "colors"]}
