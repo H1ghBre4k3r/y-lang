@@ -15,11 +15,15 @@ instance i64 {
 struct System {}
 
 instance System {
-    declare print(i64): void;
+    declare print(f64): void;
+
+    fn answer(): i64 {
+        42
+    }
 }
 
 declare Sys: System;
 
 fn main(): void {
-    Sys.print(42);
+    Sys.print(Sys.answer());
 }

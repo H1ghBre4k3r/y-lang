@@ -1,7 +1,5 @@
-mod lexmap;
 mod token;
 
-pub use lexmap::*;
 pub use token::*;
 
 use std::{error::Error, fmt::Display};
@@ -74,12 +72,12 @@ impl<'a> Lexer<'a> {
                     if self.position == self.input.len() {
                         return Ok(self.tokens);
                     }
-                    panic!(
+                    return Err(LexError(format!(
                         "Failed to lex '{}' at position {}; remaining '{}'",
                         self.input,
                         self.position,
                         &self.input[self.position..]
-                    );
+                    )));
                 }
             };
             self.position += len;
