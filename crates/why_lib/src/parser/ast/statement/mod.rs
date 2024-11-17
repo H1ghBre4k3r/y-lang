@@ -95,9 +95,8 @@ impl TopLevelStatement<()> {
             }
             Token::StructKeyword { .. } => {
                 let matcher = Comb::STRUCT_DECLARATION;
-                let result = matcher.parse(tokens).map_err(|e| {
+                let result = matcher.parse(tokens).inspect_err(|e| {
                     tokens.add_error(e.clone());
-                    e
                 })?;
 
                 let Some(AstNode::StructDeclaration(declaration)) = result.first().cloned() else {
@@ -107,9 +106,8 @@ impl TopLevelStatement<()> {
             }
             Token::InstanceKeyword { .. } => {
                 let matcher = Comb::INSTANCE;
-                let result = matcher.parse(tokens).map_err(|e| {
+                let result = matcher.parse(tokens).inspect_err(|e| {
                     tokens.add_error(e.clone());
-                    e
                 })?;
 
                 let Some(AstNode::Instance(instance)) = result.first().cloned() else {
