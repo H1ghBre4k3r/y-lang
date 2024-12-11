@@ -18,5 +18,5 @@ serde_json = "1.0.133"
 tokio = { version = "1.42.0", features = ["full"] }
 tower-lsp = "0.20.0"
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 why_lib = { path = "./crates/why_lib" }
