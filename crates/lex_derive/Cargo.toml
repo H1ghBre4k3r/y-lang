@@ -12,5 +12,5 @@ description = "Some derive macros for creating a lexer"
 proc-macro = true
 
 [dependencies]
-quote = "1.0.37"
+quote = "1.0.38"
 syn = "2.0.90"
