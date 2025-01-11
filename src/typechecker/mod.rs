@@ -67,7 +67,13 @@ impl Typechecker {
                 Statement::Intrinsic(Intrinsic::Definition(definition)) => {
                     let Definition { value, ident, .. } = definition;
 
-                    let Expression::FnDef(FnDef { params, type_annotation , position, ..}) = value else {
+                    let Expression::FnDef(FnDef {
+                        params,
+                        type_annotation,
+                        position,
+                        ..
+                    }) = value
+                    else {
                         continue;
                     };
 
@@ -175,7 +181,7 @@ impl Typechecker {
             return Ok(CompilerDirective {
                 directive: Expression::Binary(directive),
                 statement: None,
-                position: position.to_owned()
+                position: position.to_owned(),
             });
         };
 
@@ -207,10 +213,10 @@ impl Typechecker {
     fn check_import(&self, import: &Import, scope: &mut TypeScope) -> TResult<Import> {
         let Import { position, path } = import;
         let Some(module) = self.modules.get(path) else {
-           return Err(TypeError {
-               message: format!("Could not import module '{path}'"),
-               position: position.clone()
-           });
+            return Err(TypeError {
+                message: format!("Could not import module '{path}'"),
+                position: position.clone(),
+            });
         };
 
         let imports = module.exports.flatten();
@@ -719,7 +725,8 @@ impl Typechecker {
         let Ok(return_type) = block.info._type.convert_to(&type_annotation) else {
             return Err(TypeError {
                 message: format!(
-                    "Expected return type of '{type_annotation}' but got '{}'", block.info._type
+                    "Expected return type of '{type_annotation}' but got '{}'",
+                    block.info._type
                 ),
                 position: fn_def.position.clone(),
             });
@@ -788,7 +795,12 @@ impl Typechecker {
             });
         };
 
-        let VariableType::Func { params, return_type, .. } = fn_def.clone() else {
+        let VariableType::Func {
+            params,
+            return_type,
+            ..
+        } = fn_def.clone()
+        else {
             return Err(TypeError {
                 message: format!("Trying to call an invalid function '{ident}'"),
                 position: fn_call.position.clone(),

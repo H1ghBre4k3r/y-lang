@@ -1080,18 +1080,20 @@ impl Scope {
             return;
         }
 
-        let VariableType::Func { params, .. }= &ident.info._type else {
+        let VariableType::Func { params, .. } = &ident.info._type else {
             unreachable!("Trying to call a non-function expression");
         };
 
         for (index, param) in call.params.iter().enumerate() {
             // if the type of the parameter is a reference, we need to load the address of it
             if let VariableType::Reference(_) = params[index] {
-                let Expression::Ident(Ident { value, info, ..}) = &call.params[index] else {
-                    unimplemented!("Passing non-identifiers as references is currently not supported!");
+                let Expression::Ident(Ident { value, info, .. }) = &call.params[index] else {
+                    unimplemented!(
+                        "Passing non-identifiers as references is currently not supported!"
+                    );
                 };
 
-                let Some(Variable { offset, ..}) = self.variables.get(value) else {
+                let Some(Variable { offset, .. }) = self.variables.get(value) else {
                     unreachable!()
                 };
 

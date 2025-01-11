@@ -236,7 +236,7 @@ pub fn load_modules(
         let Ok(file_content) = std::fs::read_to_string(&file) else {
             return Err(Box::new(FileLoadError {
                 message: format!("Could not load module: '{file}'"),
-                position: import.position.clone()
+                position: import.position.clone(),
             }));
         };
 
