@@ -21,13 +21,19 @@ impl FnDef<()> {
         let mut inner = pair.into_inner();
 
         let Some(param_list) = inner.next() else {
-            error!("Expected param list in function definition at {}:{}", line, col);
+            error!(
+                "Expected param list in function definition at {}:{}",
+                line, col
+            );
             std::process::exit(-1);
         };
         let param_list = Self::from_param_list(param_list, file);
 
         let Some(type_annotation) = inner.next() else {
-            error!("Expected return type annotation in function definition at {}:{}", line, col);
+            error!(
+                "Expected return type annotation in function definition at {}:{}",
+                line, col
+            );
             std::process::exit(-1);
         };
         let type_annotation = TypeAnnotation::from_pair(type_annotation, file);
