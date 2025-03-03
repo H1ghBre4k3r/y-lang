@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/H1ghBre4k3r/pesca-parser"
 
 [dependencies]
-anyhow = "1.0.96"
+anyhow = "1.0.97"
 colored = "3.0.0"
 lex_derive = { path = "../lex_derive/" }
 regex = "1.11.1"
