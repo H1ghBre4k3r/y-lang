@@ -6,7 +6,7 @@ use crate::{
         context::Context,
         error::{TypeCheckError, TypeMismatch, UndefinedVariable},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -64,15 +64,19 @@ impl TypeCheckable for Postfix<()> {
                         }
 
                         // check if types of parameters and arguments match
-                        for (i, arg) in checked_args.iter().enumerate() {
+                        for (i, arg) in checked_args.iter_mut().enumerate() {
                             let expected = params[i].clone();
                             let actual = arg_types[i].clone();
 
                             if actual != expected {
-                                return Err(TypeCheckError::TypeMismatch(
-                                    TypeMismatch { expected, actual },
-                                    arg.position(),
-                                ));
+                                if actual == Type::Unknown {
+                                    arg.update_type(expected)?;
+                                } else {
+                                    return Err(TypeCheckError::TypeMismatch(
+                                        TypeMismatch { expected, actual },
+                                        arg.position(),
+                                    ));
+                                }
                             }
                         }
 
