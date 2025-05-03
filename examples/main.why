@@ -1,68 +1,50 @@
-fn takes_function(func: (i32, i32) -> i32): i32 {
-    func(42, 1337)
+const PI: f64 = 3.1415;
+
+fn add(x: i64, y: i64): i64 {
+    x + y
 }
 
-fn test(x: i32): (i32) -> i32 {
-    \(y) => x + y
+fn explicit_return_add(x: i64, y: i64): i64 {
+    return x + y;
 }
 
-fn main(): i32 {
-    let foo = test(42);
-    let bar = foo(1337);
+struct TestStruct {
+    x: i64;
+}
 
-    if (true) {
-        bar()
+instance TestStruct {
+    fn get_x(): i64 {
+        this.x
+    }
+}
+
+fn takes_function(func: (i64, i64) -> i64): i64 {
+    func(42, 69)
+}
+
+fn main(): void {
+    let a = add(42, 1337);
+
+    let arr = [42, 1337];
+
+    let arr2 = [1337; 5];
+
+    let b = explicit_return_add(arr[0], arr2[3]);
+
+    let my_struct = TestStruct {
+        x: 42
+    };
+
+    let value_of_x = my_struct.get_x();
+
+//     let _ = \(x, y) => x + y;
+
+    takes_function(add);
+    takes_function(explicit_return_add);
+
+    return if (42 < 25) {
+        69
     } else {
-        foo()
-    }
-
-    let mut x = 10;
-
-    while (x > 0) {
-        do_something(x);
-        x = x - 1;
-    }
-
-    let baz = takes_function(\(x, y) => {
-        let result = x + y;
-        return result;
-    });
+        1337
+    };
 }
-
-let square: (i32) -> i32 = \(x) => x * x;
-
-let foo = [0; 10];
-
-let bar: [[i32]] = [17, 42, 1337];
-
-let a = foo[0];
-
-fn some_function(): [i32] {
-    [42, 1337]
-}
-
-let b = some_function()[42];
-
-fn takes_reference(x: &i32): void {
-    x = x + 10;
-}
-
-let also_takes_reference: (&i32) -> void = \(x) => {
-    x = x + 10;
-};
-
-declare square: (i32) -> i32;
-
-const PI: f32 = 3.14159265;
-
-struct Foo {
-    bar: u32;
-    baz: u64;
-};
-
-let foo = Foo {
-   bar: 123,
-   baz: 42
-};
-
-let test = foo.bar()[42];
