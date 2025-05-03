@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    parser::ast::{Expression, Function, FunctionParameter, Id},
+    parser::ast::{Expression, Function, FunctionParameter, Id, Statement},
     typechecker::{
         context::Context,
         error::{
@@ -58,7 +58,9 @@ impl TypeCheckable for Function<()> {
         }
 
         match checked_statements.last() {
-            Some(last_stmt) => {
+            Some(
+                last_stmt @ Statement::YieldingExpression(_) | last_stmt @ Statement::Return(_),
+            ) => {
                 let last_stmt_type = last_stmt.get_info().type_id.clone();
                 let inner = last_stmt_type.borrow_mut();
 
@@ -86,15 +88,15 @@ impl TypeCheckable for Function<()> {
                     }
                 }
             }
-            None if return_type_id == Type::Void => {}
-            None => {
+            _ if return_type_id == Type::Void => {}
+            _ => {
                 return Err(TypeCheckError::TypeMismatch(
                     TypeMismatch {
                         expected: return_type_id,
                         actual: Type::Void,
                     },
                     return_type.position(),
-                ))
+                ));
             }
         }
 
