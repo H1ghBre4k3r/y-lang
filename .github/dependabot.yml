@@ -12,3 +12,7 @@ updates:
     directory: "crates/why_lib"
     schedule:
       interval: "daily"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
