@@ -162,6 +162,8 @@ impl TypedConstruct for Lambda<TypeInformation> {
             self.parameters[i].update_type(t.to_owned())?;
         }
 
+        self.info.type_id = Rc::new(RefCell::new(Some(type_id)));
+
         Ok(())
     }
 }
@@ -243,7 +245,7 @@ mod tests {
 
     use crate::{
         lexer::Span,
-        parser::ast::{Expression, Id, Initialisation, Lambda, LambdaParameter, Num},
+        parser::ast::{Expression, Id, Initialisation, Lambda, LambdaParameter, Num, TypeName},
         typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation},
     };
 
@@ -356,7 +358,11 @@ mod tests {
                 position: Span::default(),
             },
             mutable: false,
-            type_name: None,
+            type_name: Some(crate::parser::ast::TypeName::Fn {
+                params: vec![TypeName::Literal("i64".into(), Span::default())],
+                return_type: Box::new(TypeName::Literal("i64".into(), Span::default())),
+                position: Span::default(),
+            }),
             value: Expression::Lambda(Lambda {
                 parameters: vec![LambdaParameter {
                     name: Id {
@@ -380,14 +386,6 @@ mod tests {
         };
 
         init.check(&mut ctx)?;
-
-        ctx.scope.update_variable(
-            "foo",
-            Type::Function {
-                params: vec![Type::Integer],
-                return_value: Box::new(Type::Integer),
-            },
-        )?;
 
         ctx.scope.update_variable(
             "foo",
