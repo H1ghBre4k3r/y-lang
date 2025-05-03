@@ -1,5 +1,5 @@
 use anyhow::Result;
-use pesca_lang::{compile_file, Cli};
+use pesca_lang::{Cli, compile_file};
 
 fn main() -> Result<()> {
     let args = Cli::init();
