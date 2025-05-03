@@ -58,7 +58,8 @@ pub fn compile_file(args: Cli) -> anyhow::Result<()> {
         }
     };
 
-    println!("{checked:#?}");
+    // println!("{checked:#?}");
 
     Ok(())
 }
+
