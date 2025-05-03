@@ -4,7 +4,10 @@ use crate::{
     parser::ast::{Id, Initialisation},
     typechecker::{
         context::Context,
-        error::{RedefinedConstant, TypeCheckError, TypeMismatch, UndefinedType},
+        error::{
+            MissingInitialisationType, RedefinedConstant, TypeCheckError, TypeMismatch,
+            UndefinedType,
+        },
         types::Type,
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
@@ -73,6 +76,11 @@ impl TypeCheckable for Initialisation<()> {
                     position,
                 ));
             }
+        } else if !info.has_type() {
+            return Err(TypeCheckError::MissingInitialisationType(
+                MissingInitialisationType,
+                init_position,
+            ));
         }
 
         if ctx

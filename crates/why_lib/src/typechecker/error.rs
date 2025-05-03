@@ -9,6 +9,7 @@ pub enum TypeCheckError {
     TypeMismatch(TypeMismatch, Span),
     UndefinedVariable(UndefinedVariable, Span),
     UndefinedType(UndefinedType, Span),
+    MissingInitialisationType(MissingInitialisationType, Span),
     InvalidConstantType(InvalidConstantType, Span),
     RedefinedConstant(RedefinedConstant, Span),
     RedefinedFunction(RedefinedFunction, Span),
@@ -28,6 +29,7 @@ impl TypeCheckError {
             TypeCheckError::TypeMismatch(_, span) => span.clone(),
             TypeCheckError::UndefinedVariable(_, span) => span.clone(),
             TypeCheckError::UndefinedType(_, span) => span.clone(),
+            TypeCheckError::MissingInitialisationType(_, span) => span.clone(),
             TypeCheckError::InvalidConstantType(_, span) => span.clone(),
             TypeCheckError::RedefinedConstant(_, span) => span.clone(),
             TypeCheckError::RedefinedFunction(_, span) => span.clone(),
@@ -41,6 +43,7 @@ impl TypeCheckError {
             TypeCheckError::TypeMismatch(e, _) => Box::new(e.clone()),
             TypeCheckError::UndefinedVariable(e, _) => Box::new(e.clone()),
             TypeCheckError::UndefinedType(e, _) => Box::new(e.clone()),
+            TypeCheckError::MissingInitialisationType(e, _) => Box::new(e.clone()),
             TypeCheckError::InvalidConstantType(e, _) => Box::new(e.clone()),
             TypeCheckError::RedefinedConstant(e, _) => Box::new(e.clone()),
             TypeCheckError::RedefinedFunction(e, _) => Box::new(e.clone()),
@@ -97,6 +100,17 @@ impl Display for UndefinedType {
 }
 
 impl Error for UndefinedType {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MissingInitialisationType;
+
+impl Display for MissingInitialisationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("There must be a type known at compile time!")
+    }
+}
+
+impl Error for MissingInitialisationType {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InvalidConstantType {
