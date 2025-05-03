@@ -1,9 +1,9 @@
 use std::fs;
 
-use tower_lsp::jsonrpc::{Error, Result};
-use tower_lsp::lsp_types::notification::PublishDiagnostics;
-use tower_lsp::lsp_types::*;
-use tower_lsp::{Client, LanguageServer, LspService, Server};
+use tower_lsp_server::jsonrpc::{Error, Result};
+use tower_lsp_server::lsp_types::notification::PublishDiagnostics;
+use tower_lsp_server::lsp_types::*;
+use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use tracing::error;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
 use why_lib::lexer::{self, Span};
@@ -16,8 +16,8 @@ struct Backend {
 }
 
 impl Backend {
-    async fn check_diagnostics(&self, uri: Url) {
-        let path = uri.path();
+    async fn check_diagnostics(&self, uri: Uri) {
+        let path = uri.path().as_str();
         if !path.ends_with(".why") {
             return;
         }
@@ -93,7 +93,6 @@ impl Backend {
     }
 }
 
-#[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
