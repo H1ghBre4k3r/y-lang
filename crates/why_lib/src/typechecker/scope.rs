@@ -4,24 +4,35 @@ use crate::parser::ast::Expression;
 
 use super::{error::TypeCheckError, types::Type, TypeInformation, TypedConstruct};
 
-type StoredVariable = (Expression<TypeInformation>, Rc<RefCell<Option<Type>>>, bool);
+#[derive(Clone)]
+struct StoredVariable {
+    value: Expression<TypeInformation>,
+    type_id: Rc<RefCell<Option<Type>>>,
+    mutable: bool,
+}
 
 #[derive(Clone, Default)]
-pub struct Stack {
+/// A frame within a stack, holding information about all variables, types, and constants.
+pub struct Frame {
+    /// All available variables in this frame
     variables: HashMap<String, StoredVariable>,
+    /// All types available within this frame
     types: HashMap<String, Type>,
+    /// All constants available in this frame
     constants: HashMap<String, Type>,
 }
 
-impl std::fmt::Debug for Stack {
+impl std::fmt::Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Stack")
+        f.debug_struct("Frame")
             .field(
                 "variables",
                 &self
                     .variables
                     .iter()
-                    .map(|(name, (_, type_id, _))| (name, type_id.borrow().as_ref().cloned()))
+                    .map(|(name, StoredVariable { type_id, .. })| {
+                        (name, type_id.borrow().as_ref().cloned())
+                    })
                     .collect::<HashMap<_, _>>(),
             )
             .field(
@@ -33,11 +44,12 @@ impl std::fmt::Debug for Stack {
     }
 }
 
-type StackFrame = Rc<RefCell<Stack>>;
+type StackFrame = Rc<RefCell<Frame>>;
 
 #[derive(Clone, Debug)]
 pub struct Scope {
     stacks: Vec<StackFrame>,
+    /// all method available for certain type
     methods: Rc<RefCell<HashMap<Type, HashMap<String, Type>>>>,
 }
 
@@ -115,7 +127,7 @@ impl Scope {
     pub fn add_variable(
         &mut self,
         name: impl ToString,
-        expression: Expression<TypeInformation>,
+        value: Expression<TypeInformation>,
         mutable: bool,
     ) -> Result<(), VariableAddError> {
         let name = name.to_string();
@@ -125,11 +137,15 @@ impl Scope {
         }
 
         self.stacks.last().and_then(|scope| {
-            let type_id = expression.get_info().type_id;
-            scope
-                .borrow_mut()
-                .variables
-                .insert(name, (expression, type_id, mutable))
+            let type_id = value.get_info().type_id;
+            scope.borrow_mut().variables.insert(
+                name,
+                StoredVariable {
+                    value,
+                    type_id,
+                    mutable,
+                },
+            )
         });
 
         Ok(())
@@ -147,7 +163,7 @@ impl Scope {
                     .variables
                     .get(&name)
                     .cloned()
-                    .map(|(_, type_id, _)| type_id)
+                    .map(|StoredVariable { type_id, .. }| type_id)
             })
     }
 
@@ -163,7 +179,7 @@ impl Scope {
                     .variables
                     .get(&name)
                     .cloned()
-                    .map(|(_, _, mutable)| mutable)
+                    .map(|StoredVariable { mutable, .. }| mutable)
             })
     }
 
@@ -184,7 +200,12 @@ impl Scope {
 
         let scope = scope.borrow_mut();
 
-        let Some((mut exp, variable_type, _)) = scope.variables.get(&name).cloned() else {
+        let Some(StoredVariable {
+            value: mut exp,
+            type_id: variable_type,
+            ..
+        }) = scope.variables.get(&name).cloned()
+        else {
             unreachable!()
         };
 
