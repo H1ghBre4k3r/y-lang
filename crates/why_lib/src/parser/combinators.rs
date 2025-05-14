@@ -53,7 +53,7 @@ pub enum Comb<'a, Tok, Term, Node> {
     },
 }
 
-impl<'a, Tok, Term, Node> PartialEq for Comb<'a, Tok, Term, Node>
+impl<Tok, Term, Node> PartialEq for Comb<'_, Tok, Term, Node>
 where
     Term: PartialEq,
 {
@@ -101,7 +101,7 @@ where
     }
 }
 
-impl<'a, Tok, Term, Node> std::fmt::Debug for Comb<'a, Tok, Term, Node>
+impl<Tok, Term, Node> std::fmt::Debug for Comb<'_, Tok, Term, Node>
 where
     Term: std::fmt::Debug,
 {
@@ -156,7 +156,7 @@ macro_rules! node_comb {
         };
     };
 }
-impl<'a> Comb<'a, Token, Terminal, AstNode> {
+impl Comb<'_, Token, Terminal, AstNode> {
     terminal_comb!(LET, Let);
 
     terminal_comb!(CONST_KEYWORD, Const);
@@ -260,7 +260,7 @@ impl<'a> Comb<'a, Token, Terminal, AstNode> {
     node_comb!(METHOD_DECLARATION, MethodDeclaration);
 }
 
-impl<'a, Tok, Term, Node> Comb<'a, Tok, Term, Node>
+impl<Tok, Term, Node> Comb<'_, Tok, Term, Node>
 where
     Tok: Clone + std::fmt::Debug + GetPosition,
     Term: PartialEq<Tok> + std::fmt::Debug,
@@ -357,9 +357,8 @@ where
                 }
                 tokens.set_index(current_index);
 
-                let mut result = closing.parse(tokens).map_err(|e| {
+                let mut result = closing.parse(tokens).inspect_err(|e| {
                     tokens.add_error(e.clone());
-                    e
                 })?;
                 matched.append(&mut result);
             }
@@ -369,7 +368,7 @@ where
     }
 }
 
-impl<'a, Tok, Term, Node> Shr for Comb<'a, Tok, Term, Node> {
+impl<Tok, Term, Node> Shr for Comb<'_, Tok, Term, Node> {
     type Output = Self;
 
     fn shr(self, rhs: Self) -> Self::Output {
@@ -380,7 +379,7 @@ impl<'a, Tok, Term, Node> Shr for Comb<'a, Tok, Term, Node> {
     }
 }
 
-impl<'a, Tok, Term, Node> BitOr for Comb<'a, Tok, Term, Node> {
+impl<Tok, Term, Node> BitOr for Comb<'_, Tok, Term, Node> {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -391,7 +390,7 @@ impl<'a, Tok, Term, Node> BitOr for Comb<'a, Tok, Term, Node> {
     }
 }
 
-impl<'a, Tok, Term, Node> Not for Comb<'a, Tok, Term, Node> {
+impl<Tok, Term, Node> Not for Comb<'_, Tok, Term, Node> {
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -401,7 +400,7 @@ impl<'a, Tok, Term, Node> Not for Comb<'a, Tok, Term, Node> {
     }
 }
 
-impl<'a, Tok, Term, Node> BitXor<()> for Comb<'a, Tok, Term, Node> {
+impl<Tok, Term, Node> BitXor<()> for Comb<'_, Tok, Term, Node> {
     type Output = Self;
 
     fn bitxor(self, _rhs: ()) -> Self::Output {
@@ -412,7 +411,7 @@ impl<'a, Tok, Term, Node> BitXor<()> for Comb<'a, Tok, Term, Node> {
     }
 }
 
-impl<'a, Tok, Term, Node> BitXor<usize> for Comb<'a, Tok, Term, Node> {
+impl<Tok, Term, Node> BitXor<usize> for Comb<'_, Tok, Term, Node> {
     type Output = Self;
 
     fn bitxor(self, rhs: usize) -> Self::Output {

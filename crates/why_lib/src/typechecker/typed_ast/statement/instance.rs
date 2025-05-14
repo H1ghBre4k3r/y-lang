@@ -24,10 +24,7 @@ impl TypeCheckable for Instance<()> {
             ..
         } = self;
 
-        let type_id = match Type::try_from((&name, &*ctx)) {
-            Ok(type_id) => type_id,
-            Err(e) => return Err(e),
-        };
+        let type_id = Type::try_from((&name, &*ctx))?;
 
         ctx.scope.enter_scope();
         if ctx.scope.add_constant("this", type_id).is_err() {
@@ -94,10 +91,7 @@ impl ShallowCheck for Instance<()> {
             ..
         } = self;
 
-        let type_id = match Type::try_from((name, &*ctx)) {
-            Ok(type_id) => type_id,
-            Err(e) => return Err(e),
-        };
+        let type_id = Type::try_from((name, &*ctx))?;
 
         for function in functions.iter() {
             let function_type = function.simple_shallow_check(ctx)?;

@@ -156,9 +156,8 @@ impl FromTokens<Token> for Statement<()> {
             }
             Token::WhileKeyword { .. } => {
                 let matcher = Comb::WHILE_LOOP;
-                let result = matcher.parse(tokens).map_err(|e| {
+                let result = matcher.parse(tokens).inspect_err(|e| {
                     tokens.add_error(e.clone());
-                    e
                 })?;
 
                 let [AstNode::WhileLoop(while_loop_statement)] = result.as_slice() else {
@@ -208,9 +207,8 @@ impl FromTokens<Token> for Statement<()> {
             }
             Token::StructKeyword { .. } => {
                 let matcher = Comb::STRUCT_DECLARATION;
-                let result = matcher.parse(tokens).map_err(|e| {
+                let result = matcher.parse(tokens).inspect_err(|e| {
                     tokens.add_error(e.clone());
-                    e
                 })?;
 
                 let Some(AstNode::StructDeclaration(declaration)) = result.first().cloned() else {
@@ -241,9 +239,8 @@ impl Statement<()> {
         let index = tokens.get_index();
 
         let matcher = Comb::ASSIGNMENT;
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|_| {
             tokens.set_index(index);
-            e
         })?;
 
         let [AstNode::Assignment(assignment)] = result.as_slice() else {
@@ -253,10 +250,9 @@ impl Statement<()> {
         let index = tokens.get_index();
         let matcher = Comb::SEMI;
 
-        matcher.parse(tokens).map_err(|e| {
+        matcher.parse(tokens).inspect_err(|e| {
             tokens.set_index(index);
             tokens.add_error(e.clone());
-            e
         })?;
 
         Ok(Statement::Assignment(assignment.clone()).into())
@@ -266,9 +262,8 @@ impl Statement<()> {
         let index = tokens.get_index();
 
         let matcher = Comb::EXPR;
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|_| {
             tokens.set_index(index);
-            e
         })?;
 
         let [AstNode::Expression(expr)] = result.as_slice() else {

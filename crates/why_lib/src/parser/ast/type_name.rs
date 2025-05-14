@@ -108,9 +108,8 @@ impl TypeName {
 
         let matcher = !Comb::ID;
 
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|_| {
             tokens.set_index(index);
-            e
         })?;
 
         let Some(AstNode::Id(type_name)) = result.first() else {
@@ -130,9 +129,8 @@ impl TypeName {
 
         let matcher = Comb::LPAREN >> (Comb::TYPE_NAME % Comb::COMMA) >> Comb::RPAREN;
 
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|_| {
             tokens.set_index(index);
-            e
         })?;
 
         let mut elems = vec![];
@@ -168,9 +166,8 @@ impl TypeName {
 
         let matcher = Comb::SMALL_RIGHT_ARROW >> Comb::TYPE_NAME;
 
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|_| {
             tokens.set_index(index);
-            e
         })?;
 
         let Some(AstNode::TypeName(type_name)) = result.first() else {
@@ -197,9 +194,8 @@ impl TypeName {
 
         let matcher = Comb::LBRACKET >> Comb::TYPE_NAME >> Comb::RBRACKET;
 
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|_| {
             tokens.set_index(index);
-            e
         })?;
 
         let Some(AstNode::TypeName(type_name)) = result.first() else {
@@ -225,9 +221,8 @@ impl TypeName {
 
         let matcher = Comb::AMPERSAND >> Comb::TYPE_NAME;
 
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|_| {
             tokens.set_index(index);
-            e
         })?;
 
         let Some(AstNode::TypeName(type_name)) = result.first() else {
