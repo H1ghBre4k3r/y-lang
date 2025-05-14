@@ -510,7 +510,7 @@ mod tests {
                     info: (),
                     position: Span::default()
                 },
-                value: Expression::Num(Num::Integer(42, (), Span::default())),
+                rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: (),
                 position: Span::default()
             })
