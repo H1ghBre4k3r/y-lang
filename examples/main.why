@@ -10,6 +10,11 @@ fn explicit_return_add(x: i64, y: i64): i64 {
 
 struct TestStruct {
     x: i64;
+    bar: (i64, i64) -> i64;
+}
+
+struct Bar {
+    t: TestStruct;
 }
 
 instance TestStruct {
@@ -32,19 +37,30 @@ fn main(): void {
     let b = explicit_return_add(arr[0], arr2[3]);
 
     let my_struct = TestStruct {
-        x: 42
+        x: 42,
+        bar: add
     };
 
     let value_of_x = my_struct.get_x();
+    // let _ = \(x, y) => x + y;
 
-//     let _ = \(x, y) => x + y;
+    let mut i = 0;
+
+    while (i < 10) {
+        i = i + 1;
+    }
+
+    // my_struct.x = 1337;
 
     takes_function(add);
     takes_function(explicit_return_add);
 
-    return if (42 < 25) {
-        69
-    } else {
-        1337
+    let b = Bar {
+        t: TestStruct {
+            x: 1337,
+            bar: add
+        }
     };
+
+    b.t.bar(4, 2);
 }
