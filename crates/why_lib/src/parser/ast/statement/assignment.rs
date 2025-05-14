@@ -29,9 +29,8 @@ impl FromTokens<Token> for Assignment<()> {
 
         let matcher = Comb::EXPR;
 
-        let result = matcher.parse(tokens).map_err(|e| {
+        let result = matcher.parse(tokens).inspect_err(|e| {
             tokens.add_error(e.clone());
-            e
         })?;
 
         let Some(AstNode::Expression(value)) = result.first() else {

@@ -205,8 +205,8 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{
-            Expression, Id, Initialisation, Lambda, LambdaParameter, Num, StructDeclaration,
-            StructFieldDeclaration, StructFieldInitialisation, StructInitialisation, TypeName,
+            Expression, Id, Num, StructDeclaration, StructFieldDeclaration,
+            StructFieldInitialisation, StructInitialisation, TypeName,
         },
         typechecker::{context::Context, types::Type, ShallowCheck, TypeCheckable},
     };
