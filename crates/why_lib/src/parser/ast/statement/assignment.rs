@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment<T> {
     pub id: Id<T>,
-    pub value: Expression<T>,
+    pub rvalue: Expression<T>,
     pub info: T,
     pub position: Span,
 }
@@ -33,13 +33,13 @@ impl FromTokens<Token> for Assignment<()> {
             tokens.add_error(e.clone());
         })?;
 
-        let Some(AstNode::Expression(value)) = result.first() else {
+        let Some(AstNode::Expression(rvalue)) = result.first() else {
             unreachable!()
         };
 
         Ok(Assignment {
             id: id.clone(),
-            value: value.clone(),
+            rvalue: rvalue.clone(),
             info: (),
             position,
         }

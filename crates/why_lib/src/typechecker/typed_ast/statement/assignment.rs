@@ -14,7 +14,7 @@ impl TypeCheckable for Assignment<()> {
         let context = ctx.clone();
         let Assignment {
             id,
-            value,
+            rvalue,
             position,
             ..
         } = self;
@@ -43,33 +43,33 @@ impl TypeCheckable for Assignment<()> {
             ));
         }
 
-        let mut value = value.check(ctx)?;
-        let info = value.get_info();
+        let mut rvalue = rvalue.check(ctx)?;
+        let info = rvalue.get_info();
 
         let variable_type_id = { variable_type.borrow().clone() };
-        let value_type_id = { value.get_info().type_id.borrow().clone() };
+        let rvalue_type_id = { rvalue.get_info().type_id.borrow().clone() };
 
-        match (variable_type_id, value_type_id) {
-            (Some(variable_type_id), Some(value_type_id)) => {
-                if variable_type_id != value_type_id {
+        match (variable_type_id, rvalue_type_id) {
+            (Some(variable_type_id), Some(rvalue_type_id)) => {
+                if variable_type_id != rvalue_type_id {
                     return Err(TypeCheckError::TypeMismatch(
                         TypeMismatch {
                             expected: variable_type_id,
-                            actual: value_type_id,
+                            actual: rvalue_type_id,
                         },
-                        value.position(),
+                        rvalue.position(),
                     ));
                 }
             }
             (Some(variable_type_id), None) => {
-                value.update_type(variable_type_id.clone())?;
+                rvalue.update_type(variable_type_id.clone())?;
 
                 *info.type_id.borrow_mut() = Some(variable_type_id);
             }
             _ => {}
         }
 
-        if let Err(e) = ctx.scope.add_variable(&name, value.clone(), true) {
+        if let Err(e) = ctx.scope.add_variable(&name, rvalue.clone(), true) {
             unreachable!("{e}")
         }
 
@@ -82,7 +82,7 @@ impl TypeCheckable for Assignment<()> {
                 },
                 position: id_position,
             },
-            value,
+            rvalue,
             info: TypeInformation {
                 type_id: info.type_id.clone(),
                 context,
@@ -94,14 +94,14 @@ impl TypeCheckable for Assignment<()> {
     fn revert(this: &Self::Output) -> Self {
         let Assignment {
             id,
-            value,
+            rvalue,
             position,
             ..
         } = this;
 
         Assignment {
             id: TypeCheckable::revert(id),
-            value: TypeCheckable::revert(value),
+            rvalue: TypeCheckable::revert(rvalue),
             info: (),
             position: position.clone(),
         }
@@ -148,7 +148,7 @@ mod tests {
                 position: Span::default(),
             },
             info: (),
-            value: Expression::Num(Num::Integer(42, (), Span::default())),
+            rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
         };
 
@@ -180,7 +180,7 @@ mod tests {
                 position: Span::default(),
             },
             info: (),
-            value: Expression::Num(Num::Integer(42, (), Span::default())),
+            rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
         };
 
@@ -223,7 +223,7 @@ mod tests {
                 position: Span::default(),
             },
             info: (),
-            value: Expression::Num(Num::Integer(42, (), Span::default())),
+            rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
         };
 
@@ -253,7 +253,7 @@ mod tests {
                 position: Span::default(),
             },
             info: (),
-            value: Expression::Num(Num::Integer(42, (), Span::default())),
+            rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
         };
 
