@@ -100,14 +100,14 @@ impl LanguageServer for Backend {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-                diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
-                    DiagnosticOptions {
-                        identifier: Some("ylsp".into()),
-                        inter_file_dependencies: true,
-                        workspace_diagnostics: true,
-                        ..Default::default()
-                    },
-                )),
+                // diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
+                //     DiagnosticOptions {
+                //         identifier: Some("ylsp".into()),
+                //         inter_file_dependencies: true,
+                //         workspace_diagnostics: true,
+                //         ..Default::default()
+                //     },
+                // )),
                 workspace: Some(WorkspaceServerCapabilities {
                     workspace_folders: None,
                     file_operations: Some(WorkspaceFileOperationsServerCapabilities {
