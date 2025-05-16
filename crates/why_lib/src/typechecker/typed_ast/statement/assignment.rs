@@ -1,8 +1,8 @@
 use crate::{
-    parser::ast::{Assignment, Id},
+    parser::ast::{Assignment, LValue},
     typechecker::{
         context::Context,
-        error::{ImmutableReassign, TypeCheckError, TypeMismatch, UndefinedVariable},
+        error::{ImmutableReassign, TypeCheckError, TypeMismatch},
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
@@ -19,34 +19,22 @@ impl TypeCheckable for Assignment<()> {
             ..
         } = self;
 
-        let Id {
-            name,
-            position: id_position,
-            ..
-        } = lvalue;
-
-        let Some(variable_type) = ctx.scope.resolve_name(&name) else {
-            return Err(TypeCheckError::UndefinedVariable(
-                UndefinedVariable {
-                    variable_name: name,
-                },
-                id_position,
-            ));
-        };
-
+        let name = lvalue.get_original_variable_name().name;
         if let Some(false) = ctx.scope.is_variable_mutable(&name) {
             return Err(TypeCheckError::ImmutableReassign(
                 ImmutableReassign {
                     variable_name: name,
                 },
-                id_position,
+                position,
             ));
         }
+
+        let lvalue = lvalue.check(ctx)?;
 
         let mut rvalue = rvalue.check(ctx)?;
         let info = rvalue.get_info();
 
-        let variable_type_id = { variable_type.borrow().clone() };
+        let variable_type_id = { lvalue.get_info().type_id.borrow().clone() };
         let rvalue_type_id = { rvalue.get_info().type_id.borrow().clone() };
 
         match (variable_type_id, rvalue_type_id) {
@@ -69,19 +57,8 @@ impl TypeCheckable for Assignment<()> {
             _ => {}
         }
 
-        if let Err(e) = ctx.scope.add_variable(&name, rvalue.clone(), true) {
-            unreachable!("{e}")
-        }
-
         Ok(Assignment {
-            lvalue: Id {
-                name,
-                info: TypeInformation {
-                    type_id: info.type_id.clone(),
-                    context: context.clone(),
-                },
-                position: id_position,
-            },
+            lvalue,
             rvalue,
             info: TypeInformation {
                 type_id: info.type_id.clone(),
@@ -108,6 +85,24 @@ impl TypeCheckable for Assignment<()> {
     }
 }
 
+impl TypeCheckable for LValue<()> {
+    type Output = LValue<TypeInformation>;
+
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+        match self {
+            LValue::Id(id) => Ok(LValue::Id(id.check(ctx)?)),
+            LValue::Postfix(postfix) => Ok(LValue::Postfix(postfix.check(ctx)?)),
+        }
+    }
+
+    fn revert(this: &Self::Output) -> Self {
+        match this {
+            LValue::Id(id) => LValue::Id(TypeCheckable::revert(id)),
+            LValue::Postfix(postfix) => LValue::Postfix(TypeCheckable::revert(postfix)),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{cell::RefCell, rc::Rc};
@@ -116,7 +111,10 @@ mod tests {
 
     use crate::{
         lexer::Span,
-        parser::ast::{Assignment, Expression, Id, Num},
+        parser::ast::{
+            Assignment, Expression, Id, LValue, Num, Postfix, StructFieldInitialisation,
+            StructInitialisation,
+        },
         typechecker::{
             context::Context,
             error::{ImmutableReassign, TypeCheckError, TypeMismatch, UndefinedVariable},
@@ -142,11 +140,11 @@ mod tests {
         )?;
 
         let ass = Assignment {
-            lvalue: Id {
+            lvalue: LValue::Id(Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
-            },
+            }),
             info: (),
             rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
@@ -174,11 +172,11 @@ mod tests {
         )?;
 
         let ass = Assignment {
-            lvalue: Id {
+            lvalue: LValue::Id(Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
-            },
+            }),
             info: (),
             rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
@@ -217,11 +215,11 @@ mod tests {
         )?;
 
         let ass = Assignment {
-            lvalue: Id {
+            lvalue: LValue::Id(Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
-            },
+            }),
             info: (),
             rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
@@ -247,11 +245,11 @@ mod tests {
         let mut ctx = Context::default();
 
         let ass = Assignment {
-            lvalue: Id {
+            lvalue: LValue::Id(Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
-            },
+            }),
             info: (),
             rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
             position: Span::default(),
@@ -268,6 +266,173 @@ mod tests {
                 Span::default()
             ))
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_struct_property_assign() -> Result<()> {
+        let mut ctx = Context::default();
+
+        ctx.scope.add_type(
+            "Foo",
+            Type::Struct("Foo".to_string(), vec![("bar".to_string(), Type::Integer)]),
+        )?;
+
+        ctx.scope.add_variable(
+            "foo",
+            Expression::StructInitialisation(StructInitialisation {
+                id: Id {
+                    name: "foo".to_string(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Struct(
+                            "Foo".to_string(),
+                            vec![("bar".to_string(), Type::Integer)],
+                        )))),
+                        context: ctx.clone(),
+                    },
+                    position: Span::default(),
+                },
+                fields: vec![StructFieldInitialisation {
+                    name: Id {
+                        name: "bar".into(),
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: ctx.clone(),
+                        },
+                        position: Span::default(),
+                    },
+                    value: Expression::Num(Num::Integer(
+                        1337,
+                        TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: ctx.clone(),
+                        },
+                        Span::default(),
+                    )),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                        context: ctx.clone(),
+                    },
+                    position: Span::default(),
+                }],
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Struct(
+                        "Foo".to_string(),
+                        vec![("bar".to_string(), Type::Integer)],
+                    )))),
+                    context: ctx.clone(),
+                },
+                position: Span::default(),
+            }),
+            true,
+        )?;
+
+        let assignment = Assignment {
+            lvalue: LValue::Postfix(Postfix::PropertyAccess {
+                expr: Box::new(Expression::Id(Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default(),
+                })),
+                property: Id {
+                    name: "bar".into(),
+                    info: (),
+                    position: Span::default(),
+                },
+                info: (),
+                position: Span::default(),
+            }),
+            rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
+            info: (),
+            position: Span::default(),
+        };
+
+        assignment.check(&mut ctx)?;
+
+        Ok(())
+    }
+    #[test]
+    fn test_immutable_struct_property_assign_error() -> Result<()> {
+        let mut ctx = Context::default();
+
+        ctx.scope.add_type(
+            "Foo",
+            Type::Struct("Foo".to_string(), vec![("bar".to_string(), Type::Integer)]),
+        )?;
+
+        ctx.scope.add_variable(
+            "foo",
+            Expression::StructInitialisation(StructInitialisation {
+                id: Id {
+                    name: "foo".to_string(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Struct(
+                            "Foo".to_string(),
+                            vec![("bar".to_string(), Type::Integer)],
+                        )))),
+                        context: ctx.clone(),
+                    },
+                    position: Span::default(),
+                },
+                fields: vec![StructFieldInitialisation {
+                    name: Id {
+                        name: "bar".into(),
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: ctx.clone(),
+                        },
+                        position: Span::default(),
+                    },
+                    value: Expression::Num(Num::Integer(
+                        1337,
+                        TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: ctx.clone(),
+                        },
+                        Span::default(),
+                    )),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                        context: ctx.clone(),
+                    },
+                    position: Span::default(),
+                }],
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Struct(
+                        "Foo".to_string(),
+                        vec![("bar".to_string(), Type::Integer)],
+                    )))),
+                    context: ctx.clone(),
+                },
+                position: Span::default(),
+            }),
+            false,
+        )?;
+
+        let assignment = Assignment {
+            lvalue: LValue::Postfix(Postfix::PropertyAccess {
+                expr: Box::new(Expression::Id(Id {
+                    name: "foo".into(),
+                    info: (),
+                    position: Span::default(),
+                })),
+                property: Id {
+                    name: "bar".into(),
+                    info: (),
+                    position: Span::default(),
+                },
+                info: (),
+                position: Span::default(),
+            }),
+            rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
+            info: (),
+            position: Span::default(),
+        };
+
+        let res = assignment.check(&mut ctx);
+
+        assert!(res.is_err());
 
         Ok(())
     }

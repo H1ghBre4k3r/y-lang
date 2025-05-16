@@ -1,0 +1,15 @@
+struct Foo {
+    b: i64;
+}
+
+fn b(): i64 {
+    42
+}
+
+fn main(): void {
+    let a = Foo {
+        b: 1337
+    };
+
+    a.b = 42;
+}
