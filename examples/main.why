@@ -62,5 +62,18 @@ fn main(): void {
         }
     };
 
+    b.t.x = 42;
+
+    arr[5] = 1337;
+
     b.t.bar(4, 2);
+
+    asd().x;
+}
+
+fn asd(): TestStruct {
+    TestStruct {
+        x: 42,
+        bar: add
+    }
 }

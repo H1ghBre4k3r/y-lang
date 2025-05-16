@@ -505,11 +505,11 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::Assignment(Assignment {
-                lvalue: Id {
+                lvalue: LValue::Id(Id {
                     name: "x".into(),
                     info: (),
                     position: Span::default()
-                },
+                }),
                 rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
                 info: (),
                 position: Span::default()
