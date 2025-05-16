@@ -18,8 +18,14 @@ struct Bar {
 }
 
 instance TestStruct {
+    declare get_id(): i64;
+
     fn get_x(): i64 {
-        this.x
+        return this.x;
+    }
+
+    fn set_x(x: i64): void {
+        this.x = x;
     }
 }
 
@@ -30,7 +36,7 @@ fn takes_function(func: (i64, i64) -> i64): i64 {
 fn main(): void {
     let a = add(42, 1337);
 
-    let arr = [42, 1337];
+    let mut arr = [42, 1337];
 
     let arr2 = [1337; 5];
 
@@ -41,21 +47,16 @@ fn main(): void {
         bar: add
     };
 
-    let value_of_x = my_struct.get_x();
-    // let _ = \(x, y) => x + y;
-
     let mut i = 0;
 
     while (i < 10) {
         i = i + 1;
     }
 
-    // my_struct.x = 1337;
-
     takes_function(add);
     takes_function(explicit_return_add);
 
-    let b = Bar {
+    let mut b = Bar {
         t: TestStruct {
             x: 1337,
             bar: add
@@ -68,12 +69,16 @@ fn main(): void {
 
     b.t.bar(4, 2);
 
-    asd().x;
+    b.t.set_x(1337);
+
+    let value_of_x = b.t.get_x();
+
+    let id = b.t.get_id();
 }
 
 fn asd(): TestStruct {
-    TestStruct {
+    return TestStruct {
         x: 42,
         bar: add
-    }
+    };
 }
