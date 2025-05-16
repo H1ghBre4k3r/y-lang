@@ -9,7 +9,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment<T> {
-    pub id: Id<T>,
+    pub lvalue: Id<T>,
     pub rvalue: Expression<T>,
     pub info: T,
     pub position: Span,
@@ -23,7 +23,7 @@ impl FromTokens<Token> for Assignment<()> {
 
         let result = matcher.parse(tokens)?;
 
-        let Some(AstNode::Id(id)) = result.first() else {
+        let Some(AstNode::Id(lvalue)) = result.first() else {
             unreachable!()
         };
 
@@ -38,7 +38,7 @@ impl FromTokens<Token> for Assignment<()> {
         };
 
         Ok(Assignment {
-            id: id.clone(),
+            lvalue: lvalue.clone(),
             rvalue: rvalue.clone(),
             info: (),
             position,

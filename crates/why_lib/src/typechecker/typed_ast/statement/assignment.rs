@@ -13,7 +13,7 @@ impl TypeCheckable for Assignment<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
         let context = ctx.clone();
         let Assignment {
-            id,
+            lvalue,
             rvalue,
             position,
             ..
@@ -23,7 +23,7 @@ impl TypeCheckable for Assignment<()> {
             name,
             position: id_position,
             ..
-        } = id;
+        } = lvalue;
 
         let Some(variable_type) = ctx.scope.resolve_name(&name) else {
             return Err(TypeCheckError::UndefinedVariable(
@@ -74,7 +74,7 @@ impl TypeCheckable for Assignment<()> {
         }
 
         Ok(Assignment {
-            id: Id {
+            lvalue: Id {
                 name,
                 info: TypeInformation {
                     type_id: info.type_id.clone(),
@@ -93,14 +93,14 @@ impl TypeCheckable for Assignment<()> {
 
     fn revert(this: &Self::Output) -> Self {
         let Assignment {
-            id,
+            lvalue: id,
             rvalue,
             position,
             ..
         } = this;
 
         Assignment {
-            id: TypeCheckable::revert(id),
+            lvalue: TypeCheckable::revert(id),
             rvalue: TypeCheckable::revert(rvalue),
             info: (),
             position: position.clone(),
@@ -142,7 +142,7 @@ mod tests {
         )?;
 
         let ass = Assignment {
-            id: Id {
+            lvalue: Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
@@ -174,7 +174,7 @@ mod tests {
         )?;
 
         let ass = Assignment {
-            id: Id {
+            lvalue: Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
@@ -217,7 +217,7 @@ mod tests {
         )?;
 
         let ass = Assignment {
-            id: Id {
+            lvalue: Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),
@@ -247,7 +247,7 @@ mod tests {
         let mut ctx = Context::default();
 
         let ass = Assignment {
-            id: Id {
+            lvalue: Id {
                 name: "foo".into(),
                 info: (),
                 position: Span::default(),

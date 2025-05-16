@@ -505,7 +505,7 @@ mod tests {
 
         assert_eq!(
             Ok(Statement::Assignment(Assignment {
-                id: Id {
+                lvalue: Id {
                     name: "x".into(),
                     info: (),
                     position: Span::default()
