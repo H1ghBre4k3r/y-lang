@@ -2,8 +2,7 @@ use crate::{
     parser::ast::Id,
     typechecker::{
         context::Context,
-        error::{TypeCheckError, UndefinedVariable}
-        ,
+        error::{TypeCheckError, UndefinedVariable},
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
