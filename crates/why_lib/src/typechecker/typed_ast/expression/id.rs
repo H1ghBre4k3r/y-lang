@@ -2,8 +2,8 @@ use crate::{
     parser::ast::Id,
     typechecker::{
         context::Context,
-        error::{TypeCheckError, UndefinedVariable},
-        types::Type,
+        error::{TypeCheckError, UndefinedVariable}
+        ,
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
@@ -44,12 +44,7 @@ impl TypeCheckable for Id<()> {
     }
 }
 
-impl TypedConstruct for Id<TypeInformation> {
-    fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
-        // propagate type update to variable refences by this id
-        self.info.context.scope.update_variable(&self.name, type_id)
-    }
-}
+impl TypedConstruct for Id<TypeInformation> {}
 
 #[cfg(test)]
 mod tests {

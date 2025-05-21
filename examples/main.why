@@ -53,6 +53,14 @@ fn main(): void {
         i = i + 1;
     }
 
+    let x: (i64) -> i64 = \(x) => x;
+
+    let test_char = 'a';
+
+    let mut foo = [test_char, 'b'];
+
+    foo[1] = test_char;
+
     takes_function(add);
     takes_function(explicit_return_add);
 
@@ -81,4 +89,8 @@ fn asd(): TestStruct {
         x: 42,
         bar: add
     };
+}
+
+fn foobar(): (i64) -> i64 {
+    return \(x) => x;
 }

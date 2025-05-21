@@ -12,6 +12,7 @@ pub enum Type {
     Integer,
     FloatingPoint,
     Boolean,
+    Character,
     Void,
     Unknown,
     Reference(Box<Type>),
@@ -54,6 +55,7 @@ impl std::fmt::Debug for Type {
             Self::FloatingPoint => write!(f, "FloatingPoint"),
             Self::Boolean => write!(f, "Boolean"),
             Self::Void => write!(f, "Void"),
+            Self::Character => write!(f, "Character"),
             Self::Unknown => write!(f, "Unknown"),
             Self::Reference(arg0) => f.debug_tuple("Reference").field(arg0).finish(),
             Self::Tuple(arg0) => f.debug_tuple("Tuple").field(arg0).finish(),
@@ -115,6 +117,7 @@ where
                 "f64" => Ok(Type::FloatingPoint),
                 "void" => Ok(Type::Void),
                 "bool" => Ok(Type::Boolean),
+                "char" => Ok(Type::Character),
                 literal => match ctx.scope.get_type(literal) {
                     Some(type_id) => Ok(type_id),
                     None => Err(TypeCheckError::UndefinedType(

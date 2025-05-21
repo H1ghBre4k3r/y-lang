@@ -57,16 +57,16 @@ impl TypeCheckable for Function<()> {
             checked_statements.push(stmt.check(ctx)?);
         }
 
-        match checked_statements.last() {
+        match checked_statements.last_mut() {
             Some(
                 last_stmt @ Statement::YieldingExpression(_) | last_stmt @ Statement::Return(_),
             ) => {
                 let last_stmt_type = last_stmt.get_info().type_id.clone();
-                let inner = last_stmt_type.borrow_mut();
+                let inner = { last_stmt_type.borrow().clone() };
 
-                match inner.as_ref() {
+                match inner {
                     Some(inner_type) => {
-                        if *inner_type != return_type_id {
+                        if inner_type != return_type_id {
                             return Err(TypeCheckError::TypeMismatch(
                                 TypeMismatch {
                                     expected: return_type_id,
@@ -78,13 +78,7 @@ impl TypeCheckable for Function<()> {
                     }
                     None if return_type_id == Type::Void => {}
                     None => {
-                        return Err(TypeCheckError::TypeMismatch(
-                            TypeMismatch {
-                                expected: return_type_id,
-                                actual: Type::Void,
-                            },
-                            return_type.position(),
-                        ))
+                        last_stmt.update_type(return_type_id.clone())?;
                     }
                 }
             }

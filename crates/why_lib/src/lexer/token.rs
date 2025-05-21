@@ -103,6 +103,8 @@ pub enum Token {
     Integer { value: u64, position: Span },
     #[literal("[0-9]+\\.[0-9]+")]
     FloatingPoint { value: f64, position: Span },
+    #[literal("'.'")]
+    Character { value: String, position: Span },
     #[terminal(";")]
     Semicolon { position: Span },
     #[literal("//.*")]
@@ -186,6 +188,9 @@ impl std::fmt::Debug for Token {
                 .debug_struct("FloatingPoint")
                 .field("value", value)
                 .finish(),
+            Self::Character { value, .. } => {
+                f.debug_struct("Character").field("value", value).finish()
+            }
             Self::Semicolon { .. } => f.debug_struct("Semicolon").finish(),
             Self::Comment { value, .. } => f.debug_struct("Comment").field("value", value).finish(),
             Self::Plus { .. } => f.debug_struct("Plus").finish(),
