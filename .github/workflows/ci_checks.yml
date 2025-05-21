@@ -2,6 +2,8 @@ name: CI Checks
 permissions:
   contents: read
 
+permissions:
+  contents: read
 on:
   push:
 
