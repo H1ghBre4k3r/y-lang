@@ -1,6 +1,7 @@
 mod array;
 mod binary;
 mod block;
+mod character;
 mod function;
 mod id;
 mod if_expression;
@@ -25,6 +26,7 @@ impl TypeCheckable for Expression<()> {
         match self {
             Expression::Id(id) => Ok(Expression::Id(id.check(ctx)?)),
             Expression::Num(num) => Ok(Expression::Num(num.check(ctx)?)),
+            Expression::Character(character) => Ok(Expression::Character(character.check(ctx)?)),
             Expression::Function(func) => Ok(Expression::Function(func.check(ctx)?)),
             Expression::Lambda(lambda) => Ok(Expression::Lambda(lambda.check(ctx)?)),
             Expression::If(if_exp) => Ok(Expression::If(if_exp.check(ctx)?)),
@@ -44,6 +46,9 @@ impl TypeCheckable for Expression<()> {
         match this {
             Expression::Id(id) => Expression::Id(TypeCheckable::revert(id)),
             Expression::Num(num) => Expression::Num(TypeCheckable::revert(num)),
+            Expression::Character(character) => {
+                Expression::Character(TypeCheckable::revert(character))
+            }
             Expression::Function(func) => Expression::Function(TypeCheckable::revert(func)),
             Expression::Lambda(lambda) => Expression::Lambda(TypeCheckable::revert(lambda)),
             Expression::If(if_exp) => Expression::If(TypeCheckable::revert(if_exp)),
@@ -65,18 +70,19 @@ impl TypeCheckable for Expression<()> {
 impl TypedConstruct for Expression<TypeInformation> {
     fn update_type(&mut self, type_id: Type) -> Result<(), TypeCheckError> {
         match self {
-            Expression::Id(id) => id.update_type(type_id),
+            Expression::Id(id) => unreachable!(),
             Expression::Num(num) => num.update_type(type_id),
-            Expression::Function(_) => todo!(),
-            Expression::Lambda(func) => func.update_type(type_id),
-            Expression::If(_) => todo!(),
-            Expression::Block(_) => todo!(),
-            Expression::Parens(exp) => exp.update_type(type_id),
-            Expression::Postfix(_) => todo!(),
-            Expression::Prefix(_) => todo!(),
-            Expression::Binary(_) => todo!(),
-            Expression::Array(_) => todo!(),
-            Expression::StructInitialisation(_) => todo!(),
+            Expression::Character(_) => unreachable!(),
+            Expression::Function(_) => unreachable!(),
+            Expression::Lambda(lambda) => lambda.update_type(type_id),
+            Expression::If(_) => unreachable!(),
+            Expression::Block(_) => unreachable!(),
+            Expression::Parens(inner_expression) => inner_expression.update_type(type_id),
+            Expression::Postfix(_) => unreachable!(),
+            Expression::Prefix(_) => unreachable!(),
+            Expression::Binary(_) => unreachable!(),
+            Expression::Array(_) => unreachable!(),
+            Expression::StructInitialisation(_) => unreachable!(),
         }
     }
 }

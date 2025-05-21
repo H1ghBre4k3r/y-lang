@@ -1,7 +1,5 @@
 use std::ops::{BitOr, BitXor, Not, Rem, Shr};
 
-use crate::lexer::{GetPosition, Terminal, Token};
-
 use super::{
     ast::{
         Array, Assignment, AstNode, Block, Constant, Declaration, Expression, Function,
@@ -11,6 +9,8 @@ use super::{
     },
     FromTokens, ParseError, ParseState,
 };
+use crate::lexer::{GetPosition, Terminal, Token};
+use crate::parser::ast::Character;
 
 #[derive(Clone)]
 pub enum Comb<'a, Tok, Term, Node> {
@@ -216,6 +216,8 @@ impl Comb<'_, Token, Terminal, AstNode> {
     node_comb!(ID, Id);
 
     node_comb!(NUM, Num);
+
+    node_comb!(CHARACTER, Character);
 
     node_comb!(EXPR, Expression);
 
