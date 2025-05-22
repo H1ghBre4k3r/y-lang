@@ -89,13 +89,16 @@ mod tests {
                 info: (),
                 position: Span::default()
             }
-                .into()
+            .into()
         )
     }
 
     #[test]
     fn test_escaped_string_parse_complex() {
-        let mut tokens = Lexer::new("\"this is a test\"\"").lex().expect("should work").into();
+        let mut tokens = Lexer::new("\"this is a test\"\"")
+            .lex()
+            .expect("should work")
+            .into();
         let result = AstString::parse(&mut tokens).expect("should work");
 
         assert_eq!(

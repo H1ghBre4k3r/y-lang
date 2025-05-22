@@ -9,14 +9,13 @@ mod lambda;
 mod num;
 mod postfix;
 mod prefix;
-mod struct_initialisation;
 mod string;
+mod struct_initialisation;
 
 pub use self::array::*;
 pub use self::binary::*;
 pub use self::block::*;
 pub use self::character::*;
-pub use self::string::*;
 pub use self::function::*;
 pub use self::id::*;
 pub use self::if_expression::*;
@@ -24,6 +23,7 @@ pub use self::lambda::*;
 pub use self::num::*;
 pub use self::postfix::*;
 pub use self::prefix::*;
+pub use self::string::*;
 pub use self::struct_initialisation::*;
 
 use crate::lexer::Span;
