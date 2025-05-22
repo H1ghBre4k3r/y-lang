@@ -9,6 +9,7 @@ mod lambda;
 mod num;
 mod postfix;
 mod prefix;
+mod string;
 mod struct_initialisation;
 
 use crate::{
@@ -27,6 +28,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Id(id) => Ok(Expression::Id(id.check(ctx)?)),
             Expression::Num(num) => Ok(Expression::Num(num.check(ctx)?)),
             Expression::Character(character) => Ok(Expression::Character(character.check(ctx)?)),
+            Expression::AstString(string) => Ok(Expression::AstString(string.check(ctx)?)),
             Expression::Function(func) => Ok(Expression::Function(func.check(ctx)?)),
             Expression::Lambda(lambda) => Ok(Expression::Lambda(lambda.check(ctx)?)),
             Expression::If(if_exp) => Ok(Expression::If(if_exp.check(ctx)?)),
@@ -49,6 +51,7 @@ impl TypeCheckable for Expression<()> {
             Expression::Character(character) => {
                 Expression::Character(TypeCheckable::revert(character))
             }
+            Expression::AstString(string) => Expression::AstString(TypeCheckable::revert(string)),
             Expression::Function(func) => Expression::Function(TypeCheckable::revert(func)),
             Expression::Lambda(lambda) => Expression::Lambda(TypeCheckable::revert(lambda)),
             Expression::If(if_exp) => Expression::If(TypeCheckable::revert(if_exp)),
@@ -70,9 +73,10 @@ impl TypeCheckable for Expression<()> {
 impl TypedConstruct for Expression<TypeInformation> {
     fn update_type(&mut self, type_id: Type) -> Result<(), TypeCheckError> {
         match self {
-            Expression::Id(id) => unreachable!(),
+            Expression::Id(_) => unreachable!(),
             Expression::Num(num) => num.update_type(type_id),
             Expression::Character(_) => unreachable!(),
+            Expression::AstString(_) => unreachable!(),
             Expression::Function(_) => unreachable!(),
             Expression::Lambda(lambda) => lambda.update_type(type_id),
             Expression::If(_) => unreachable!(),

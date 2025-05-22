@@ -33,6 +33,10 @@ fn takes_function(func: (i64, i64) -> i64): i64 {
     func(42, 69)
 }
 
+instance str {
+    declare len(): i64;
+}
+
 fn main(): void {
     let a = add(42, 1337);
 
@@ -60,6 +64,10 @@ fn main(): void {
     let mut foo = [test_char, 'b'];
 
     foo[1] = test_char;
+
+    let test_str = "test";
+
+    let len = test_str.len();
 
     takes_function(add);
     takes_function(explicit_return_add);

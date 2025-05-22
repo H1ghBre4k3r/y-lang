@@ -10,11 +10,13 @@ mod num;
 mod postfix;
 mod prefix;
 mod struct_initialisation;
+mod string;
 
 pub use self::array::*;
 pub use self::binary::*;
 pub use self::block::*;
 pub use self::character::*;
+pub use self::string::*;
 pub use self::function::*;
 pub use self::id::*;
 pub use self::if_expression::*;
@@ -38,6 +40,7 @@ pub enum Expression<T> {
     Id(Id<T>),
     Num(Num<T>),
     Character(Character<T>),
+    AstString(AstString<T>),
     Function(Function<T>),
     Lambda(Lambda<T>),
     If(If<T>),
@@ -59,6 +62,7 @@ where
             Expression::Id(Id { name: _, info, .. }) => info.clone(),
             Expression::Num(num) => num.get_info(),
             Expression::Character(Character { info, .. }) => info.clone(),
+            Expression::AstString(AstString { info, .. }) => info.clone(),
             Expression::Function(Function { info, .. }) => info.clone(),
             Expression::Lambda(Lambda { info, .. }) => info.clone(),
             Expression::If(If { info, .. }) => info.clone(),
@@ -77,6 +81,7 @@ where
             Expression::Id(Id { position, .. }) => position.clone(),
             Expression::Num(num) => num.position(),
             Expression::Character(Character { position, .. }) => position.clone(),
+            Expression::AstString(AstString { position, .. }) => position.clone(),
             Expression::Function(Function { position, .. }) => position.clone(),
             Expression::Lambda(Lambda { position, .. }) => position.clone(),
             Expression::If(If { position, .. }) => position.clone(),
@@ -148,6 +153,7 @@ impl FromTokens<Token> for Expression<()> {
                     | Comb::IF
                     | Comb::NUM
                     | Comb::CHARACTER
+                    | Comb::STRING
                     | Comb::STRUCT_INITILISATION
                     | Comb::ID
                     | Comb::LAMBDA
@@ -157,6 +163,7 @@ impl FromTokens<Token> for Expression<()> {
                     Some(AstNode::Id(id)) => Expression::Id(id.clone()),
                     Some(AstNode::Num(num)) => Expression::Num(num.clone()),
                     Some(AstNode::Character(character)) => Expression::Character(character.clone()),
+                    Some(AstNode::AstString(string)) => Expression::AstString(string.clone()),
                     Some(AstNode::Function(func)) => {
                         return Ok(Expression::Function(func.clone()).into())
                     }

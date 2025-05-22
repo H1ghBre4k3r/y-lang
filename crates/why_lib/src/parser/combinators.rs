@@ -10,7 +10,7 @@ use super::{
     FromTokens, ParseError, ParseState,
 };
 use crate::lexer::{GetPosition, Terminal, Token};
-use crate::parser::ast::Character;
+use crate::parser::ast::{AstString, Character};
 
 #[derive(Clone)]
 pub enum Comb<'a, Tok, Term, Node> {
@@ -218,6 +218,8 @@ impl Comb<'_, Token, Terminal, AstNode> {
     node_comb!(NUM, Num);
 
     node_comb!(CHARACTER, Character);
+
+    node_comb!(STRING, AstString);
 
     node_comb!(EXPR, Expression);
 
