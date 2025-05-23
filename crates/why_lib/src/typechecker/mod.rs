@@ -4,11 +4,11 @@ mod scope;
 mod typed_ast;
 mod types;
 
-use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
-use std::fmt::{Display, Formatter};
-use anyhow::anyhow;
 use crate::lexer::Span;
 use crate::parser::ast::TopLevelStatement;
+use anyhow::anyhow;
+use std::fmt::{Display, Formatter};
+use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 pub use self::error::TypeCheckError;
 use self::{context::Context, types::Type};
@@ -49,7 +49,11 @@ pub struct TypeValidationError(Span);
 
 impl Display for TypeValidationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.to_string("Type must be known at compile time!").as_str())
+        f.write_str(
+            self.0
+                .to_string("Type must be known at compile time!")
+                .as_str(),
+        )
     }
 }
 
@@ -79,7 +83,6 @@ trait TypedConstruct
 where
     Self: Debug,
 {
-
     type Validated;
 
     fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
@@ -136,7 +139,9 @@ impl TypeChecker {
         Ok(checked)
     }
 
-    pub fn validate(statements: Vec<TopLevelStatement<TypeInformation>>) -> Result<Vec<TopLevelStatement<ValidatedTypeInformation>>, TypeValidationError> {
+    pub fn validate(
+        statements: Vec<TopLevelStatement<TypeInformation>>,
+    ) -> Result<Vec<TopLevelStatement<ValidatedTypeInformation>>, TypeValidationError> {
         let mut validated = vec![];
 
         for stm in statements {
