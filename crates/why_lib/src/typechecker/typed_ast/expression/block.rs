@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::Block,
     typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult},
@@ -46,6 +47,29 @@ impl TypeCheckable for Block<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl TypedConstruct for Block<TypeInformation> {
+    type Validated = Block<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Block {
+            statements,
+            info,
+            position,
+        } = self;
+
+        let mut validated_statements = vec![];
+        for statement in statements {
+            validated_statements.push(statement.validate()?);
+        }
+
+        Ok(Block {
+            statements: validated_statements,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

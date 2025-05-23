@@ -1,3 +1,4 @@
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::Id,
     typechecker::{
@@ -43,7 +44,23 @@ impl TypeCheckable for Id<()> {
     }
 }
 
-impl TypedConstruct for Id<TypeInformation> {}
+impl TypedConstruct for Id<TypeInformation> {
+    type Validated = Id<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Id {
+            name,
+            info,
+            position,
+        } = self;
+
+        Ok(Id {
+            name,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {

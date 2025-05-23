@@ -12,6 +12,7 @@ mod prefix;
 mod string;
 mod struct_initialisation;
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::Expression,
     typechecker::{
@@ -71,6 +72,8 @@ impl TypeCheckable for Expression<()> {
 }
 
 impl TypedConstruct for Expression<TypeInformation> {
+    type Validated = Expression<ValidatedTypeInformation>;
+
     fn update_type(&mut self, type_id: Type) -> Result<(), TypeCheckError> {
         match self {
             Expression::Id(_) => unreachable!(),
@@ -87,6 +90,25 @@ impl TypedConstruct for Expression<TypeInformation> {
             Expression::Binary(_) => unreachable!(),
             Expression::Array(_) => unreachable!(),
             Expression::StructInitialisation(_) => unreachable!(),
+        }
+    }
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            Expression::Id(id) => Ok(Expression::Id(id.validate()?)),
+            Expression::Num(num) => Ok(Expression::Num(num.validate()?)),
+            Expression::Character(character) => Ok(Expression::Character(character.validate()?)),
+            Expression::AstString(string) => Ok(Expression::AstString(string.validate()?)),
+            Expression::Function(function) => Ok(Expression::Function(function.validate()?)),
+            Expression::Lambda(lambda) => Ok(Expression::Lambda(lambda.validate()?)),
+            Expression::If(if_expression) => Ok(Expression::If(if_expression.validate()?)),
+            Expression::Block(block) => Ok(Expression::Block(block.validate()?)),
+            Expression::Parens(parens) => Ok(Expression::Parens(Box::new(parens.validate()?))),
+            Expression::Postfix(postfix) => Ok(Expression::Postfix(postfix.validate()?)),
+            Expression::Prefix(prefix) => Ok(Expression::Prefix(prefix.validate()?)),
+            Expression::Binary(binary) => Ok(Expression::Binary(Box::new(binary.validate()?))),
+            Expression::Array(array) => Ok(Expression::Array(array.validate()?)),
+            Expression::StructInitialisation(struct_initialisation) => Ok(Expression::StructInitialisation(struct_initialisation.validate()?)),
         }
     }
 }

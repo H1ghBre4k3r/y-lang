@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::If,
     typechecker::{
@@ -106,6 +107,38 @@ impl TypeCheckable for If<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl TypedConstruct for If<TypeInformation> {
+    type Validated = If<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let If {
+            condition,
+            statements,
+            else_statements,
+            info,
+            position,
+        } = self;
+
+        let mut validated_statements = vec![];
+        for statement in statements {
+            validated_statements.push(statement.validate()?);
+        }
+
+        let mut validated_else_statements = vec![];
+        for statement in else_statements {
+            validated_else_statements.push(statement.validate()?);
+        }
+
+        Ok(If {
+            condition: Box::new(condition.validate()?),
+            statements: validated_statements,
+            else_statements: validated_else_statements,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::Prefix,
     typechecker::{
@@ -78,6 +79,23 @@ impl TypeCheckable for Prefix<()> {
                 expr: Box::new(TypeCheckable::revert(expr.as_ref())),
                 position: position.clone(),
             },
+        }
+    }
+}
+
+impl TypedConstruct for Prefix<TypeInformation> {
+    type Validated = Prefix<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            Prefix::Negation { expr, position } => Ok(Prefix::Negation {
+                expr: Box::new(expr.validate()?),
+                position,
+            }),
+            Prefix::Minus { expr, position } => Ok(Prefix::Minus {
+                expr: Box::new(expr.validate()?),
+                position,
+            }),
         }
     }
 }

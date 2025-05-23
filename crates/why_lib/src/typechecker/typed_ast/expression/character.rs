@@ -1,7 +1,10 @@
 use crate::parser::ast::Character;
 use crate::typechecker::context::Context;
 use crate::typechecker::types::Type;
-use crate::typechecker::{TypeCheckable, TypeInformation, TypeResult};
+use crate::typechecker::{
+    TypeCheckable, TypeInformation, TypeResult, TypeValidationError, TypedConstruct,
+    ValidatedTypeInformation,
+};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -36,6 +39,24 @@ impl TypeCheckable for Character<()> {
             position: position.clone(),
             info: (),
         }
+    }
+}
+
+impl TypedConstruct for Character<TypeInformation> {
+    type Validated = Character<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Character {
+            character,
+            info,
+            position,
+        } = self;
+
+        Ok(Character {
+            character,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 
