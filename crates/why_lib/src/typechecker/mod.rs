@@ -25,9 +25,10 @@ impl TypeInformation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ValidatedTypeInformation {
     pub type_id: Type,
+    #[serde(skip)]
     pub context: Context,
 }
 
@@ -44,7 +45,7 @@ impl TypeInformation {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TypeValidationError(Span);
 
 impl Display for TypeValidationError {

@@ -5,7 +5,7 @@ use crate::{
 
 use super::{Expression, Id};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StructInitialisation<T> {
     pub id: Id<T>,
     pub fields: Vec<StructFieldInitialisation<T>>,
@@ -50,7 +50,7 @@ impl From<StructInitialisation<()>> for AstNode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StructFieldInitialisation<T> {
     pub name: Id<T>,
     pub value: Expression<T>,

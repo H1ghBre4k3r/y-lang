@@ -10,7 +10,7 @@ use crate::lexer::{GetPosition, Span, Token};
 
 use self::ast::{AstNode, TopLevelStatement};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ParseError {
     pub message: String,
     pub position: Option<Span>,

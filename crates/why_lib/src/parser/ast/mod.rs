@@ -6,7 +6,7 @@ pub use self::expression::*;
 pub use self::statement::*;
 pub use self::type_name::*;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AstNode {
     Expression(Expression<()>),
     Id(Id<()>),

@@ -9,7 +9,7 @@ use crate::{
 
 use super::Expression;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct If<T> {
     pub condition: Box<Expression<T>>,
     // TODO: This should/could just be a block

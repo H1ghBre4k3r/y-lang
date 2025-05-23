@@ -10,7 +10,7 @@ use crate::parser::ParseState;
 
 use super::AstNode;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TypeName {
     Literal(String, Span),
     Fn {

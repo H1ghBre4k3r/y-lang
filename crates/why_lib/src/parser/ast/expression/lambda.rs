@@ -5,7 +5,7 @@ use crate::{
 
 use super::{Expression, Id};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Lambda<T> {
     pub parameters: Vec<LambdaParameter<T>>,
     pub expression: Box<Expression<T>>,
@@ -56,7 +56,7 @@ impl From<Lambda<()>> for AstNode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LambdaParameter<T> {
     pub name: Id<T>,
     pub info: T,

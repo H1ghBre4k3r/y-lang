@@ -3,7 +3,7 @@ use colored::Colorize;
 use lex_derive::{LooseEq, Token as ParseToken};
 use regex::{Match, Regex};
 
-#[derive(Default, Debug, Clone, Eq)]
+#[derive(Default, Debug, Clone, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Span {
     pub start: (usize, usize),
     pub end: (usize, usize),
@@ -87,7 +87,7 @@ impl PartialEq<Span> for Span {
     }
 }
 
-#[derive(Clone, ParseToken, LooseEq)]
+#[derive(Clone, ParseToken, LooseEq, serde::Serialize, serde::Deserialize)]
 pub enum Token {
     #[terminal("=")]
     Assign { position: Span },

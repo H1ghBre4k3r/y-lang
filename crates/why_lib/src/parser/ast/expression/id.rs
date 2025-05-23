@@ -3,7 +3,7 @@ use crate::{
     parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Id<T> {
     pub name: String,
     pub info: T,

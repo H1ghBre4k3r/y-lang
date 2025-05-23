@@ -878,6 +878,7 @@ dependencies = [
  "colored",
  "lex_derive",
  "regex",
+ "serde",
 ]
 
 [[package]]

@@ -62,7 +62,7 @@ impl Default for Scope {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TypeAddError {
     pub name: String,
     pub type_id: Type,
@@ -79,7 +79,7 @@ impl Display for TypeAddError {
 
 impl std::error::Error for TypeAddError {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VariableAddError {
     pub name: String,
 }
@@ -95,7 +95,7 @@ impl Display for VariableAddError {
 
 impl std::error::Error for VariableAddError {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MethodAddError {
     pub name: String,
 }

@@ -161,7 +161,7 @@ pub fn impl_token_macro(ast: syn::DeriveInput) -> TokenStream {
         .collect::<Punctuated<Variant, Comma>>();
 
     let gen = quote! {
-        #[derive(Debug, Clone, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
         pub enum Terminal {
             #terminal_variants_tuples
         }

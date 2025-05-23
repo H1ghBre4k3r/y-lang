@@ -5,7 +5,7 @@ use crate::{
 
 use super::{Expression, Num};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Array<T> {
     Literal {
         values: Vec<Expression<T>>,

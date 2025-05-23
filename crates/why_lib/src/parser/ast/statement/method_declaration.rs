@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MethodDeclaration<T> {
     pub id: Id<T>,
     pub parameter_types: Vec<TypeName>,

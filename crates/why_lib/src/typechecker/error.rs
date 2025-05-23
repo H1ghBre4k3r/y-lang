@@ -4,7 +4,7 @@ use crate::{lexer::Span, parser::ast::TypeName};
 
 use super::types::Type;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TypeCheckError {
     TypeMismatch(TypeMismatch, Span),
     UndefinedVariable(UndefinedVariable, Span),
@@ -55,7 +55,7 @@ impl TypeCheckError {
 
 impl Error for TypeCheckError {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TypeMismatch {
     pub expected: Type,
     pub actual: Type,
@@ -72,7 +72,7 @@ impl Display for TypeMismatch {
 
 impl Error for TypeMismatch {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct UndefinedVariable {
     pub variable_name: String,
 }
@@ -88,7 +88,7 @@ impl Display for UndefinedVariable {
 
 impl Error for UndefinedVariable {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct UndefinedType {
     pub type_name: TypeName,
 }
@@ -101,7 +101,7 @@ impl Display for UndefinedType {
 
 impl Error for UndefinedType {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MissingInitialisationType;
 
 impl Display for MissingInitialisationType {
@@ -112,7 +112,7 @@ impl Display for MissingInitialisationType {
 
 impl Error for MissingInitialisationType {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct InvalidConstantType {
     pub constant_name: String,
 }
@@ -128,7 +128,7 @@ impl Display for InvalidConstantType {
 
 impl Error for InvalidConstantType {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RedefinedConstant {
     pub constant_name: String,
 }
@@ -144,7 +144,7 @@ impl Display for RedefinedConstant {
 
 impl Error for RedefinedConstant {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RedefinedFunction {
     pub function_name: String,
 }
@@ -160,7 +160,7 @@ impl Display for RedefinedFunction {
 
 impl Error for RedefinedFunction {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RedefinedMethod {
     pub type_id: Type,
     pub function_name: String,
@@ -177,7 +177,7 @@ impl Display for RedefinedMethod {
 
 impl Error for RedefinedMethod {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ImmutableReassign {
     pub variable_name: String,
 }

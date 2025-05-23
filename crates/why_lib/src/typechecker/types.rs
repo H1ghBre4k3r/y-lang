@@ -7,7 +7,7 @@ use super::{
     error::{TypeCheckError, UndefinedType},
 };
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Type {
     Integer,
     FloatingPoint,
@@ -78,7 +78,7 @@ impl std::fmt::Debug for Type {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TypeFromTypeNameError {
     source: TypeName,
 }

@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Assignment<T> {
     pub lvalue: LValue<T>,
     pub rvalue: Expression<T>,
@@ -49,7 +49,7 @@ impl From<Assignment<()>> for AstNode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum LValue<T> {
     Id(Id<T>),
     Postfix(Postfix<T>),

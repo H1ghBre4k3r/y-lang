@@ -2,7 +2,7 @@ use crate::lexer::{Span, Token};
 use crate::parser::ast::AstNode;
 use crate::parser::{FromTokens, ParseError, ParseState};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AstString<T> {
     pub value: String,
     pub info: T,

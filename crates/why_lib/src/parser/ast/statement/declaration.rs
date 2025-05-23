@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Declaration<T> {
     pub name: Id<T>,
     pub type_name: TypeName,
