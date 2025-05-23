@@ -3,7 +3,7 @@ use crate::{
     parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Num<T> {
     Integer(u64, T, Span),
     FloatingPoint(f64, T, Span),

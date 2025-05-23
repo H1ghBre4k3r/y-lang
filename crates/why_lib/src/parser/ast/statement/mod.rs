@@ -25,7 +25,7 @@ use crate::{
 
 use super::{AstNode, Expression, Function, If};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Statement<T> {
     Function(Function<T>),
     If(If<T>),
@@ -42,7 +42,7 @@ pub enum Statement<T> {
 }
 
 /// Everything that is allowed at toplevel
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TopLevelStatement<T> {
     Comment(String),
     Function(Function<T>),

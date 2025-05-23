@@ -1,7 +1,7 @@
 use crate::parser::ParseError;
 
 /// Struct for iterating over a vector of tokens.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ParseState<T> {
     tokens: Vec<T>,
     index: usize,

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::Terminal;
 
 /// Struct for storing terminal symbols with their respective "key".
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct LexMap {
     map: HashMap<&'static str, Terminal>,
 }

@@ -2,7 +2,7 @@ use crate::lexer::Span;
 
 use super::{Expression, Id};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Postfix<T> {
     Call {
         expr: Box<Expression<T>>,

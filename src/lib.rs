@@ -3,7 +3,7 @@ use std::{fs, process};
 use clap::{Parser, command};
 use why_lib::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
 #[command(propagate_version = true)]
 pub struct Cli {
@@ -66,7 +66,10 @@ pub fn compile_file(args: Cli) -> anyhow::Result<()> {
         }
     };
 
-    println!("{validated:#?}");
+    // println!("{validated:#?}");
+
+    let res = serde_json::to_string(&validated)?;
+    println!("{res}");
 
     Ok(())
 }

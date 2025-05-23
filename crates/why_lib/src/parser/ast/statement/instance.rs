@@ -9,7 +9,7 @@ use crate::{
 
 use super::MethodDeclaration;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Instance<T> {
     pub name: TypeName,
     pub functions: Vec<Function<T>>,

@@ -2,7 +2,7 @@ use crate::lexer::Span;
 
 use super::Expression;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum BinaryOperator {
     Add,
     Substract,
@@ -15,7 +15,7 @@ pub enum BinaryOperator {
     LessOrEqual,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BinaryExpression<T> {
     pub left: Expression<T>,
     pub right: Expression<T>,

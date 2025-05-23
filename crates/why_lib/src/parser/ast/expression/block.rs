@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Block<T> {
     pub statements: Vec<Statement<T>>,
     pub info: T,

@@ -9,7 +9,7 @@ use crate::{
 
 use super::Id;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Function<T> {
     pub id: Id<T>,
     pub parameters: Vec<FunctionParameter<T>>,
@@ -75,7 +75,7 @@ impl From<Function<()>> for AstNode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FunctionParameter<T> {
     pub name: Id<T>,
     pub type_name: TypeName,

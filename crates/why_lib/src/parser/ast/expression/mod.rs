@@ -35,7 +35,7 @@ use crate::{
 
 use super::AstNode;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Expression<T> {
     Id(Id<T>),
     Num(Num<T>),

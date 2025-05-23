@@ -4,7 +4,7 @@ pub use token::*;
 
 use std::{error::Error, fmt::Display};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LexError(String);
 
 pub type LexResult<T> = Result<T, LexError>;

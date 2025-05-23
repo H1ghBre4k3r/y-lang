@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StructDeclaration<T> {
     pub id: Id<T>,
     pub fields: Vec<StructFieldDeclaration<T>>,
@@ -52,7 +52,7 @@ impl From<StructDeclaration<()>> for AstNode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StructFieldDeclaration<T> {
     pub name: Id<T>,
     pub type_name: TypeName,
