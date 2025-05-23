@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::Instance,
     typechecker::{
@@ -128,6 +129,37 @@ impl ShallowCheck for Instance<()> {
         }
 
         Ok(())
+    }
+}
+
+impl TypedConstruct for Instance<TypeInformation> {
+    type Validated = Instance<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Instance {
+            name,
+            functions,
+            declarations,
+            info,
+            position,
+        } = self;
+        let mut validated_functions = vec![];
+        for f in functions {
+            validated_functions.push(f.validate()?);
+        }
+
+        let mut validated_declarations = vec![];
+        for d in declarations {
+            validated_declarations.push(d.validate()?);
+        }
+
+        Ok(Instance {
+            name,
+            functions: validated_functions,
+            declarations: validated_declarations,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

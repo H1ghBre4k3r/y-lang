@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::{BinaryExpression, BinaryOperator},
     typechecker::{
@@ -84,6 +85,28 @@ impl TypeCheckable for BinaryExpression<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl TypedConstruct for BinaryExpression<TypeInformation> {
+    type Validated = BinaryExpression<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let BinaryExpression {
+            left,
+            right,
+            operator,
+            info,
+            position,
+        } = self;
+
+        Ok(BinaryExpression {
+            left: left.validate()?,
+            right: right.validate()?,
+            operator,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

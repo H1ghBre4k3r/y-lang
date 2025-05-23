@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::Num,
     typechecker::{
@@ -39,7 +40,20 @@ impl TypeCheckable for Num<()> {
     }
 }
 
-impl TypedConstruct for Num<TypeInformation> {}
+impl TypedConstruct for Num<TypeInformation> {
+    type Validated = Num<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            Num::Integer(val, info, position) => {
+                Ok(Num::Integer(val, info.validate(&position)?, position))
+            }
+            Num::FloatingPoint(val, info, position) => {
+                Ok(Num::FloatingPoint(val, info.validate(&position)?, position))
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

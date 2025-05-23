@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Constant, Id},
     typechecker::{
@@ -105,7 +106,27 @@ impl TypeCheckable for Constant<()> {
     }
 }
 
-impl TypedConstruct for Constant<TypeInformation> {}
+impl TypedConstruct for Constant<TypeInformation> {
+    type Validated = Constant<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Constant {
+            id,
+            type_name,
+            value,
+            info,
+            position,
+        } = self;
+
+        Ok(Constant {
+            id: id.validate()?,
+            type_name,
+            value: value.validate()?,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
 
 impl ShallowCheck for Constant<()> {
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {

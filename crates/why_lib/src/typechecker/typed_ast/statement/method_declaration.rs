@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Id, MethodDeclaration, TypeName},
     typechecker::{
@@ -104,6 +105,28 @@ impl ShallowCheck for MethodDeclaration<()> {
             ));
         };
         Ok(())
+    }
+}
+
+impl TypedConstruct for MethodDeclaration<TypeInformation> {
+    type Validated = MethodDeclaration<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let MethodDeclaration {
+            id,
+            parameter_types,
+            return_type,
+            info,
+            position,
+        } = self;
+
+        Ok(MethodDeclaration {
+            id: id.validate()?,
+            parameter_types,
+            return_type,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

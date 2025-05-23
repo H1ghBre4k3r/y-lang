@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::WhileLoop,
     typechecker::{
@@ -64,6 +65,26 @@ impl TypeCheckable for WhileLoop<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl TypedConstruct for WhileLoop<TypeInformation> {
+    type Validated = WhileLoop<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let WhileLoop {
+            condition,
+            block,
+            info,
+            position,
+        } = self;
+
+        Ok(WhileLoop {
+            condition: condition.validate()?,
+            block: block.validate()?,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

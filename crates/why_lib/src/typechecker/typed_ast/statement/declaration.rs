@@ -1,5 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
-
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Declaration, Id},
     typechecker::{
@@ -9,6 +8,7 @@ use crate::{
         ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
+use std::{cell::RefCell, rc::Rc};
 
 impl TypeCheckable for Declaration<()> {
     type Typed = Declaration<TypeInformation>;
@@ -75,7 +75,25 @@ impl TypeCheckable for Declaration<()> {
     }
 }
 
-impl TypedConstruct for Declaration<TypeInformation> {}
+impl TypedConstruct for Declaration<TypeInformation> {
+    type Validated = Declaration<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Declaration {
+            name,
+            type_name,
+            info,
+            position,
+        } = self;
+
+        Ok(Declaration {
+            name: name.validate()?,
+            type_name,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
 
 impl ShallowCheck for Declaration<()> {
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {

@@ -5,7 +5,9 @@ mod typed_ast;
 mod types;
 
 use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
-
+use std::fmt::{Display, Formatter};
+use anyhow::anyhow;
+use crate::lexer::Span;
 use crate::parser::ast::TopLevelStatement;
 
 pub use self::error::TypeCheckError;
@@ -23,24 +25,35 @@ impl TypeInformation {
     }
 }
 
-pub struct VerifiedTypeInformation {
+#[derive(Debug)]
+pub struct ValidatedTypeInformation {
     pub type_id: Type,
     pub context: Context,
 }
 
-impl TryFrom<TypeInformation> for VerifiedTypeInformation {
-    type Error = ();
-    fn try_from(value: TypeInformation) -> Result<Self, Self::Error> {
-        let TypeInformation { type_id, context } = value;
+impl TypeInformation {
+    fn validate(self, position: &Span) -> Result<ValidatedTypeInformation, TypeValidationError> {
+        let TypeInformation { type_id, context } = self;
         let verified_type_information = if let Some(type_id) = type_id.borrow().clone() {
-            Ok(VerifiedTypeInformation { type_id, context })
+            Ok(ValidatedTypeInformation { type_id, context })
         } else {
-            Err(())
+            Err(TypeValidationError(position.clone()))
         };
 
         verified_type_information
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TypeValidationError(Span);
+
+impl Display for TypeValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0.to_string("Type must be known at compile time!").as_str())
+    }
+}
+
+impl Error for TypeValidationError {}
 
 pub type TypeResult<T> = Result<T, TypeCheckError>;
 
@@ -66,6 +79,9 @@ trait TypedConstruct
 where
     Self: Debug,
 {
+
+    type Validated;
+
     fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
         unimplemented!(
             "TypedConstruct::update_type({type_id:?}) is not implemented for {:?}",
@@ -73,9 +89,7 @@ where
         )
     }
 
-    fn validate(&self) -> Result<(), Box<dyn Error>> {
-        unimplemented!("TypedConstruct::validate is not implemented for {self:?}")
-    }
+    fn validate(self) -> Result<Self::Validated, TypeValidationError>;
 }
 
 impl TypeChecker {
@@ -120,5 +134,15 @@ impl TypeChecker {
         }
 
         Ok(checked)
+    }
+
+    pub fn validate(statements: Vec<TopLevelStatement<TypeInformation>>) -> Result<Vec<TopLevelStatement<ValidatedTypeInformation>>, TypeValidationError> {
+        let mut validated = vec![];
+
+        for stm in statements {
+            validated.push(stm.validate()?);
+        }
+
+        Ok(validated)
     }
 }

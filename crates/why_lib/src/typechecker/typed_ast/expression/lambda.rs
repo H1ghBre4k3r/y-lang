@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Expression, Id, Lambda, LambdaParameter},
     typechecker::{
@@ -64,6 +65,8 @@ impl TypeCheckable for Lambda<()> {
 }
 
 impl TypedConstruct for Lambda<TypeInformation> {
+    type Validated = Lambda<ValidatedTypeInformation>;
+
     fn update_type(&mut self, type_id: Type) -> Result<(), TypeCheckError> {
         let err = Err(TypeCheckError::TypeMismatch(
             TypeMismatch {
@@ -166,6 +169,27 @@ impl TypedConstruct for Lambda<TypeInformation> {
 
         Ok(())
     }
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Lambda {
+            parameters,
+            expression,
+            info,
+            position,
+        } = self;
+
+        let mut validated_parameters = vec![];
+        for param in parameters {
+            validated_parameters.push(param.validate()?);
+        }
+
+        Ok(Lambda {
+            parameters: validated_parameters,
+            expression: Box::new(expression.validate()?),
+            info: info.validate(&position)?,
+            position,
+        })
+    }
 }
 
 impl TypeCheckable for LambdaParameter<()> {
@@ -230,10 +254,26 @@ impl TypeCheckable for LambdaParameter<()> {
 }
 
 impl TypedConstruct for LambdaParameter<TypeInformation> {
+    type Validated = LambdaParameter<ValidatedTypeInformation>;
+
     fn update_type(&mut self, type_id: Type) -> std::result::Result<(), TypeCheckError> {
         *self.info.type_id.borrow_mut() = Some(type_id);
 
         Ok(())
+    }
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let LambdaParameter {
+            name,
+            info,
+            position,
+        } = self;
+
+        Ok(LambdaParameter {
+            name: name.validate()?,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

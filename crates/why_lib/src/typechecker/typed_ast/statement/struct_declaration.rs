@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Id, StructDeclaration, StructFieldDeclaration},
     typechecker::{
@@ -73,7 +74,30 @@ impl TypeCheckable for StructDeclaration<()> {
     }
 }
 
-impl TypedConstruct for StructDeclaration<TypeInformation> {}
+impl TypedConstruct for StructDeclaration<TypeInformation> {
+    type Validated = StructDeclaration<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let StructDeclaration {
+            id,
+            fields,
+            info,
+            position,
+        } = self;
+
+        let mut validated_fields = vec![];
+        for field in fields {
+            validated_fields.push(field.validate()?);
+        }
+
+        Ok(StructDeclaration {
+            id: id.validate()?,
+            fields: validated_fields,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
 
 impl ShallowCheck for StructDeclaration<()> {
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
@@ -163,6 +187,26 @@ impl TypeCheckable for StructFieldDeclaration<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl TypedConstruct for StructFieldDeclaration<TypeInformation> {
+    type Validated = StructFieldDeclaration<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let StructFieldDeclaration {
+            name,
+            type_name,
+            info,
+            position,
+        } = self;
+
+        Ok(StructFieldDeclaration {
+            name: name.validate()?,
+            type_name,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

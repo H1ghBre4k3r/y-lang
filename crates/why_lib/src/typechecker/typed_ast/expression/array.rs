@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::Array,
     typechecker::{
@@ -118,6 +119,42 @@ impl TypeCheckable for Array<()> {
                 info: (),
                 position: position.clone(),
             },
+        }
+    }
+}
+
+impl TypedConstruct for Array<TypeInformation> {
+    type Validated = Array<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            Array::Default {
+                initial_value,
+                length,
+                info,
+                position,
+            } => Ok(Array::Default {
+                initial_value: Box::new(initial_value.validate()?),
+                length: length.validate()?,
+                info: info.validate(&position)?,
+                position,
+            }),
+            Array::Literal {
+                values,
+                info,
+                position,
+            } => {
+                let mut validated_values = vec![];
+                for value in values {
+                    validated_values.push(value.validate()?);
+                }
+
+                Ok(Array::Literal {
+                    values: validated_values,
+                    info: info.validate(&position)?,
+                    position,
+                })
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Id, Postfix},
     typechecker::{
@@ -237,6 +238,55 @@ impl TypeCheckable for Postfix<()> {
                 info: (),
                 position: position.clone(),
             },
+        }
+    }
+}
+
+impl TypedConstruct for Postfix<TypeInformation> {
+    type Validated = Postfix<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            Postfix::Call {
+                expr,
+                args,
+                info,
+                position,
+            } => {
+                let mut validated_args = vec![];
+                for arg in args {
+                    validated_args.push(arg.validate()?);
+                }
+
+                Ok(Postfix::Call {
+                    expr: Box::new(expr.validate()?),
+                    args: validated_args,
+                    info: info.validate(&position)?,
+                    position,
+                })
+            }
+            Postfix::Index {
+                expr,
+                index,
+                info,
+                position,
+            } => Ok(Postfix::Index {
+                expr: Box::new(expr.validate()?),
+                index: Box::new(index.validate()?),
+                info: info.validate(&position)?,
+                position,
+            }),
+            Postfix::PropertyAccess {
+                expr,
+                property,
+                info,
+                position,
+            } => Ok(Postfix::PropertyAccess {
+                expr: Box::new(expr.validate()?),
+                property: property.validate()?,
+                info: info.validate(&position)?,
+                position,
+            }),
         }
     }
 }

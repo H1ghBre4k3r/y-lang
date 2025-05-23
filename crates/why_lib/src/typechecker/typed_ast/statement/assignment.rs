@@ -1,3 +1,4 @@
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Assignment, LValue},
     typechecker::{
@@ -85,6 +86,26 @@ impl TypeCheckable for Assignment<()> {
     }
 }
 
+impl TypedConstruct for Assignment<TypeInformation> {
+    type Validated = Assignment<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Assignment {
+            lvalue,
+            rvalue,
+            info,
+            position,
+        } = self;
+
+        Ok(Assignment {
+            lvalue: lvalue.validate()?,
+            rvalue: rvalue.validate()?,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
+
 impl TypeCheckable for LValue<()> {
     type Typed = LValue<TypeInformation>;
 
@@ -99,6 +120,17 @@ impl TypeCheckable for LValue<()> {
         match this {
             LValue::Id(id) => LValue::Id(TypeCheckable::revert(id)),
             LValue::Postfix(postfix) => LValue::Postfix(TypeCheckable::revert(postfix)),
+        }
+    }
+}
+
+impl TypedConstruct for  LValue<TypeInformation> {
+    type Validated = LValue<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            LValue::Id(id) => Ok(LValue::Id(id.validate()?)),
+            LValue::Postfix(postfix) => Ok(LValue::Postfix(postfix.validate()?))
         }
     }
 }

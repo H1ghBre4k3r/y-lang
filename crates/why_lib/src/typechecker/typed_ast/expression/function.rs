@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Expression, Function, FunctionParameter, Id, Statement},
     typechecker::{
@@ -207,7 +208,39 @@ impl ShallowCheck for Function<()> {
     }
 }
 
-impl TypedConstruct for Function<TypeInformation> {}
+impl TypedConstruct for Function<TypeInformation> {
+    type Validated = Function<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Function {
+            id,
+            parameters,
+            return_type,
+            statements,
+            info,
+            position,
+        } = self;
+
+        let mut validated_parameters = vec![];
+        for param in parameters {
+            validated_parameters.push(param.validate()?);
+        }
+
+        let mut validated_statements = vec![];
+        for statement in statements {
+            validated_statements.push(statement.validate()?);
+        }
+
+        Ok(Function {
+            id: id.validate()?,
+            parameters: validated_parameters,
+            return_type,
+            statements: validated_statements,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
 
 impl TypeCheckable for FunctionParameter<()> {
     type Typed = FunctionParameter<TypeInformation>;
@@ -279,6 +312,26 @@ impl TypeCheckable for FunctionParameter<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl TypedConstruct for FunctionParameter<TypeInformation> {
+    type Validated = FunctionParameter<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let FunctionParameter {
+            name,
+            type_name,
+            info,
+            position,
+        } = self;
+
+        Ok(FunctionParameter {
+            name: name.validate()?,
+            type_name,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

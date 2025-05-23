@@ -7,6 +7,7 @@ mod method_declaration;
 mod struct_declaration;
 mod while_loop;
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Statement, TopLevelStatement},
     typechecker::{
@@ -70,6 +71,35 @@ impl ShallowCheck for TopLevelStatement<()> {
     }
 }
 
+impl TypedConstruct for TopLevelStatement<TypeInformation> {
+    type Validated = TopLevelStatement<ValidatedTypeInformation>;
+
+    fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
+        unreachable!()
+    }
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            TopLevelStatement::Comment(c) => Ok(TopLevelStatement::Comment(c)),
+            TopLevelStatement::Function(function) => {
+                Ok(TopLevelStatement::Function(function.validate()?))
+            }
+            TopLevelStatement::Constant(constant) => {
+                Ok(TopLevelStatement::Constant(constant.validate()?))
+            }
+            TopLevelStatement::Declaration(declaration) => {
+                Ok(TopLevelStatement::Declaration(declaration.validate()?))
+            }
+            TopLevelStatement::StructDeclaration(struct_declaration) => Ok(
+                TopLevelStatement::StructDeclaration(struct_declaration.validate()?),
+            ),
+            TopLevelStatement::Instance(instance) => {
+                Ok(TopLevelStatement::Instance(instance.validate()?))
+            }
+        }
+    }
+}
+
 impl TypeCheckable for Statement<()> {
     type Typed = Statement<TypeInformation>;
 
@@ -117,6 +147,8 @@ impl TypeCheckable for Statement<()> {
 }
 
 impl TypedConstruct for Statement<TypeInformation> {
+    type Validated = Statement<ValidatedTypeInformation>;
+
     fn update_type(&mut self, type_id: Type) -> std::result::Result<(), TypeCheckError> {
         match self {
             Statement::Function(_) => todo!(),
@@ -131,6 +163,25 @@ impl TypedConstruct for Statement<TypeInformation> {
             Statement::Comment(_) => Ok(()),
             Statement::Declaration(dec) => dec.update_type(type_id),
             Statement::StructDeclaration(dec) => dec.update_type(type_id),
+        }
+    }
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        match self {
+            Statement::Function(function) => Ok(Statement::Function(function.validate()?)),
+            Statement::If(if_statement) => Ok(Statement::If(if_statement.validate()?)),
+            Statement::WhileLoop(while_loop) => Ok(Statement::WhileLoop(while_loop.validate()?)),
+            Statement::Initialization(initialisation) => {
+                Ok(Statement::Initialization(initialisation.validate()?))
+            }
+            Statement::Constant(constant) => Ok(Statement::Constant(constant.validate()?)),
+            Statement::Assignment(assignment) => Ok(Statement::Assignment(assignment.validate()?)),
+            Statement::Expression(expression) => Ok(Statement::Expression(expression.validate()?)),
+            Statement::YieldingExpression(yielding_expression) => Ok(Statement::YieldingExpression(yielding_expression.validate()?)),
+            Statement::Return(expression) => Ok(Statement::Return(expression.validate()?)),
+            Statement::Comment(comment) => Ok(Statement::Comment(comment)),
+            Statement::Declaration(declaration) => Ok(Statement::Declaration(declaration.validate()?)),
+            Statement::StructDeclaration(struct_declaration) => Ok(Statement::StructDeclaration(struct_declaration.validate()?)),
         }
     }
 }

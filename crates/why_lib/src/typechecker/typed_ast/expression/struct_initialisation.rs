@@ -1,5 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     lexer::Span,
     parser::ast::{Id, StructFieldInitialisation, StructInitialisation, TypeName},
@@ -138,6 +139,31 @@ impl TypeCheckable for StructInitialisation<()> {
     }
 }
 
+impl TypedConstruct for StructInitialisation<TypeInformation> {
+    type Validated = StructInitialisation<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let StructInitialisation {
+            id,
+            fields,
+            info,
+            position,
+        } = self;
+
+        let mut validated_fields = vec![];
+        for field in fields {
+            validated_fields.push(field.validate()?);
+        }
+
+        Ok(StructInitialisation {
+            id: id.validate()?,
+            fields: validated_fields,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
+
 impl TypeCheckable for StructFieldInitialisation<()> {
     type Typed = StructFieldInitialisation<TypeInformation>;
 
@@ -193,6 +219,26 @@ impl TypeCheckable for StructFieldInitialisation<()> {
             info: (),
             position: position.clone(),
         }
+    }
+}
+
+impl TypedConstruct for StructFieldInitialisation<TypeInformation> {
+    type Validated = StructFieldInitialisation<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let StructFieldInitialisation {
+            name,
+            value,
+            info,
+            position,
+        } = self;
+
+        Ok(StructFieldInitialisation {
+            name: name.validate()?,
+            value: value.validate()?,
+            info: info.validate(&position)?,
+            position,
+        })
     }
 }
 

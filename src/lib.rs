@@ -58,7 +58,15 @@ pub fn compile_file(args: Cli) -> anyhow::Result<()> {
         }
     };
 
-    // println!("{checked:#?}");
+    let validated = match TypeChecker::validate(checked) {
+        Ok(validated) => validated,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(-1);
+        }
+    };
+
+    println!("{validated:#?}");
 
     Ok(())
 }

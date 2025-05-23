@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Id, Initialisation},
     typechecker::{
@@ -134,7 +135,29 @@ impl TypeCheckable for Initialisation<()> {
     }
 }
 
-impl TypedConstruct for Initialisation<TypeInformation> {}
+impl TypedConstruct for Initialisation<TypeInformation> {
+    type Validated = Initialisation<ValidatedTypeInformation>;
+
+    fn validate(self) -> Result<Self::Validated, TypeValidationError> {
+        let Initialisation {
+            id,
+            mutable,
+            type_name,
+            value,
+            info,
+            position,
+        } = self;
+
+        Ok(Initialisation {
+            id: id.validate()?,
+            mutable,
+            type_name,
+            value: value.validate()?,
+            info: info.validate(&position)?,
+            position,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
