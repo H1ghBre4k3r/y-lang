@@ -124,13 +124,13 @@ impl TypeCheckable for LValue<()> {
     }
 }
 
-impl TypedConstruct for  LValue<TypeInformation> {
+impl TypedConstruct for LValue<TypeInformation> {
     type Validated = LValue<ValidatedTypeInformation>;
 
     fn validate(self) -> Result<Self::Validated, TypeValidationError> {
         match self {
             LValue::Id(id) => Ok(LValue::Id(id.validate()?)),
-            LValue::Postfix(postfix) => Ok(LValue::Postfix(postfix.validate()?))
+            LValue::Postfix(postfix) => Ok(LValue::Postfix(postfix.validate()?)),
         }
     }
 }

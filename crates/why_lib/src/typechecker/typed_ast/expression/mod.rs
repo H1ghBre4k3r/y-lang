@@ -108,7 +108,9 @@ impl TypedConstruct for Expression<TypeInformation> {
             Expression::Prefix(prefix) => Ok(Expression::Prefix(prefix.validate()?)),
             Expression::Binary(binary) => Ok(Expression::Binary(Box::new(binary.validate()?))),
             Expression::Array(array) => Ok(Expression::Array(array.validate()?)),
-            Expression::StructInitialisation(struct_initialisation) => Ok(Expression::StructInitialisation(struct_initialisation.validate()?)),
+            Expression::StructInitialisation(struct_initialisation) => Ok(
+                Expression::StructInitialisation(struct_initialisation.validate()?),
+            ),
         }
     }
 }

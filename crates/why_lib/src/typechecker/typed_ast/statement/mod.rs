@@ -177,11 +177,17 @@ impl TypedConstruct for Statement<TypeInformation> {
             Statement::Constant(constant) => Ok(Statement::Constant(constant.validate()?)),
             Statement::Assignment(assignment) => Ok(Statement::Assignment(assignment.validate()?)),
             Statement::Expression(expression) => Ok(Statement::Expression(expression.validate()?)),
-            Statement::YieldingExpression(yielding_expression) => Ok(Statement::YieldingExpression(yielding_expression.validate()?)),
+            Statement::YieldingExpression(yielding_expression) => Ok(
+                Statement::YieldingExpression(yielding_expression.validate()?),
+            ),
             Statement::Return(expression) => Ok(Statement::Return(expression.validate()?)),
             Statement::Comment(comment) => Ok(Statement::Comment(comment)),
-            Statement::Declaration(declaration) => Ok(Statement::Declaration(declaration.validate()?)),
-            Statement::StructDeclaration(struct_declaration) => Ok(Statement::StructDeclaration(struct_declaration.validate()?)),
+            Statement::Declaration(declaration) => {
+                Ok(Statement::Declaration(declaration.validate()?))
+            }
+            Statement::StructDeclaration(struct_declaration) => {
+                Ok(Statement::StructDeclaration(struct_declaration.validate()?))
+            }
         }
     }
 }
