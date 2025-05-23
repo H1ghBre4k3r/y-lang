@@ -8,9 +8,9 @@ use crate::{
 };
 
 impl TypeCheckable for Assignment<()> {
-    type Output = Assignment<TypeInformation>;
+    type Typed = Assignment<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
         let Assignment {
             lvalue,
@@ -68,7 +68,7 @@ impl TypeCheckable for Assignment<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Assignment {
             lvalue: id,
             rvalue,
@@ -86,16 +86,16 @@ impl TypeCheckable for Assignment<()> {
 }
 
 impl TypeCheckable for LValue<()> {
-    type Output = LValue<TypeInformation>;
+    type Typed = LValue<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             LValue::Id(id) => Ok(LValue::Id(id.check(ctx)?)),
             LValue::Postfix(postfix) => Ok(LValue::Postfix(postfix.check(ctx)?)),
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             LValue::Id(id) => LValue::Id(TypeCheckable::revert(id)),
             LValue::Postfix(postfix) => LValue::Postfix(TypeCheckable::revert(postfix)),

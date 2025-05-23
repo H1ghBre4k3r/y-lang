@@ -16,9 +16,9 @@ use crate::{
 };
 
 impl TypeCheckable for TopLevelStatement<()> {
-    type Output = TopLevelStatement<TypeInformation>;
+    type Typed = TopLevelStatement<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             TopLevelStatement::Function(func) => Ok(TopLevelStatement::Function(func.check(ctx)?)),
             TopLevelStatement::Constant(constant) => {
@@ -35,7 +35,7 @@ impl TypeCheckable for TopLevelStatement<()> {
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             TopLevelStatement::Function(func) => {
                 TopLevelStatement::Function(TypeCheckable::revert(func))
@@ -71,9 +71,9 @@ impl ShallowCheck for TopLevelStatement<()> {
 }
 
 impl TypeCheckable for Statement<()> {
-    type Output = Statement<TypeInformation>;
+    type Typed = Statement<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             Statement::Function(func) => Ok(Statement::Function(func.check(ctx)?)),
             Statement::If(if_exp) => Ok(Statement::If(if_exp.check(ctx)?)),
@@ -92,7 +92,7 @@ impl TypeCheckable for Statement<()> {
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             Statement::Function(func) => Statement::Function(TypeCheckable::revert(func)),
             Statement::If(if_exp) => Statement::If(TypeCheckable::revert(if_exp)),

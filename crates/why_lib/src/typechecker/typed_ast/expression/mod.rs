@@ -21,9 +21,9 @@ use crate::{
 };
 
 impl TypeCheckable for Expression<()> {
-    type Output = Expression<TypeInformation>;
+    type Typed = Expression<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             Expression::Id(id) => Ok(Expression::Id(id.check(ctx)?)),
             Expression::Num(num) => Ok(Expression::Num(num.check(ctx)?)),
@@ -44,7 +44,7 @@ impl TypeCheckable for Expression<()> {
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             Expression::Id(id) => Expression::Id(TypeCheckable::revert(id)),
             Expression::Num(num) => Expression::Num(TypeCheckable::revert(num)),

@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for WhileLoop<()> {
-    type Output = WhileLoop<TypeInformation>;
+    type Typed = WhileLoop<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let WhileLoop {
             condition,
             block,
@@ -50,7 +50,7 @@ impl TypeCheckable for WhileLoop<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let WhileLoop {
             condition,
             block,

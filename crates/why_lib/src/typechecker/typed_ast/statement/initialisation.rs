@@ -14,9 +14,9 @@ use crate::{
 };
 
 impl TypeCheckable for Initialisation<()> {
-    type Output = Initialisation<TypeInformation>;
+    type Typed = Initialisation<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Initialisation {
             id,
             mutable,
@@ -113,7 +113,7 @@ impl TypeCheckable for Initialisation<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Initialisation {
             id,
             mutable,

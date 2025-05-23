@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for Postfix<()> {
-    type Output = Postfix<TypeInformation>;
+    type Typed = Postfix<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
         match self {
             Postfix::Call {
@@ -202,7 +202,7 @@ impl TypeCheckable for Postfix<()> {
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             Postfix::Call {
                 expr,

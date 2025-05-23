@@ -6,8 +6,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 impl TypeCheckable for Character<()> {
-    type Output = Character<TypeInformation>;
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    type Typed = Character<TypeInformation>;
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Character {
             character,
             position,
@@ -24,7 +24,7 @@ impl TypeCheckable for Character<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Character {
             character,
             position,

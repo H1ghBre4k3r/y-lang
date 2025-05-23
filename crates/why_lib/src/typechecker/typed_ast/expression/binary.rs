@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for BinaryExpression<()> {
-    type Output = BinaryExpression<TypeInformation>;
+    type Typed = BinaryExpression<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
         let BinaryExpression {
             left,
@@ -68,7 +68,7 @@ impl TypeCheckable for BinaryExpression<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let BinaryExpression {
             left,
             right,

@@ -8,9 +8,9 @@ use crate::{
 };
 
 impl TypeCheckable for Id<()> {
-    type Output = Id<TypeInformation>;
+    type Typed = Id<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Id { name, position, .. } = self;
 
         let Some(type_id) = ctx.scope.resolve_name(&name) else {
@@ -32,7 +32,7 @@ impl TypeCheckable for Id<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Id { name, position, .. } = this;
 
         Id {

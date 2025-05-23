@@ -6,9 +6,9 @@ use crate::{
 };
 
 impl TypeCheckable for Block<()> {
-    type Output = Block<TypeInformation>;
+    type Typed = Block<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Block {
             statements,
             position,
@@ -34,7 +34,7 @@ impl TypeCheckable for Block<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Block {
             statements,
             position,

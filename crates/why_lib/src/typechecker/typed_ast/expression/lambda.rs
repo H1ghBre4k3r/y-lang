@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for Lambda<()> {
-    type Output = Lambda<TypeInformation>;
+    type Typed = Lambda<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Lambda {
             parameters,
             expression,
@@ -46,7 +46,7 @@ impl TypeCheckable for Lambda<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Lambda {
             parameters,
             expression,
@@ -169,9 +169,9 @@ impl TypedConstruct for Lambda<TypeInformation> {
 }
 
 impl TypeCheckable for LambdaParameter<()> {
-    type Output = LambdaParameter<TypeInformation>;
+    type Typed = LambdaParameter<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let LambdaParameter {
             name,
             position: param_position,
@@ -218,7 +218,7 @@ impl TypeCheckable for LambdaParameter<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let LambdaParameter { name, position, .. } = this;
 
         LambdaParameter {

@@ -6,8 +6,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 impl TypeCheckable for AstString<()> {
-    type Output = AstString<TypeInformation>;
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    type Typed = AstString<TypeInformation>;
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let AstString {
             value, position, ..
         } = self;
@@ -22,7 +22,7 @@ impl TypeCheckable for AstString<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let AstString {
             value, position, ..
         } = this;

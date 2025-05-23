@@ -8,9 +8,9 @@ use crate::{
 };
 
 impl TypeCheckable for Num<()> {
-    type Output = Num<TypeInformation>;
+    type Typed = Num<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             Num::Integer(val, _, position) => Ok(Num::Integer(
                 val,
@@ -31,7 +31,7 @@ impl TypeCheckable for Num<()> {
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             Num::Integer(val, _, pos) => Num::Integer(*val, (), pos.clone()),
             Num::FloatingPoint(val, _, pos) => Num::FloatingPoint(*val, (), pos.clone()),

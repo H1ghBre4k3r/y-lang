@@ -9,9 +9,9 @@ use crate::{
 };
 
 impl TypeCheckable for MethodDeclaration<()> {
-    type Output = MethodDeclaration<TypeInformation>;
+    type Typed = MethodDeclaration<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
 
         let type_id = self.simple_shallow_check(ctx)?;
@@ -51,7 +51,7 @@ impl TypeCheckable for MethodDeclaration<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let MethodDeclaration {
             id,
             parameter_types,

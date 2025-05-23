@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for Instance<()> {
-    type Output = Instance<TypeInformation>;
+    type Typed = Instance<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
 
         let Instance {
@@ -63,7 +63,7 @@ impl TypeCheckable for Instance<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Instance {
             name,
             functions,
