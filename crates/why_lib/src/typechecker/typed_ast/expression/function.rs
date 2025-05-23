@@ -13,9 +13,9 @@ use crate::{
 };
 
 impl TypeCheckable for Function<()> {
-    type Output = Function<TypeInformation>;
+    type Typed = Function<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         // at start of function, enter scope
         ctx.scope.enter_scope();
 
@@ -126,7 +126,7 @@ impl TypeCheckable for Function<()> {
         Ok(func)
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Function {
             id,
             parameters,
@@ -210,9 +210,9 @@ impl ShallowCheck for Function<()> {
 impl TypedConstruct for Function<TypeInformation> {}
 
 impl TypeCheckable for FunctionParameter<()> {
-    type Output = FunctionParameter<TypeInformation>;
+    type Typed = FunctionParameter<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let FunctionParameter {
             name,
             type_name,
@@ -265,7 +265,7 @@ impl TypeCheckable for FunctionParameter<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let FunctionParameter {
             name,
             type_name,

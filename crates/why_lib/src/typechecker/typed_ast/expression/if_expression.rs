@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for If<()> {
-    type Output = If<TypeInformation>;
+    type Typed = If<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let If {
             condition,
             statements,
@@ -90,7 +90,7 @@ impl TypeCheckable for If<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let If {
             condition,
             statements,

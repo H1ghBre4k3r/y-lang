@@ -12,9 +12,9 @@ use crate::{
 };
 
 impl TypeCheckable for StructInitialisation<()> {
-    type Output = StructInitialisation<TypeInformation>;
+    type Typed = StructInitialisation<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
 
         let StructInitialisation {
@@ -117,7 +117,7 @@ impl TypeCheckable for StructInitialisation<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let StructInitialisation {
             id,
             fields,
@@ -139,9 +139,9 @@ impl TypeCheckable for StructInitialisation<()> {
 }
 
 impl TypeCheckable for StructFieldInitialisation<()> {
-    type Output = StructFieldInitialisation<TypeInformation>;
+    type Typed = StructFieldInitialisation<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
 
         let StructFieldInitialisation {
@@ -175,7 +175,7 @@ impl TypeCheckable for StructFieldInitialisation<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let StructFieldInitialisation {
             name,
             value,

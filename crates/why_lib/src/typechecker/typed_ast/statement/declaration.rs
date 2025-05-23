@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for Declaration<()> {
-    type Output = Declaration<TypeInformation>;
+    type Typed = Declaration<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Declaration {
             name,
             type_name,
@@ -58,7 +58,7 @@ impl TypeCheckable for Declaration<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Declaration {
             name,
             type_name,

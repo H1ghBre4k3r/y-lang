@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for Constant<()> {
-    type Output = Constant<TypeInformation>;
+    type Typed = Constant<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Constant {
             id,
             type_name,
@@ -86,7 +86,7 @@ impl TypeCheckable for Constant<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let Constant {
             id,
             type_name,

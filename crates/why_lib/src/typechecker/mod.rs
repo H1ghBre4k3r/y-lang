@@ -23,6 +23,25 @@ impl TypeInformation {
     }
 }
 
+pub struct VerifiedTypeInformation {
+    pub type_id: Type,
+    pub context: Context,
+}
+
+impl TryFrom<TypeInformation> for VerifiedTypeInformation {
+    type Error = ();
+    fn try_from(value: TypeInformation) -> Result<Self, Self::Error> {
+        let TypeInformation { type_id, context } = value;
+        let verified_type_information = if let Some(type_id) = type_id.borrow().clone() {
+            Ok(VerifiedTypeInformation { type_id, context })
+        } else {
+            Err(())
+        };
+
+        verified_type_information
+    }
+}
+
 pub type TypeResult<T> = Result<T, TypeCheckError>;
 
 #[derive(Debug, Clone, Default)]
@@ -32,11 +51,11 @@ pub struct TypeChecker {
 }
 
 trait TypeCheckable {
-    type Output;
+    type Typed;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output>;
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed>;
 
-    fn revert(this: &Self::Output) -> Self;
+    fn revert(this: &Self::Typed) -> Self;
 }
 
 trait ShallowCheck {

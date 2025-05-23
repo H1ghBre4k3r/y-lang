@@ -9,9 +9,9 @@ use crate::{
 };
 
 impl TypeCheckable for Prefix<()> {
-    type Output = Prefix<TypeInformation>;
+    type Typed = Prefix<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             Prefix::Negation { expr, position } => {
                 let expr = expr.check(ctx)?;
@@ -68,7 +68,7 @@ impl TypeCheckable for Prefix<()> {
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             Prefix::Negation { expr, position } => Prefix::Negation {
                 expr: Box::new(TypeCheckable::revert(expr.as_ref())),

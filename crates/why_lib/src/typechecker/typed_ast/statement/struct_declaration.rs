@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for StructDeclaration<()> {
-    type Output = StructDeclaration<TypeInformation>;
+    type Typed = StructDeclaration<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let StructDeclaration {
             id,
             fields,
@@ -52,7 +52,7 @@ impl TypeCheckable for StructDeclaration<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let StructDeclaration {
             id,
             fields,
@@ -108,9 +108,9 @@ impl ShallowCheck for StructDeclaration<()> {
 }
 
 impl TypeCheckable for StructFieldDeclaration<()> {
-    type Output = StructFieldDeclaration<TypeInformation>;
+    type Typed = StructFieldDeclaration<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let StructFieldDeclaration {
             name,
             type_name,
@@ -145,7 +145,7 @@ impl TypeCheckable for StructFieldDeclaration<()> {
         })
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         let StructFieldDeclaration {
             name,
             type_name,

@@ -11,9 +11,9 @@ use crate::{
 };
 
 impl TypeCheckable for Array<()> {
-    type Output = Array<TypeInformation>;
+    type Typed = Array<TypeInformation>;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Output> {
+    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
         match self {
             Array::Literal {
@@ -98,7 +98,7 @@ impl TypeCheckable for Array<()> {
         }
     }
 
-    fn revert(this: &Self::Output) -> Self {
+    fn revert(this: &Self::Typed) -> Self {
         match this {
             Array::Literal {
                 values, position, ..
