@@ -80,11 +80,20 @@ impl Backend {
             }
         };
 
-        let _ = match typechecker::TypeChecker::new(parsed).check() {
+        let checked = match typechecker::TypeChecker::new(parsed).check() {
             Ok(checked) => checked,
             Err(e) => {
                 let position = e.span();
                 let message = e.err().to_string();
+                return Some((message, position));
+            }
+        };
+
+        let _ = match typechecker::TypeChecker::validate(checked) {
+            Ok(validated) => validated,
+            Err(e) => {
+                let position = e.span();
+                let message = e.err();
                 return Some((message, position));
             }
         };
