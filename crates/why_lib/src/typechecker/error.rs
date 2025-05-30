@@ -15,6 +15,8 @@ pub enum TypeCheckError {
     RedefinedFunction(RedefinedFunction, Span),
     RedefinedMethod(RedefinedMethod, Span),
     ImmutableReassign(ImmutableReassign, Span),
+    MissingMainFunction(MissingMainFunction),
+    InvalidMainSignature(InvalidMainSignature, Span),
 }
 
 impl Display for TypeCheckError {
@@ -35,6 +37,8 @@ impl TypeCheckError {
             TypeCheckError::RedefinedFunction(_, span) => span.clone(),
             TypeCheckError::RedefinedMethod(_, span) => span.clone(),
             TypeCheckError::ImmutableReassign(_, span) => span.clone(),
+            TypeCheckError::MissingMainFunction(_) => Span::default(),
+            TypeCheckError::InvalidMainSignature(_, span) => span.clone(),
         }
     }
 
@@ -49,6 +53,8 @@ impl TypeCheckError {
             TypeCheckError::RedefinedFunction(e, _) => Box::new(e.clone()),
             TypeCheckError::RedefinedMethod(e, _) => Box::new(e.clone()),
             TypeCheckError::ImmutableReassign(e, _) => Box::new(e.clone()),
+            TypeCheckError::MissingMainFunction(e) => Box::new(e.clone()),
+            TypeCheckError::InvalidMainSignature(e, _) => Box::new(e.clone()),
         }
     }
 }
@@ -192,3 +198,25 @@ impl Display for ImmutableReassign {
 }
 
 impl Error for ImmutableReassign {}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct MissingMainFunction;
+
+impl Display for MissingMainFunction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Missing main function!")
+    }
+}
+
+impl Error for MissingMainFunction {}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct InvalidMainSignature;
+
+impl Display for InvalidMainSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("The main function does not have a valid signature. It must not accept any arguments and must return either void or an integer!")
+    }
+}
+
+impl Error for InvalidMainSignature {}

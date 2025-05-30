@@ -16,7 +16,7 @@ impl Span {
         let line = start.0;
         let lines = source.lines().collect::<Vec<_>>();
         let prev_line = if line > 0 { lines[line - 1] } else { "" };
-        let line_str = lines[line];
+        let line_str = if lines.len() > line { lines[line] } else { "" };
 
         // margin _before_ left border
         let left_margin = format!("{}", end.0).len();
@@ -46,7 +46,9 @@ impl Span {
         let line_str = format!("{left}{right}");
 
         // padding between border and squiggles
-        let left_padding_fill = vec![' '; end.1 - 1].iter().collect::<String>();
+        let left_padding_fill = vec![' '; if end.1 > 0 { end.1 - 1 } else { 0 }]
+            .iter()
+            .collect::<String>();
 
         // the error with the first line
         let mut error_string = format!(

@@ -11,6 +11,8 @@ struct StoredVariable {
     mutable: bool,
 }
 
+// TODO: this should probably store the location (i.e, span) for all variables, constants and types
+// as well
 #[derive(Clone, Default)]
 /// A frame within a stack, holding information about all variables, types, and constants.
 pub struct Frame {

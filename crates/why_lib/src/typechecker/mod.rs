@@ -6,7 +6,7 @@ mod types;
 
 use crate::lexer::Span;
 use crate::parser::ast::TopLevelStatement;
-use anyhow::anyhow;
+use error::{InvalidMainSignature, MissingMainFunction};
 use std::fmt::{Display, Formatter};
 use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
@@ -141,11 +141,47 @@ impl TypeChecker {
 
         let mut checked = vec![];
 
-        for stm in self.statements.into_iter() {
-            checked.push(stm.check(&mut self.context)?);
+        for stm in self.statements.iter() {
+            checked.push(stm.clone().check(&mut self.context)?);
         }
 
+        self.check_main_function()?;
+
         Ok(checked)
+    }
+
+    fn check_main_function(&mut self) -> Result<(), TypeCheckError> {
+        let main = self.context.scope.resolve_name("main");
+
+        let Some(main) = main else {
+            return Err(TypeCheckError::MissingMainFunction(MissingMainFunction));
+        };
+
+        let main = { main.borrow().clone().unwrap() };
+
+        println!("{main:#?}");
+
+        match main {
+            Type::Function {
+                params,
+                return_value,
+            } => {
+                if !params.is_empty()
+                    || *return_value != Type::Void
+                    || *return_value != Type::Integer
+                {
+                    // TODO: we need to return the correct span of the main function for better
+                    // error display
+                    return Err(TypeCheckError::InvalidMainSignature(
+                        InvalidMainSignature,
+                        Span::default(),
+                    ));
+                }
+            }
+            _ => return Err(TypeCheckError::MissingMainFunction(MissingMainFunction)),
+        }
+
+        Ok(())
     }
 
     pub fn validate(
