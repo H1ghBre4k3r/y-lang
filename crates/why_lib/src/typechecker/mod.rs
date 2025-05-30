@@ -159,16 +159,13 @@ impl TypeChecker {
 
         let main = { main.borrow().clone().unwrap() };
 
-        println!("{main:#?}");
-
         match main {
             Type::Function {
                 params,
                 return_value,
             } => {
                 if !params.is_empty()
-                    || *return_value != Type::Void
-                    || *return_value != Type::Integer
+                    && (*return_value != Type::Void || *return_value != Type::Integer)
                 {
                     // TODO: we need to return the correct span of the main function for better
                     // error display
