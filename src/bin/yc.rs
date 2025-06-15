@@ -1,8 +1,8 @@
 use anyhow::Result;
-use pesca_lang::{Cli, compile_file};
+use pesca_lang::{VCArgs, compile_file};
 
 fn main() -> Result<()> {
-    let args = Cli::init();
+    let args = VCArgs::init();
 
     compile_file(args)
 }

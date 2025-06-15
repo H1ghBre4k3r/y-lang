@@ -6,7 +6,7 @@ use why_lib::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
 #[derive(Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
 #[command(propagate_version = true)]
-pub struct Cli {
+pub struct VCArgs {
     /// The path to the source file.
     #[arg(index = 1)]
     pub file: std::path::PathBuf,
@@ -31,13 +31,13 @@ pub struct Cli {
     pub output: Option<std::path::PathBuf>,
 }
 
-impl Cli {
+impl VCArgs {
     pub fn init() -> Self {
-        Cli::parse()
+        VCArgs::parse()
     }
 }
 
-pub fn compile_file(args: Cli) -> anyhow::Result<()> {
+pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     let input = fs::read_to_string(args.file)?;
 
     let lexer = Lexer::new(&input);
