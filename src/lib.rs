@@ -11,15 +11,19 @@ pub struct Cli {
     #[arg(index = 1)]
     pub file: std::path::PathBuf,
 
+    /// Print the lexed source tree.
     #[arg(short = 'l', long)]
     pub print_lexed: bool,
 
+    /// Print the parsed AST.
     #[arg(short = 'p', long)]
     pub print_parsed: bool,
 
+    /// Print the typechecked AST.
     #[arg(short = 'c', long)]
     pub print_checked: bool,
 
+    /// Print the validated AST.
     #[arg(short = 'v', long)]
     pub print_validated: bool,
 
