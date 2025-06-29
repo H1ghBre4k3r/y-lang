@@ -30,21 +30,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.1"
+          env: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "18.1"
       - run: cargo build --all
-        env:
-          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}/bin"
       - run: cargo build --all --release
-        env:
-          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}/bin"
   testing:
     name: Testing
     strategy:
@@ -58,14 +55,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1"
           env: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
       - run: cargo test --workspace
   linting:
     name: Linting
