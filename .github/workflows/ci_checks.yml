@@ -46,7 +46,7 @@ jobs:
           wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
           sudo apt install ./libtinfo5_6.3-2ubuntu0.1_amd64.deb
         if: contains(matrix.os, 'ubuntu')
-      - run: ${{ env.LLVM_PATH }}/bin/llvm-config
+      - run: ${{ env.LLVM_PATH }}/bin/llvm-config --version
         if: contains(matrix.os, 'ubuntu')
       - run: cargo build --all
         env:
