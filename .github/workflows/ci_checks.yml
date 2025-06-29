@@ -65,9 +65,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1"
+          env: true
       - run: cargo test --workspace
-        env:
-          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}/bin"
   linting:
     name: Linting
     runs-on: ubuntu-latest
