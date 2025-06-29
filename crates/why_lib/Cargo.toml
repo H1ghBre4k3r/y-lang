@@ -10,6 +10,7 @@ repository = "https://github.com/H1ghBre4k3r/y-parser"
 [dependencies]
 anyhow = "1.0.99"
 colored = "3.0.0"
+inkwell = { version = "0.6.0", features = ["llvm18-1"] }
 lex_derive = { path = "../lex_derive/" }
 regex = "1.11.2"
 serde = { version = "1.0.219", features = ["derive"] }
