@@ -34,7 +34,6 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1"
-          env: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -59,7 +58,6 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1"
-          env: true
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
