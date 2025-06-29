@@ -1,3 +1,4 @@
+pub mod codegen;
 pub mod formatter;
 pub mod grammar;
 pub mod lexer;
