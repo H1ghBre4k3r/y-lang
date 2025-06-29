@@ -41,7 +41,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
       - run: ${{ env.LLVM_PATH }}/bin/llvm-config
-        if: ${{ matrix.os }} == "ubuntu-latest"
+        if: contains(matrix.os, 'ubuntu')
       - run: cargo build --all
         env:
           RUST_BACKTRACE: 1
