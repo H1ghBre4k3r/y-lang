@@ -47,9 +47,11 @@ jobs:
       - run: cargo build --all
         env:
           RUST_BACKTRACE: 1
+          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
       - run: cargo build --all --release
         env:
           RUST_BACKTRACE: 1
+          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
   testing:
     name: Testing
     strategy:
@@ -74,6 +76,7 @@ jobs:
       - run: cargo test --workspace
         env:
           RUST_BACKTRACE: 1
+          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
   linting:
     name: Linting
     runs-on: ubuntu-latest
