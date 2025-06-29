@@ -40,16 +40,14 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
+      - run: ${{ env.LLVM_PATH }}/bin/llvm-config
+        if: ${{ matrix.os }} == "ubuntu-latest"
       - run: cargo build --all
         env:
           RUST_BACKTRACE: 1
-          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
-          LLVM_CONFIG: ${{ env.LLVM_PATH }}/bin/llvm-config
       - run: cargo build --all --release
         env:
           RUST_BACKTRACE: 1
-          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
-          LLVM_CONFIG: ${{ env.LLVM_PATH }}/bin/llvm-config
   testing:
     name: Testing
     strategy:
@@ -74,8 +72,6 @@ jobs:
       - run: cargo test --workspace
         env:
           RUST_BACKTRACE: 1
-          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
-          LLVM_CONFIG: ${{ env.LLVM_PATH }}/bin/llvm-config
   linting:
     name: Linting
     runs-on: ubuntu-latest
