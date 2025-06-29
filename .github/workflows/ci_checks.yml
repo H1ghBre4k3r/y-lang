@@ -40,6 +40,8 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
+      - run: sudo apt install libncurses5 -y
+        if: contains(matrix.os, 'ubuntu')
       - run: ${{ env.LLVM_PATH }}/bin/llvm-config
         if: contains(matrix.os, 'ubuntu')
       - run: cargo build --all
