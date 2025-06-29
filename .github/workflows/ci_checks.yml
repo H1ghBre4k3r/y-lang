@@ -2,7 +2,7 @@ name: CI Checks
 
 permissions:
   contents: read
-  
+
 on:
   push:
 
@@ -35,6 +35,10 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.1"
       - run: cargo build --all
       - run: cargo build --all --release
   testing:
@@ -50,10 +54,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
-      - uses: ilammy/setup-nasm@v1
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.1"
       - run: cargo test --workspace
   linting:
     name: Linting
