@@ -35,19 +35,16 @@ jobs:
         with:
           version: "18.1"
           directory: ${{ runner.temp }}/llvm
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-      # - run: sudo apt update && sudo apt upgrade && sudo apt install libncurses5 -y
       - run: |
           sudo apt update
           wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
           sudo apt install ./libtinfo5_6.3-2ubuntu0.1_amd64.deb
         if: contains(matrix.os, 'ubuntu')
-      - run: ${{ env.LLVM_PATH }}/bin/llvm-config --version
-        if: contains(matrix.os, 'ubuntu')
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
       - run: cargo build --all
         env:
           RUST_BACKTRACE: 1
@@ -74,6 +71,11 @@ jobs:
         with:
           version: "18.1"
           directory: ${{ runner.temp }}/llvm
+      - run: |
+          sudo apt update
+          wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+          sudo apt install ./libtinfo5_6.3-2ubuntu0.1_amd64.deb
+        if: contains(matrix.os, 'ubuntu')
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
