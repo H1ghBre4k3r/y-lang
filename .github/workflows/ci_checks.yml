@@ -34,6 +34,10 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1"
+      - name: Linux - link libclang.so
+        if: contains(matrix.os, 'ubuntu')
+        run: sudo ln -s libclang-${{ matrix.clang }}.so.1 /lib/x86_64-linux-gnu/libclang.so
+        working-directory: ${{ env.LLVM_PATH }}/lib
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -58,6 +62,10 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1"
+      - name: Linux - link libclang.so
+        if: contains(matrix.os, 'ubuntu')
+        run: sudo ln -s libclang-${{ matrix.clang }}.so.1 /lib/x86_64-linux-gnu/libclang.so
+        working-directory: ${{ env.LLVM_PATH }}/lib
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
