@@ -41,10 +41,10 @@ jobs:
           version: "18.1"
       - run: cargo build --all
         env:
-          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}"
+          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}/bin"
       - run: cargo build --all --release
         env:
-          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}"
+          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}/bin"
   testing:
     name: Testing
     strategy:
@@ -67,7 +67,7 @@ jobs:
           version: "18.1"
       - run: cargo test --workspace
         env:
-          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}"
+          PATH: "${{env.PATH}}:${{ env.LLVM_PATH }}/bin"
   linting:
     name: Linting
     runs-on: ubuntu-latest
