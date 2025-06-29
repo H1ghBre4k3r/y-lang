@@ -40,8 +40,12 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-      - run: RUST_BACKTRACE=1 cargo build --all
-      - run: RUST_BACKTRACE=1 cargo build --all --release
+      - run: cargo build --all
+        env:
+          RUST_BACKTRACE: 1
+      - run: cargo build --all --release
+        env:
+          RUST_BACKTRACE: 1
   testing:
     name: Testing
     strategy:
@@ -63,7 +67,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: RUST_BACKTRACE=1 cargo test --workspace
+      - run: cargo test --workspace
+        env:
+          RUST_BACKTRACE: 1
   linting:
     name: Linting
     runs-on: ubuntu-latest
