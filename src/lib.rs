@@ -4,10 +4,8 @@ use std::{fs, process};
 
 use clap::{Parser, command};
 use why_lib::{
+    Module,
     formatter::{self},
-    grammar,
-    parser::parse_program,
-    typechecker::TypeChecker,
 };
 
 use crate::util::convert_parse_error;
@@ -55,37 +53,41 @@ impl VCArgs {
 }
 
 pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
-    let input = fs::read_to_string(args.file)?;
+    let module = Module::new(args.file.to_str().map(|path| path.to_string()).expect(""))?;
 
-    let program = match grammar::parse(&input) {
+    let module = match module.lex() {
         Ok(program) => program,
         Err(errors) => {
             let mut spans = vec![];
             for error in errors {
-                convert_parse_error(error, &input, &mut spans);
+                convert_parse_error(error, &module.input, &mut spans);
             }
-
             for (msg, span) in spans {
                 eprintln!("{}", span.to_string(msg));
             }
-
             process::exit(-1);
         }
     };
 
     if args.print_lexed {
-        println!("{program:#?}");
+        println!("{:#?}", module.inner);
     }
 
-    let statements = parse_program(program, &input);
+    let module = match module.parse() {
+        Ok(module) => module,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(-1);
+        }
+    };
 
     if args.print_parsed {
-        println!("{statements:#?}");
+        println!("{:#?}", module.inner);
     }
 
     // Handle formatting requests
     if args.format || args.format_output.is_some() {
-        let formatted = formatter::format_program(&statements)
+        let formatted = formatter::format_program(&module.inner)
             .map_err(|e| anyhow::anyhow!("Formatting error: {}", e))?;
 
         if args.format {
@@ -103,9 +105,8 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
         }
     }
 
-    let typechecker = TypeChecker::new(statements);
-    let checked = match typechecker.check() {
-        Ok(checked) => checked,
+    let module = match module.check() {
+        Ok(module) => module,
         Err(e) => {
             eprintln!("{e}");
             process::exit(-1);
@@ -113,11 +114,11 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     };
 
     if args.print_checked {
-        println!("{checked:#?}");
+        println!("{:#?}", module.inner);
     }
 
-    let validated = match TypeChecker::validate(checked) {
-        Ok(validated) => validated,
+    let module = match module.validate() {
+        Ok(module) => module,
         Err(e) => {
             eprintln!("{e}");
             process::exit(-1);
@@ -125,8 +126,10 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     };
 
     if args.print_validated {
-        println!("{validated:#?}");
+        println!("{module:#?}");
     }
+
+    module.hash();
 
     Ok(())
 }

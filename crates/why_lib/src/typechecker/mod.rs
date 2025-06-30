@@ -25,7 +25,7 @@ impl TypeInformation {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ValidatedTypeInformation {
     pub type_id: Type,
     #[serde(skip)]
