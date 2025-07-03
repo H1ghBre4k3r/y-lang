@@ -1,7 +1,7 @@
 use std::{fs, process};
 
 use clap::{Parser, command};
-use why_lib::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
+use why_lib::{lexer::Lexer, optimizer::optimize, parser::parse, typechecker::TypeChecker};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -67,6 +67,10 @@ pub fn compile_file(args: Cli) -> anyhow::Result<()> {
     };
 
     println!("{validated:#?}");
+
+    let optimized = optimize(validated);
+
+    println!("{optimized:#?}");
 
     Ok(())
 }
