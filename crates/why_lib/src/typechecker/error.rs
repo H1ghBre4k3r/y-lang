@@ -17,6 +17,7 @@ pub enum TypeCheckError {
     ImmutableReassign(ImmutableReassign, Span),
     MissingMainFunction(MissingMainFunction),
     InvalidMainSignature(InvalidMainSignature, Span),
+    UnsupportedBinaryOperation(UnsupportedBinaryOperation, Span),
 }
 
 impl Display for TypeCheckError {
@@ -39,6 +40,7 @@ impl TypeCheckError {
             TypeCheckError::ImmutableReassign(_, span) => span.clone(),
             TypeCheckError::MissingMainFunction(_) => Span::default(),
             TypeCheckError::InvalidMainSignature(_, span) => span.clone(),
+            TypeCheckError::UnsupportedBinaryOperation(_, span) => span.clone(),
         }
     }
 
@@ -55,6 +57,7 @@ impl TypeCheckError {
             TypeCheckError::ImmutableReassign(e, _) => Box::new(e.clone()),
             TypeCheckError::MissingMainFunction(e) => Box::new(e.clone()),
             TypeCheckError::InvalidMainSignature(e, _) => Box::new(e.clone()),
+            TypeCheckError::UnsupportedBinaryOperation(e, _) => Box::new(e.clone()),
         }
     }
 }
@@ -220,3 +223,23 @@ impl Display for InvalidMainSignature {
 }
 
 impl Error for InvalidMainSignature {}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct UnsupportedBinaryOperation {
+    pub operands: (Type, Type),
+}
+
+impl Display for UnsupportedBinaryOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let UnsupportedBinaryOperation {
+            operands: (left, right),
+        } = self;
+
+        f.write_fmt(format_args!(
+            "This binary operation is not supported for types '{:?}' and '{:?}'",
+            left, right
+        ))
+    }
+}
+
+impl Error for UnsupportedBinaryOperation {}
