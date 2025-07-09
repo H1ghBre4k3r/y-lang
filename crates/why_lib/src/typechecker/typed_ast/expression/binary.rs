@@ -1,16 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::typechecker::error::UnsupportedBinaryOperation;
 use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::{BinaryExpression, BinaryOperator},
     typechecker::{
-        context::Context,
-        error::{TypeCheckError, TypeMismatch},
-        types::Type,
-        TypeCheckable, TypeInformation, TypeResult,
+        context::Context, error::TypeCheckError, types::Type, TypeCheckable, TypeInformation,
+        TypeResult,
     },
 };
 
+// TODO lome: this should maybe only be possible for integer and floats
 impl TypeCheckable for BinaryExpression<()> {
     type Typed = BinaryExpression<TypeInformation>;
 
@@ -32,10 +32,9 @@ impl TypeCheckable for BinaryExpression<()> {
 
         let compount_type = if let (Some(left_type), Some(right_type)) = (left_type, right_type) {
             if !left_type.does_eq(&right_type) {
-                return Err(TypeCheckError::TypeMismatch(
-                    TypeMismatch {
-                        expected: left_type,
-                        actual: right_type,
+                return Err(TypeCheckError::UnsupportedBinaryOperation(
+                    UnsupportedBinaryOperation {
+                        operands: (left_type, right_type),
                     },
                     position,
                 ));
@@ -44,6 +43,20 @@ impl TypeCheckable for BinaryExpression<()> {
         } else {
             None
         };
+
+        if let Some(t) = &compount_type {
+            match t {
+                Type::Integer | Type::FloatingPoint | Type::Boolean => {}
+                _ => {
+                    return Err(TypeCheckError::UnsupportedBinaryOperation(
+                        UnsupportedBinaryOperation {
+                            operands: (t.clone(), t.clone()),
+                        },
+                        position,
+                    ));
+                }
+            }
+        }
 
         let type_id = match operator {
             BinaryOperator::Add
