@@ -134,7 +134,7 @@ mod tests {
         parser::ast::{BinaryExpression, BinaryOperator, Expression, Num},
         typechecker::{
             context::Context,
-            error::{TypeCheckError, TypeMismatch},
+            error::{TypeCheckError, TypeMismatch, UnsupportedBinaryOperation},
             types::Type,
             TypeCheckable,
         },
@@ -191,10 +191,9 @@ mod tests {
 
         assert_eq!(
             res,
-            Err(TypeCheckError::TypeMismatch(
-                TypeMismatch {
-                    expected: Type::Integer,
-                    actual: Type::FloatingPoint,
+            Err(TypeCheckError::UnsupportedBinaryOperation(
+                UnsupportedBinaryOperation {
+                    operands: (Type::Integer, Type::FloatingPoint)
                 },
                 Span::default()
             ))
