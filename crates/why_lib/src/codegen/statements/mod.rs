@@ -1,0 +1,30 @@
+use crate::{parser::ast::Statement, typechecker::ValidatedTypeInformation};
+
+use super::{CodeGen, CodegenContext};
+
+impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
+    type ReturnValue = ();
+
+    fn codegen(&self, ctx: &CodegenContext<'ctx>) {
+        match self {
+            Statement::Function(function) => todo!(),
+            Statement::If(_) => todo!(),
+            Statement::WhileLoop(while_loop) => todo!(),
+            Statement::Initialization(initialisation) => todo!(),
+            Statement::Constant(constant) => todo!(),
+            Statement::Assignment(assignment) => todo!(),
+            Statement::Expression(expression) => todo!(),
+            Statement::YieldingExpression(expression) => todo!(),
+            Statement::Return(expression) => {
+                let llvm_return_value = expression.codegen(ctx);
+
+                if let Err(e) = ctx.builder.build_return(Some(&llvm_return_value)) {
+                    eprintln!("{e}");
+                }
+            }
+            Statement::Comment(_) => todo!(),
+            Statement::Declaration(declaration) => todo!(),
+            Statement::StructDeclaration(struct_declaration) => todo!(),
+        }
+    }
+}
