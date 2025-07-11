@@ -10,8 +10,8 @@ use error::{InvalidMainSignature, MissingMainFunction};
 use std::fmt::{Display, Formatter};
 use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
-pub use self::error::TypeCheckError;
-use self::{context::Context, types::Type};
+use self::context::Context;
+pub use self::{error::TypeCheckError, types::Type};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {

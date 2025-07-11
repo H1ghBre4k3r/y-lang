@@ -1,6 +1,8 @@
-use std::fs;
+use std::{cell::RefCell, collections::HashMap, fs};
 
-use parser::ast::TopLevelStatement;
+use codegen::{CodeGen, CodegenContext};
+use inkwell::context::Context;
+use parser::ast::{Function, TopLevelStatement};
 use sha2::{Digest, Sha256};
 use typechecker::{TypeChecker, TypeInformation, ValidatedTypeInformation};
 
@@ -78,5 +80,37 @@ impl Module<Vec<TopLevelStatement<TypeInformation>>> {
         &self,
     ) -> anyhow::Result<Module<Vec<TopLevelStatement<ValidatedTypeInformation>>>> {
         Ok(self.convert(TypeChecker::validate(self.inner.clone())?))
+    }
+}
+
+impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
+    fn get_main(&self) -> Function<ValidatedTypeInformation> {
+        self.inner
+            .iter()
+            .find_map(|statement| match statement {
+                TopLevelStatement::Function(function) if function.id.name.as_str() == "main" => {
+                    Some(function.clone())
+                }
+                _ => None,
+            })
+            .expect("At this point, there should be a valid main function")
+    }
+
+    pub fn codegen(&self) {
+        let context = Context::create();
+        let module = context.create_module(&self.hash());
+        let builder = context.create_builder();
+
+        let codegen_context = CodegenContext {
+            context: &context,
+            module,
+            builder,
+            types: RefCell::new(HashMap::default()),
+        };
+        let main_function = self.get_main();
+
+        main_function.codegen(&codegen_context);
+
+        codegen_context.module.print_to_stderr();
     }
 }

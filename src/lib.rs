@@ -129,7 +129,7 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
         println!("{module:#?}");
     }
 
-    module.hash();
+    module.codegen();
 
     Ok(())
 }
