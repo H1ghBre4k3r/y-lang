@@ -43,7 +43,7 @@ pub struct VCArgs {
     pub format_output: Option<std::path::PathBuf>,
 
     #[arg(short, long, default_value = "a.out")]
-    pub output: Option<std::path::PathBuf>,
+    pub output: std::path::PathBuf,
 }
 
 impl VCArgs {
@@ -129,7 +129,7 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
         println!("{module:#?}");
     }
 
-    module.codegen();
+    module.codegen(args.output.to_str().unwrap());
 
     Ok(())
 }

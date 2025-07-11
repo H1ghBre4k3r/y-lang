@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fs};
+use std::{cell::RefCell, collections::HashMap, fmt::format, fs, process::Command};
 
 use codegen::{CodeGen, CodegenContext};
 use inkwell::context::Context;
@@ -96,7 +96,7 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             .expect("At this point, there should be a valid main function")
     }
 
-    pub fn codegen(&self) {
+    pub fn codegen(&self, out: &str) {
         let context = Context::create();
         let module = context.create_module(&self.hash());
         let builder = context.create_builder();
@@ -112,5 +112,21 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
         main_function.codegen(&codegen_context);
 
         codegen_context.module.print_to_stderr();
+
+        let file_name = format!("out/{}.ll", self.hash());
+
+        codegen_context
+            .module
+            .print_to_file(&file_name)
+            .expect("Error while writing to fil");
+
+        if let Err(e) = Command::new("clang")
+            .arg(&file_name)
+            .arg("-o")
+            .arg(out)
+            .output()
+        {
+            eprintln!("{e}")
+        }
     }
 }
