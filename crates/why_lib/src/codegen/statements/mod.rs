@@ -1,7 +1,10 @@
 mod function;
 mod initialisation;
 
-use crate::{parser::ast::Statement, typechecker::ValidatedTypeInformation};
+use crate::{
+    parser::ast::{Statement, TopLevelStatement},
+    typechecker::ValidatedTypeInformation,
+};
 
 use super::{CodeGen, CodegenContext};
 
@@ -28,6 +31,21 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
             Statement::Comment(_) => todo!(),
             Statement::Declaration(declaration) => todo!(),
             Statement::StructDeclaration(struct_declaration) => todo!(),
+        }
+    }
+}
+
+impl<'ctx> CodeGen<'ctx> for TopLevelStatement<ValidatedTypeInformation> {
+    type ReturnValue = ();
+
+    fn codegen(&self, ctx: &CodegenContext<'ctx>) {
+        match self {
+            TopLevelStatement::Comment(_) => todo!(),
+            TopLevelStatement::Function(function) => function.codegen(ctx),
+            TopLevelStatement::Constant(constant) => todo!(),
+            TopLevelStatement::Declaration(declaration) => todo!(),
+            TopLevelStatement::StructDeclaration(struct_declaration) => todo!(),
+            TopLevelStatement::Instance(instance) => todo!(),
         }
     }
 }
