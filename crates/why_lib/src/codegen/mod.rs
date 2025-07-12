@@ -8,7 +8,7 @@ use inkwell::{
     context::Context,
     module::Module,
     types::{BasicMetadataTypeEnum, BasicTypeEnum},
-    values::BasicValueEnum,
+    values::{BasicValueEnum, FunctionValue},
 };
 
 use crate::typechecker::Type;
@@ -18,7 +18,15 @@ pub struct CodegenContext<'ctx> {
     pub module: Module<'ctx>,
     pub builder: Builder<'ctx>,
     pub types: RefCell<HashMap<Type, BasicMetadataTypeEnum<'ctx>>>,
-    pub variables: RefCell<Vec<RefCell<HashMap<String, BasicValueEnum<'ctx>>>>>,
+    pub scopes: RefCell<Vec<ScopeFrame<'ctx>>>,
+}
+
+pub type ScopeFrame<'ctx> = RefCell<Scope<'ctx>>;
+
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+pub struct Scope<'ctx> {
+    variables: HashMap<String, BasicValueEnum<'ctx>>,
+    functions: HashMap<String, FunctionValue<'ctx>>,
 }
 
 impl<'ctx> CodegenContext<'ctx> {
@@ -34,35 +42,55 @@ impl<'ctx> CodegenContext<'ctx> {
     }
 
     pub fn enter_scope(&self) {
-        self.variables
-            .borrow_mut()
-            .push(RefCell::new(HashMap::default()));
+        self.scopes.borrow_mut().push(ScopeFrame::default());
     }
 
     pub fn exit_scope(&self) {
-        self.variables.borrow_mut().pop();
+        self.scopes.borrow_mut().pop();
     }
 
     pub fn find_variable(&self, name: impl ToString) -> BasicValueEnum<'ctx> {
         let name = name.to_string();
-        let variables = self.variables.borrow().clone();
+        let scopes = self.scopes.borrow();
 
-        variables
+        scopes
             .iter()
             .rev()
-            .find(|scope| scope.borrow().contains_key(&name))
-            .and_then(|scope| scope.borrow().get(&name).cloned())
+            .find(|scope| scope.borrow().variables.contains_key(&name))
+            .and_then(|scope| scope.borrow().variables.get(&name).cloned())
             .unwrap()
     }
 
     pub fn store_variable(&self, name: impl ToString, value: BasicValueEnum<'ctx>) {
         let name = name.to_string();
 
-        let variables = self.variables.borrow();
+        let variables = self.scopes.borrow();
 
         variables
             .last()
-            .and_then(|scope| scope.borrow_mut().insert(name, value));
+            .and_then(|scope| scope.borrow_mut().variables.insert(name, value));
+    }
+
+    pub fn find_function(&self, name: impl ToString) -> FunctionValue<'ctx> {
+        let name = name.to_string();
+        let scopes = self.scopes.borrow();
+
+        scopes
+            .iter()
+            .rev()
+            .find(|scope| scope.borrow().functions.contains_key(&name))
+            .and_then(|scope| scope.borrow().functions.get(&name).cloned())
+            .unwrap()
+    }
+
+    pub fn store_function(&self, name: impl ToString, value: FunctionValue<'ctx>) {
+        let name = name.to_string();
+
+        let functions = self.scopes.borrow();
+
+        functions
+            .last()
+            .and_then(|scope| scope.borrow_mut().functions.insert(name, value));
     }
 }
 
