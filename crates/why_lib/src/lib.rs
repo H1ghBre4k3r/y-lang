@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, fs, process::Command};
 
-use codegen::{CodeGen, CodegenContext};
+use codegen::{CodeGen, CodegenContext, ScopeFrame};
 use inkwell::context::Context;
 use parser::ast::{Function, TopLevelStatement};
 use sha2::{Digest, Sha256};
@@ -125,7 +125,7 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             module,
             builder,
             types: RefCell::new(HashMap::default()),
-            variables: RefCell::new(vec![RefCell::new(HashMap::new())]),
+            scopes: RefCell::new(vec![ScopeFrame::default()]),
         };
         let main_function = self.get_main();
 
