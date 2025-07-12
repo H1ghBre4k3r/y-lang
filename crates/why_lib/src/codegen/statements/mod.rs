@@ -1,4 +1,5 @@
 mod function;
+mod initialisation;
 
 use crate::{parser::ast::Statement, typechecker::ValidatedTypeInformation};
 
@@ -12,7 +13,7 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
             Statement::Function(function) => function.codegen(ctx),
             Statement::If(_) => todo!(),
             Statement::WhileLoop(while_loop) => todo!(),
-            Statement::Initialization(initialisation) => todo!(),
+            Statement::Initialization(initialisation) => initialisation.codegen(ctx),
             Statement::Constant(constant) => todo!(),
             Statement::Assignment(assignment) => todo!(),
             Statement::Expression(expression) => todo!(),

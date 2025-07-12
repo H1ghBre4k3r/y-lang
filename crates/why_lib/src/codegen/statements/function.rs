@@ -43,9 +43,13 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn, "entry");
         ctx.builder.position_at_end(llvm_fn_bb);
 
+        ctx.enter_scope();
+
         for statement in statements {
             statement.codegen(ctx);
         }
+
+        ctx.exit_scope();
     }
 }
 
