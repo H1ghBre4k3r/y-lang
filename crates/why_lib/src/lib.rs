@@ -133,6 +133,16 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
 
         // TODO: generate everything else as well
 
+        let top_level_statements = &self.inner;
+
+        for statement in top_level_statements {
+            if matches!(statement, TopLevelStatement::Function(f) if f.id.name.as_str() == "main") {
+                continue;
+            }
+
+            statement.codegen(&codegen_context);
+        }
+
         codegen_context
             .module
             .print_to_file(self.file_path())
