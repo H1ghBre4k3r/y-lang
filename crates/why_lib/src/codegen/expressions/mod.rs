@@ -1,3 +1,4 @@
+mod id;
 mod num;
 
 use inkwell::values::BasicValueEnum;
@@ -11,7 +12,7 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
 
     fn codegen(&self, ctx: &super::CodegenContext<'ctx>) -> BasicValueEnum<'ctx> {
         match self {
-            Expression::Id(id) => todo!(),
+            Expression::Id(id) => id.codegen(ctx),
             Expression::Num(num) => num.codegen(ctx),
             Expression::Character(character) => todo!(),
             Expression::AstString(ast_string) => todo!(),

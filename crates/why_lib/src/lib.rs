@@ -125,6 +125,7 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             module,
             builder,
             types: RefCell::new(HashMap::default()),
+            variables: RefCell::new(vec![RefCell::new(HashMap::new())]),
         };
         let main_function = self.get_main();
 
