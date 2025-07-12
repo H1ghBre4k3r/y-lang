@@ -1,7 +1,7 @@
 use inkwell::values::BasicValueEnum;
 
 use crate::{
-    codegen::{CodeGen, CodegenContext, IntoLLVMType},
+    codegen::{CodeGen, CodegenContext},
     parser::ast::Num,
     typechecker::ValidatedTypeInformation,
 };
@@ -14,7 +14,7 @@ impl<'ctx> CodeGen<'ctx> for Num<ValidatedTypeInformation> {
             Num::Integer(val, info, ..) => {
                 let ValidatedTypeInformation { type_id, .. } = info;
 
-                let llvm_type = type_id.to_llvm_type(ctx.context).into_int_type();
+                let llvm_type = ctx.get_llvm_type(type_id).into_int_type();
 
                 llvm_type.const_int(*val, false).into()
             }

@@ -36,7 +36,7 @@ impl<'ctx> CodegenContext<'ctx> {
             return *entry;
         }
 
-        let new_type = our_type.to_llvm_type(self.context);
+        let new_type = convert_our_type_to_llvm_basic_metadata_type(our_type, self);
         types.insert(our_type.clone(), new_type);
         new_type
     }
@@ -99,29 +99,54 @@ pub trait CodeGen<'ctx> {
     fn codegen(&self, ctx: &CodegenContext<'ctx>) -> Self::ReturnValue;
 }
 
-pub trait IntoLLVMType {
-    fn to_llvm_type<'ctx>(&self, ctx: &'ctx Context) -> BasicMetadataTypeEnum<'ctx>;
-}
-
-impl IntoLLVMType for Type {
-    fn to_llvm_type<'ctx>(&self, ctx: &'ctx Context) -> BasicMetadataTypeEnum<'ctx> {
-        match self {
-            Type::Integer => ctx.i64_type().into(),
-            Type::FloatingPoint => todo!(),
-            Type::Boolean => todo!(),
-            Type::Character => todo!(),
-            Type::String => todo!(),
-            Type::Void => todo!(),
-            Type::Unknown => todo!(),
-            Type::Reference(_) => todo!(),
-            Type::Tuple(items) => todo!(),
-            Type::Array(_) => todo!(),
-            Type::Struct(_, items) => todo!(),
-            Type::Function {
-                params,
-                return_value,
-            } => todo!(),
+fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
+    our_type: &Type,
+    ctx: &CodegenContext<'ctx>,
+) -> BasicMetadataTypeEnum<'ctx> {
+    match our_type {
+        Type::Integer => ctx.context.i64_type().into(),
+        Type::FloatingPoint => ctx.context.f64_type().into(),
+        Type::Boolean => ctx.context.bool_type().into(),
+        Type::Character => ctx.context.i8_type().into(), // UTF-8 char representation
+        Type::String => {
+            // Represent strings as pointer to i8 (C-style strings or slices)
+            ctx.context.ptr_type(Default::default()).into()
         }
+        Type::Void => {
+            // Void isn't a valid BasicMetadataTypeEnum — can return pointer or dummy
+            panic!("Void cannot be used as a BasicMetadataTypeEnum")
+        }
+        Type::Unknown => {
+            panic!("Cannot convert unknown type to LLVM")
+        }
+        Type::Reference(_) => ctx.context.ptr_type(Default::default()).into(),
+        Type::Tuple(items) => {
+            let types: Vec<_> = items
+                .iter()
+                .map(|item| {
+                    convert_metadata_to_basic(ctx.get_llvm_type(item))
+                        .expect("Something went wrong...")
+                })
+                .collect();
+            let struct_type = ctx.context.struct_type(&types, false);
+            struct_type.into()
+        }
+        Type::Array(_) => todo!(),
+        Type::Struct(_, fields) => {
+            let llvm_fields: Vec<_> = fields
+                .iter()
+                .map(|(_, t)| {
+                    convert_metadata_to_basic(ctx.get_llvm_type(t))
+                        .expect("Something went wrong...")
+                })
+                .collect();
+            let struct_type = ctx.context.struct_type(&llvm_fields, false);
+            struct_type.into()
+        }
+        Type::Function {
+            params,
+            return_value,
+        } => todo!(),
     }
 }
 
