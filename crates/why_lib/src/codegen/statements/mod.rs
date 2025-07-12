@@ -1,3 +1,5 @@
+mod function;
+
 use crate::{parser::ast::Statement, typechecker::ValidatedTypeInformation};
 
 use super::{CodeGen, CodegenContext};
@@ -7,7 +9,7 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
 
     fn codegen(&self, ctx: &CodegenContext<'ctx>) {
         match self {
-            Statement::Function(function) => todo!(),
+            Statement::Function(function) => function.codegen(ctx),
             Statement::If(_) => todo!(),
             Statement::WhileLoop(while_loop) => todo!(),
             Statement::Initialization(initialisation) => todo!(),
@@ -19,7 +21,7 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
                 let llvm_return_value = expression.codegen(ctx);
 
                 if let Err(e) = ctx.builder.build_return(Some(&llvm_return_value)) {
-                    eprintln!("{e}");
+                    panic!("{e}");
                 }
             }
             Statement::Comment(_) => todo!(),
