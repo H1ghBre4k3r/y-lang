@@ -1,5 +1,5 @@
 use crate::{
-    codegen::{convert_metadata_to_basic, CodeGen, IntoLLVMType},
+    codegen::{convert_metadata_to_basic, CodeGen},
     parser::ast::Initialisation,
     typechecker::ValidatedTypeInformation,
 };
@@ -16,7 +16,7 @@ impl<'ctx> CodeGen<'ctx> for Initialisation<ValidatedTypeInformation> {
         let llvm_alloca = ctx
             .builder
             .build_alloca(
-                convert_metadata_to_basic(type_id.to_llvm_type(ctx.context))
+                convert_metadata_to_basic(ctx.get_llvm_type(&type_id))
                     .expect("This should definetly not happen"),
                 &id.name,
             )

@@ -1,8 +1,12 @@
+fn bar(x: i64, y: i64): i64 {
+    return x;
+}
+
 fn main(): i64 {
     let foo = 42;
     return foo;
 }
 
-fn bar(x: i64, y: i64): i64 {
-    return x;
+fn baz(x: i64): void {
+
 }
