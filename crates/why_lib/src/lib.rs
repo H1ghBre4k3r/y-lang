@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, fs, process::Command};
 
 use codegen::{CodeGen, CodegenContext, ScopeFrame};
 use inkwell::context::Context;
-use parser::ast::{Function, TopLevelStatement};
+use parser::ast::TopLevelStatement;
 use sha2::{Digest, Sha256};
 use typechecker::{TypeChecker, TypeInformation, ValidatedTypeInformation};
 
@@ -103,18 +103,6 @@ impl Module<Vec<TopLevelStatement<TypeInformation>>> {
 }
 
 impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
-    fn get_main(&self) -> Function<ValidatedTypeInformation> {
-        self.inner
-            .iter()
-            .find_map(|statement| match statement {
-                TopLevelStatement::Function(function) if function.id.name.as_str() == "main" => {
-                    Some(function.clone())
-                }
-                _ => None,
-            })
-            .expect("At this point, there should be a valid main function")
-    }
-
     pub fn codegen(&self) {
         let context = Context::create();
         let module = context.create_module(&self.hash());
@@ -127,19 +115,9 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             types: RefCell::new(HashMap::default()),
             scopes: RefCell::new(vec![ScopeFrame::default()]),
         };
-        let main_function = self.get_main();
-
-        main_function.codegen(&codegen_context);
-
-        // TODO: generate everything else as well
 
         let top_level_statements = &self.inner;
-
         for statement in top_level_statements {
-            if matches!(statement, TopLevelStatement::Function(f) if f.id.name.as_str() == "main") {
-                continue;
-            }
-
             statement.codegen(&codegen_context);
         }
 
