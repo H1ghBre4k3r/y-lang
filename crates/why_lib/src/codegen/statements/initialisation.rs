@@ -11,7 +11,9 @@ impl<'ctx> CodeGen<'ctx> for Initialisation<ValidatedTypeInformation> {
 
         let ValidatedTypeInformation { type_id, .. } = value.get_info();
 
-        let llvm_value = value.codegen(ctx);
+        let Some(llvm_value) = value.codegen(ctx) else {
+            unreachable!()
+        };
 
         let llvm_alloca = ctx
             .builder

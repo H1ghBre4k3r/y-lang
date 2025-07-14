@@ -18,8 +18,12 @@ impl<'ctx> CodeGen<'ctx> for BinaryExpression<ValidatedTypeInformation> {
             ..
         } = self;
 
-        let left = left.codegen(ctx);
-        let right = right.codegen(ctx);
+        let Some(left) = left.codegen(ctx) else {
+            unreachable!()
+        };
+        let Some(right) = right.codegen(ctx) else {
+            unreachable!()
+        };
 
         match (ctx.get_llvm_type(type_id), operator) {
             (BasicMetadataTypeEnum::IntType(_), BinaryOperator::Add) => ctx
