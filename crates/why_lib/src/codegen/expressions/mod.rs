@@ -1,5 +1,7 @@
+mod binary;
 mod id;
 mod num;
+mod prefix;
 
 use inkwell::values::BasicValueEnum;
 
@@ -22,8 +24,8 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
             Expression::Block(block) => todo!(),
             Expression::Parens(expression) => todo!(),
             Expression::Postfix(postfix) => todo!(),
-            Expression::Prefix(prefix) => todo!(),
-            Expression::Binary(binary_expression) => todo!(),
+            Expression::Prefix(prefix) => prefix.codegen(ctx),
+            Expression::Binary(binary_expression) => binary_expression.codegen(ctx),
             Expression::Array(array) => todo!(),
             Expression::StructInitialisation(struct_initialisation) => todo!(),
         }
