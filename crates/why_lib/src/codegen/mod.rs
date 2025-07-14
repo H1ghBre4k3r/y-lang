@@ -66,9 +66,9 @@ impl<'ctx> CodegenContext<'ctx> {
 
         let variables = self.scopes.borrow();
 
-        variables
-            .last()
-            .and_then(|scope| scope.borrow_mut().variables.insert(name, value));
+        variables.last().inspect(|scope| {
+            scope.borrow_mut().variables.insert(name, value);
+        });
     }
 
     pub fn find_function(&self, name: impl ToString) -> FunctionValue<'ctx> {
@@ -85,12 +85,15 @@ impl<'ctx> CodegenContext<'ctx> {
 
     pub fn store_function(&self, name: impl ToString, value: FunctionValue<'ctx>) {
         let name = name.to_string();
+        let fn_pointer = value.as_global_value().as_pointer_value();
 
-        let functions = self.scopes.borrow();
+        let scopes = self.scopes.borrow();
 
-        functions
-            .last()
-            .and_then(|scope| scope.borrow_mut().functions.insert(name, value));
+        scopes.last().inspect(|scope| {
+            let mut scope_frame = scope.borrow_mut();
+            scope_frame.functions.insert(name.clone(), value);
+            scope_frame.variables.insert(name, fn_pointer.into());
+        });
     }
 }
 
@@ -123,9 +126,10 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
         Type::Tuple(items) => {
             let types: Vec<_> = items
                 .iter()
-                .map(|item| {
-                    convert_metadata_to_basic(ctx.get_llvm_type(item))
-                        .expect("Something went wrong...")
+                .map(|item_type| {
+                    convert_metadata_to_basic(ctx.get_llvm_type(item_type)).unwrap_or_else(|| {
+                        panic!("{item_type:?} can not be converted to a tuple item")
+                    })
                 })
                 .collect();
             let struct_type = ctx.context.struct_type(&types, false);
@@ -135,9 +139,10 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
         Type::Struct(_, fields) => {
             let llvm_fields: Vec<_> = fields
                 .iter()
-                .map(|(_, t)| {
-                    convert_metadata_to_basic(ctx.get_llvm_type(t))
-                        .expect("Something went wrong...")
+                .map(|(_, field_type)| {
+                    convert_metadata_to_basic(ctx.get_llvm_type(field_type)).unwrap_or_else(|| {
+                        panic!("{field_type:?} can not be converted to a struct field")
+                    })
                 })
                 .collect();
             let struct_type = ctx.context.struct_type(&llvm_fields, false);

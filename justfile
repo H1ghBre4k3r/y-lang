@@ -19,3 +19,6 @@ bins-release:
 
 watch:
     cargo watch -x "build --bins"
+
+install:
+    cargo install --path .
