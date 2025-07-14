@@ -14,7 +14,9 @@ impl<'ctx> CodeGen<'ctx> for Prefix<ValidatedTypeInformation> {
             Prefix::Negation { expr, position } => todo!(),
             Prefix::Minus { expr, .. } => {
                 let expr_type = expr.get_info().type_id;
-                let expr = expr.codegen(ctx);
+                let Some(expr) = expr.codegen(ctx) else {
+                    unreachable!()
+                };
 
                 match expr_type {
                     Type::Integer => {
