@@ -9,7 +9,7 @@ use crate::{
 };
 
 impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
-    type ReturnValue = BasicValueEnum<'ctx>;
+    type ReturnValue = Option<BasicValueEnum<'ctx>>;
 
     fn codegen(&self, ctx: &crate::codegen::CodegenContext<'ctx>) -> Self::ReturnValue {
         match self {
@@ -35,7 +35,7 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
         ctx: &CodegenContext<'ctx>,
         expr: &Expression<ValidatedTypeInformation>,
         args: &[Expression<ValidatedTypeInformation>],
-    ) -> BasicValueEnum<'ctx> {
+    ) -> Option<BasicValueEnum<'ctx>> {
         let Type::Function {
             params,
             return_value,
@@ -46,7 +46,9 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
 
         let llvm_function_type =
             build_llvm_function_type_from_own_types(ctx, &return_value, &params);
-        let expr = expr.codegen(ctx);
+        let Some(expr) = expr.codegen(ctx) else {
+            unreachable!()
+        };
 
         let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr else {
             unreachable!("The Expression in a Call-Postfix should always return a pointer");
@@ -54,7 +56,12 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
 
         let args = args
             .iter()
-            .map(|arg| arg.codegen(ctx).into())
+            .map(|arg| {
+                let Some(arg) = arg.codegen(ctx) else {
+                    unreachable!()
+                };
+                arg.into()
+            })
             .collect::<Vec<BasicMetadataValueEnum<'ctx>>>();
 
         ctx.builder
@@ -62,6 +69,5 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
             .unwrap()
             .try_as_basic_value()
             .left()
-            .unwrap()
     }
 }

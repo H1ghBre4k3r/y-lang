@@ -1,9 +1,12 @@
+declare printf: (str) -> void;
+
 fn baz(x: i64): i64 {
     let intermediate = x * 2;
     return intermediate;
 }
 
 fn main(): i64 {
+    printf("Foo");
     let x = 12;
     let a = baz(x);
     return x + a;
