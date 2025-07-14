@@ -127,6 +127,7 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             let types: Vec<_> = items
                 .iter()
                 .map(|item_type| {
+                    // TODO: what about functions?
                     convert_metadata_to_basic(ctx.get_llvm_type(item_type)).unwrap_or_else(|| {
                         panic!("{item_type:?} can not be converted to a tuple item")
                     })
@@ -140,6 +141,7 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             let llvm_fields: Vec<_> = fields
                 .iter()
                 .map(|(_, field_type)| {
+                    // TODO: what about functions?
                     convert_metadata_to_basic(ctx.get_llvm_type(field_type)).unwrap_or_else(|| {
                         panic!("{field_type:?} can not be converted to a struct field")
                     })
@@ -148,10 +150,8 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             let struct_type = ctx.context.struct_type(&llvm_fields, false);
             struct_type.into()
         }
-        Type::Function {
-            params,
-            return_value,
-        } => todo!(),
+        // TODO: this should definetly return a pointer instead of metadata_type
+        Type::Function { .. } => ctx.context.metadata_type().into(),
     }
 }
 
