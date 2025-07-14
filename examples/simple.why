@@ -1,15 +1,11 @@
-fn bar(x: i64, y: i64): i64 {
-    return x;
+fn baz(x: i64): i64 {
+    let intermediate = x * 2;
+    return intermediate;
 }
 
 fn main(): i64 {
-    let foo = 19 + 23;
-    let asd = -24;
-    let sdg = foo + asd;
-    return foo;
+    let x = 12;
+    let a = baz(x);
+    return x + a;
 }
 
-fn baz(x: i64): i64 {
-    let foo = -x + 23;
-    return foo;
-}

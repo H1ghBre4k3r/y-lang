@@ -1,5 +1,5 @@
-mod function;
-mod initialisation;
+pub mod function;
+pub mod initialisation;
 
 use crate::{
     parser::ast::{Statement, TopLevelStatement},

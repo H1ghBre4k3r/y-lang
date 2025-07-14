@@ -116,6 +116,8 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             scopes: RefCell::new(vec![ScopeFrame::default()]),
         };
 
+        // TODO: this _must_ include insertion of functions types, etc.
+        // Otherwise, one can not reference functions which are later in the files
         let top_level_statements = &self.inner;
         for statement in top_level_statements {
             statement.codegen(&codegen_context);

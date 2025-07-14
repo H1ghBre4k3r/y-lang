@@ -13,7 +13,6 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let Function {
             id,
             parameters,
-            return_type,
             statements,
             info:
                 ValidatedTypeInformation {
@@ -22,9 +21,9 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
                             params,
                             return_value,
                         },
-                    context,
+                    ..
                 },
-            position,
+            ..
         } = self
         else {
             unreachable!()
@@ -59,7 +58,7 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
     }
 }
 
-fn build_llvm_function_type_from_own_types<'ctx>(
+pub fn build_llvm_function_type_from_own_types<'ctx>(
     ctx: &CodegenContext<'ctx>,
     return_type: &Type,
     param_types: &[Type],
