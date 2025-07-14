@@ -3,10 +3,13 @@ fn bar(x: i64, y: i64): i64 {
 }
 
 fn main(): i64 {
-    let foo = 42;
+    let foo = 19 + 23;
+    let asd = -24;
+    let sdg = foo + asd;
     return foo;
 }
 
-fn baz(x: i64): void {
-
+fn baz(x: i64): i64 {
+    let foo = -x + 23;
+    return foo;
 }

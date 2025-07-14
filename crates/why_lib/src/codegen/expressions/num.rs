@@ -15,7 +15,6 @@ impl<'ctx> CodeGen<'ctx> for Num<ValidatedTypeInformation> {
                 let ValidatedTypeInformation { type_id, .. } = info;
 
                 let llvm_type = ctx.get_llvm_type(type_id).into_int_type();
-
                 llvm_type.const_int(*val, false).into()
             }
             Num::FloatingPoint(_, _, span) => todo!(),

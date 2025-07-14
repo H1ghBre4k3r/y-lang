@@ -156,6 +156,8 @@ pub enum Token {
     Minus { position: Span },
     #[terminal("*")]
     Times { position: Span },
+    #[terminal("/")]
+    Divide { position: Span },
     #[terminal("(")]
     LParen { position: Span },
     #[terminal(")")]
@@ -238,6 +240,7 @@ impl std::fmt::Debug for Token {
             Self::Plus { .. } => f.debug_struct("Plus").finish(),
             Self::Minus { .. } => f.debug_struct("Minus").finish(),
             Self::Times { .. } => f.debug_struct("Times").finish(),
+            Self::Divide { .. } => f.debug_struct("Divide").finish(),
             Self::LParen { .. } => f.debug_struct("LParen").finish(),
             Self::RParen { .. } => f.debug_struct("RParen").finish(),
             Self::LBrace { .. } => f.debug_struct("LBrace").finish(),
