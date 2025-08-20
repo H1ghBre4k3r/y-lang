@@ -1,4 +1,4 @@
-# Pesca Lang
+# Y Lang
 
 > **Attention:** Everything in this project is subject to change! The documentation of the code is nearly non-existent. Furthermore, the currently executable does nothing really useful.
 
