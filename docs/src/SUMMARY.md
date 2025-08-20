@@ -1,6 +1,6 @@
 # Summary
 
-[The Y Programming Language](./pesca-lang.md)
+[The Y Programming Language](./y-lang.md)
 [Prerequisites](./prerequisites.md)
 
 - [Language Basics](./basics/README.md)

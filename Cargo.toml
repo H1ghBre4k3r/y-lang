@@ -1,11 +1,11 @@
 [package]
-name = "pesca-lang"
+name = "y-lang"
 version = "0.1.0"
 edition = "2024"
 authors = ["Louis Meyer (H1ghBre4k3r) <h1ghbe4k3r@dev.bre4k3r.de>"]
 license = "GPL-3.0"
 readme = "README.md"
-repository = "https://github.com/H1ghBre4k3r/pesca-parser"
+repository = "https://github.com/H1ghBre4k3r/y-lang"
 
 [workspace]
 members = ["crates/why_lib", "crates/lex_derive"]
