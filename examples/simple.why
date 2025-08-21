@@ -6,7 +6,7 @@ fn baz(x: i64): i64 {
 }
 
 fn main(): i64 {
-    printf("Foo");
+    printf("Foo\n");
     let x = 12;
     let a = baz(x);
     return x + a;
