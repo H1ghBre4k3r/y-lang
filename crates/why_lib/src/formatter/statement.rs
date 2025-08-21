@@ -10,7 +10,6 @@ impl Format for Statement<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         match self {
             Statement::Function(function) => function.format(ctx),
-            Statement::If(if_stmt) => if_stmt.format(ctx),
             Statement::WhileLoop(while_loop) => while_loop.format(ctx),
             Statement::Initialization(init) => {
                 init.format(ctx)?;
