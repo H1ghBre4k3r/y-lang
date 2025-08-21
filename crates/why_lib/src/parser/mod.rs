@@ -2,6 +2,7 @@ use std::{error::Error, fmt::Display};
 
 pub mod ast;
 pub mod combinators;
+pub mod direct_parsing;
 mod parse_state;
 
 pub use self::parse_state::*;

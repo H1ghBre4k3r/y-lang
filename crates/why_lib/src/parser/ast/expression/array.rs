@@ -1,6 +1,6 @@
 use crate::{
     lexer::{Span, Token},
-    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
+    parser::{ast::AstNode, direct_parsing::DirectParser, FromTokens, ParseError, ParseState},
 };
 
 use super::{Expression, Num};
@@ -43,49 +43,84 @@ impl FromTokens<Token> for Array<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let position = tokens.span()?;
         let start = tokens.get_index();
-        let matcher = Comb::LBRACKET >> (Comb::EXPR % Comb::COMMA) >> Comb::RBRACKET;
-
-        if let Ok(result) = matcher.parse(tokens) {
-            let mut values = vec![];
-
-            for node in result {
-                let AstNode::Expression(value) = node else {
-                    unreachable!();
-                };
-                values.push(value);
-            }
+        
+        // Parse opening bracket
+        DirectParser::expect_lbracket(tokens)?;
+        
+        // Try to parse first expression to see if this is an empty array or not
+        let saved_pos = tokens.get_index();
+        
+        // Check for empty array first
+        if DirectParser::expect_rbracket(tokens).is_ok() {
             return Ok(Array::Literal {
-                values,
+                values: vec![],
                 info: (),
                 position,
-            }
-            .into());
+            }.into());
         }
-        tokens.set_index(start);
-
-        let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::SEMI >> Comb::NUM >> Comb::RBRACKET;
-        if let Ok(result) = matcher.parse(tokens) {
-            let Some(AstNode::Expression(initial_value)) = result.first().cloned() else {
-                unreachable!()
+        
+        // Reset and try to parse expressions
+        tokens.set_index(saved_pos);
+        
+        // Try to parse first expression
+        let first_expr = match Expression::parse(tokens) {
+            Ok(AstNode::Expression(expr)) => expr,
+            Ok(_) => unreachable!("Expression::parse should return Expression"),
+            Err(_) => {
+                tokens.set_index(start);
+                return Err(ParseError {
+                    message: "Expected expression in array".to_string(),
+                    position: Some(position),
+                });
+            }
+        };
+        
+        // Check if this is a default array [expr; num]
+        if DirectParser::parse_terminal(tokens, |t| matches!(t, Token::Semicolon { .. }), "semicolon").is_ok() {
+            let length = match Num::parse(tokens)? {
+                AstNode::Num(num) => num,
+                _ => unreachable!("Num::parse should return Num"),
             };
-
-            let Some(AstNode::Num(length)) = result.get(1).cloned() else {
-                unreachable!()
-            };
-
+            
+            DirectParser::expect_rbracket(tokens)?;
+            
             return Ok(Array::Default {
-                initial_value: Box::new(initial_value),
+                initial_value: Box::new(first_expr),
                 length,
                 info: (),
                 position,
+            }.into());
+        }
+        
+        // Otherwise, this is a literal array [expr, expr, ...]
+        let mut expressions = vec![first_expr];
+        
+        // Parse additional expressions separated by commas  
+        loop {
+            let before_comma = tokens.get_index();
+            if DirectParser::expect_comma(tokens).is_err() {
+                // No more commas, we're done
+                break;
             }
-            .into());
-        };
-
-        Err(ParseError {
-            message: "failed to parse array initialization".into(),
-            position: Some(position),
-        })
+            
+            match Expression::parse(tokens) {
+                Ok(AstNode::Expression(expr)) => expressions.push(expr),
+                Ok(_) => unreachable!("Expression::parse should return Expression"),
+                Err(_) => {
+                    // Failed to parse expression after comma, backtrack
+                    tokens.set_index(before_comma);
+                    break;
+                }
+            }
+        }
+        
+        DirectParser::expect_rbracket(tokens)?;
+        
+        Ok(Array::Literal {
+            values: expressions,
+            info: (),
+            position,
+        }.into())
     }
 }
 
