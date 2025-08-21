@@ -1,6 +1,6 @@
 use crate::{
     lexer::{Span, Token},
-    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
+    parser::{ast::AstNode, direct_parsing::DirectParser, FromTokens, ParseError, ParseState},
 };
 
 use super::{Expression, Id};
@@ -17,27 +17,35 @@ impl FromTokens<Token> for Lambda<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let position = tokens.span()?;
 
-        let matcher = Comb::BACKSLASH
-            >> Comb::LPAREN
-            // parameter list (optional)
-            >> (Comb::LAMBDA_PARAMETER % Comb::COMMA)
-            >> Comb::RPAREN
-            >> Comb::BIG_RIGHT_ARROW
-            // return type
-            >> Comb::EXPR;
-
-        let mut result = matcher.parse(tokens)?.into_iter().peekable();
-
+        // Parse lambda syntax: \(params) => expression
+        DirectParser::expect_backslash(tokens)?;
+        DirectParser::expect_lparen(tokens)?;
+        
         let mut parameters = vec![];
-
-        while let Some(AstNode::LambdaParameter(param)) =
-            result.next_if(|item| matches!(item, AstNode::LambdaParameter(_)))
-        {
-            parameters.push(param);
+        
+        // Parse optional parameters separated by commas
+        if !matches!(tokens.peek(), Some(Token::RParen { .. })) {
+            // Parse first parameter
+            match LambdaParameter::parse(tokens)? {
+                AstNode::LambdaParameter(param) => parameters.push(param),
+                _ => unreachable!("LambdaParameter::parse should return LambdaParameter"),
+            }
+            
+            // Parse additional parameters
+            while DirectParser::expect_comma(tokens).is_ok() {
+                match LambdaParameter::parse(tokens)? {
+                    AstNode::LambdaParameter(param) => parameters.push(param),
+                    _ => unreachable!("LambdaParameter::parse should return LambdaParameter"),
+                }
+            }
         }
-
-        let Some(AstNode::Expression(expression)) = result.next() else {
-            unreachable!()
+        
+        DirectParser::expect_rparen(tokens)?;
+        DirectParser::expect_big_right_arrow(tokens)?;
+        
+        let expression = match Expression::parse(tokens)? {
+            AstNode::Expression(expr) => expr,
+            _ => unreachable!("Expression::parse should return Expression"),
         };
 
         Ok(Lambda {
@@ -45,8 +53,7 @@ impl FromTokens<Token> for Lambda<()> {
             expression: Box::new(expression),
             info: (),
             position,
-        }
-        .into())
+        }.into())
     }
 }
 
@@ -66,19 +73,17 @@ pub struct LambdaParameter<T> {
 impl FromTokens<Token> for LambdaParameter<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let position = tokens.span()?;
-        let matcher = Comb::ID;
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Id(name)) = result.first() else {
-            unreachable!()
+        
+        let name = match Id::parse(tokens)? {
+            AstNode::Id(id) => id,
+            _ => unreachable!("Id::parse should return Id"),
         };
 
         Ok(LambdaParameter {
-            name: name.clone(),
+            name,
             info: (),
             position,
-        }
-        .into())
+        }.into())
     }
 }
 

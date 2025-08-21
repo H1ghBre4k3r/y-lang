@@ -1,8 +1,8 @@
 use crate::{
     lexer::{Span, Token},
     parser::{
-        ast::{AstNode, Statement, TypeName},
-        combinators::Comb,
+        ast::{AstNode, Statement, TypeName, Block},
+        direct_parsing::DirectParser,
         FromTokens, ParseError, ParseState,
     },
 };
@@ -23,38 +23,46 @@ impl FromTokens<Token> for Function<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let position = tokens.span()?;
 
-        let matcher = Comb::FN_KEYWORD
-            >> Comb::ID
-            >> Comb::LPAREN
-            // parameter list (optional)
-            >> (Comb::PARAMETER % Comb::COMMA)
-            >> Comb::RPAREN
-            // return type
-            >> Comb::COLON
-            >> Comb::TYPE_NAME
-            // body of the function
-            >> Comb::BLOCK;
-
-        let mut result = matcher.parse(tokens)?.into_iter().peekable();
-
-        let Some(AstNode::Id(id)) = result.next() else {
-            unreachable!()
+        // Parse function syntax: fn name(params): return_type { body }
+        DirectParser::expect_fn(tokens)?;
+        
+        let id = match Id::parse(tokens)? {
+            AstNode::Id(id) => id,
+            _ => unreachable!("Id::parse should return Id"),
         };
-
+        
+        DirectParser::expect_lparen(tokens)?;
+        
         let mut parameters = vec![];
-
-        while let Some(AstNode::FunctionParameter(param)) =
-            result.next_if(|item| matches!(item, AstNode::FunctionParameter(_)))
-        {
-            parameters.push(param);
+        
+        // Parse optional parameters separated by commas
+        if !matches!(tokens.peek(), Some(Token::RParen { .. })) {
+            // Parse first parameter
+            match FunctionParameter::parse(tokens)? {
+                AstNode::FunctionParameter(param) => parameters.push(param),
+                _ => unreachable!("FunctionParameter::parse should return FunctionParameter"),
+            }
+            
+            // Parse additional parameters
+            while DirectParser::expect_comma(tokens).is_ok() {
+                match FunctionParameter::parse(tokens)? {
+                    AstNode::FunctionParameter(param) => parameters.push(param),
+                    _ => unreachable!("FunctionParameter::parse should return FunctionParameter"),
+                }
+            }
         }
-
-        let Some(AstNode::TypeName(return_type)) = result.next() else {
-            unreachable!();
+        
+        DirectParser::expect_rparen(tokens)?;
+        DirectParser::expect_colon(tokens)?;
+        
+        let return_type = match TypeName::parse(tokens)? {
+            AstNode::TypeName(type_name) => type_name,
+            _ => unreachable!("TypeName::parse should return TypeName"),
         };
-
-        let Some(AstNode::Block(block)) = result.next() else {
-            unreachable!();
+        
+        let block = match Block::parse(tokens)? {
+            AstNode::Block(block) => block,
+            _ => unreachable!("Block::parse should return Block"),
         };
 
         Ok(Function {
@@ -64,8 +72,7 @@ impl FromTokens<Token> for Function<()> {
             statements: block.statements,
             info: (),
             position,
-        }
-        .into())
+        }.into())
     }
 }
 
@@ -86,24 +93,25 @@ pub struct FunctionParameter<T> {
 impl FromTokens<Token> for FunctionParameter<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
         let position = tokens.span()?;
-        let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME;
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Id(name)) = result.first() else {
-            unreachable!()
+        
+        let name = match Id::parse(tokens)? {
+            AstNode::Id(id) => id,
+            _ => unreachable!("Id::parse should return Id"),
         };
-
-        let Some(AstNode::TypeName(type_name)) = result.get(1) else {
-            unreachable!()
+        
+        DirectParser::expect_colon(tokens)?;
+        
+        let type_name = match TypeName::parse(tokens)? {
+            AstNode::TypeName(type_name) => type_name,
+            _ => unreachable!("TypeName::parse should return TypeName"),
         };
 
         Ok(FunctionParameter {
-            name: name.clone(),
-            type_name: type_name.clone(),
+            name,
+            type_name,
             info: (),
             position,
-        }
-        .into())
+        }.into())
     }
 }
 
