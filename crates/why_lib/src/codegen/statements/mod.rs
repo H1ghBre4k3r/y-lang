@@ -15,7 +15,6 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
     fn codegen(&self, ctx: &CodegenContext<'ctx>) {
         match self {
             Statement::Function(function) => function.codegen(ctx),
-            Statement::If(_) => todo!(),
             Statement::WhileLoop(while_loop) => todo!(),
             Statement::Initialization(initialisation) => initialisation.codegen(ctx),
             Statement::Constant(constant) => todo!(),
