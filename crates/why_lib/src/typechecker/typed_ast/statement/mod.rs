@@ -106,7 +106,6 @@ impl TypeCheckable for Statement<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             Statement::Function(func) => Ok(Statement::Function(func.check(ctx)?)),
-            Statement::If(if_exp) => Ok(Statement::If(if_exp.check(ctx)?)),
             Statement::WhileLoop(while_l) => Ok(Statement::WhileLoop(while_l.check(ctx)?)),
             Statement::Initialization(init) => Ok(Statement::Initialization(init.check(ctx)?)),
             Statement::Constant(constant) => Ok(Statement::Constant(constant.check(ctx)?)),
@@ -125,7 +124,6 @@ impl TypeCheckable for Statement<()> {
     fn revert(this: &Self::Typed) -> Self {
         match this {
             Statement::Function(func) => Statement::Function(TypeCheckable::revert(func)),
-            Statement::If(if_exp) => Statement::If(TypeCheckable::revert(if_exp)),
             Statement::WhileLoop(while_l) => Statement::WhileLoop(TypeCheckable::revert(while_l)),
             Statement::Initialization(init) => {
                 Statement::Initialization(TypeCheckable::revert(init))
@@ -152,7 +150,6 @@ impl TypedConstruct for Statement<TypeInformation> {
     fn update_type(&mut self, type_id: Type) -> std::result::Result<(), TypeCheckError> {
         match self {
             Statement::Function(_) => todo!(),
-            Statement::If(_) => todo!(),
             Statement::WhileLoop(_) => todo!(),
             Statement::Initialization(init) => init.update_type(type_id),
             Statement::Constant(constant) => constant.update_type(type_id),
@@ -169,7 +166,6 @@ impl TypedConstruct for Statement<TypeInformation> {
     fn validate(self) -> Result<Self::Validated, TypeValidationError> {
         match self {
             Statement::Function(function) => Ok(Statement::Function(function.validate()?)),
-            Statement::If(if_statement) => Ok(Statement::If(if_statement.validate()?)),
             Statement::WhileLoop(while_loop) => Ok(Statement::WhileLoop(while_loop.validate()?)),
             Statement::Initialization(initialisation) => {
                 Ok(Statement::Initialization(initialisation.validate()?))
