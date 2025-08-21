@@ -63,6 +63,8 @@ pub trait FromTokens<T> {
     fn parse(tokens: &mut ParseState<T>) -> Result<AstNode, ParseError>;
 }
 
+// New parsing function that uses the direct parser instead of combinators
+// New parsing function that uses the direct parser instead of combinators
 pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<TopLevelStatement<()>>, ParseError> {
     let mut statements = vec![];
 
