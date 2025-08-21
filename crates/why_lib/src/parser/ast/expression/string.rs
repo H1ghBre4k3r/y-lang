@@ -4,9 +4,6 @@ use crate::lexer::Span;
 use super::AstNode;
 use unescape::unescape;
 
-use crate::lexer::{Span, Token};
-use crate::parser::ast::AstNode;
-
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AstString<T> {
     pub value: String,
