@@ -70,7 +70,8 @@ mod ylang_grammar {
 
     #[derive(Debug)]
     pub struct Floating(
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] Spanned<f64>,
+        #[rust_sitter::leaf(pattern = r"\d+\.\d+", transform = |v| v.parse().unwrap())]
+        Spanned<f64>,
     );
 
     #[derive(Debug)]
