@@ -11,5 +11,5 @@ repository = "https://github.com/H1ghBre4k3r/y-parser"
 anyhow = "1.0.99"
 colored = "3.0.0"
 lex_derive = { path = "../lex_derive/" }
-regex = "1.11.1"
+regex = "1.11.2"
 serde = { version = "1.0.219", features = ["derive"] }
