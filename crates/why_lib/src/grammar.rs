@@ -107,45 +107,47 @@ mod ylang_grammar {
 
     #[derive(Debug)]
     pub enum TypeName {
-        Literal {
-            typename: Identifier,
-        },
-        ArrayType {
-            #[rust_sitter::leaf(text = "&")]
-            _ref: (),
-            #[rust_sitter::leaf(text = "[")]
-            _lbracket: (),
-            inner: Identifier,
-            #[rust_sitter::leaf(text = "]")]
-            _rbracket: (),
-        },
-        FunctionType {
-            #[rust_sitter::leaf(text = "fn")]
-            _fn: (),
-            #[rust_sitter::leaf(text = "(")]
-            _lparen: (),
-            #[rust_sitter::delimited(
+        LiteralType(LiteralType),
+        ArrayType(ArrayType),
+        FunctionType(FunctionType),
+        TupleType(TupleType),
+    }
+
+    #[derive(Debug)]
+    pub struct LiteralType {
+        typename: Identifier,
+    }
+
+    #[derive(Debug)]
+    pub struct ArrayType {
+        #[rust_sitter::leaf(text = "&")]
+        _ref: (),
+        #[rust_sitter::leaf(text = "[")]
+        _lbracket: (),
+        pub inner: Identifier,
+        #[rust_sitter::leaf(text = "]")]
+        _rbracket: (),
+    }
+
+    #[derive(Debug)]
+    pub struct TupleType {
+        #[rust_sitter::leaf(text = "(")]
+        _lparen: (),
+        #[rust_sitter::delimited(
                 #[rust_sitter::leaf(text = ",")]
                 ()
             )]
-            params: Vec<TypeName>,
-            #[rust_sitter::leaf(text = ")")]
-            _rparen: (),
-            #[rust_sitter::leaf(text = "->")]
-            _arrow: (),
-            return_type: Box<TypeName>,
-        },
-        TupleType {
-            #[rust_sitter::leaf(text = "(")]
-            _lparen: (),
-            #[rust_sitter::delimited(
-                #[rust_sitter::leaf(text = ",")]
-                ()
-            )]
-            types: Vec<TypeName>,
-            #[rust_sitter::leaf(text = ")")]
-            _rparen: (),
-        },
+        pub types: Vec<Spanned<TypeName>>,
+        #[rust_sitter::leaf(text = ")")]
+        _rparen: (),
+    }
+
+    #[derive(Debug)]
+    pub struct FunctionType {
+        pub params: TupleType,
+        #[rust_sitter::leaf(text = "->")]
+        _arrow: (),
+        pub return_type: Box<Spanned<TypeName>>,
     }
 
     #[derive(Debug)]
