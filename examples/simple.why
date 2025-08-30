@@ -2,6 +2,12 @@ fn main(): i64 {
     42
 }
 
-fn test(arg1: i64, arg2: &[i64]): fn(i64) -> (i64, i64) {
+fn test(arg1: i64, arg2: &[i64]): (i64) -> (i64, i64) {
 
 }
+
+fn foo(func: (i64, i64) -> i64): i64 {
+
+}
+
+
