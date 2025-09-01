@@ -22,11 +22,11 @@ mod ylang_grammar {
     #[derive(Debug)]
     pub enum Statement {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
-        // IfStatement,
-        // WhileLoop,
-        // Initialization,
+        VariableDeclaration(VariableDeclaration),
+        Assignment(Assignment),
+        If(IfStatement),
+        While(WhileStatement),
         // Constant,
-        // Assignment,
         Expression {
             inner: Expression,
             #[rust_sitter::leaf(text = ";")]
@@ -49,6 +49,79 @@ mod ylang_grammar {
     pub enum Expression {
         Identifier(Identifier),
         Number(Number),
+        String(StringLiteral),
+        Character(CharacterLiteral),
+        Parenthesized(ParenthesizedExpression),
+        #[rust_sitter::prec_left(1)]
+        Addition(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "+")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(1)]
+        Subtraction(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "-")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(2)]
+        Multiplication(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "*")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(2)]
+        Division(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "/")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(0)]
+        Equals(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "==")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(0)]
+        NotEquals(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "!=")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(0)]
+        LessThan(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "<")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(0)]
+        GreaterThan(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = ">")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(0)]
+        LessOrEqual(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "<=")]
+            (),
+            Box<Expression>
+        ),
+        #[rust_sitter::prec_left(0)]
+        GreaterOrEqual(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = ">=")]
+            (),
+            Box<Expression>
+        ),
     }
 
     #[derive(Debug)]
@@ -73,6 +146,99 @@ mod ylang_grammar {
         #[rust_sitter::leaf(pattern = r"\d+\.\d+", transform = |v| v.parse().unwrap())]
         Spanned<f64>,
     );
+
+    #[derive(Debug)]
+    pub struct StringLiteral(
+        #[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = |v| {
+            let trimmed = v.strip_prefix('"').unwrap().strip_suffix('"').unwrap();
+            trimmed.to_string()
+        })]
+        Spanned<String>,
+    );
+
+    #[derive(Debug)]
+    pub struct CharacterLiteral(
+        #[rust_sitter::leaf(pattern = r"'([^'\\]|\\.)'", transform = |v| {
+            let trimmed = v.strip_prefix('\'').unwrap().strip_suffix('\'').unwrap();
+            trimmed.chars().next().unwrap()
+        })]
+        Spanned<char>,
+    );
+
+    #[derive(Debug)]
+    pub struct ParenthesizedExpression {
+        #[rust_sitter::leaf(text = "(")]
+        _lparen: (),
+        pub inner: Box<Expression>,
+        #[rust_sitter::leaf(text = ")")]
+        _rparen: (),
+    }
+
+
+    #[derive(Debug)]
+    pub struct VariableDeclaration {
+        #[rust_sitter::leaf(text = "let")]
+        _let: (),
+        #[rust_sitter::optional]
+        pub mutability: Option<MutabilityKeyword>,
+        pub identifier: Identifier,
+        #[rust_sitter::optional]
+        pub type_annotation: Option<TypeAnnotation>,
+        #[rust_sitter::leaf(text = "=")]
+        _eq: (),
+        pub value: Expression,
+        #[rust_sitter::leaf(text = ";")]
+        _semicolon: (),
+    }
+
+    #[derive(Debug)]
+    pub struct MutabilityKeyword {
+        #[rust_sitter::leaf(text = "mut")]
+        _mut: (),
+    }
+
+    #[derive(Debug)]
+    pub struct Assignment {
+        pub identifier: Identifier,
+        #[rust_sitter::leaf(text = "=")]
+        _eq: (),
+        pub value: Expression,
+        #[rust_sitter::leaf(text = ";")]
+        _semicolon: (),
+    }
+
+    #[derive(Debug)]
+    pub struct IfStatement {
+        #[rust_sitter::leaf(text = "if")]
+        _if: (),
+        #[rust_sitter::leaf(text = "(")]
+        _lparen: (),
+        pub condition: Box<Expression>,
+        #[rust_sitter::leaf(text = ")")]
+        _rparen: (),
+        pub then_block: Spanned<Block>,
+        #[rust_sitter::optional]
+        pub else_block: Option<ElseClause>,
+    }
+
+    #[derive(Debug)]
+    pub struct ElseClause {
+        #[rust_sitter::leaf(text = "else")]
+        _else: (),
+        pub block: Spanned<Block>,
+    }
+
+    #[derive(Debug)]
+    pub struct WhileStatement {
+        #[rust_sitter::leaf(text = "while")]
+        _while: (),
+        #[rust_sitter::leaf(text = "(")]
+        _lparen: (),
+        pub condition: Box<Expression>,
+        #[rust_sitter::leaf(text = ")")]
+        _rparen: (),
+        pub block: Spanned<Block>,
+    }
 
     #[derive(Debug)]
     pub struct FunctionDeklaration {

@@ -7,7 +7,7 @@ fn test(arg1: i64, arg2: &[i64]): (i64) -> (i64, i64) {
 }
 
 fn foo(func: (i64, i64) -> i64): i64 {
-
+    let x = 2 * 3 + 4 * 5;
 }
 
 
