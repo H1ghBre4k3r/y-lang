@@ -1,7 +1,5 @@
+const foo: i64 = 42;
+
 fn main(): i64 {
- let foo = 42;   if (42 > 1337) {
-        1337.0
-    } else {
-        42.0
-    }
+    foo
 }

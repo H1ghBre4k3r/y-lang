@@ -1,7 +1,7 @@
 use std::{fs, process};
 
 use clap::{Parser, command};
-use why_lib::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
+use why_lib::{lexer::Lexer, optimizer::optimize, parser::parse, typechecker::TypeChecker};
 
 #[derive(Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
@@ -83,6 +83,10 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     if args.print_validated {
         println!("{validated:#?}");
     }
+
+    let optimized = optimize(validated);
+
+    println!("{optimized:#?}");
 
     Ok(())
 }
