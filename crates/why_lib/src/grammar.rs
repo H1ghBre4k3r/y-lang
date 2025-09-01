@@ -13,7 +13,7 @@ mod ylang_grammar {
     #[derive(Debug)]
     pub enum ToplevelStatement {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
-        // Constant,
+        Constant(Constant),
         // Declaration,
         // StructDeclaration,
         // Instance,
@@ -24,9 +24,8 @@ mod ylang_grammar {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
         VariableDeclaration(VariableDeclaration),
         Assignment(Assignment),
-        If(IfStatement),
         While(WhileStatement),
-        // Constant,
+        Constant(Constant),
         Expression {
             inner: Expression,
             #[rust_sitter::leaf(text = ";")]
@@ -51,77 +50,15 @@ mod ylang_grammar {
         Number(Number),
         String(StringLiteral),
         Character(CharacterLiteral),
+        IfExpression(IfExpression),
         Parenthesized(ParenthesizedExpression),
-        #[rust_sitter::prec_left(1)]
-        Addition(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "+")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(1)]
-        Subtraction(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "-")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(2)]
-        Multiplication(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "*")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(2)]
-        Division(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "/")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(0)]
-        Equals(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "==")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(0)]
-        NotEquals(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "!=")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(0)]
-        LessThan(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "<")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(0)]
-        GreaterThan(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = ">")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(0)]
-        LessOrEqual(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = "<=")]
-            (),
-            Box<Expression>
-        ),
-        #[rust_sitter::prec_left(0)]
-        GreaterOrEqual(
-            Box<Expression>,
-            #[rust_sitter::leaf(text = ">=")]
-            (),
-            Box<Expression>
-        ),
+        BinaryExpression(BinaryExpression),
+        Block(Block),
+        // Lambda,
+        // Postfix,
+        // Prefix,
+        // Array,
+        // StructInitialisation
     }
 
     #[derive(Debug)]
@@ -174,6 +111,69 @@ mod ylang_grammar {
         _rparen: (),
     }
 
+    #[derive(Debug)]
+    pub enum BinaryExpression {
+        #[rust_sitter::prec_left(1)]
+        Addition(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "+")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(1)]
+        Subtraction(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "-")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(2)]
+        Multiplication(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "*")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(2)]
+        Division(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "/")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(0)]
+        Equals(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "==")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(0)]
+        NotEquals(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "!=")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(0)]
+        LessThan(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "<")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(0)]
+        GreaterThan(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = ">")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(0)]
+        LessOrEqual(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = "<=")] (),
+            Box<Expression>,
+        ),
+        #[rust_sitter::prec_left(0)]
+        GreaterOrEqual(
+            Box<Expression>,
+            #[rust_sitter::leaf(text = ">=")] (),
+            Box<Expression>,
+        ),
+    }
 
     #[derive(Debug)]
     pub struct VariableDeclaration {
@@ -208,7 +208,7 @@ mod ylang_grammar {
     }
 
     #[derive(Debug)]
-    pub struct IfStatement {
+    pub struct IfExpression {
         #[rust_sitter::leaf(text = "if")]
         _if: (),
         #[rust_sitter::leaf(text = "(")]
@@ -323,6 +323,19 @@ mod ylang_grammar {
         pub statements: Vec<Statement>,
         #[rust_sitter::leaf(text = "}")]
         _rbrace: (),
+    }
+
+    #[derive(Debug)]
+    pub struct Constant {
+        #[rust_sitter::leaf(text = "const")]
+        _const: (),
+        pub identifier: Identifier,
+        pub type_annotation: TypeAnnotation,
+        #[rust_sitter::leaf(text = "=")]
+        _eq: (),
+        pub value: Expression,
+        #[rust_sitter::leaf(text = ";")]
+        _semi: (),
     }
 
     #[rust_sitter::extra]
