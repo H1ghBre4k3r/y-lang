@@ -25,7 +25,12 @@ impl TypeCheckable for Block<()> {
 
         let type_id = checked_statements
             .last()
-            .map(|last| last.get_info().type_id)
+            .map(|last| match last {
+                crate::parser::ast::Statement::Expression(_) => {
+                    Rc::new(RefCell::new(Some(Type::Void)))
+                }
+                last => last.get_info().type_id,
+            })
             .unwrap_or(Rc::new(RefCell::new(Some(Type::Void))));
 
         Ok(Block {
