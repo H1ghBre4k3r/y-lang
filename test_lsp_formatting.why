@@ -15,5 +15,4 @@ fn test_function(param1: i64, param2: f64): void {
         field2: 3.14
     };
     let lambda = \(a, b) => a + b;
-}   let lambda = \(a, b) => a + b;
 }

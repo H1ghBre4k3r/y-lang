@@ -6,10 +6,10 @@ use tower_lsp_server::lsp_types::*;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use tracing::error;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
+use why_lib::formatter;
 use why_lib::lexer::{self, Span};
 use why_lib::parser::{self, ParseError};
 use why_lib::typechecker::{self};
-use why_lib::formatter;
 
 #[derive(Debug)]
 struct Backend {
@@ -126,15 +126,29 @@ impl Backend {
     }
 
     fn get_document_end_position(&self, content: &str) -> Position {
-        let lines: Vec<&str> = content.lines().collect();
-        let line_count = lines.len();
-        
-        if line_count == 0 {
+        if content.is_empty() {
             return Position::new(0, 0);
         }
 
-        let last_line = lines[line_count - 1];
-        Position::new(line_count as u32 - 1, last_line.len() as u32)
+        // Count lines properly - use lines() iterator which handles line endings correctly
+        let lines: Vec<&str> = content.lines().collect();
+        let line_count = lines.len() as u32;
+        
+        // If content ends with a newline, we have an extra empty line
+        let actual_line_count = if content.ends_with('\n') {
+            line_count
+        } else {
+            line_count.saturating_sub(1)
+        };
+        
+        // Get the character position of the last line
+        let last_line_length = if let Some(last_line) = lines.last() {
+            last_line.len() as u32
+        } else {
+            0
+        };
+
+        Position::new(actual_line_count, last_line_length)
     }
 }
 
@@ -219,7 +233,7 @@ impl LanguageServer for Backend {
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri;
         let path = uri.path().as_str();
-        
+
         // Only format .why files
         if !path.ends_with(".why") {
             return Ok(None);
