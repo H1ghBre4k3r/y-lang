@@ -1,7 +1,7 @@
 use std::{fs, process};
 
 use clap::{Parser, command};
-use why_lib::{formatter, lexer::Lexer, parser::parse, typechecker::TypeChecker};
+use why_lib::{formatter, grammar, lexer::Lexer, parser::parse, typechecker::TypeChecker};
 
 #[derive(Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
@@ -47,6 +47,8 @@ impl VCArgs {
 
 pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     let input = fs::read_to_string(args.file)?;
+
+    dbg!(grammar::parse(&input));
 
     let lexer = Lexer::new(&input);
     let tokens = lexer.lex()?;
