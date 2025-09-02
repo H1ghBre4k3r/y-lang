@@ -74,7 +74,7 @@ impl ShallowCheck for TopLevelStatement<()> {
 impl TypedConstruct for TopLevelStatement<TypeInformation> {
     type Validated = TopLevelStatement<ValidatedTypeInformation>;
 
-    fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
+    fn update_type(&mut self, _type_id: Type) -> TypeResult<()> {
         unreachable!()
     }
 

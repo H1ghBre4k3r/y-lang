@@ -20,7 +20,7 @@ impl FromTokens<Token> for Id<()> {
             Some(Token::Id { value, .. }) => value,
             Some(token) => {
                 return Err(ParseError {
-                    message: format!("Tried to parse Id from non id token ({:?})", token),
+                    message: format!("Tried to parse Id from non id token ({token:?})"),
                     position: Some(token.position()),
                 })
             }

@@ -117,21 +117,21 @@ impl Backend {
         let lexed = match lexer::Lexer::new(input).lex() {
             Ok(lexed) => lexed,
             Err(e) => {
-                return Err(format!("Lexer error: {}", e));
+                return Err(format!("Lexer error: {e}"));
             }
         };
 
         let parsed = match parser::parse(&mut lexed.into()) {
             Ok(parsed) => parsed,
             Err(e) => {
-                return Err(format!("Parse error: {}", e));
+                return Err(format!("Parse error: {e}"));
             }
         };
 
         // Format the AST
         match formatter::format_program(&parsed) {
             Ok(formatted) => Ok(formatted),
-            Err(e) => Err(format!("Formatting error: {}", e)),
+            Err(e) => Err(format!("Formatting error: {e}")),
         }
     }
 
@@ -143,14 +143,14 @@ impl Backend {
         // Count lines properly - use lines() iterator which handles line endings correctly
         let lines: Vec<&str> = content.lines().collect();
         let line_count = lines.len() as u32;
-        
+
         // If content ends with a newline, we have an extra empty line
         let actual_line_count = if content.ends_with('\n') {
             line_count
         } else {
             line_count.saturating_sub(1)
         };
-        
+
         // Get the character position of the last line
         let last_line_length = if let Some(last_line) = lines.last() {
             last_line.len() as u32
@@ -216,13 +216,13 @@ impl LanguageServer for Backend {
         let DidOpenTextDocumentParams {
             text_document: TextDocumentItem { uri, text, .. },
         } = params;
-        
+
         // Store the document content
         {
             let mut documents = self.documents.write().await;
             documents.insert(uri.clone(), text);
         }
-        
+
         self.check_diagnostics(uri).await;
     }
 
@@ -232,13 +232,13 @@ impl LanguageServer for Backend {
             text,
             ..
         } = params;
-        
+
         // Update document content if provided
         if let Some(text) = text {
             let mut documents = self.documents.write().await;
             documents.insert(uri.clone(), text);
         }
-        
+
         self.check_diagnostics(uri).await;
     }
 
@@ -358,7 +358,7 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| Backend { 
+    let (service, socket) = LspService::new(|client| Backend {
         client,
         documents: Arc::new(RwLock::new(HashMap::new())),
     });
