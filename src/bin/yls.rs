@@ -109,6 +109,7 @@ impl LanguageServer for Backend {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
+                document_formatting_provider: Some(OneOf::Left(true)),
                 // diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
                 //     DiagnosticOptions {
                 //         identifier: Some("ylsp".into()),
@@ -176,6 +177,11 @@ impl LanguageServer for Backend {
     ) -> Result<DocumentDiagnosticReportResult> {
         let _ = params;
         error!("Got a textDocument/diagnostic request, but it is not implemented");
+        Err(Error::method_not_found())
+    }
+
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        error!("Got a textDocument/formatting request, but it is not implemented");
         Err(Error::method_not_found())
     }
 }
