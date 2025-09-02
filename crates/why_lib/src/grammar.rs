@@ -54,7 +54,7 @@ mod ylang_grammar {
         Parenthesized(ParenthesizedExpression),
         BinaryExpression(BinaryExpression),
         Block(Block),
-        // Lambda,
+        Lambda(Lambda),
         // Postfix,
         // Prefix,
         // Array,
@@ -336,6 +336,32 @@ mod ylang_grammar {
         pub value: Expression,
         #[rust_sitter::leaf(text = ";")]
         _semi: (),
+    }
+
+    #[derive(Debug)]
+    #[rust_sitter::prec_right(0)]
+    pub struct Lambda {
+        #[rust_sitter::leaf(text = "\\")]
+        _start: (),
+        #[rust_sitter::leaf(text = "(")]
+        _lparen: (),
+        #[rust_sitter::delimited(
+                #[rust_sitter::leaf(text = ",")]
+                ()
+            )]
+        pub params: Vec<LambdaParameter>,
+        #[rust_sitter::leaf(text = ")")]
+        _rparen: (),
+        #[rust_sitter::leaf(text = "=>")]
+        _rarrow: (),
+        pub expression: Box<Expression>,
+    }
+
+    #[derive(Debug)]
+    pub struct LambdaParameter {
+        pub ident: Identifier,
+        #[rust_sitter::optional]
+        pub type_annotation: Option<TypeAnnotation>,
     }
 
     #[rust_sitter::extra]

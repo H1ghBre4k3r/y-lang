@@ -12,3 +12,7 @@ fn foo(func: (i64, i64) -> i64): i64 {
 
 const constFoo: i64 = 42;
 
+fn containsLambda(): void {
+    let x = \(a, b, c, d) => a + b * c + d;
+}
+
