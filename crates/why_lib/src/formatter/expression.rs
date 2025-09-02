@@ -350,4 +350,3 @@ fn escape_string(s: &str) -> String {
         })
         .collect()
 }
-
