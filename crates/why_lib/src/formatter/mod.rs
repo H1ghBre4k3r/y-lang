@@ -30,13 +30,13 @@ pub fn format_top_level_statement(stmt: &TopLevelStatement<()>) -> Result<String
 
 pub fn format_program(statements: &[TopLevelStatement<()>]) -> Result<String, std::fmt::Error> {
     let mut ctx = FormatterContext::new();
-    
+
     for (i, stmt) in statements.iter().enumerate() {
         if i > 0 {
             ctx.write("\n\n")?;
         }
         stmt.format(&mut ctx)?;
     }
-    
+
     Ok(ctx.output)
 }

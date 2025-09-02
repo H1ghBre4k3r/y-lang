@@ -1,8 +1,8 @@
 use crate::{
     formatter::{Format, FormatterContext},
     parser::ast::{
-        Assignment, Constant, Declaration, Instance, Initialisation, LValue, MethodDeclaration, Statement,
-        StructDeclaration, StructFieldDeclaration, TopLevelStatement, WhileLoop,
+        Assignment, Constant, Declaration, Initialisation, Instance, LValue, MethodDeclaration,
+        Statement, StructDeclaration, StructFieldDeclaration, TopLevelStatement, WhileLoop,
     },
 };
 
@@ -118,7 +118,7 @@ impl Format for StructDeclaration<()> {
         ctx.write("struct ")?;
         self.id.format(ctx)?;
         ctx.write(" {")?;
-        
+
         if !self.fields.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
@@ -131,7 +131,7 @@ impl Format for StructDeclaration<()> {
                 Ok(())
             })?;
         }
-        
+
         ctx.write("}")
     }
 }
@@ -149,12 +149,12 @@ impl Format for Instance<()> {
         ctx.write("instance ")?;
         self.name.format(ctx)?;
         ctx.write(" {")?;
-        
+
         let total_items = self.functions.len() + self.declarations.len();
         if total_items > 0 {
             ctx.write_newline()?;
             let mut item_count = 0;
-            
+
             for function in &self.functions {
                 if item_count > 0 {
                     ctx.write_newline()?;
@@ -164,7 +164,7 @@ impl Format for Instance<()> {
                 ctx.write_newline()?;
                 item_count += 1;
             }
-            
+
             for declaration in &self.declarations {
                 if item_count > 0 {
                     ctx.write_newline()?;
@@ -175,7 +175,7 @@ impl Format for Instance<()> {
                 item_count += 1;
             }
         }
-        
+
         ctx.write("}")
     }
 }
@@ -185,9 +185,11 @@ impl Format for MethodDeclaration<()> {
         ctx.write("declare ")?;
         self.id.format(ctx)?;
         ctx.write("(")?;
-        
-        ctx.write_separated(&self.parameter_types, ", ", |ctx, type_name| type_name.format(ctx))?;
-        
+
+        ctx.write_separated(&self.parameter_types, ", ", |ctx, type_name| {
+            type_name.format(ctx)
+        })?;
+
         ctx.write("): ")?;
         self.return_type.format(ctx)
     }
