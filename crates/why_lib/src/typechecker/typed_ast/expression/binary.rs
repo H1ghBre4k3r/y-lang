@@ -134,7 +134,7 @@ mod tests {
         parser::ast::{BinaryExpression, BinaryOperator, Expression, Num},
         typechecker::{
             context::Context,
-            error::{TypeCheckError, TypeMismatch, UnsupportedBinaryOperation},
+            error::{TypeCheckError, UnsupportedBinaryOperation},
             types::Type,
             TypeCheckable,
         },

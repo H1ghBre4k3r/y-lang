@@ -236,8 +236,7 @@ impl Display for UnsupportedBinaryOperation {
         } = self;
 
         f.write_fmt(format_args!(
-            "This binary operation is not supported for types '{:?}' and '{:?}'",
-            left, right
+            "This binary operation is not supported for types '{left:?}' and '{right:?}'",
         ))
     }
 }

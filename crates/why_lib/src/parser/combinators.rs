@@ -284,7 +284,7 @@ where
                 // try to parse the terminal
                 if *token != t {
                     return Err(ParseError {
-                        message: format!("Unexpected {:?} while trying to parse {:?}", t, token),
+                        message: format!("Unexpected {t:?} while trying to parse {token:?}"),
                         position: Some(t.position()),
                     });
                 }

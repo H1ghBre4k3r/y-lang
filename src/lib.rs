@@ -73,7 +73,7 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
             .map_err(|e| anyhow::anyhow!("Formatting error: {}", e))?;
 
         if args.format {
-            println!("{}", formatted);
+            println!("{formatted}");
         }
 
         let format_output_provided = args.format_output.is_some();

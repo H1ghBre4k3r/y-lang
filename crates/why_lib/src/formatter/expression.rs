@@ -42,8 +42,8 @@ impl Format for Id<()> {
 impl Format for Num<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         match self {
-            Num::Integer(value, _, _) => write!(ctx.output, "{}", value),
-            Num::FloatingPoint(value, _, _) => write!(ctx.output, "{}", value),
+            Num::Integer(value, _, _) => write!(ctx.output, "{value}"),
+            Num::FloatingPoint(value, _, _) => write!(ctx.output, "{value}"),
         }
     }
 }
@@ -65,13 +65,13 @@ impl Format for Function<()> {
         ctx.write("fn ")?;
         self.id.format(ctx)?;
         ctx.write("(")?;
-        
+
         ctx.write_separated(&self.parameters, ", ", |ctx, param| param.format(ctx))?;
-        
+
         ctx.write("): ")?;
         self.return_type.format(ctx)?;
         ctx.write(" {")?;
-        
+
         if !self.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
@@ -86,7 +86,7 @@ impl Format for Function<()> {
             })?;
             ctx.write_newline()?;
         }
-        
+
         ctx.write("}")
     }
 }
@@ -119,7 +119,7 @@ impl Format for If<()> {
         ctx.write("if (")?;
         self.condition.format(ctx)?;
         ctx.write(") {")?;
-        
+
         if !self.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
@@ -131,9 +131,9 @@ impl Format for If<()> {
                 Ok(())
             })?;
         }
-        
+
         ctx.write("}")?;
-        
+
         if !self.else_statements.is_empty() {
             ctx.write(" else {")?;
             ctx.write_newline()?;
@@ -147,7 +147,7 @@ impl Format for If<()> {
             })?;
             ctx.write("}")?;
         }
-        
+
         Ok(())
     }
 }
@@ -155,7 +155,7 @@ impl Format for If<()> {
 impl Format for Block<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         ctx.write("{")?;
-        
+
         if !self.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
@@ -168,7 +168,7 @@ impl Format for Block<()> {
             })?;
             ctx.write_indent()?;
         }
-        
+
         ctx.write("}")
     }
 }
@@ -247,7 +247,11 @@ impl Format for Array<()> {
                 ctx.write_separated(values, ", ", |ctx, value| value.format(ctx))?;
                 ctx.write("]")
             }
-            Array::Default { initial_value, length, .. } => {
+            Array::Default {
+                initial_value,
+                length,
+                ..
+            } => {
                 ctx.write("[")?;
                 initial_value.format(ctx)?;
                 ctx.write("; ")?;
@@ -262,7 +266,7 @@ impl Format for StructInitialisation<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         self.id.format(ctx)?;
         ctx.write(" {")?;
-        
+
         if !self.fields.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
@@ -278,7 +282,7 @@ impl Format for StructInitialisation<()> {
             })?;
             ctx.write_indent()?;
         }
-        
+
         ctx.write("}")
     }
 }
@@ -295,7 +299,11 @@ impl Format for TypeName {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         match self {
             TypeName::Literal(name, _) => ctx.write(name),
-            TypeName::Fn { params, return_type, .. } => {
+            TypeName::Fn {
+                params,
+                return_type,
+                ..
+            } => {
                 ctx.write("(")?;
                 ctx.write_separated(params, ", ", |ctx, param| param.format(ctx))?;
                 ctx.write(") -> ")?;
@@ -342,3 +350,4 @@ fn escape_string(s: &str) -> String {
         })
         .collect()
 }
+
