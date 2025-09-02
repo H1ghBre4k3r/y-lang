@@ -12,18 +12,18 @@ struct Point {
 fn add(a: i64, b: i64): i64 {
     {
         1337;
-        let foo = \(x) => {
+        let foo: (i64) -> void = \(x) => {
             42;
-            let x = Point {
-                x: 1337,
-                y: 42
-            };
         };
     };
     a + b
 }
 
+fn squarefn(x: i64): i64 {
+    return x * x;
+}
+
 fn test_lambda(): void {
-    let square = \(x) => x * x;
+    let square = squarefn;
     let result = square(5);
 }

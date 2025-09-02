@@ -1,4 +1,7 @@
+use std::collections::HashMap;
 use std::fs;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use tower_lsp_server::jsonrpc::{Error, Result};
 use tower_lsp_server::lsp_types::notification::PublishDiagnostics;
@@ -14,6 +17,7 @@ use why_lib::typechecker::{self};
 #[derive(Debug)]
 struct Backend {
     client: Client,
+    documents: Arc<RwLock<HashMap<Uri, String>>>,
 }
 
 impl Backend {
@@ -23,20 +27,26 @@ impl Backend {
             return;
         }
 
+        // Try to get content from document store first, fall back to file system
+        let content = {
+            let documents = self.documents.read().await;
+            if let Some(content) = documents.get(&uri) {
+                content.clone()
+            } else {
+                match fs::read_to_string(path) {
+                    Ok(content) => content,
+                    Err(_) => return,
+                }
+            }
+        };
+
         self.client
             .send_notification::<PublishDiagnostics>(PublishDiagnosticsParams {
                 uri: uri.clone(),
                 version: None,
-                diagnostics: self.get_diagnostics_for_file(path),
+                diagnostics: self.get_diagnostics_for_code(&content),
             })
             .await;
-    }
-
-    fn get_diagnostics_for_file(&self, filename: &str) -> Vec<Diagnostic> {
-        let Ok(content) = fs::read_to_string(filename) else {
-            return vec![];
-        };
-        self.get_diagnostics_for_code(&content)
     }
 
     fn get_diagnostics_for_code(&self, input: &str) -> Vec<Diagnostic> {
@@ -204,17 +214,62 @@ impl LanguageServer for Backend {
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let DidOpenTextDocumentParams {
-            text_document: TextDocumentItem { uri, .. },
+            text_document: TextDocumentItem { uri, text, .. },
         } = params;
+        
+        // Store the document content
+        {
+            let mut documents = self.documents.write().await;
+            documents.insert(uri.clone(), text);
+        }
+        
         self.check_diagnostics(uri).await;
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         let DidSaveTextDocumentParams {
             text_document: TextDocumentIdentifier { uri },
+            text,
             ..
         } = params;
+        
+        // Update document content if provided
+        if let Some(text) = text {
+            let mut documents = self.documents.write().await;
+            documents.insert(uri.clone(), text);
+        }
+        
         self.check_diagnostics(uri).await;
+    }
+
+    async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        let DidChangeTextDocumentParams {
+            text_document: VersionedTextDocumentIdentifier { uri, .. },
+            content_changes,
+        } = params;
+
+        // Apply content changes to our document store
+        if let Some(change) = content_changes.into_iter().next() {
+            // For FULL sync, we replace the entire content
+            if change.range.is_none() {
+                let mut documents = self.documents.write().await;
+                documents.insert(uri.clone(), change.text);
+            }
+        }
+
+        self.check_diagnostics(uri).await;
+    }
+
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        let DidCloseTextDocumentParams {
+            text_document: TextDocumentIdentifier { uri },
+        } = params;
+
+        // Remove document from store
+        {
+            let mut documents = self.documents.write().await;
+            documents.remove(&uri);
+        }
     }
 
     async fn did_create_files(&self, params: CreateFilesParams) {
@@ -239,12 +294,19 @@ impl LanguageServer for Backend {
             return Ok(None);
         }
 
-        // Read the file content
-        let content = match fs::read_to_string(path) {
-            Ok(content) => content,
-            Err(e) => {
-                error!("Failed to read file {}: {}", path, e);
-                return Ok(None);
+        // Get content from document store first, fall back to file system
+        let content = {
+            let documents = self.documents.read().await;
+            if let Some(content) = documents.get(&uri) {
+                content.clone()
+            } else {
+                match fs::read_to_string(path) {
+                    Ok(content) => content,
+                    Err(e) => {
+                        error!("Failed to read file {}: {}", path, e);
+                        return Ok(None);
+                    }
+                }
             }
         };
 
@@ -296,6 +358,9 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| Backend { client });
+    let (service, socket) = LspService::new(|client| Backend { 
+        client,
+        documents: Arc::new(RwLock::new(HashMap::new())),
+    });
     Server::new(stdin, stdout, socket).serve(service).await;
 }
