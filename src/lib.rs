@@ -1,7 +1,7 @@
 use std::{fs, process};
 
 use clap::{Parser, command};
-use why_lib::{lexer::Lexer, parser::parse, typechecker::TypeChecker};
+use why_lib::{formatter, lexer::Lexer, parser::parse, typechecker::TypeChecker};
 
 #[derive(Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
@@ -26,6 +26,14 @@ pub struct VCArgs {
     /// Print the validated AST.
     #[arg(short = 'v', long)]
     pub print_validated: bool,
+
+    /// Format the source code and print to stdout.
+    #[arg(short = 'f', long)]
+    pub format: bool,
+
+    /// Format the source code and write to output file.
+    #[arg(long)]
+    pub format_output: Option<std::path::PathBuf>,
 
     #[arg(short, long, default_value = "a.out")]
     pub output: Option<std::path::PathBuf>,
@@ -57,6 +65,26 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
 
     if args.print_parsed {
         println!("{statements:#?}");
+    }
+
+    // Handle formatting requests
+    if args.format || args.format_output.is_some() {
+        let formatted = formatter::format_program(&statements)
+            .map_err(|e| anyhow::anyhow!("Formatting error: {}", e))?;
+
+        if args.format {
+            println!("{}", formatted);
+        }
+
+        let format_output_provided = args.format_output.is_some();
+        if let Some(output_path) = args.format_output {
+            fs::write(output_path, formatted)?;
+        }
+
+        // If only formatting was requested, return early
+        if args.format && format_output_provided && !args.print_checked && !args.print_validated {
+            return Ok(());
+        }
     }
 
     let typechecker = TypeChecker::new(statements);
