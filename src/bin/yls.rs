@@ -9,6 +9,7 @@ use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
 use why_lib::lexer::{self, Span};
 use why_lib::parser::{self, ParseError};
 use why_lib::typechecker::{self};
+use why_lib::formatter;
 
 #[derive(Debug)]
 struct Backend {
@@ -100,6 +101,41 @@ impl Backend {
 
         None
     }
+
+    fn format_code(&self, input: &str) -> std::result::Result<String, String> {
+        // Parse the input
+        let lexed = match lexer::Lexer::new(input).lex() {
+            Ok(lexed) => lexed,
+            Err(e) => {
+                return Err(format!("Lexer error: {}", e));
+            }
+        };
+
+        let parsed = match parser::parse(&mut lexed.into()) {
+            Ok(parsed) => parsed,
+            Err(e) => {
+                return Err(format!("Parse error: {}", e));
+            }
+        };
+
+        // Format the AST
+        match formatter::format_program(&parsed) {
+            Ok(formatted) => Ok(formatted),
+            Err(e) => Err(format!("Formatting error: {}", e)),
+        }
+    }
+
+    fn get_document_end_position(&self, content: &str) -> Position {
+        let lines: Vec<&str> = content.lines().collect();
+        let line_count = lines.len();
+        
+        if line_count == 0 {
+            return Position::new(0, 0);
+        }
+
+        let last_line = lines[line_count - 1];
+        Position::new(line_count as u32 - 1, last_line.len() as u32)
+    }
 }
 
 impl LanguageServer for Backend {
@@ -181,8 +217,48 @@ impl LanguageServer for Backend {
     }
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
-        error!("Got a textDocument/formatting request, but it is not implemented");
-        Err(Error::method_not_found())
+        let uri = params.text_document.uri;
+        let path = uri.path().as_str();
+        
+        // Only format .why files
+        if !path.ends_with(".why") {
+            return Ok(None);
+        }
+
+        // Read the file content
+        let content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(e) => {
+                error!("Failed to read file {}: {}", path, e);
+                return Ok(None);
+            }
+        };
+
+        // Format the code
+        match self.format_code(&content) {
+            Ok(formatted) => {
+                if formatted == content {
+                    // No changes needed
+                    return Ok(None);
+                }
+
+                // Create a TextEdit that replaces the entire document
+                let text_edit = TextEdit {
+                    range: Range {
+                        start: Position::new(0, 0),
+                        // Calculate the end position of the original document
+                        end: self.get_document_end_position(&content),
+                    },
+                    new_text: formatted,
+                };
+
+                Ok(Some(vec![text_edit]))
+            }
+            Err(e) => {
+                error!("Failed to format code: {}", e);
+                Ok(None)
+            }
+        }
     }
 }
 
