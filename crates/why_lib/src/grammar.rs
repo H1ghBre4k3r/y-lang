@@ -31,6 +31,7 @@ mod ylang_grammar {
             #[rust_sitter::leaf(text = ";")]
             _semicolon: (),
         },
+        #[rust_sitter::prec_left(5)]
         YieldingExpression(Expression),
         Return {
             #[rust_sitter::leaf(text = "return")]
@@ -55,7 +56,7 @@ mod ylang_grammar {
         BinaryExpression(BinaryExpression),
         Block(Block),
         Lambda(Lambda),
-        // Postfix,
+        Postfix(Postfix),
         // Prefix,
         // Array,
         // StructInitialisation
@@ -362,6 +363,49 @@ mod ylang_grammar {
         pub ident: Identifier,
         #[rust_sitter::optional]
         pub type_annotation: Option<TypeAnnotation>,
+    }
+
+    #[derive(Debug)]
+    #[rust_sitter::prec_left(10)]
+    pub enum Postfix {
+        Call(CallExpression),
+        Index(IndexExpression),
+        PropertyAccess(PropertyAccess),
+    }
+
+    #[derive(Debug)]
+    #[rust_sitter::prec_left(10)]
+    pub struct CallExpression {
+        pub expression: Box<Expression>,
+        #[rust_sitter::leaf(text = "(")]
+        _lparen: (),
+        #[rust_sitter::delimited(
+                #[rust_sitter::leaf(text = ",")]
+                ()
+            )]
+        pub args: Vec<Expression>,
+        #[rust_sitter::leaf(text = ")")]
+        _rparen: (),
+    }
+
+    #[derive(Debug)]
+    #[rust_sitter::prec_left(10)]
+    pub struct IndexExpression {
+        pub expression: Box<Expression>,
+        #[rust_sitter::leaf(text = "[")]
+        _lbracket: (),
+        pub index: Box<Expression>,
+        #[rust_sitter::leaf(text = "]")]
+        _rbracket: (),
+    }
+
+    #[derive(Debug)]
+    #[rust_sitter::prec_left(10)]
+    pub struct PropertyAccess {
+        pub expression: Box<Expression>,
+        #[rust_sitter::leaf(text = ".")]
+        _dot: (),
+        pub property: Identifier,
     }
 
     #[rust_sitter::extra]
