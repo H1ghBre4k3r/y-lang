@@ -37,3 +37,7 @@ fn test_prefix(): () {
 fn test_array(): void {
     let arr = &[1337, 42];
 }
+
+fn modify(x: &i64): void {
+    x = x + 1;
+}
