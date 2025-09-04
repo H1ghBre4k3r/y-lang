@@ -33,3 +33,7 @@ fn test_prefix(): () {
     let c = !flag == false;
     let d = -x + 3;
 }
+
+fn test_array(): void {
+    let arr = &[1337, 42];
+}
