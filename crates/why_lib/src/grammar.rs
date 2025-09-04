@@ -58,7 +58,7 @@ mod ylang_grammar {
         Lambda(Lambda),
         Postfix(Postfix),
         Prefix(Prefix),
-        // Array,
+        Array(Array),
         // StructInitialisation
     }
 
@@ -422,6 +422,20 @@ mod ylang_grammar {
             _minus: (),
             expression: Box<Expression>,
         },
+    }
+
+    #[derive(Debug)]
+    #[rust_sitter::prec_right(3)]
+    pub struct Array {
+        #[rust_sitter::leaf(text = "&[")]
+        _lbracket: (),
+        #[rust_sitter::delimited(
+            #[rust_sitter::leaf(text = ",")]
+            ()
+        )]
+        pub elements: Vec<Expression>,
+        #[rust_sitter::leaf(text = "]")]
+        _rbracket: (),
     }
 
     #[rust_sitter::extra]
