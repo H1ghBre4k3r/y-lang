@@ -1,5 +1,0 @@
-fn main(): i64 {
-    42
-}
-
-const FOO: i64 = 1337;

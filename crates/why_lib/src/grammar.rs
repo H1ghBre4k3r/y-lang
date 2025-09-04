@@ -17,6 +17,7 @@ mod ylang_grammar {
         Declaration(Declaration),
         StructDeclaration(StructDeclaration),
         Instance(Instance),
+        Comment(Comment),
     }
 
     #[derive(Debug)]
@@ -24,7 +25,7 @@ mod ylang_grammar {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
         VariableDeclaration(VariableDeclaration),
         Assignment(Assignment),
-        While(WhileStatement),
+        WhileStatement(WhileStatement),
         Constant(Constant),
         Expression {
             inner: Expression,
@@ -42,6 +43,7 @@ mod ylang_grammar {
         },
         Declaration(Declaration),
         StructDeclaration(StructDeclaration),
+        Comment(Comment),
     }
 
     #[derive(Debug)]
@@ -351,6 +353,7 @@ mod ylang_grammar {
     pub enum TypeName {
         LiteralType(LiteralType),
         ArrayType(ArrayType),
+        ReferenceType(ReferenceType),
         FunctionType(FunctionType),
         TupleType(TupleType),
     }
@@ -366,9 +369,16 @@ mod ylang_grammar {
         _ref: (),
         #[rust_sitter::leaf(text = "[")]
         _lbracket: (),
-        pub inner: Identifier,
+        pub inner: Box<Spanned<TypeName>>,
         #[rust_sitter::leaf(text = "]")]
         _rbracket: (),
+    }
+
+    #[derive(Debug)]
+    pub struct ReferenceType {
+        #[rust_sitter::leaf(text = "&")]
+        _ampersand: (),
+        pub inner: Box<Spanned<TypeName>>,
     }
 
     #[derive(Debug)]
@@ -511,6 +521,12 @@ mod ylang_grammar {
         pub elements: Vec<Expression>,
         #[rust_sitter::leaf(text = "]")]
         _rbracket: (),
+    }
+
+    #[derive(Debug)]
+    pub struct Comment {
+        #[rust_sitter::leaf(pattern = r"//[^\r\n]*", transform = |v| v.to_string())]
+        content: String,
     }
 
     #[rust_sitter::extra]
