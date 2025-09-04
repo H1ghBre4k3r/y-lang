@@ -60,7 +60,7 @@ mod ylang_grammar {
         Postfix(Postfix),
         Prefix(Prefix),
         Array(Array),
-        // StructInitialisation
+        StructInitialisation(StructInitialisation),
     }
 
     #[derive(Debug)]
@@ -365,9 +365,7 @@ mod ylang_grammar {
 
     #[derive(Debug)]
     pub struct ArrayType {
-        #[rust_sitter::leaf(text = "&")]
-        _ref: (),
-        #[rust_sitter::leaf(text = "[")]
+        #[rust_sitter::leaf(text = "&[")]
         _lbracket: (),
         pub inner: Box<Spanned<TypeName>>,
         #[rust_sitter::leaf(text = "]")]
@@ -521,6 +519,29 @@ mod ylang_grammar {
         pub elements: Vec<Expression>,
         #[rust_sitter::leaf(text = "]")]
         _rbracket: (),
+    }
+
+    #[derive(Debug)]
+    #[rust_sitter::prec_left(4)]
+    pub struct StructInitialisation {
+        pub id: Identifier,
+        #[rust_sitter::leaf(text = "{")]
+        _lbrace: (),
+        #[rust_sitter::delimited(
+            #[rust_sitter::leaf(text = ",")]
+            ()
+        )]
+        pub fields: Vec<StructFieldInitialisation>,
+        #[rust_sitter::leaf(text = "}")]
+        _rbrace: (),
+    }
+
+    #[derive(Debug)]
+    pub struct StructFieldInitialisation {
+        pub name: Identifier,
+        #[rust_sitter::leaf(text = ":")]
+        _colon: (),
+        pub value: Expression,
     }
 
     #[derive(Debug)]

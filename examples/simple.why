@@ -41,3 +41,22 @@ fn test_array(): void {
 fn modify(x: &i64): void {
     x = x + 1;
 }
+
+struct Point {
+x: i64;
+y: i64;
+}
+
+instance Point {
+    fn absolute(): i64 {
+        self.x * self.y + 42
+    }
+}
+
+fn takes_point(p: Point): void {
+    p.absolute();
+}
+
+fn gives_point(): void {
+    takes_point(Point {x: 42, y: 1337})
+}
