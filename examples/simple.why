@@ -24,4 +24,12 @@ fn test(): () {
     let z = arr[0];
     let w = nested()[42];
     let a = foor.bar.baz;
+    let a = !b;
+}
+
+fn test_prefix(): () {
+    let a = !true;
+    let b = -5;
+    let c = !flag == false;
+    let d = -x + 3;
 }
