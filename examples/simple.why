@@ -1,10 +1,12 @@
+fn test(): i64 {
+    x(1, 2);
+}
+
 fn main(): i64 {
     42
 }
 
-fn test(arg1: i64, arg2: &[i64]): (i64) -> (i64, i64) {
-
-}
+fn test(arg1: i64, arg2: &[i64]): (i64) -> (i64, i64) {}
 
 fn foo(func: (i64, i64) -> i64): i64 {
     let x = 2 * 3 + 4 * 5;
@@ -16,3 +18,10 @@ fn containsLambda(): void {
     let x = \(a, b, c, d) => a + b * c + d;
 }
 
+fn test(): () {
+    let x = foo();
+    let y = bar(1, 2, 3);
+    let z = arr[0];
+    let w = nested()[42];
+    let a = foor.bar.baz;
+}
