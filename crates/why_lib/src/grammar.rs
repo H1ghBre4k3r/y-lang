@@ -57,7 +57,7 @@ mod ylang_grammar {
         Block(Block),
         Lambda(Lambda),
         Postfix(Postfix),
-        // Prefix,
+        Prefix(Prefix),
         // Array,
         // StructInitialisation
     }
@@ -406,6 +406,22 @@ mod ylang_grammar {
         #[rust_sitter::leaf(text = ".")]
         _dot: (),
         pub property: Identifier,
+    }
+
+    #[derive(Debug)]
+    pub enum Prefix {
+        #[rust_sitter::prec_right(3)]
+        Negation {
+            #[rust_sitter::leaf(text = "!")]
+            _not: (),
+            expression: Box<Expression>,
+        },
+        #[rust_sitter::prec_right(3)]
+        Minus {
+            #[rust_sitter::leaf(text = "-")]
+            _minus: (),
+            expression: Box<Expression>,
+        },
     }
 
     #[rust_sitter::extra]
