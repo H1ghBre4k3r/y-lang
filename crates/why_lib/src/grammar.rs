@@ -14,9 +14,9 @@ mod ylang_grammar {
     pub enum ToplevelStatement {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
         Constant(Constant),
-        // Declaration,
-        // StructDeclaration,
-        // Instance,
+        Declaration(Declaration),
+        StructDeclaration(StructDeclaration),
+        Instance(Instance),
     }
 
     #[derive(Debug)]
@@ -40,9 +40,8 @@ mod ylang_grammar {
             #[rust_sitter::leaf(text = ";")]
             _semicolon: (),
         },
-        // Comment,
-        // Declaration,
-        // StructDeclaration,
+        Declaration(Declaration),
+        StructDeclaration(StructDeclaration),
     }
 
     #[derive(Debug)]
@@ -200,10 +199,86 @@ mod ylang_grammar {
 
     #[derive(Debug)]
     pub struct Assignment {
-        pub identifier: Identifier,
+        pub lvalue: LValue,
         #[rust_sitter::leaf(text = "=")]
         _eq: (),
         pub value: Expression,
+        #[rust_sitter::leaf(text = ";")]
+        _semicolon: (),
+    }
+
+    #[derive(Debug)]
+    pub enum LValue {
+        Identifier(Identifier),
+        PropertyAccess(PropertyAccess),
+        IndexExpression(IndexExpression),
+    }
+
+    #[derive(Debug)]
+    pub struct Declaration {
+        #[rust_sitter::leaf(text = "declare")]
+        _declare: (),
+        pub name: Identifier,
+        pub type_annotation: TypeAnnotation,
+        #[rust_sitter::leaf(text = ";")]
+        _semicolon: (),
+    }
+
+    #[derive(Debug)]
+    pub struct StructDeclaration {
+        #[rust_sitter::leaf(text = "struct")]
+        _struct: (),
+        pub id: Identifier,
+        #[rust_sitter::leaf(text = "{")]
+        _lbrace: (),
+        #[rust_sitter::repeat]
+        pub fields: Vec<StructFieldDeclaration>,
+        #[rust_sitter::leaf(text = "}")]
+        _rbrace: (),
+    }
+
+    #[derive(Debug)]
+    pub struct StructFieldDeclaration {
+        pub name: Identifier,
+        pub type_annotation: TypeAnnotation,
+        #[rust_sitter::leaf(text = ";")]
+        _semicolon: (),
+    }
+
+    #[derive(Debug)]
+    pub struct Instance {
+        #[rust_sitter::leaf(text = "instance")]
+        _instance: (),
+        pub name: Spanned<TypeName>,
+        #[rust_sitter::leaf(text = "{")]
+        _lbrace: (),
+        #[rust_sitter::repeat]
+        pub methods: Vec<InstanceMethod>,
+        #[rust_sitter::leaf(text = "}")]
+        _rbrace: (),
+    }
+
+    #[derive(Debug)]
+    pub enum InstanceMethod {
+        FunctionDeclaration(Spanned<FunctionDeklaration>),
+        MethodDeclaration(MethodDeclaration),
+    }
+
+    #[derive(Debug)]
+    pub struct MethodDeclaration {
+        #[rust_sitter::leaf(text = "declare")]
+        _declare: (),
+        pub id: Identifier,
+        #[rust_sitter::leaf(text = "(")]
+        _lparen: (),
+        #[rust_sitter::delimited(
+            #[rust_sitter::leaf(text = ",")]
+            ()
+        )]
+        pub parameter_types: Vec<Spanned<TypeName>>,
+        #[rust_sitter::leaf(text = ")")]
+        _rparen: (),
+        pub return_type_annotation: TypeAnnotation,
         #[rust_sitter::leaf(text = ";")]
         _semicolon: (),
     }
