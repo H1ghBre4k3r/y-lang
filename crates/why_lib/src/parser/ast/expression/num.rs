@@ -1,4 +1,7 @@
+use rust_sitter::Spanned;
+
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{GetPosition, Span, Token},
     parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
@@ -10,6 +13,21 @@ pub enum Num<T> {
 }
 
 impl<T> Eq for Num<T> where T: Eq {}
+
+impl FromGrammar<grammar::Number> for Num<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Number>, source: &str) -> Self {
+        let Spanned { value, span } = item;
+
+        match value {
+            grammar::Number::Integer(grammar::Integer(integer)) => {
+                Num::Integer(integer, (), Span::new(span, source))
+            }
+            grammar::Number::Floating(grammar::Floating(floating)) => {
+                Num::FloatingPoint(floating, (), Span::new(span, source))
+            }
+        }
+    }
+}
 
 impl FromTokens<Token> for Num<()> {
     fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError>
