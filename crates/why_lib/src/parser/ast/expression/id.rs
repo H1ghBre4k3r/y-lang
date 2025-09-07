@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{GetPosition, Span, Token},
     parser::{ast::AstNode, FromTokens, ParseError, ParseState},
 };
@@ -8,6 +9,17 @@ pub struct Id<T> {
     pub name: String,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::Identifier> for Id<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Identifier>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        Id {
+            name: value.0.value,
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for Id<()> {
