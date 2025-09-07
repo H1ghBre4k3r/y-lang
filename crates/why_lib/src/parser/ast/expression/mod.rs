@@ -26,6 +26,8 @@ pub use self::prefix::*;
 pub use self::string::*;
 pub use self::struct_initialisation::*;
 
+use crate::grammar;
+use crate::grammar::FromGrammar;
 use crate::lexer::Span;
 use crate::parser::combinators::Comb;
 use crate::{
@@ -94,6 +96,30 @@ where
             Expression::StructInitialisation(StructInitialisation { position, .. }) => {
                 position.clone()
             }
+        }
+    }
+}
+
+impl FromGrammar<grammar::Expression> for Expression<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Expression>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        match value {
+            grammar::Expression::Identifier(identifier) => {
+                Expression::Id(Id::transform(identifier, source))
+            }
+            grammar::Expression::Number(number) => Expression::Num(Num::transform(number, source)),
+            grammar::Expression::String(string_literal) => todo!(),
+            grammar::Expression::Character(character_literal) => todo!(),
+            grammar::Expression::IfExpression(if_expression) => todo!(),
+            grammar::Expression::Parenthesized(parenthesized_expression) => todo!(),
+            grammar::Expression::BinaryExpression(binary_expression) => todo!(),
+            grammar::Expression::Block(block) => todo!(),
+            grammar::Expression::Lambda(lambda) => todo!(),
+            grammar::Expression::Postfix(postfix) => todo!(),
+            grammar::Expression::Prefix(prefix) => todo!(),
+            grammar::Expression::Array(array) => todo!(),
+            grammar::Expression::StructInitialisation(struct_initialisation) => todo!(),
         }
     }
 }

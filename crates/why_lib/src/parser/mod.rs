@@ -59,6 +59,7 @@ impl Display for ParseError {
 
 impl Error for ParseError {}
 
+#[deprecated = "Use grammar::FromGrammar instead!"]
 pub trait FromTokens<T> {
     fn parse(tokens: &mut ParseState<T>) -> Result<AstNode, ParseError>;
 }

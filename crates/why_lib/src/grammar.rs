@@ -48,25 +48,25 @@ mod ylang_grammar {
 
     #[derive(Debug)]
     pub enum Expression {
-        Identifier(Identifier),
-        Number(Number),
-        String(StringLiteral),
-        Character(CharacterLiteral),
-        IfExpression(IfExpression),
-        Parenthesized(ParenthesizedExpression),
-        BinaryExpression(BinaryExpression),
-        Block(Block),
-        Lambda(Lambda),
-        Postfix(Postfix),
-        Prefix(Prefix),
-        Array(Array),
-        StructInitialisation(StructInitialisation),
+        Identifier(Spanned<Identifier>),
+        Number(Spanned<Number>),
+        String(Spanned<StringLiteral>),
+        Character(Spanned<CharacterLiteral>),
+        IfExpression(Spanned<IfExpression>),
+        Parenthesized(Spanned<ParenthesizedExpression>),
+        BinaryExpression(Spanned<BinaryExpression>),
+        Block(Spanned<Block>),
+        Lambda(Spanned<Lambda>),
+        Postfix(Spanned<Postfix>),
+        Prefix(Spanned<Prefix>),
+        Array(Spanned<Array>),
+        StructInitialisation(Spanned<StructInitialisation>),
     }
 
     #[derive(Debug)]
     pub struct Identifier(
         #[rust_sitter::leaf(pattern = r"[_a-zA-z][_a-zA-Z0-9]*", transform = |v| v.to_string())]
-        Spanned<String>,
+        pub Spanned<String>,
     );
 
     #[derive(Debug)]
@@ -77,13 +77,12 @@ mod ylang_grammar {
 
     #[derive(Debug)]
     pub struct Integer(
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] Spanned<i64>,
+        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] pub u64,
     );
 
     #[derive(Debug)]
     pub struct Floating(
-        #[rust_sitter::leaf(pattern = r"\d+\.\d+", transform = |v| v.parse().unwrap())]
-        Spanned<f64>,
+        #[rust_sitter::leaf(pattern = r"\d+\.\d+", transform = |v| v.parse().unwrap())] pub f64,
     );
 
     #[derive(Debug)]
@@ -92,7 +91,7 @@ mod ylang_grammar {
             let trimmed = v.strip_prefix('"').unwrap().strip_suffix('"').unwrap();
             trimmed.to_string()
         })]
-        Spanned<String>,
+        pub Spanned<String>,
     );
 
     #[derive(Debug)]
@@ -101,7 +100,7 @@ mod ylang_grammar {
             let trimmed = v.strip_prefix('\'').unwrap().strip_suffix('\'').unwrap();
             trimmed.chars().next().unwrap()
         })]
-        Spanned<char>,
+        pub Spanned<char>,
     );
 
     #[derive(Debug)]
@@ -558,3 +557,7 @@ mod ylang_grammar {
 }
 
 pub use self::ylang_grammar::*;
+
+pub trait FromGrammar<T> {
+    fn transform(item: rust_sitter::Spanned<T>, source: &str) -> Self;
+}
