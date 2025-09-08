@@ -19,7 +19,7 @@ pub struct WhileLoop<T> {
 impl FromGrammar<grammar::WhileStatement> for WhileLoop<()> {
     fn transform(item: rust_sitter::Spanned<grammar::WhileStatement>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
-        
+
         WhileLoop {
             condition: Expression::transform(*value.condition, source),
             block: Block::transform(value.block.value, source),

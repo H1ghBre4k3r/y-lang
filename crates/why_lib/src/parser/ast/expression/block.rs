@@ -18,11 +18,13 @@ pub struct Block<T> {
 impl FromGrammar<grammar::Block> for Block<()> {
     fn transform(item: rust_sitter::Spanned<grammar::Block>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
-        
+
         Block {
-            statements: value.statements.into_iter().map(|statement| {
-                Statement::transform(statement, source)
-            }).collect(),
+            statements: value
+                .statements
+                .into_iter()
+                .map(|statement| Statement::transform(statement, source))
+                .collect(),
             info: (),
             position: Span::new(span, source),
         }

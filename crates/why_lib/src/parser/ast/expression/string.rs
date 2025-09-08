@@ -1,7 +1,7 @@
+use crate::grammar::{self, FromGrammar};
 use crate::lexer::{Span, Token};
 use crate::parser::ast::AstNode;
 use crate::parser::{FromTokens, ParseError, ParseState};
-use crate::grammar::{self, FromGrammar};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AstString<T> {

@@ -20,7 +20,7 @@ pub struct Constant<T> {
 impl FromGrammar<grammar::Constant> for Constant<()> {
     fn transform(item: rust_sitter::Spanned<grammar::Constant>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
-        
+
         Constant {
             id: Id::transform(value.identifier, source),
             type_name: TypeName::transform(value.type_annotation.type_name, source),
