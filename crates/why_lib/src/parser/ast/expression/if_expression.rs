@@ -8,7 +8,7 @@ use crate::{
     },
 };
 
-use super::{Expression, Block};
+use super::{Block, Expression};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct If<T> {
@@ -23,10 +23,10 @@ pub struct If<T> {
 impl FromGrammar<grammar::IfExpression> for If<()> {
     fn transform(item: rust_sitter::Spanned<grammar::IfExpression>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
-        
-        // Extract then block statements  
+
+        // Extract then block statements
         let then_block = Block::transform(value.then_block.value, source);
-        
+
         // Extract else block statements if present
         let else_statements = if let Some(else_clause) = value.else_block {
             let else_block = Block::transform(else_clause.value.block.value, source);
@@ -34,7 +34,7 @@ impl FromGrammar<grammar::IfExpression> for If<()> {
         } else {
             vec![]
         };
-        
+
         If {
             condition: Box::new(Expression::transform(*value.condition, source)),
             statements: then_block.statements,

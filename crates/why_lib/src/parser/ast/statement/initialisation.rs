@@ -21,11 +21,13 @@ pub struct Initialisation<T> {
 impl FromGrammar<grammar::VariableDeclaration> for Initialisation<()> {
     fn transform(item: rust_sitter::Spanned<grammar::VariableDeclaration>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
-        
+
         Initialisation {
             id: Id::transform(value.identifier, source),
             mutable: value.mutability.is_some(),
-            type_name: value.type_annotation.map(|ta| TypeName::transform(ta.type_name, source)),
+            type_name: value
+                .type_annotation
+                .map(|ta| TypeName::transform(ta.type_name, source)),
             value: Expression::transform(value.value, source),
             info: (),
             position: Span::new(span, source),

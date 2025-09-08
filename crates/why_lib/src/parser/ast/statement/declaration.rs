@@ -19,7 +19,7 @@ pub struct Declaration<T> {
 impl FromGrammar<grammar::Declaration> for Declaration<()> {
     fn transform(item: rust_sitter::Spanned<grammar::Declaration>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
-        
+
         Declaration {
             name: Id::transform(value.name, source),
             type_name: TypeName::transform(value.type_annotation.type_name, source),
