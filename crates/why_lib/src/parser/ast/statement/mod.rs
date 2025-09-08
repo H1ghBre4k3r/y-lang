@@ -44,7 +44,7 @@ pub enum Statement<T> {
 
 impl FromGrammar<grammar::Statement> for Statement<()> {
     fn transform(item: rust_sitter::Spanned<grammar::Statement>, source: &str) -> Self {
-        let rust_sitter::Spanned { value, span } = item;
+        let rust_sitter::Spanned { value, span: _ } = item;
 
         match value {
             grammar::Statement::FunctionDeclaration(function_decl) => {
@@ -98,7 +98,7 @@ pub enum TopLevelStatement<T> {
 
 impl FromGrammar<grammar::ToplevelStatement> for TopLevelStatement<()> {
     fn transform(item: rust_sitter::Spanned<grammar::ToplevelStatement>, source: &str) -> Self {
-        let Spanned { value, span } = item;
+        let Spanned { value, span: _ } = item;
 
         match value {
             grammar::ToplevelStatement::FunctionDeclaration(function) => {

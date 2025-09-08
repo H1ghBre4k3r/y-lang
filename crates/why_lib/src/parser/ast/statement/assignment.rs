@@ -71,7 +71,7 @@ pub enum LValue<T> {
 
 impl FromGrammar<grammar::LValue> for LValue<()> {
     fn transform(item: rust_sitter::Spanned<grammar::LValue>, source: &str) -> Self {
-        let rust_sitter::Spanned { value, span } = item;
+        let rust_sitter::Spanned { value, span: _ } = item;
 
         match value {
             grammar::LValue::Identifier(identifier) => {

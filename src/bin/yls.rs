@@ -11,7 +11,7 @@ use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use tracing::error;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
 use why_lib::lexer::{self, Span};
-use why_lib::parser::{self, ParseError, parse_program};
+use why_lib::parser::{self, parse_program};
 use why_lib::typechecker::{self};
 use why_lib::{formatter, grammar};
 
@@ -88,6 +88,7 @@ impl Backend {
                 analysis.push((format!("expected {msg}"), span));
             }
             ParseErrorReason::FailedNode(errors) => {
+                analysis.push(("Failed to parse!".into(), span));
                 for e in errors {
                     Self::convert_parse_error(e, input, analysis);
                 }

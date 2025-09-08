@@ -4,8 +4,7 @@ use clap::{Parser, command};
 use why_lib::{
     formatter::{self, format_program},
     grammar,
-    lexer::Lexer,
-    parser::{parse, parse_program},
+    parser::{parse_program},
     typechecker::TypeChecker,
 };
 
