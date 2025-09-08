@@ -230,6 +230,7 @@ impl Format for BinaryOperator {
             BinaryOperator::Multiply => "*",
             BinaryOperator::Divide => "/",
             BinaryOperator::Equals => "==",
+            BinaryOperator::NotEquals => "!=",
             BinaryOperator::GreaterThan => ">",
             BinaryOperator::LessThan => "<",
             BinaryOperator::GreaterOrEqual => ">=",
