@@ -4,13 +4,13 @@ mod ylang_grammar {
     use rust_sitter::Spanned;
 
     #[rust_sitter::language]
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Program {
         #[rust_sitter::repeat]
         pub statements: Vec<Spanned<ToplevelStatement>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum ToplevelStatement {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
         Constant(Spanned<Constant>),
@@ -20,7 +20,7 @@ mod ylang_grammar {
         Comment(Spanned<Comment>),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Statement {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
         VariableDeclaration(Spanned<VariableDeclaration>),
@@ -46,7 +46,7 @@ mod ylang_grammar {
         Comment(Spanned<Comment>),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Expression {
         Identifier(Spanned<Identifier>),
         Number(Spanned<Number>),
@@ -63,29 +63,29 @@ mod ylang_grammar {
         StructInitialisation(Spanned<StructInitialisation>),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Identifier(
         #[rust_sitter::leaf(pattern = "[_a-zA-Z][_a-zA-Z0-9]*", transform = |v| v.to_string())]
         pub Spanned<String>,
     );
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Number {
         Integer(Integer),
         Floating(Floating),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Integer(
         #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] pub u64,
     );
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Floating(
         #[rust_sitter::leaf(pattern = r"\d+\.\d+", transform = |v| v.parse().unwrap())] pub f64,
     );
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct StringLiteral(
         #[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = |v| {
             let trimmed = v.strip_prefix('"').unwrap().strip_suffix('"').unwrap();
@@ -94,7 +94,7 @@ mod ylang_grammar {
         pub Spanned<String>,
     );
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct CharacterLiteral(
         #[rust_sitter::leaf(pattern = r"'([^'\\]|\\.)'", transform = |v| {
             let trimmed = v.strip_prefix('\'').unwrap().strip_suffix('\'').unwrap();
@@ -103,7 +103,7 @@ mod ylang_grammar {
         pub Spanned<char>,
     );
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct ParenthesizedExpression {
         #[rust_sitter::leaf(text = "(")]
         _lparen: (),
@@ -112,7 +112,7 @@ mod ylang_grammar {
         _rparen: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum BinaryExpression {
         #[rust_sitter::prec_left(1)]
         Addition(
@@ -176,7 +176,7 @@ mod ylang_grammar {
         ),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct VariableDeclaration {
         #[rust_sitter::leaf(text = "let")]
         _let: (),
@@ -192,13 +192,13 @@ mod ylang_grammar {
         _semicolon: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct MutabilityKeyword {
         #[rust_sitter::leaf(text = "mut")]
         _mut: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Assignment {
         pub lvalue: Spanned<LValue>,
         #[rust_sitter::leaf(text = "=")]
@@ -208,14 +208,14 @@ mod ylang_grammar {
         _semicolon: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum LValue {
         Identifier(Spanned<Identifier>),
         PropertyAccess(Spanned<PropertyAccess>),
         IndexExpression(Spanned<IndexExpression>),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Declaration {
         #[rust_sitter::leaf(text = "declare")]
         _declare: (),
@@ -225,7 +225,7 @@ mod ylang_grammar {
         _semicolon: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct StructDeclaration {
         #[rust_sitter::leaf(text = "struct")]
         _struct: (),
@@ -238,7 +238,7 @@ mod ylang_grammar {
         _rbrace: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct StructFieldDeclaration {
         pub name: Spanned<Identifier>,
         pub type_annotation: TypeAnnotation,
@@ -246,7 +246,7 @@ mod ylang_grammar {
         _semicolon: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Instance {
         #[rust_sitter::leaf(text = "instance")]
         _instance: (),
@@ -259,13 +259,13 @@ mod ylang_grammar {
         _rbrace: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum InstanceMethod {
         FunctionDeclaration(Spanned<FunctionDeklaration>),
         MethodDeclaration(Spanned<MethodDeclaration>),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct MethodDeclaration {
         #[rust_sitter::leaf(text = "declare")]
         _declare: (),
@@ -284,7 +284,7 @@ mod ylang_grammar {
         _semicolon: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct IfExpression {
         #[rust_sitter::leaf(text = "if")]
         _if: (),
@@ -298,14 +298,14 @@ mod ylang_grammar {
         pub else_block: Option<Spanned<ElseClause>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct ElseClause {
         #[rust_sitter::leaf(text = "else")]
         _else: (),
         pub block: Spanned<Spanned<Block>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct WhileStatement {
         #[rust_sitter::leaf(text = "while")]
         _while: (),
@@ -317,7 +317,7 @@ mod ylang_grammar {
         pub block: Spanned<Spanned<Block>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct FunctionDeklaration {
         #[rust_sitter::leaf(text = "fn")]
         _keyword: (),
@@ -335,20 +335,20 @@ mod ylang_grammar {
         pub block: Spanned<Block>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct FunctionParameter {
         pub ident: Spanned<Identifier>,
         pub type_annotation: TypeAnnotation,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct TypeAnnotation {
         #[rust_sitter::leaf(text = ":")]
         _colon: (),
         pub type_name: Spanned<TypeName>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum TypeName {
         LiteralType(LiteralType),
         ArrayType(ArrayType),
@@ -357,12 +357,12 @@ mod ylang_grammar {
         TupleType(TupleType),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct LiteralType {
         pub typename: Spanned<Identifier>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct ArrayType {
         #[rust_sitter::leaf(text = "&[")]
         _lbracket: (),
@@ -371,14 +371,14 @@ mod ylang_grammar {
         _rbracket: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct ReferenceType {
         #[rust_sitter::leaf(text = "&")]
         _ampersand: (),
         pub inner: Box<Spanned<TypeName>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct TupleType {
         #[rust_sitter::leaf(text = "(")]
         _lparen: (),
@@ -391,7 +391,7 @@ mod ylang_grammar {
         _rparen: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct FunctionType {
         pub params: TupleType,
         #[rust_sitter::leaf(text = "->")]
@@ -399,7 +399,7 @@ mod ylang_grammar {
         pub return_type: Box<Spanned<TypeName>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Block {
         #[rust_sitter::leaf(text = "{")]
         _lbrace: (),
@@ -408,7 +408,7 @@ mod ylang_grammar {
         _rbrace: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Constant {
         #[rust_sitter::leaf(text = "const")]
         _const: (),
@@ -421,7 +421,7 @@ mod ylang_grammar {
         _semi: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[rust_sitter::prec_right(0)]
     pub struct Lambda {
         #[rust_sitter::leaf(text = "\\")]
@@ -440,14 +440,14 @@ mod ylang_grammar {
         pub expression: Box<Spanned<Expression>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct LambdaParameter {
         pub ident: Spanned<Identifier>,
         #[rust_sitter::optional]
         pub type_annotation: Option<TypeAnnotation>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[rust_sitter::prec_left(10)]
     pub enum Postfix {
         Call(CallExpression),
@@ -455,7 +455,7 @@ mod ylang_grammar {
         PropertyAccess(PropertyAccess),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[rust_sitter::prec_left(10)]
     pub struct CallExpression {
         pub expression: Box<Spanned<Expression>>,
@@ -470,7 +470,7 @@ mod ylang_grammar {
         _rparen: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[rust_sitter::prec_left(10)]
     pub struct IndexExpression {
         pub expression: Box<Spanned<Expression>>,
@@ -481,7 +481,7 @@ mod ylang_grammar {
         _rbracket: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[rust_sitter::prec_left(10)]
     pub struct PropertyAccess {
         pub expression: Box<Spanned<Expression>>,
@@ -490,7 +490,7 @@ mod ylang_grammar {
         pub property: Spanned<Identifier>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Prefix {
         #[rust_sitter::prec_right(3)]
         Negation {
@@ -506,7 +506,7 @@ mod ylang_grammar {
         },
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[rust_sitter::prec_right(3)]
     pub struct Array {
         #[rust_sitter::leaf(text = "&[")]
@@ -520,7 +520,7 @@ mod ylang_grammar {
         _rbracket: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[rust_sitter::prec_left(4)]
     pub struct StructInitialisation {
         pub id: Spanned<Identifier>,
@@ -535,7 +535,7 @@ mod ylang_grammar {
         _rbrace: (),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct StructFieldInitialisation {
         pub name: Spanned<Identifier>,
         #[rust_sitter::leaf(text = ":")]
@@ -543,7 +543,7 @@ mod ylang_grammar {
         pub value: Spanned<Expression>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Comment {
         #[rust_sitter::leaf(pattern = r"//[^\r\n]*", transform = |v| v.to_string())]
         pub content: String,

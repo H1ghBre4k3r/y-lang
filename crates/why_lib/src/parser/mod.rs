@@ -4,6 +4,9 @@ pub mod ast;
 pub mod combinators;
 mod parse_state;
 
+#[cfg(test)]
+pub mod test_helpers;
+
 pub use self::parse_state::*;
 
 use crate::{
@@ -77,6 +80,7 @@ pub fn parse_program(program: Program, source: &str) -> Vec<TopLevelStatement<()
     statements
 }
 
+#[deprecated = "Use parser::parse_program together with grammar::FromGrammar instead!"]
 pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<TopLevelStatement<()>>, ParseError> {
     let mut statements = vec![];
 

@@ -76,46 +76,37 @@ impl From<Num<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::{Lexer, Span};
-
+    use crate::parser::test_helpers::*;
     use super::*;
 
     #[test]
-    fn test_parse() {
-        let tokens = vec![Token::Integer {
-            value: 42,
-            position: Span::default(),
-        }];
-        assert_eq!(
-            Num::parse(&mut tokens.into()),
-            Ok(AstNode::Num(Num::Integer(42, (), Span::default())))
-        );
+    fn test_parse_integer() {
+        let result = parse_number("42").unwrap();
+        assert!(matches!(result, Num::Integer(42, (), _)));
     }
 
     #[test]
-    fn test_error_on_non_num() {
-        let tokens = vec![Token::Id {
-            value: "some_id".into(),
-            position: Span::default(),
-        }];
-        assert!(Num::parse(&mut tokens.into()).is_err());
+    fn test_parse_floating_point() {
+        let result = parse_number("1337.42").unwrap();
+        assert!(matches!(result, Num::FloatingPoint(value, (), _) if (value - 1337.42).abs() < 0.01));
     }
 
     #[test]
-    fn test_error_on_eof() {
-        let tokens = vec![];
-        assert!(Num::parse(&mut tokens.into()).is_err());
+    fn test_parse_zero() {
+        let result = parse_number("0").unwrap();
+        assert!(matches!(result, Num::Integer(0, (), _)));
     }
 
     #[test]
-    fn test_parse_floatingpoint() {
-        let mut tokens = Lexer::new("1337.42").lex().expect("should work").into();
+    fn test_parse_large_integer() {
+        let result = parse_number("1000000").unwrap();
+        assert!(matches!(result, Num::Integer(1000000, (), _)));
+    }
 
-        let result = Num::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Num::FloatingPoint(1337.42, (), Span::default()).into()),
-            result
-        );
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid number formats fail gracefully
+        assert!(parse_number("abc").is_err());
+        assert!(parse_number("").is_err());
     }
 }
