@@ -116,6 +116,73 @@ pub fn parse_id(code: &str) -> Result<crate::parser::ast::Id<()>, String> {
     }
 }
 
+/// Helper to parse a string literal directly
+pub fn parse_string(code: &str) -> Result<crate::parser::ast::AstString<()>, String> {
+    let expr = parse_expression(code)?;
+    match expr {
+        Expression::AstString(string) => Ok(string),
+        _ => Err("Expected string expression".to_string()),
+    }
+}
+
+/// Helper to parse an array literal directly
+pub fn parse_array(code: &str) -> Result<crate::parser::ast::Array<()>, String> {
+    let expr = parse_expression(code)?;
+    match expr {
+        Expression::Array(array) => Ok(array),
+        _ => Err("Expected array expression".to_string()),
+    }
+}
+
+/// Helper to parse a character literal directly
+pub fn parse_character(code: &str) -> Result<crate::parser::ast::Character<()>, String> {
+    let expr = parse_expression(code)?;
+    match expr {
+        Expression::Character(character) => Ok(character),
+        _ => Err("Expected character expression".to_string()),
+    }
+}
+
+/// Helper to parse an if expression directly
+pub fn parse_if(code: &str) -> Result<crate::parser::ast::If<()>, String> {
+    let expr = parse_expression(code)?;
+    match expr {
+        Expression::If(if_expr) => Ok(if_expr),
+        _ => Err("Expected if expression".to_string()),
+    }
+}
+
+/// Helper to parse a struct initialization directly
+pub fn parse_struct_init(
+    code: &str,
+) -> Result<crate::parser::ast::StructInitialisation<()>, String> {
+    let expr = parse_expression(code)?;
+    match expr {
+        Expression::StructInitialisation(struct_init) => Ok(struct_init),
+        _ => Err("Expected struct initialization expression".to_string()),
+    }
+}
+
+/// Helper to parse a block by wrapping it in a function context
+pub fn parse_block(code: &str) -> Result<crate::parser::ast::Block<()>, String> {
+    let wrapped = format!("fn test(): void {}", code);
+    let program = grammar::parse(&wrapped).map_err(|e| format!("Parse error: {:?}", e))?;
+
+    if let Some(statement) = program.statements.first() {
+        let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
+        if let TopLevelStatement::Function(function) = top_level {
+            // Return a Block constructed from the function's statements
+            return Ok(crate::parser::ast::Block {
+                statements: function.statements,
+                info: (),
+                position: crate::lexer::Span::default(),
+            });
+        }
+    }
+
+    Err("Failed to extract block from parsed result".to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,4 +208,3 @@ mod tests {
         assert!(matches!(result, TypeName::Literal(ref name, _) if name == "i32"));
     }
 }
-

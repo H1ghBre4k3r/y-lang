@@ -55,72 +55,42 @@ impl From<AstString<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::Lexer;
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_empty_string_parse() {
-        let mut tokens = Lexer::new("\"\"").lex().expect("should work").into();
-        let result = AstString::parse(&mut tokens).expect("should work");
-
-        assert_eq!(
-            result,
-            AstString {
-                value: "".into(),
-                info: (),
-                position: Span::default()
-            }
-            .into()
-        )
+        let result = parse_string(r#""""#).unwrap();
+        assert_eq!(result.value, "");
     }
 
     #[test]
     fn test_simple_string_parse() {
-        let mut tokens = Lexer::new("\"foo\"").lex().expect("should work").into();
-        let result = AstString::parse(&mut tokens).expect("should work");
-
-        assert_eq!(
-            result,
-            AstString {
-                value: "foo".into(),
-                info: (),
-                position: Span::default()
-            }
-            .into()
-        )
+        let result = parse_string(r#""foo""#).unwrap();
+        assert_eq!(result.value, "foo");
     }
 
     #[test]
-    fn test_escaped_string_parse_simple() {
-        let mut tokens = Lexer::new("\"\t\"").lex().expect("should work").into();
-        let result = AstString::parse(&mut tokens).expect("should work");
-
-        assert_eq!(
-            result,
-            AstString {
-                value: "\t".into(),
-                info: (),
-                position: Span::default()
-            }
-            .into()
-        )
+    fn test_string_with_spaces() {
+        let result = parse_string(r#""hello world""#).unwrap();
+        assert_eq!(result.value, "hello world");
     }
 
     #[test]
-    fn test_escaped_string_parse_complex() {
-        let mut tokens = Lexer::new("\"this is a test\"\"")
-            .lex()
-            .expect("should work")
-            .into();
-        let result = AstString::parse(&mut tokens).expect("should work");
+    fn test_string_with_escaped_quotes() {
+        let result = parse_string(r#""this is a test\"""#).unwrap();
+        assert_eq!(result.value, r#"this is a test\""#);
+    }
 
-        assert_eq!(
-            result,
-            AstString {
-                value: "this is a test\"".into(),
-                info: (),
-                position: Span::default()
-            }
-            .into()
-        )
+    #[test]
+    fn test_string_with_escape_sequences() {
+        let result = parse_string("\"\t\n\r\"").unwrap();
+        assert_eq!(result.value, "\t\n\r");
+    }
+
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid string formats fail gracefully
+        assert!(parse_string("unclosed_string").is_err());
+        assert!(parse_string("").is_err());
     }
 }

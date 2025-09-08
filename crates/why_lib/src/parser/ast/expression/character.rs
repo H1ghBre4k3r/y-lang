@@ -58,39 +58,38 @@ impl From<Character<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::{Lexer, Span};
-    use crate::parser::ast::Character;
-    use crate::parser::FromTokens;
+    use super::*;
+    use crate::parser::test_helpers::*;
 
     #[test]
-    fn test_parse_simple() {
-        let mut tokens = Lexer::new("'a'").lex().expect("should work").into();
-        let result = Character::parse(&mut tokens).expect("should work");
-
-        assert_eq!(
-            result,
-            Character {
-                character: 'a',
-                info: (),
-                position: Span::default()
-            }
-            .into()
-        )
+    fn test_parse_simple_character() {
+        let result = parse_character("'a'").unwrap();
+        assert_eq!(result.character, 'a');
     }
 
     #[test]
-    fn test_parse_escaped() {
-        let mut tokens = Lexer::new("'\t'").lex().expect("should work").into();
-        let result = Character::parse(&mut tokens).expect("should work");
+    fn test_parse_escaped_character() {
+        let result = parse_character("'\t'").unwrap();
+        assert_eq!(result.character, '\t');
+    }
 
-        assert_eq!(
-            result,
-            Character {
-                character: '\t',
-                info: (),
-                position: Span::default()
-            }
-            .into()
-        )
+    #[test]
+    fn test_parse_newline_character() {
+        let result = parse_character("'\n'").unwrap();
+        assert_eq!(result.character, '\n');
+    }
+
+    #[test]
+    fn test_parse_carriage_return_character() {
+        let result = parse_character("'\r'").unwrap();
+        assert_eq!(result.character, '\r');
+    }
+
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid character formats fail gracefully
+        assert!(parse_character("'unclosed").is_err());
+        assert!(parse_character("''").is_err()); // Empty character
+        assert!(parse_character("").is_err()); // Empty string
     }
 }

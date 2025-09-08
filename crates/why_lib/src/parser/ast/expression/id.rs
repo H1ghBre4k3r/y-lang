@@ -55,38 +55,38 @@ impl From<Id<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::Span;
-
+    use crate::parser::test_helpers::*;
     use super::*;
 
     #[test]
-    fn test_parse() {
-        let tokens = vec![Token::Id {
-            value: "some_id".into(),
-            position: Span::default(),
-        }];
-        assert_eq!(
-            Id::parse(&mut tokens.into()),
-            Ok(AstNode::Id(Id {
-                name: "some_id".into(),
-                info: (),
-                position: Span::default()
-            }))
-        );
+    fn test_parse_simple_identifier() {
+        let result = parse_id("some_id").unwrap();
+        assert_eq!(result.name, "some_id");
     }
 
     #[test]
-    fn test_error_on_non_id() {
-        let tokens = vec![Token::Integer {
-            value: 3,
-            position: Span::default(),
-        }];
-        assert!(Id::parse(&mut tokens.into()).is_err());
+    fn test_parse_underscore_identifier() {
+        let result = parse_id("_private").unwrap();
+        assert_eq!(result.name, "_private");
     }
 
     #[test]
-    fn test_error_on_eof() {
-        let tokens = vec![];
-        assert!(Id::parse(&mut tokens.into()).is_err());
+    fn test_parse_mixed_identifier() {
+        let result = parse_id("variable_name123").unwrap();
+        assert_eq!(result.name, "variable_name123");
+    }
+
+    #[test]
+    fn test_parse_single_letter() {
+        let result = parse_id("x").unwrap();
+        assert_eq!(result.name, "x");
+    }
+
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid identifier formats fail gracefully
+        assert!(parse_id("123invalid").is_err()); // Can't start with number
+        assert!(parse_id("").is_err()); // Empty string
+        assert!(parse_id("with-dash").is_err()); // Contains invalid character
     }
 }
