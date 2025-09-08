@@ -25,7 +25,7 @@ fn test_simple_function() {
             assert_eq!(func.statements.len(), 1);
             assert!(matches!(
                 func.statements[0],
-                Statement::YieldingExpression(Expression::Num(_))
+                Statement::YieldingExpression(Expression::Num(Num::Integer(42, (), _)))
             ));
         }
         _ => panic!("Expected function declaration"),
@@ -55,7 +55,10 @@ fn test_variable_declaration() {
                     assert!(
                         matches!(init.type_name, Some(TypeName::Literal(ref name, _)) if name == "i32")
                     );
-                    assert!(matches!(init.value, Expression::Num(_)));
+                    assert!(matches!(
+                        init.value,
+                        Expression::Num(Num::Integer(42, (), _))
+                    ));
                 }
                 _ => panic!("Expected variable initialization"),
             }
@@ -115,8 +118,14 @@ fn test_binary_expression() {
         TopLevelStatement::Function(func) => match &func.statements[0] {
             Statement::YieldingExpression(Expression::Binary(binary)) => {
                 assert!(matches!(binary.operator, BinaryOperator::Add));
-                assert!(matches!(&binary.left, Expression::Num(_)));
-                assert!(matches!(&binary.right, Expression::Num(_)));
+                assert!(matches!(
+                    &binary.left,
+                    Expression::Num(Num::Integer(1, (), _))
+                ));
+                assert!(matches!(
+                    &binary.right,
+                    Expression::Num(Num::Integer(2, (), _))
+                ));
             }
             _ => panic!("Expected binary expression"),
         },
@@ -148,7 +157,7 @@ fn test_if_expression() {
                     assert_eq!(if_expr.statements.len(), 1);
                     assert!(matches!(
                         if_expr.statements[0],
-                        Statement::Expression(Expression::Num(_))
+                        Statement::Expression(Expression::Num(Num::Integer(42, (), _)))
                     ));
                     assert_eq!(if_expr.else_statements.len(), 0);
                 }
@@ -178,8 +187,11 @@ fn test_array_literal() {
                 Statement::Expression(Expression::Array(Array::Literal { values, .. })) => {
                     assert_eq!(values.len(), 3);
                     // Check all values are numbers
-                    for value in values {
-                        assert!(matches!(value, Expression::Num(_)));
+                    for (i, value) in values.iter().enumerate() {
+                        let i = i as u64;
+                        assert!(
+                            matches!(value, Expression::Num(Num::Integer(n, (), _)) if *n == i + 1)
+                        );
                     }
                 }
                 _ => panic!("Expected array expression"),
@@ -209,10 +221,16 @@ fn test_struct_initialization() {
                 assert_eq!(struct_init.fields.len(), 2);
 
                 assert_eq!(struct_init.fields[0].name.name, "x");
-                assert!(matches!(struct_init.fields[0].value, Expression::Num(_)));
+                assert!(matches!(
+                    struct_init.fields[0].value,
+                    Expression::Num(Num::Integer(1, (), _))
+                ));
 
                 assert_eq!(struct_init.fields[1].name.name, "y");
-                assert!(matches!(struct_init.fields[1].value, Expression::Num(_)));
+                assert!(matches!(
+                    struct_init.fields[1].value,
+                    Expression::Num(Num::Integer(2, (), _))
+                ));
             }
             _ => panic!("Expected struct initialization"),
         },
@@ -342,4 +360,3 @@ fn test_complex_program() {
         assert!(func.statements.len() > 0); // Should have multiple statements in body
     }
 }
-
