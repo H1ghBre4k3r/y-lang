@@ -64,6 +64,7 @@ impl TypeCheckable for BinaryExpression<()> {
             | BinaryOperator::Multiply
             | BinaryOperator::Divide => compount_type,
             BinaryOperator::Equals
+            | BinaryOperator::NotEquals
             | BinaryOperator::GreaterThan
             | BinaryOperator::LessThan
             | BinaryOperator::GreaterOrEqual
