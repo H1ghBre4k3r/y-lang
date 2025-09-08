@@ -102,7 +102,7 @@ where
 
 impl FromGrammar<grammar::Expression> for Expression<()> {
     fn transform(item: rust_sitter::Spanned<grammar::Expression>, source: &str) -> Self {
-        let rust_sitter::Spanned { value, span } = item;
+        let rust_sitter::Spanned { value, span: _ } = item;
 
         match value {
             grammar::Expression::Identifier(identifier) => {
