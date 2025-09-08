@@ -1,4 +1,7 @@
-use crate::lexer::Span;
+use crate::{
+    grammar::{self, FromGrammar},
+    lexer::Span,
+};
 
 use super::{Expression, Id};
 
@@ -41,6 +44,37 @@ where
             Postfix::Call { position, .. } => position.clone(),
             Postfix::Index { position, .. } => position.clone(),
             Postfix::PropertyAccess { position, .. } => position.clone(),
+        }
+    }
+}
+
+impl FromGrammar<grammar::Postfix> for Postfix<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Postfix>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        match value {
+            grammar::Postfix::Call(call_expr) => Postfix::Call {
+                expr: Box::new(Expression::transform(*call_expr.expression, source)),
+                args: call_expr
+                    .args
+                    .into_iter()
+                    .map(|arg| Expression::transform(arg, source))
+                    .collect(),
+                info: (),
+                position: Span::new(span, source),
+            },
+            grammar::Postfix::Index(index_expr) => Postfix::Index {
+                expr: Box::new(Expression::transform(*index_expr.expression, source)),
+                index: Box::new(Expression::transform(*index_expr.index, source)),
+                info: (),
+                position: Span::new(span, source),
+            },
+            grammar::Postfix::PropertyAccess(prop_access) => Postfix::PropertyAccess {
+                expr: Box::new(Expression::transform(*prop_access.expression, source)),
+                property: Id::transform(prop_access.property, source),
+                info: (),
+                position: Span::new(span, source),
+            },
         }
     }
 }

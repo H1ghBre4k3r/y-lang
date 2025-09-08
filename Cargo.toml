@@ -20,3 +20,4 @@ tower-lsp-server = "0.22.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 why_lib = { path = "./crates/why_lib" }
+rust-sitter = "0.4.5"

@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
@@ -35,6 +36,26 @@ where
         match self {
             Array::Literal { position, .. } => position.clone(),
             Array::Default { position, .. } => position.clone(),
+        }
+    }
+}
+
+impl FromGrammar<grammar::Array> for Array<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Array>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        // Convert each element from grammar::Expression to Expression<()>
+        // Note: elements are not wrapped in Spanned, so we create our own with the overall span
+        let values = value
+            .elements
+            .into_iter()
+            .map(|expr| Expression::transform(expr, source))
+            .collect();
+
+        Array::Literal {
+            values,
+            info: (),
+            position: Span::new(span, source),
         }
     }
 }

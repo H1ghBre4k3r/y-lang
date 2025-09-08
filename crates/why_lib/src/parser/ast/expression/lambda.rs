@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
@@ -11,6 +12,28 @@ pub struct Lambda<T> {
     pub expression: Box<Expression<T>>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::Lambda> for Lambda<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Lambda>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        // Convert parameters
+        let parameters = value
+            .params
+            .into_iter()
+            .map(|param| LambdaParameter::transform(param, source))
+            .collect();
+
+        let expression = Box::new(Expression::transform(*value.expression, source));
+
+        Lambda {
+            parameters,
+            expression,
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for Lambda<()> {
@@ -61,6 +84,18 @@ pub struct LambdaParameter<T> {
     pub name: Id<T>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::LambdaParameter> for LambdaParameter<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::LambdaParameter>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        LambdaParameter {
+            name: Id::transform(value.ident, source),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for LambdaParameter<()> {

@@ -243,7 +243,7 @@ impl Format for Array<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         match self {
             Array::Literal { values, .. } => {
-                ctx.write("[")?;
+                ctx.write("&[")?;
                 ctx.write_separated(values, ", ", |ctx, value| value.format(ctx))?;
                 ctx.write("]")
             }
@@ -252,7 +252,7 @@ impl Format for Array<()> {
                 length,
                 ..
             } => {
-                ctx.write("[")?;
+                ctx.write("&[")?;
                 initial_value.format(ctx)?;
                 ctx.write("; ")?;
                 length.format(ctx)?;
@@ -315,7 +315,7 @@ impl Format for TypeName {
                 ctx.write(")")
             }
             TypeName::Array(inner, _) => {
-                ctx.write("[")?;
+                ctx.write("&[")?;
                 inner.format(ctx)?;
                 ctx.write("]")
             }

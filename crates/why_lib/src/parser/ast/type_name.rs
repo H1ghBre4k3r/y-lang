@@ -1,14 +1,12 @@
 use std::fmt::Display;
 
-use crate::lexer::GetPosition;
-use crate::lexer::Span;
-use crate::lexer::Token;
-use crate::parser::combinators::Comb;
-use crate::parser::FromTokens;
-use crate::parser::ParseError;
-use crate::parser::ParseState;
+use crate::{
+    grammar::{self, FromGrammar},
+    lexer::{GetPosition, Span, Token},
+    parser::{combinators::Comb, FromTokens, ParseError, ParseState},
+};
 
-use super::AstNode;
+use super::{AstNode, Id};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TypeName {
@@ -67,6 +65,45 @@ impl Display for TypeName {
 impl From<&TypeName> for TypeName {
     fn from(value: &TypeName) -> Self {
         value.clone()
+    }
+}
+
+impl FromGrammar<grammar::TypeName> for TypeName {
+    fn transform(item: rust_sitter::Spanned<grammar::TypeName>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        match value {
+            grammar::TypeName::LiteralType(literal_type) => {
+                let id = Id::transform(literal_type.typename, source);
+                TypeName::Literal(id.name, Span::new(span, source))
+            }
+            grammar::TypeName::ArrayType(array_type) => TypeName::Array(
+                Box::new(TypeName::transform(*array_type.inner, source)),
+                Span::new(span, source),
+            ),
+            grammar::TypeName::ReferenceType(reference_type) => TypeName::Reference(
+                Box::new(TypeName::transform(*reference_type.inner, source)),
+                Span::new(span, source),
+            ),
+            grammar::TypeName::FunctionType(function_type) => TypeName::Fn {
+                params: function_type
+                    .params
+                    .types
+                    .into_iter()
+                    .map(|param| TypeName::transform(param, source))
+                    .collect(),
+                return_type: Box::new(TypeName::transform(*function_type.return_type, source)),
+                position: Span::new(span, source),
+            },
+            grammar::TypeName::TupleType(tuple_type) => TypeName::Tuple(
+                tuple_type
+                    .types
+                    .into_iter()
+                    .map(|t| TypeName::transform(t, source))
+                    .collect(),
+                Span::new(span, source),
+            ),
+        }
     }
 }
 

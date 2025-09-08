@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{
         ast::{AstNode, Statement},
@@ -7,7 +8,7 @@ use crate::{
     },
 };
 
-use super::Expression;
+use super::{Expression, Block};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct If<T> {
@@ -17,6 +18,31 @@ pub struct If<T> {
     pub else_statements: Vec<Statement<T>>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::IfExpression> for If<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::IfExpression>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        
+        // Extract then block statements  
+        let then_block = Block::transform(value.then_block.value, source);
+        
+        // Extract else block statements if present
+        let else_statements = if let Some(else_clause) = value.else_block {
+            let else_block = Block::transform(else_clause.value.block.value, source);
+            else_block.statements
+        } else {
+            vec![]
+        };
+        
+        If {
+            condition: Box::new(Expression::transform(*value.condition, source)),
+            statements: then_block.statements,
+            else_statements,
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for If<()> {

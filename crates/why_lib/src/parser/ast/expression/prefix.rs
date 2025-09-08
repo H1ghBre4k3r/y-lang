@@ -1,4 +1,7 @@
-use crate::lexer::Span;
+use crate::{
+    grammar::{self, FromGrammar},
+    lexer::Span,
+};
 
 use super::Expression;
 
@@ -29,6 +32,27 @@ where
         match self {
             Prefix::Negation { position, .. } => position.clone(),
             Prefix::Minus { position, .. } => position.clone(),
+        }
+    }
+}
+
+impl FromGrammar<grammar::Prefix> for Prefix<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Prefix>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        
+        match value {
+            grammar::Prefix::Negation { expression, .. } => {
+                Prefix::Negation {
+                    expr: Box::new(Expression::transform(*expression, source)),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::Prefix::Minus { expression, .. } => {
+                Prefix::Minus {
+                    expr: Box::new(Expression::transform(*expression, source)),
+                    position: Span::new(span, source),
+                }
+            }
         }
     }
 }

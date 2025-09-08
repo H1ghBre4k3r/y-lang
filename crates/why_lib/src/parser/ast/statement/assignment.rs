@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{
         ast::{AstNode, Expression, Id, Postfix},
@@ -13,6 +14,19 @@ pub struct Assignment<T> {
     pub rvalue: Expression<T>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::Assignment> for Assignment<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Assignment>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        Assignment {
+            lvalue: LValue::transform(value.lvalue, source),
+            rvalue: Expression::transform(value.value, source),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for Assignment<()> {
@@ -53,6 +67,36 @@ impl From<Assignment<()>> for AstNode {
 pub enum LValue<T> {
     Id(Id<T>),
     Postfix(Postfix<T>),
+}
+
+impl FromGrammar<grammar::LValue> for LValue<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::LValue>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        match value {
+            grammar::LValue::Identifier(identifier) => {
+                LValue::Id(Id::transform(identifier, source))
+            }
+            grammar::LValue::PropertyAccess(prop_access) => {
+                LValue::Postfix(Postfix::transform(
+                    rust_sitter::Spanned {
+                        value: grammar::Postfix::PropertyAccess(prop_access.value),
+                        span: prop_access.span, // Use the original span
+                    },
+                    source,
+                ))
+            }
+            grammar::LValue::IndexExpression(index_expr) => {
+                LValue::Postfix(Postfix::transform(
+                    rust_sitter::Spanned {
+                        value: grammar::Postfix::Index(index_expr.value),
+                        span: index_expr.span, // Use the original span
+                    },
+                    source,
+                ))
+            }
+        }
+    }
 }
 
 impl LValue<()> {

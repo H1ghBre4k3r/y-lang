@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{
         ast::{AstNode, Block, Expression},
@@ -13,6 +14,19 @@ pub struct WhileLoop<T> {
     pub block: Block<T>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::WhileStatement> for WhileLoop<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::WhileStatement>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        
+        WhileLoop {
+            condition: Expression::transform(*value.condition, source),
+            block: Block::transform(value.block.value, source),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for WhileLoop<()> {

@@ -6,7 +6,10 @@ mod parse_state;
 
 pub use self::parse_state::*;
 
-use crate::lexer::{GetPosition, Span, Token};
+use crate::{
+    grammar::{FromGrammar, Program},
+    lexer::{GetPosition, Span, Token},
+};
 
 use self::ast::{AstNode, TopLevelStatement};
 
@@ -62,6 +65,16 @@ impl Error for ParseError {}
 #[deprecated = "Use grammar::FromGrammar instead!"]
 pub trait FromTokens<T> {
     fn parse(tokens: &mut ParseState<T>) -> Result<AstNode, ParseError>;
+}
+
+pub fn parse_program(program: Program, source: &str) -> Vec<TopLevelStatement<()>> {
+    let mut statements = vec![];
+
+    for statement in program.statements {
+        statements.push(TopLevelStatement::transform(statement, source));
+    }
+
+    statements
 }
 
 pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<TopLevelStatement<()>>, ParseError> {

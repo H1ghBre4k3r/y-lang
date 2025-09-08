@@ -94,6 +94,9 @@ impl Format for LValue<()> {
 impl Format for Initialisation<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         ctx.write("let ")?;
+        if self.mutable {
+            ctx.write("mut ")?;
+        }
         self.id.format(ctx)?;
         if let Some(type_name) = &self.type_name {
             ctx.write(": ")?;
@@ -191,7 +194,8 @@ impl Format for MethodDeclaration<()> {
         })?;
 
         ctx.write("): ")?;
-        self.return_type.format(ctx)
+        self.return_type.format(ctx)?;
+        ctx.write(";")
     }
 }
 

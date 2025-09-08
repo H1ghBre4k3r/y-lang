@@ -88,7 +88,7 @@ impl TypedConstruct for Expression<TypeInformation> {
             Expression::Postfix(_) => unreachable!(),
             Expression::Prefix(_) => unreachable!(),
             Expression::Binary(_) => unreachable!(),
-            Expression::Array(_) => unreachable!(),
+            Expression::Array(array) => array.update_type(type_id),
             Expression::StructInitialisation(_) => unreachable!(),
         }
     }

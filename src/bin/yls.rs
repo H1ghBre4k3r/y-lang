@@ -1,3 +1,4 @@
+use rust_sitter::errors::ParseErrorReason;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::Arc;
@@ -9,10 +10,10 @@ use tower_lsp_server::lsp_types::*;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use tracing::error;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
-use why_lib::formatter;
 use why_lib::lexer::{self, Span};
-use why_lib::parser::{self, ParseError};
+use why_lib::parser::{self, ParseError, parse_program};
 use why_lib::typechecker::{self};
+use why_lib::{formatter, grammar};
 
 #[derive(Debug)]
 struct Backend {
@@ -50,53 +51,70 @@ impl Backend {
     }
 
     fn get_diagnostics_for_code(&self, input: &str) -> Vec<Diagnostic> {
-        let Some((message, pos)) = self.perform_code_analysis(input) else {
-            return vec![];
-        };
-
-        let Span { start, end, .. } = pos;
-
-        vec![Diagnostic {
-            range: Range {
-                start: Position {
-                    line: start.0 as u32,
-                    character: start.1 as u32,
-                },
-                end: Position {
-                    line: end.0 as u32,
-                    character: end.1 as u32,
-                },
-            },
-            message,
-            ..Default::default()
-        }]
+        self.perform_code_analysis(input)
+            .into_iter()
+            .map(|(message, position)| {
+                let Span { start, end, .. } = position;
+                Diagnostic {
+                    range: Range {
+                        start: Position {
+                            line: start.0 as u32,
+                            character: start.1 as u32,
+                        },
+                        end: Position {
+                            line: end.0 as u32,
+                            character: end.1 as u32,
+                        },
+                    },
+                    message,
+                    ..Default::default()
+                }
+            })
+            .collect()
     }
 
-    fn perform_code_analysis(&self, input: &str) -> Option<(String, Span)> {
-        let lexed = match lexer::Lexer::new(input).lex() {
-            Ok(lexed) => lexed,
-            Err(e) => {
-                error!("LexError: {e}");
-                return None;
+    fn convert_parse_error(
+        error: rust_sitter::errors::ParseError,
+        input: &str,
+        analysis: &mut Vec<(String, Span)>,
+    ) {
+        let span = Span::new((error.start, error.end), input);
+
+        match error.reason {
+            ParseErrorReason::UnexpectedToken(msg) => {
+                analysis.push((format!("Unexpected token: {msg}"), span));
+            }
+            ParseErrorReason::MissingToken(msg) => {
+                analysis.push((format!("expected {msg}"), span));
+            }
+            ParseErrorReason::FailedNode(errors) => {
+                for e in errors {
+                    Self::convert_parse_error(e, input, analysis);
+                }
+            }
+        }
+    }
+
+    fn perform_code_analysis(&self, input: &str) -> Vec<(String, Span)> {
+        let program = match grammar::parse(input) {
+            Ok(program) => program,
+            Err(errors) => {
+                let mut analysis = vec![];
+                for error in errors {
+                    Self::convert_parse_error(error, input, &mut analysis);
+                }
+                return analysis;
             }
         };
 
-        let parsed = match parser::parse(&mut lexed.into()) {
-            Ok(parsed) => parsed,
-            Err(e) => {
-                error!("{e}");
-                let ParseError { message, position } = e;
-                let position = position.unwrap_or(Span::default());
-                return Some((message, position));
-            }
-        };
+        let parsed = parse_program(program, input);
 
         let checked = match typechecker::TypeChecker::new(parsed).check() {
             Ok(checked) => checked,
             Err(e) => {
                 let position = e.span();
                 let message = e.err().to_string();
-                return Some((message, position));
+                return vec![(message, position)];
             }
         };
 
@@ -105,11 +123,11 @@ impl Backend {
             Err(e) => {
                 let position = e.span();
                 let message = e.err();
-                return Some((message, position));
+                return vec![(message, position)];
             }
         };
 
-        None
+        vec![]
     }
 
     fn format_code(&self, input: &str) -> std::result::Result<String, String> {
