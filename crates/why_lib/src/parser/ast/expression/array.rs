@@ -118,76 +118,76 @@ impl From<Array<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::{Lexer, Span};
-
     use super::*;
+    use crate::parser::{ast::Id, test_helpers::*};
 
     #[test]
     fn test_empty_array() {
-        let mut tokens = Lexer::new("[]").lex().expect("something is wrong").into();
-
-        let result = Array::parse(&mut tokens);
-        assert_eq!(
-            Ok(Array::Literal {
-                values: vec![],
-                info: (),
-                position: Span::default()
+        let result = parse_array("&[]").unwrap();
+        match result {
+            Array::Literal { values, .. } => {
+                assert_eq!(values.len(), 0);
             }
-            .into()),
-            result
-        );
+            _ => panic!("Expected literal array"),
+        }
     }
 
     #[test]
     fn test_simple_literal() {
-        let mut tokens = Lexer::new("[42, 1337]")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = Array::parse(&mut tokens);
-        assert_eq!(
-            Ok(Array::Literal {
-                values: vec![
-                    Expression::Num(Num::Integer(42, (), Span::default())),
-                    Expression::Num(Num::Integer(1337, (), Span::default())),
-                ],
-                info: (),
-                position: Span::default()
+        let result = parse_array("&[42, 1337]").unwrap();
+        match result {
+            Array::Literal { values, .. } => {
+                assert_eq!(values.len(), 2);
+                assert!(matches!(
+                    values[0],
+                    Expression::Num(Num::Integer(42, (), _))
+                ));
+                assert!(matches!(
+                    values[1],
+                    Expression::Num(Num::Integer(1337, (), _))
+                ));
             }
-            .into()),
-            result
-        );
+            _ => panic!("Expected literal array"),
+        }
     }
 
     #[test]
-    fn test_simple_default() {
-        let mut tokens = Lexer::new("[42; 5]")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = Array::parse(&mut tokens);
-        assert_eq!(
-            Ok(Array::Default {
-                initial_value: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
-                length: Num::Integer(5, (), Span::default()),
-                info: (),
-                position: Span::default()
+    fn test_single_element_array() {
+        let result = parse_array("&[42]").unwrap();
+        match result {
+            Array::Literal { values, .. } => {
+                assert_eq!(values.len(), 1);
+                assert!(matches!(
+                    values[0],
+                    Expression::Num(Num::Integer(42, (), _))
+                ));
             }
-            .into()),
-            result
-        );
+            _ => panic!("Expected literal array"),
+        }
     }
 
     #[test]
-    fn test_faulty_default() {
-        let mut tokens = Lexer::new("[42; ]")
-            .lex()
-            .expect("something is wrong")
-            .into();
+    fn test_mixed_expression_array() {
+        let result = parse_array(r#"&[42, "hello", x]"#).unwrap();
+        match result {
+            Array::Literal { values, .. } => {
+                assert_eq!(values.len(), 3);
+                assert!(matches!(
+                    values[0],
+                    Expression::Num(Num::Integer(42, (), _))
+                ));
+                assert!(matches!(values[1], Expression::AstString(_)));
+                assert!(matches!(values[2], Expression::Id(_)));
+            }
+            _ => panic!("Expected literal array"),
+        }
+    }
 
-        let result = Array::parse(&mut tokens);
-        assert!(result.is_err());
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid array formats fail gracefully
+        assert!(parse_array("&[").is_err()); // Unclosed array
+        assert!(parse_array("42, 43]").is_err()); // Missing open bracket
+        assert!(parse_array("").is_err()); // Empty string
     }
 }

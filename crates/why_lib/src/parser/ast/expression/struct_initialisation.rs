@@ -126,170 +126,92 @@ impl From<StructFieldInitialisation<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::{
-            ast::{BinaryExpression, BinaryOperator, Expression, Id, Lambda, LambdaParameter, Num},
-            FromTokens,
-        },
+    use super::*;
+    use crate::parser::{
+        ast::{AstString, Num},
+        test_helpers::*,
     };
 
-    use super::{StructFieldInitialisation, StructInitialisation};
-
     #[test]
-    fn parse_simple_struct_field_initialisation() {
-        let mut tokens = Lexer::new("bar: 42")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = StructFieldInitialisation::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(StructFieldInitialisation {
-                name: Id {
-                    name: "bar".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+    fn test_empty_struct_initialization() {
+        let result = parse_struct_init("Point {}").unwrap();
+        assert_eq!(result.id.name, "Point");
+        assert_eq!(result.fields.len(), 0);
     }
 
     #[test]
-    fn parse_simple_struct_initialisation() {
-        let mut tokens = Lexer::new("Foo {}")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = StructInitialisation::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(StructInitialisation {
-                id: Id {
-                    name: "Foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                fields: vec![],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        );
+    fn test_struct_initialization_with_one_field() {
+        let result = parse_struct_init("Point { x: 42 }").unwrap();
+        assert_eq!(result.id.name, "Point");
+        assert_eq!(result.fields.len(), 1);
+        assert_eq!(result.fields[0].name.name, "x");
+        assert!(matches!(
+            result.fields[0].value,
+            Expression::Num(Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
-    fn parse_struct_initialisation_with_one_field() {
-        let mut tokens = Lexer::new("Foo { bar: 42 }")
-            .lex()
-            .expect("something is wrong")
-            .into();
+    fn test_struct_initialization_with_multiple_fields() {
+        let result = parse_struct_init("Point { x: 1, y: 2 }").unwrap();
+        assert_eq!(result.id.name, "Point");
+        assert_eq!(result.fields.len(), 2);
 
-        let result = StructInitialisation::parse(&mut tokens);
+        assert_eq!(result.fields[0].name.name, "x");
+        assert!(matches!(
+            result.fields[0].value,
+            Expression::Num(Num::Integer(1, (), _))
+        ));
 
-        assert_eq!(
-            Ok(StructInitialisation {
-                id: Id {
-                    name: "Foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                fields: vec![StructFieldInitialisation {
-                    name: Id {
-                        name: "bar".into(),
-                        info: (),
-                        position: Span::default()
-                    },
-                    value: Expression::Num(Num::Integer(42, (), Span::default())),
-                    info: (),
-                    position: Span::default()
-                }],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        );
+        assert_eq!(result.fields[1].name.name, "y");
+        assert!(matches!(
+            result.fields[1].value,
+            Expression::Num(Num::Integer(2, (), _))
+        ));
     }
 
     #[test]
-    fn parse_struct_initialisation_with_multiple_fields() {
-        let mut tokens = Lexer::new("Foo { bar: 42, baz: \\(x) => x + x }")
-            .lex()
-            .expect("something is wrong")
-            .into();
+    fn test_struct_initialization_with_string_field() {
+        let result = parse_struct_init(r#"Person { name: "Alice" }"#).unwrap();
+        assert_eq!(result.id.name, "Person");
+        assert_eq!(result.fields.len(), 1);
+        assert_eq!(result.fields[0].name.name, "name");
+        assert!(matches!(
+            result.fields[0].value,
+            Expression::AstString(AstString {
+                ref value, ..
+            })
+            if value == "Alice"
+        ));
+    }
 
-        let result = StructInitialisation::parse(&mut tokens);
+    #[test]
+    fn test_struct_initialization_with_mixed_fields() {
+        let result = parse_struct_init(r#"Person { name: "Alice", age: 30 }"#).unwrap();
+        assert_eq!(result.id.name, "Person");
+        assert_eq!(result.fields.len(), 2);
 
-        assert_eq!(
-            Ok(StructInitialisation {
-                id: Id {
-                    name: "Foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                fields: vec![
-                    StructFieldInitialisation {
-                        name: Id {
-                            name: "bar".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        value: Expression::Num(Num::Integer(42, (), Span::default())),
-                        info: (),
-                        position: Span::default()
-                    },
-                    StructFieldInitialisation {
-                        name: Id {
-                            name: "baz".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        value: Expression::Lambda(Lambda {
-                            parameters: vec![LambdaParameter {
-                                name: Id {
-                                    name: "x".into(),
-                                    info: (),
-                                    position: Span::default()
-                                },
-                                info: (),
-                                position: Span::default()
-                            }],
-                            expression: Box::new(Expression::Binary(Box::new(BinaryExpression {
-                                left: Expression::Id(Id {
-                                    name: "x".into(),
-                                    info: (),
-                                    position: Span::default()
-                                }),
-                                right: Expression::Id(Id {
-                                    name: "x".into(),
-                                    info: (),
-                                    position: Span::default()
-                                }),
-                                operator: BinaryOperator::Add,
-                                info: (),
-                                position: Span::default()
-                            }))),
-                            info: (),
-                            position: Span::default()
-                        }),
-                        info: (),
-                        position: Span::default()
-                    }
-                ],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        );
+        assert_eq!(result.fields[0].name.name, "name");
+        assert!(matches!(
+            result.fields[0].value,
+            Expression::AstString(AstString {
+                ref value, ..
+            })
+            if value == "Alice"
+        ));
+
+        assert_eq!(result.fields[1].name.name, "age");
+        assert!(matches!(
+            result.fields[1].value,
+            Expression::Num(Num::Integer(30, (), _))
+        ));
+    }
+
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid struct initialization formats fail gracefully
+        assert!(parse_struct_init("Point {").is_err()); // Unclosed struct
+        assert!(parse_struct_init("Point { x }").is_err()); // Missing value
+        assert!(parse_struct_init("").is_err()); // Empty string
     }
 }

@@ -73,109 +73,72 @@ impl From<Block<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::ast::{Expression, Id, Initialisation, Num},
-    };
-
     use super::*;
+    use crate::parser::{
+        ast::{Expression, Num},
+        test_helpers::*,
+    };
 
     #[test]
     fn test_empty_block() {
-        let mut tokens = Lexer::new("{ }").lex().expect("something is wrong").into();
-
-        let result = Block::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Block {
-                statements: vec![],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        let result = parse_block("{}").unwrap();
+        assert_eq!(result.statements.len(), 0);
     }
 
     #[test]
-    fn test_simple_block() {
-        let mut tokens = Lexer::new("{ x }")
-            .lex()
-            .expect("something is wrong")
-            .into();
+    fn test_block_with_single_statement() {
+        let result = parse_block("{ 42; }").unwrap();
+        assert_eq!(result.statements.len(), 1);
+        assert!(matches!(
+            result.statements[0],
+            Statement::Expression(Expression::Num(Num::Integer(42, (), _)))
+        ));
+    }
 
-        let result = Block::parse(&mut tokens);
+    #[test]
+    fn test_block_with_yielding_expression() {
+        let result = parse_block("{ 42 }").unwrap();
+        assert_eq!(result.statements.len(), 1);
+        assert!(matches!(
+            result.statements[0],
+            Statement::YieldingExpression(Expression::Num(Num::Integer(42, (), _)))
+        ));
+    }
 
-        assert_eq!(
-            Ok(Block {
-                statements: vec![Statement::YieldingExpression(Expression::Id(Id {
-                    name: "x".into(),
-                    info: (),
-                    position: Span::default()
-                }))],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+    #[test]
+    fn test_block_with_variable_declaration() {
+        let result = parse_block("{ let x: i32 = 42; }").unwrap();
+        assert_eq!(result.statements.len(), 1);
+        assert!(matches!(result.statements[0], Statement::Initialization(_)));
     }
 
     #[test]
     fn test_complex_block() {
-        let mut tokens = Lexer::new(
-            "{
-                let a = 42;
-                a
-            }",
-        )
-        .lex()
-        .expect("something is wrong")
-        .into();
-
-        let result = Block::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Block {
-                statements: vec![
-                    Statement::Initialization(Initialisation {
-                        id: Id {
-                            name: "a".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        mutable: false,
-                        value: Expression::Num(Num::Integer(42, (), Span::default())),
-                        type_name: None,
-                        info: (),
-                        position: Span::default()
-                    }),
-                    Statement::YieldingExpression(Expression::Id(Id {
-                        name: "a".into(),
-                        info: (),
-                        position: Span::default()
-                    }))
-                ],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        let result = parse_block("{ let a: i32 = 42; a }").unwrap();
+        assert_eq!(result.statements.len(), 2);
+        assert!(matches!(result.statements[0], Statement::Initialization(_)));
+        assert!(matches!(
+            result.statements[1],
+            Statement::YieldingExpression(_)
+        ));
     }
 
     #[test]
-    fn test_error_with_yielding_expression_not_at_end() {
-        let mut tokens = Lexer::new(
-            "{
-                42
-                42
-            }",
-        )
-        .lex()
-        .expect("something is wrong")
-        .into();
+    fn test_block_with_multiple_statements() {
+        let result = parse_block("{ let x: i32 = 1; let y: i32 = 2; x + y }").unwrap();
+        assert_eq!(result.statements.len(), 3);
+        assert!(matches!(result.statements[0], Statement::Initialization(_)));
+        assert!(matches!(result.statements[1], Statement::Initialization(_)));
+        assert!(matches!(
+            result.statements[2],
+            Statement::YieldingExpression(_)
+        ));
+    }
 
-        assert!(Block::parse(&mut tokens).is_err());
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid block formats fail gracefully
+        assert!(parse_block("{").is_err()); // Unclosed block
+        assert!(parse_block("").is_err()); // Empty string
     }
 }

@@ -37,6 +37,7 @@ use crate::{
 
 use super::AstNode;
 
+// TODO: introduce Expression::Bool(_)
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Expression<T> {
     Id(Id<T>),

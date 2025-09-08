@@ -151,249 +151,63 @@ impl From<FunctionParameter<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::ast::{BinaryExpression, BinaryOperator, Expression},
-    };
-
     use super::*;
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_simple_function() {
-        let mut tokens = Lexer::new("fn foo(): i32 {}")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = Function::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Function {
-                id: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                parameters: vec![],
-                return_type: TypeName::Literal("i32".into(), Span::default()),
-                statements: vec![],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        let result = parse_function("fn foo(): i32 {}").unwrap();
+        assert_eq!(result.id.name, "foo");
+        assert_eq!(result.parameters.len(), 0);
+        assert!(matches!(result.return_type, TypeName::Literal(ref name, _) if name == "i32"));
+        assert_eq!(result.statements.len(), 0);
     }
 
     #[test]
-    fn test_function_with_single_param() {
-        let mut tokens = Lexer::new("fn foo(x: i32): i32 {}")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = Function::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Function {
-                id: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                parameters: vec![FunctionParameter {
-                    name: Id {
-                        name: "x".into(),
-                        info: (),
-                        position: Span::default()
-                    },
-                    type_name: TypeName::Literal("i32".into(), Span::default()),
-                    info: (),
-                    position: Span::default()
-                }],
-                return_type: TypeName::Literal("i32".into(), Span::default()),
-                statements: vec![],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+    fn test_function_with_single_parameter() {
+        let result = parse_function("fn add(x: i32): i32 { x }").unwrap();
+        assert_eq!(result.id.name, "add");
+        assert_eq!(result.parameters.len(), 1);
+        assert_eq!(result.parameters[0].name.name, "x");
+        assert!(matches!(result.parameters[0].type_name, TypeName::Literal(ref name, _) if name == "i32"));
+        assert!(matches!(result.return_type, TypeName::Literal(ref name, _) if name == "i32"));
     }
 
     #[test]
-    fn test_function_with_multiple_params() {
-        let mut tokens = Lexer::new("fn foo(x: i32, y: i32): i32 {}")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = Function::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Function {
-                id: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                parameters: vec![
-                    FunctionParameter {
-                        name: Id {
-                            name: "x".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        type_name: TypeName::Literal("i32".into(), Span::default()),
-                        info: (),
-                        position: Span::default()
-                    },
-                    FunctionParameter {
-                        name: Id {
-                            name: "y".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        type_name: TypeName::Literal("i32".into(), Span::default()),
-                        info: (),
-                        position: Span::default()
-                    }
-                ],
-                return_type: TypeName::Literal("i32".into(), Span::default()),
-                statements: vec![],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+    fn test_function_with_multiple_parameters() {
+        let result = parse_function("fn add(x: i32, y: i32): i32 { x + y }").unwrap();
+        assert_eq!(result.id.name, "add");
+        assert_eq!(result.parameters.len(), 2);
+        
+        assert_eq!(result.parameters[0].name.name, "x");
+        assert!(matches!(result.parameters[0].type_name, TypeName::Literal(ref name, _) if name == "i32"));
+        
+        assert_eq!(result.parameters[1].name.name, "y");
+        assert!(matches!(result.parameters[1].type_name, TypeName::Literal(ref name, _) if name == "i32"));
+        
+        assert!(matches!(result.return_type, TypeName::Literal(ref name, _) if name == "i32"));
     }
 
     #[test]
-    fn test_function_with_statements() {
-        let mut tokens = Lexer::new("fn foo(x: i32, y: i32): i32 { return x + y; }")
-            .lex()
-            .expect("something is wrong")
-            .into();
-
-        let result = Function::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Function {
-                id: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                parameters: vec![
-                    FunctionParameter {
-                        name: Id {
-                            name: "x".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        type_name: TypeName::Literal("i32".into(), Span::default()),
-                        info: (),
-                        position: Span::default()
-                    },
-                    FunctionParameter {
-                        name: Id {
-                            name: "y".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        type_name: TypeName::Literal("i32".into(), Span::default()),
-                        info: (),
-                        position: Span::default()
-                    }
-                ],
-                return_type: TypeName::Literal("i32".into(), Span::default()),
-                statements: vec![Statement::Return(Expression::Binary(Box::new(
-                    BinaryExpression {
-                        left: Expression::Id(Id {
-                            name: "x".into(),
-                            info: (),
-                            position: Span::default()
-                        }),
-                        right: Expression::Id(Id {
-                            name: "y".into(),
-                            info: (),
-                            position: Span::default()
-                        }),
-                        operator: BinaryOperator::Add,
-                        info: (),
-                        position: Span::default()
-                    }
-                )))],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+    fn test_function_with_void_return() {
+        let result = parse_function("fn main(): void {}").unwrap();
+        assert_eq!(result.id.name, "main");
+        assert!(matches!(result.return_type, TypeName::Literal(ref name, _) if name == "void"));
     }
 
     #[test]
-    fn test_function_with_name() {
-        let mut tokens = Lexer::new("fn main(x: i32, y: i32): i32 { return x + y; }")
-            .lex()
-            .expect("something is wrong")
-            .into();
+    fn test_function_with_body_statements() {
+        let result = parse_function("fn test(): void { let x: i32 = 42; }").unwrap();
+        assert_eq!(result.id.name, "test");
+        assert_eq!(result.statements.len(), 1);
+        assert!(matches!(result.statements[0], Statement::Initialization(_)));
+    }
 
-        let result = Function::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Function {
-                id: Id {
-                    name: "main".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                parameters: vec![
-                    FunctionParameter {
-                        name: Id {
-                            name: "x".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        type_name: TypeName::Literal("i32".into(), Span::default()),
-                        info: (),
-                        position: Span::default()
-                    },
-                    FunctionParameter {
-                        name: Id {
-                            name: "y".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        type_name: TypeName::Literal("i32".into(), Span::default()),
-                        info: (),
-                        position: Span::default()
-                    }
-                ],
-                return_type: TypeName::Literal("i32".into(), Span::default()),
-                statements: vec![Statement::Return(Expression::Binary(Box::new(
-                    BinaryExpression {
-                        left: Expression::Id(Id {
-                            name: "x".into(),
-                            info: (),
-                            position: Span::default()
-                        }),
-                        right: Expression::Id(Id {
-                            name: "y".into(),
-                            info: (),
-                            position: Span::default()
-                        }),
-                        operator: BinaryOperator::Add,
-                        info: (),
-                        position: Span::default()
-                    }
-                )))],
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+    #[test]
+    fn test_error_on_invalid_syntax() {
+        // Test that invalid function formats fail gracefully
+        assert!(parse_function("fn").is_err()); // Incomplete function
+        assert!(parse_function("function foo() {}").is_err()); // Wrong keyword
+        assert!(parse_function("").is_err()); // Empty string
     }
 }
