@@ -2,7 +2,7 @@ use std::{fs, process};
 
 use clap::{Parser, command};
 use why_lib::{
-    formatter::{self, format_program},
+    formatter::{self},
     grammar,
     parser::parse_program,
     typechecker::TypeChecker,
@@ -76,9 +76,6 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     if args.print_parsed {
         println!("{statements:#?}");
     }
-
-    let p = format_program(&statements)?;
-    println!("{p}");
 
     // Handle formatting requests
     if args.format || args.format_output.is_some() {
