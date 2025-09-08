@@ -40,9 +40,9 @@ instance str {
 fn main(): i64 {
     let a = add(42, 1337);
 
-    let mut arr = [42, 1337];
+    let mut arr = &[42, 1337];
 
-    let arr2 = [1337; 5];
+    let arr2 = &[1337, 5];
 
     let b = explicit_return_add(arr[0], arr2[3]);
 
@@ -61,7 +61,7 @@ fn main(): i64 {
 
     let test_char = 'a';
 
-    let mut foo = [test_char, 'b'];
+    let mut foo = &[test_char, 'b'];
 
     foo[1] = test_char;
 

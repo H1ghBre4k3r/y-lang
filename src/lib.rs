@@ -1,7 +1,13 @@
 use std::{fs, process};
 
 use clap::{Parser, command};
-use why_lib::{formatter, grammar, lexer::Lexer, parser::parse, typechecker::TypeChecker};
+use why_lib::{
+    formatter::{self, format_program},
+    grammar,
+    lexer::Lexer,
+    parser::{parse, parse_program},
+    typechecker::TypeChecker,
+};
 
 #[derive(Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
@@ -48,26 +54,32 @@ impl VCArgs {
 pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     let input = fs::read_to_string(args.file)?;
 
-    dbg!(grammar::parse(&input));
+    let program = grammar::parse(&input).unwrap();
+    // println!("{program:#?}");
 
-    let lexer = Lexer::new(&input);
-    let tokens = lexer.lex()?;
+    // let lexer = Lexer::new(&input);
+    // let tokens = lexer.lex()?;
 
-    if args.print_lexed {
-        println!("{tokens:#?}");
-    }
+    // if args.print_lexed {
+    //     println!("{tokens:#?}");
+    // }
+    //
+    let statements = parse_program(program, &input);
 
-    let statements = match parse(&mut tokens.into()) {
-        Ok(stms) => stms,
-        Err(e) => {
-            eprintln!("{e}");
-            process::exit(-1);
-        }
-    };
+    // let statements = match parse(&mut tokens.into()) {
+    //     Ok(stms) => stms,
+    //     Err(e) => {
+    //         eprintln!("{e}");
+    //         process::exit(-1);
+    //     }
+    // };
 
     if args.print_parsed {
         println!("{statements:#?}");
     }
+
+    let p = format_program(&statements)?;
+    println!("{p}");
 
     // Handle formatting requests
     if args.format || args.format_output.is_some() {

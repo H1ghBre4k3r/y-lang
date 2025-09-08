@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
 };
@@ -11,6 +12,23 @@ pub struct StructInitialisation<T> {
     pub fields: Vec<StructFieldInitialisation<T>>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::StructInitialisation> for StructInitialisation<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::StructInitialisation>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        StructInitialisation {
+            id: Id::transform(value.id, source),
+            fields: value
+                .fields
+                .into_iter()
+                .map(|field| StructFieldInitialisation::transform(field, source))
+                .collect(),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for StructInitialisation<()> {
@@ -56,6 +74,22 @@ pub struct StructFieldInitialisation<T> {
     pub value: Expression<T>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::StructFieldInitialisation> for StructFieldInitialisation<()> {
+    fn transform(
+        item: rust_sitter::Spanned<grammar::StructFieldInitialisation>,
+        source: &str,
+    ) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        StructFieldInitialisation {
+            name: Id::transform(value.name, source),
+            value: Expression::transform(value.value, source),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for StructFieldInitialisation<()> {

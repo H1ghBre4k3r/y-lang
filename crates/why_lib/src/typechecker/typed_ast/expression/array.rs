@@ -157,6 +157,32 @@ impl TypedConstruct for Array<TypeInformation> {
             }
         }
     }
+
+    fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
+        let inner_type = match self {
+            Array::Literal { info, .. } => info.type_id.borrow().clone(),
+            Array::Default { info, .. } => info.type_id.borrow().clone(),
+        };
+
+        if let Some(inner_type) = inner_type {
+            if inner_type != type_id {
+                return Err(TypeCheckError::TypeMismatch(
+                    TypeMismatch {
+                        expected: type_id,
+                        actual: inner_type,
+                    },
+                    self.position(),
+                ));
+            }
+        }
+
+        match self {
+            Array::Literal { info, .. } => info.type_id = Rc::new(RefCell::new(Some(type_id))),
+            Array::Default { info, .. } => info.type_id = Rc::new(RefCell::new(Some(type_id))),
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

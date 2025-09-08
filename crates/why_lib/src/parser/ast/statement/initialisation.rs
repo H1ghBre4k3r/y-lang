@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{
         ast::{AstNode, Expression, Id, TypeName},
@@ -15,6 +16,21 @@ pub struct Initialisation<T> {
     pub value: Expression<T>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::VariableDeclaration> for Initialisation<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::VariableDeclaration>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        
+        Initialisation {
+            id: Id::transform(value.identifier, source),
+            mutable: value.mutability.is_some(),
+            type_name: value.type_annotation.map(|ta| TypeName::transform(ta.type_name, source)),
+            value: Expression::transform(value.value, source),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for Initialisation<()> {

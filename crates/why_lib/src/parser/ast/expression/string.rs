@@ -1,12 +1,24 @@
 use crate::lexer::{Span, Token};
 use crate::parser::ast::AstNode;
 use crate::parser::{FromTokens, ParseError, ParseState};
+use crate::grammar::{self, FromGrammar};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AstString<T> {
     pub value: String,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::StringLiteral> for AstString<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::StringLiteral>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        AstString {
+            value: value.0.value, // StringLiteral(Spanned<String>) - extract the string value
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for AstString<()> {

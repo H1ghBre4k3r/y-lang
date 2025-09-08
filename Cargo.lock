@@ -1562,6 +1562,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "rust-sitter",
  "serde",
  "serde_json",
  "tokio",

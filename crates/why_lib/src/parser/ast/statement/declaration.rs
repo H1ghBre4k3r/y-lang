@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{
         ast::{AstNode, Id, TypeName},
@@ -13,6 +14,19 @@ pub struct Declaration<T> {
     pub type_name: TypeName,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::Declaration> for Declaration<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::Declaration>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        
+        Declaration {
+            name: Id::transform(value.name, source),
+            type_name: TypeName::transform(value.type_annotation.type_name, source),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for Declaration<()> {

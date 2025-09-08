@@ -109,17 +109,41 @@ impl FromGrammar<grammar::Expression> for Expression<()> {
                 Expression::Id(Id::transform(identifier, source))
             }
             grammar::Expression::Number(number) => Expression::Num(Num::transform(number, source)),
-            grammar::Expression::String(string_literal) => todo!(),
-            grammar::Expression::Character(character_literal) => todo!(),
-            grammar::Expression::IfExpression(if_expression) => todo!(),
-            grammar::Expression::Parenthesized(parenthesized_expression) => todo!(),
-            grammar::Expression::BinaryExpression(binary_expression) => todo!(),
-            grammar::Expression::Block(block) => todo!(),
-            grammar::Expression::Lambda(lambda) => todo!(),
-            grammar::Expression::Postfix(postfix) => todo!(),
-            grammar::Expression::Prefix(prefix) => todo!(),
-            grammar::Expression::Array(array) => todo!(),
-            grammar::Expression::StructInitialisation(struct_initialisation) => todo!(),
+            grammar::Expression::String(string_literal) => {
+                Expression::AstString(AstString::transform(string_literal, source))
+            }
+            grammar::Expression::Character(character_literal) => {
+                Expression::Character(Character::transform(character_literal, source))
+            }
+            grammar::Expression::IfExpression(if_expression) => {
+                Expression::If(If::transform(if_expression, source))
+            }
+            grammar::Expression::Parenthesized(parenthesized_expression) => {
+                Expression::Parens(Box::new(Expression::transform(
+                    *parenthesized_expression.value.inner,
+                    source,
+                )))
+            }
+            grammar::Expression::BinaryExpression(binary_expression) => Expression::Binary(
+                Box::new(BinaryExpression::transform(binary_expression, source)),
+            ),
+            grammar::Expression::Block(block) => Expression::Block(Block::transform(block, source)),
+            grammar::Expression::Lambda(lambda) => {
+                Expression::Lambda(Lambda::transform(lambda, source))
+            }
+            grammar::Expression::Postfix(postfix) => {
+                Expression::Postfix(Postfix::transform(postfix, source))
+            }
+            grammar::Expression::Prefix(prefix) => {
+                Expression::Prefix(Prefix::transform(prefix, source))
+            }
+            grammar::Expression::Array(array) => Expression::Array(Array::transform(array, source)),
+            grammar::Expression::StructInitialisation(struct_initialisation) => {
+                Expression::StructInitialisation(StructInitialisation::transform(
+                    struct_initialisation,
+                    source,
+                ))
+            }
         }
     }
 }

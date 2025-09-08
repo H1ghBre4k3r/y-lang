@@ -1,4 +1,5 @@
 use crate::{
+    grammar::{self, FromGrammar},
     lexer::{Span, Token},
     parser::{
         ast::{AstNode, Statement, TypeName},
@@ -7,7 +8,7 @@ use crate::{
     },
 };
 
-use super::Id;
+use super::{Block, Id};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Function<T> {
@@ -17,6 +18,28 @@ pub struct Function<T> {
     pub statements: Vec<Statement<T>>,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::FunctionDeklaration> for Function<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::FunctionDeklaration>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        // Extract block statements
+        let block = Block::transform(value.block, source);
+
+        Function {
+            id: Id::transform(value.ident, source),
+            parameters: value
+                .parameters
+                .into_iter()
+                .map(|param| FunctionParameter::transform(param, source))
+                .collect(),
+            return_type: TypeName::transform(value.type_annotation.type_name, source),
+            statements: block.statements,
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for Function<()> {
@@ -81,6 +104,19 @@ pub struct FunctionParameter<T> {
     pub type_name: TypeName,
     pub info: T,
     pub position: Span,
+}
+
+impl FromGrammar<grammar::FunctionParameter> for FunctionParameter<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::FunctionParameter>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+
+        FunctionParameter {
+            name: Id::transform(value.ident, source),
+            type_name: TypeName::transform(value.type_annotation.type_name, source),
+            info: (),
+            position: Span::new(span, source),
+        }
+    }
 }
 
 impl FromTokens<Token> for FunctionParameter<()> {

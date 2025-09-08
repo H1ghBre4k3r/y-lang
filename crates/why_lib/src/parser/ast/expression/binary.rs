@@ -1,4 +1,7 @@
-use crate::lexer::Span;
+use crate::{
+    grammar::{self, FromGrammar},
+    lexer::Span,
+};
 
 use super::Expression;
 
@@ -89,6 +92,105 @@ impl BinaryExpression<()> {
             | BinaryOperator::LessThan
             | BinaryOperator::GreaterOrEqual
             | BinaryOperator::LessOrEqual => 0,
+        }
+    }
+}
+
+impl FromGrammar<grammar::BinaryExpression> for BinaryExpression<()> {
+    fn transform(item: rust_sitter::Spanned<grammar::BinaryExpression>, source: &str) -> Self {
+        let rust_sitter::Spanned { value, span } = item;
+        
+        match value {
+            grammar::BinaryExpression::Addition(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::Add,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::Subtraction(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::Substract,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::Multiplication(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::Multiply,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::Division(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::Divide,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::Equals(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::Equals,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::NotEquals(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::Equals, // TODO: Add NotEquals to BinaryOperator
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::LessThan(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::LessThan,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::GreaterThan(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::GreaterThan,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::LessOrEqual(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::LessOrEqual,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
+            grammar::BinaryExpression::GreaterOrEqual(left, _, right) => {
+                BinaryExpression {
+                    left: Expression::transform(*left, source),
+                    right: Expression::transform(*right, source),
+                    operator: BinaryOperator::GreaterOrEqual,
+                    info: (),
+                    position: Span::new(span, source),
+                }
+            }
         }
     }
 }
