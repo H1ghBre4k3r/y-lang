@@ -1,11 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{
-        ast::{AstNode, Statement},
-        combinators::Comb,
-        FromTokens,
-    },
+    lexer::Span,
+    parser::ast::{AstNode, Statement},
 };
 
 use super::{Block, Expression};
@@ -42,50 +38,6 @@ impl FromGrammar<grammar::IfExpression> for If<()> {
             info: (),
             position: Span::new(span, source),
         }
-    }
-}
-
-impl FromTokens<Token> for If<()> {
-    fn parse(
-        tokens: &mut crate::parser::ParseState<Token>,
-    ) -> Result<crate::parser::ast::AstNode, crate::parser::ParseError> {
-        let position = tokens.span()?;
-
-        let matcher = Comb::IF_KEYWORD >> Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN >> Comb::BLOCK;
-
-        let mut result = matcher.parse(tokens)?.into_iter().peekable();
-
-        let Some(AstNode::Expression(condition)) = result.next() else {
-            unreachable!()
-        };
-
-        let Some(AstNode::Block(if_block)) = result.next() else {
-            unreachable!()
-        };
-
-        let matcher = !(Comb::ELSE_KEYWORD >> Comb::BLOCK);
-
-        let mut result = matcher.parse(tokens)?.into_iter().peekable();
-
-        let else_statements = match result.next() {
-            Some(AstNode::Block(else_block)) => else_block.statements,
-            None => vec![],
-            _ => unreachable!(),
-        };
-
-        let Span { end, .. } = tokens.prev_span()?;
-        Ok(If {
-            condition: Box::new(condition),
-            statements: if_block.statements,
-            else_statements,
-            info: (),
-            position: Span {
-                start: position.start,
-                end,
-                source: position.source,
-            },
-        }
-        .into())
     }
 }
 

@@ -1,8 +1,9 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{GetPosition, Span, Token},
-    parser::{ast::AstNode, FromTokens, ParseError, ParseState},
+    lexer::Span,
 };
+
+use super::AstNode;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Id<T> {
@@ -22,31 +23,6 @@ impl FromGrammar<grammar::Identifier> for Id<()> {
     }
 }
 
-impl FromTokens<Token> for Id<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, crate::parser::ParseError>
-    where
-        Self: Sized,
-    {
-        let position = tokens.span()?;
-        let value = match tokens.next() {
-            Some(Token::Id { value, .. }) => value,
-            Some(token) => {
-                return Err(ParseError {
-                    message: format!("Tried to parse Id from non id token ({token:?})"),
-                    position: Some(token.position()),
-                })
-            }
-            None => return Err(ParseError::eof("Id")),
-        };
-        Ok(Id {
-            name: value,
-            info: (),
-            position,
-        }
-        .into())
-    }
-}
-
 impl From<Id<()>> for AstNode {
     fn from(value: Id<()>) -> Self {
         AstNode::Id(value)
@@ -56,7 +32,6 @@ impl From<Id<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use crate::parser::test_helpers::*;
-    use super::*;
 
     #[test]
     fn test_parse_simple_identifier() {

@@ -2,9 +2,10 @@ use rust_sitter::Spanned;
 
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{GetPosition, Span, Token},
-    parser::{ast::AstNode, FromTokens, ParseError, ParseState},
+    lexer::Span,
 };
+
+use super::AstNode;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Num<T> {
@@ -25,26 +26,6 @@ impl FromGrammar<grammar::Number> for Num<()> {
             grammar::Number::Floating(grammar::Floating(floating)) => {
                 Num::FloatingPoint(floating, (), Span::new(span, source))
             }
-        }
-    }
-}
-
-impl FromTokens<Token> for Num<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError>
-    where
-        Self: Sized,
-    {
-        let position = tokens.span()?;
-        match tokens.next() {
-            Some(Token::Integer { value, .. }) => Ok(Num::Integer(value, (), position).into()),
-            Some(Token::FloatingPoint { value, .. }) => {
-                Ok(Num::FloatingPoint(value, (), position).into())
-            }
-            Some(token) => Err(ParseError {
-                message: "Tried to parse Num from non Num token".into(),
-                position: Some(token.position()),
-            }),
-            None => Err(ParseError::eof("Id")),
         }
     }
 }
@@ -76,8 +57,8 @@ impl From<Num<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::test_helpers::*;
     use super::*;
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_parse_integer() {
@@ -88,7 +69,9 @@ mod tests {
     #[test]
     fn test_parse_floating_point() {
         let result = parse_number("1337.42").unwrap();
-        assert!(matches!(result, Num::FloatingPoint(value, (), _) if (value - 1337.42).abs() < 0.01));
+        assert!(
+            matches!(result, Num::FloatingPoint(value, (), _) if (value - 1337.42).abs() < 0.01)
+        );
     }
 
     #[test]

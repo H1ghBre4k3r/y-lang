@@ -1,11 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{
-        ast::{AstNode, Id, TypeName},
-        combinators::Comb,
-        FromTokens, ParseError, ParseState,
-    },
+    lexer::Span,
+    parser::ast::{AstNode, Id, TypeName},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -29,32 +25,6 @@ impl FromGrammar<grammar::Declaration> for Declaration<()> {
     }
 }
 
-impl FromTokens<Token> for Declaration<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let matcher = Comb::DECLARE_KEYWORD >> Comb::ID >> Comb::COLON >> Comb::TYPE_NAME;
-
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Id(name)) = result.first().cloned() else {
-            unreachable!()
-        };
-
-        let Some(AstNode::TypeName(type_name)) = result.get(1).cloned() else {
-            unreachable!()
-        };
-
-        Ok(Declaration {
-            name,
-            type_name,
-            info: (),
-            position,
-        }
-        .into())
-    }
-}
-
 impl From<Declaration<()>> for AstNode {
     fn from(value: Declaration<()>) -> Self {
         AstNode::Declaration(value)
@@ -63,93 +33,72 @@ impl From<Declaration<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::{
-            ast::{Id, TypeName},
-            FromTokens,
-        },
-    };
-
-    use super::Declaration;
+    use crate::parser::ast::TypeName;
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_parse_simple_declaration() {
-        let mut tokens = Lexer::new("declare foo: i32")
-            .lex()
-            .expect("something went wrong")
-            .into();
+        let result = parse_declaration("declare foo: i32;").unwrap();
 
-        let result = Declaration::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Declaration {
-                name: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                type_name: TypeName::Literal("i32".into(), Span::default()),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        assert_eq!(result.name.name, "foo");
+        assert!(matches!(result.type_name, TypeName::Literal(ref name, _) if name == "i32"));
     }
 
     #[test]
     fn test_parse_tuple_declaration() {
-        let mut tokens = Lexer::new("declare foo: (i32, i32)")
-            .lex()
-            .expect("something went wrong")
-            .into();
+        let result = parse_declaration("declare foo: (i32, i32);").unwrap();
 
-        let result = Declaration::parse(&mut tokens);
-        assert_eq!(
-            Ok(Declaration {
-                name: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                type_name: TypeName::Tuple(
-                    vec![TypeName::Literal("i32".into(), Span::default()); 2],
-                    Span::default()
-                ),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        assert_eq!(result.name.name, "foo");
+        if let TypeName::Tuple(types, _) = result.type_name {
+            assert_eq!(types.len(), 2);
+            assert!(matches!(types[0], TypeName::Literal(ref name, _) if name == "i32"));
+            assert!(matches!(types[1], TypeName::Literal(ref name, _) if name == "i32"));
+        } else {
+            panic!("Expected tuple type");
+        }
     }
 
     #[test]
     fn test_parse_function_declaration() {
-        let mut tokens = Lexer::new("declare foo: (i32, i32) -> i32")
-            .lex()
-            .expect("something went wrong")
-            .into();
+        let result = parse_declaration("declare foo: (i32, i32) -> i32;").unwrap();
 
-        let result = Declaration::parse(&mut tokens);
-        assert_eq!(
-            Ok(Declaration {
-                name: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                type_name: TypeName::Fn {
-                    params: vec![TypeName::Literal("i32".into(), Span::default()); 2],
-                    return_type: Box::new(TypeName::Literal("i32".into(), Span::default())),
-                    position: Span::default()
-                },
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        assert_eq!(result.name.name, "foo");
+        if let TypeName::Fn {
+            params,
+            return_type,
+            ..
+        } = result.type_name
+        {
+            assert_eq!(params.len(), 2);
+            assert!(matches!(params[0], TypeName::Literal(ref name, _) if name == "i32"));
+            assert!(matches!(params[1], TypeName::Literal(ref name, _) if name == "i32"));
+            assert!(matches!(*return_type, TypeName::Literal(ref name, _) if name == "i32"));
+        } else {
+            panic!("Expected function type");
+        }
+    }
+
+    #[test]
+    fn test_parse_reference_declaration() {
+        let result = parse_declaration("declare data: &str;").unwrap();
+
+        assert_eq!(result.name.name, "data");
+        if let TypeName::Reference(inner, _) = result.type_name {
+            assert!(matches!(*inner, TypeName::Literal(ref name, _) if name == "str"));
+        } else {
+            panic!("Expected reference type");
+        }
+    }
+
+    #[test]
+    fn test_parse_array_declaration() {
+        let result = parse_declaration("declare nums: &[i32];").unwrap();
+
+        assert_eq!(result.name.name, "nums");
+        if let TypeName::Array(inner, _) = result.type_name {
+            assert!(matches!(*inner, TypeName::Literal(ref name, _) if name == "i32"));
+        } else {
+            panic!("Expected array type");
+        }
     }
 }

@@ -1,20 +1,16 @@
 use std::{error::Error, fmt::Display};
 
 pub mod ast;
-pub mod combinators;
-mod parse_state;
 
 #[cfg(test)]
 pub mod test_helpers;
 
-pub use self::parse_state::*;
-
 use crate::{
     grammar::{FromGrammar, Program},
-    lexer::{GetPosition, Span, Token},
+    lexer::Span,
 };
 
-use self::ast::{AstNode, TopLevelStatement};
+use self::ast::TopLevelStatement;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ParseError {
@@ -31,28 +27,6 @@ impl ParseError {
     }
 }
 
-impl ParseState<Token> {
-    pub fn prev_span(&self) -> Result<Span, ParseError> {
-        match self.peek_reverse() {
-            Some(token) => Ok(token.position()),
-            None => Err(ParseError {
-                message: "hit EOF".into(),
-                position: None,
-            }),
-        }
-    }
-
-    pub fn span(&self) -> Result<Span, ParseError> {
-        match self.peek() {
-            Some(token) => Ok(token.position()),
-            None => Err(ParseError {
-                message: "hit EOF".into(),
-                position: None,
-            }),
-        }
-    }
-}
-
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(pos) = &self.position {
@@ -65,11 +39,6 @@ impl Display for ParseError {
 
 impl Error for ParseError {}
 
-#[deprecated = "Use grammar::FromGrammar instead!"]
-pub trait FromTokens<T> {
-    fn parse(tokens: &mut ParseState<T>) -> Result<AstNode, ParseError>;
-}
-
 pub fn parse_program(program: Program, source: &str) -> Vec<TopLevelStatement<()>> {
     let mut statements = vec![];
 
@@ -78,29 +47,4 @@ pub fn parse_program(program: Program, source: &str) -> Vec<TopLevelStatement<()
     }
 
     statements
-}
-
-#[deprecated = "Use parser::parse_program together with grammar::FromGrammar instead!"]
-pub fn parse(tokens: &mut ParseState<Token>) -> Result<Vec<TopLevelStatement<()>>, ParseError> {
-    let mut statements = vec![];
-
-    while tokens.peek().is_some() {
-        match TopLevelStatement::parse(tokens) {
-            Ok(result) => {
-                statements.push(result);
-            }
-            Err(e) => {
-                if let Some(e) = tokens.errors.first() {
-                    return Err(e.clone());
-                }
-                return Err(e.clone());
-            }
-        }
-    }
-
-    if let Some(e) = tokens.errors.first() {
-        return Err(e.clone());
-    }
-
-    Ok(statements)
 }

@@ -2,8 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{GetPosition, Span, Token},
-    parser::{combinators::Comb, FromTokens, ParseError, ParseState},
+    lexer::Span,
 };
 
 use super::{AstNode, Id};
@@ -107,178 +106,6 @@ impl FromGrammar<grammar::TypeName> for TypeName {
     }
 }
 
-impl FromTokens<Token> for TypeName {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.peek().map(|token| token.position());
-        if let Ok(type_name) = Self::parse_literal(tokens) {
-            return Ok(type_name);
-        };
-
-        if let Ok(function) = Self::parse_fn(tokens) {
-            return Ok(function);
-        };
-
-        if let Ok(tuple) = Self::parse_tuple(tokens) {
-            return Ok(tuple);
-        };
-
-        if let Ok(array) = Self::parse_array(tokens) {
-            return Ok(array);
-        }
-
-        if let Ok(reference) = Self::parse_reference(tokens) {
-            return Ok(reference);
-        }
-
-        Err(ParseError {
-            message: "could not parse type name".into(),
-            position,
-        })
-    }
-}
-
-impl TypeName {
-    fn parse_literal(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let index = tokens.get_index();
-
-        let matcher = !Comb::ID;
-
-        let result = matcher.parse(tokens).inspect_err(|_| {
-            tokens.set_index(index);
-        })?;
-
-        let Some(AstNode::Id(type_name)) = result.first() else {
-            return Err(ParseError {
-                message: "Could not parse type literal".into(),
-                position: None,
-            });
-        };
-
-        Ok(TypeName::Literal(type_name.name.clone(), position).into())
-    }
-
-    fn parse_tuple(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let index = tokens.get_index();
-
-        let matcher = Comb::LPAREN >> (Comb::TYPE_NAME % Comb::COMMA) >> Comb::RPAREN;
-
-        let result = matcher.parse(tokens).inspect_err(|_| {
-            tokens.set_index(index);
-        })?;
-
-        let mut elems = vec![];
-
-        for type_name in &result {
-            let AstNode::TypeName(type_name) = type_name else {
-                unreachable!()
-            };
-            elems.push(type_name.clone());
-        }
-
-        let Span { end, .. } = tokens.prev_span()?;
-
-        Ok(TypeName::Tuple(
-            elems,
-            Span {
-                start: position.start,
-                end,
-                source: position.source,
-            },
-        )
-        .into())
-    }
-
-    fn parse_fn(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let index = tokens.get_index();
-
-        let AstNode::TypeName(TypeName::Tuple(params, _)) = Self::parse_tuple(tokens)? else {
-            unreachable!()
-        };
-
-        let matcher = Comb::SMALL_RIGHT_ARROW >> Comb::TYPE_NAME;
-
-        let result = matcher.parse(tokens).inspect_err(|_| {
-            tokens.set_index(index);
-        })?;
-
-        let Some(AstNode::TypeName(type_name)) = result.first() else {
-            unreachable!()
-        };
-
-        let Span { end, .. } = tokens.prev_span()?;
-        Ok(TypeName::Fn {
-            params,
-            return_type: Box::new(type_name.clone()),
-            position: Span {
-                start: position.start,
-                end,
-                source: position.source,
-            },
-        }
-        .into())
-    }
-
-    fn parse_array(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let index = tokens.get_index();
-
-        let matcher = Comb::LBRACKET >> Comb::TYPE_NAME >> Comb::RBRACKET;
-
-        let result = matcher.parse(tokens).inspect_err(|_| {
-            tokens.set_index(index);
-        })?;
-
-        let Some(AstNode::TypeName(type_name)) = result.first() else {
-            unreachable!()
-        };
-
-        let Span { end, .. } = tokens.prev_span()?;
-        Ok(TypeName::Array(
-            Box::new(type_name.clone()),
-            Span {
-                start: position.start,
-                end,
-                source: position.source,
-            },
-        )
-        .into())
-    }
-
-    fn parse_reference(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let index = tokens.get_index();
-
-        let matcher = Comb::AMPERSAND >> Comb::TYPE_NAME;
-
-        let result = matcher.parse(tokens).inspect_err(|_| {
-            tokens.set_index(index);
-        })?;
-
-        let Some(AstNode::TypeName(type_name)) = result.first() else {
-            unreachable!()
-        };
-
-        let Span { end, .. } = tokens.prev_span()?;
-        Ok(TypeName::Reference(
-            Box::new(type_name.clone()),
-            Span {
-                start: position.start,
-                end,
-                source: position.source,
-            },
-        )
-        .into())
-    }
-}
-
 impl From<TypeName> for AstNode {
     fn from(value: TypeName) -> Self {
         Self::TypeName(value)
@@ -287,126 +114,114 @@ impl From<TypeName> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::FromTokens,
-    };
+    use crate::parser::test_helpers::*;
 
     use super::TypeName;
 
     #[test]
     fn test_parse_simple_literal() {
-        let mut tokens = Lexer::new("i32")
-            .lex()
-            .expect("something went wrong")
-            .into();
-
-        let result = TypeName::parse(&mut tokens);
-        assert_eq!(
-            Ok(TypeName::Literal("i32".into(), Span::default()).into()),
-            result
-        );
+        let result = parse_type_name("i32").unwrap();
+        assert!(matches!(result, TypeName::Literal(ref name, _) if name == "i32"));
     }
 
     #[test]
     fn test_parse_simple_tuple() {
-        let mut tokens = Lexer::new("(i32, i32)")
-            .lex()
-            .expect("something went wrong")
-            .into();
-
-        let result = TypeName::parse(&mut tokens);
-        assert_eq!(
-            Ok(TypeName::Tuple(
-                vec![TypeName::Literal("i32".into(), Span::default()); 2],
-                Span::default()
-            )
-            .into()),
-            result
-        );
+        let result = parse_type_name("(i32, i32)").unwrap();
+        if let TypeName::Tuple(types, _) = result {
+            assert_eq!(types.len(), 2);
+            assert!(matches!(types[0], TypeName::Literal(ref name, _) if name == "i32"));
+            assert!(matches!(types[1], TypeName::Literal(ref name, _) if name == "i32"));
+        } else {
+            panic!("Expected tuple type");
+        }
     }
 
     #[test]
     fn test_parse_simple_function() {
-        let mut tokens = Lexer::new("() -> i32")
-            .lex()
-            .expect("something went wrong")
-            .into();
-
-        let result = TypeName::parse(&mut tokens);
-        assert_eq!(
-            Ok(TypeName::Fn {
-                params: vec![],
-                return_type: Box::new(TypeName::Literal("i32".into(), Span::default())),
-                position: Span::default()
-            }
-            .into()),
-            result
-        );
+        let result = parse_type_name("() -> i32").unwrap();
+        if let TypeName::Fn {
+            params,
+            return_type,
+            ..
+        } = result
+        {
+            assert_eq!(params.len(), 0);
+            assert!(matches!(*return_type, TypeName::Literal(ref name, _) if name == "i32"));
+        } else {
+            panic!("Expected function type");
+        }
     }
 
     #[test]
     fn test_parse_simple_reference() {
-        let mut tokens = Lexer::new("&i32")
-            .lex()
-            .expect("something went wrong")
-            .into();
-
-        let result = TypeName::parse(&mut tokens);
-        assert_eq!(
-            Ok(TypeName::Reference(
-                Box::new(TypeName::Literal("i32".into(), Span::default())),
-                Span::default()
-            )
-            .into()),
-            result
-        );
+        let result = parse_type_name("&i32").unwrap();
+        if let TypeName::Reference(inner, _) = result {
+            assert!(matches!(*inner, TypeName::Literal(ref name, _) if name == "i32"));
+        } else {
+            panic!("Expected reference type");
+        }
     }
 
     #[test]
     fn test_parse_reference_of_tuple() {
-        let mut tokens = Lexer::new("&(i32, i32)")
-            .lex()
-            .expect("something went wrong")
-            .into();
-
-        let result = TypeName::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(TypeName::Reference(
-                Box::new(TypeName::Tuple(
-                    vec![TypeName::Literal("i32".into(), Span::default()); 2],
-                    Span::default()
-                )),
-                Span::default()
-            )
-            .into()),
-            result
-        );
+        let result = parse_type_name("&(i32, i32)").unwrap();
+        if let TypeName::Reference(inner, _) = result {
+            if let TypeName::Tuple(types, _) = inner.as_ref() {
+                assert_eq!(types.len(), 2);
+                assert!(matches!(types[0], TypeName::Literal(ref name, _) if name == "i32"));
+                assert!(matches!(types[1], TypeName::Literal(ref name, _) if name == "i32"));
+            } else {
+                panic!("Expected tuple inside reference");
+            }
+        } else {
+            panic!("Expected reference type");
+        }
     }
 
     #[test]
     fn test_parse_tuple_of_references() {
-        let mut tokens = Lexer::new("(&i32, &i32)")
-            .lex()
-            .expect("something went wrong")
-            .into();
+        let result = parse_type_name("(&i32, &i32)").unwrap();
+        if let TypeName::Tuple(types, _) = result {
+            assert_eq!(types.len(), 2);
+            for type_ref in types {
+                if let TypeName::Reference(inner, _) = type_ref {
+                    assert!(matches!(*inner, TypeName::Literal(ref name, _) if name == "i32"));
+                } else {
+                    panic!("Expected reference type in tuple");
+                }
+            }
+        } else {
+            panic!("Expected tuple type");
+        }
+    }
 
-        let result = TypeName::parse(&mut tokens);
+    #[test]
+    fn test_parse_array_type() {
+        let result = parse_type_name("&[i32]").unwrap();
+        if let TypeName::Array(inner, _) = result {
+            assert!(matches!(*inner, TypeName::Literal(ref name, _) if name == "i32"));
+        } else {
+            panic!("Expected array type");
+        }
+    }
 
-        assert_eq!(
-            Ok(TypeName::Tuple(
-                vec![
-                    TypeName::Reference(
-                        Box::new(TypeName::Literal("i32".into(), Span::default())),
-                        Span::default()
-                    );
-                    2
-                ],
-                Span::default()
-            )
-            .into()),
-            result
-        )
+    #[test]
+    fn test_parse_complex_function_type() {
+        let result = parse_type_name("(i32, &str) -> bool").unwrap();
+        if let TypeName::Fn {
+            params,
+            return_type,
+            ..
+        } = result
+        {
+            assert_eq!(params.len(), 2);
+            assert!(matches!(params[0], TypeName::Literal(ref name, _) if name == "i32"));
+            assert!(
+                matches!(params[1], TypeName::Reference(ref inner, _) if matches!(**inner, TypeName::Literal(ref name, _) if name == "str"))
+            );
+            assert!(matches!(*return_type, TypeName::Literal(ref name, _) if name == "bool"));
+        } else {
+            panic!("Expected function type");
+        }
     }
 }

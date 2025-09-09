@@ -1,7 +1,7 @@
 use crate::grammar::{self, FromGrammar};
-use crate::lexer::{Span, Token};
-use crate::parser::ast::AstNode;
-use crate::parser::{FromTokens, ParseError, ParseState};
+use crate::lexer::Span;
+
+use super::AstNode;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Character<T> {
@@ -21,35 +21,6 @@ impl FromGrammar<grammar::CharacterLiteral> for Character<()> {
     }
 }
 
-impl FromTokens<Token> for Character<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        if let Some(Token::Character { value, .. }) = tokens.next() {
-            assert_eq!(value.len(), 3);
-
-            let character: char = value
-                .strip_prefix('\'')
-                .unwrap()
-                .strip_suffix('\'')
-                .unwrap()
-                .parse()
-                .unwrap();
-            Ok(Character {
-                character,
-                position,
-                info: (),
-            }
-            .into())
-        } else {
-            Err(ParseError {
-                message: "Tried to parse Character from non Character token".into(),
-                position: Some(position),
-            })
-        }
-    }
-}
-
 impl From<Character<()>> for AstNode {
     fn from(character: Character<()>) -> AstNode {
         AstNode::Character(character)
@@ -58,7 +29,6 @@ impl From<Character<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::parser::test_helpers::*;
 
     #[test]
