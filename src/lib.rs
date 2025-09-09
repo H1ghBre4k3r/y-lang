@@ -1,3 +1,5 @@
+pub mod util;
+
 use std::{fs, process};
 
 use clap::{Parser, command};
@@ -7,6 +9,8 @@ use why_lib::{
     parser::parse_program,
     typechecker::TypeChecker,
 };
+
+use crate::util::convert_parse_error;
 
 #[derive(Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
@@ -53,25 +57,27 @@ impl VCArgs {
 pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     let input = fs::read_to_string(args.file)?;
 
-    let program = grammar::parse(&input).unwrap();
-    // println!("{program:#?}");
+    let program = match grammar::parse(&input) {
+        Ok(program) => program,
+        Err(errors) => {
+            let mut spans = vec![];
+            for error in errors {
+                convert_parse_error(error, &input, &mut spans);
+            }
 
-    // let lexer = Lexer::new(&input);
-    // let tokens = lexer.lex()?;
+            for (msg, span) in spans {
+                eprintln!("{}", span.to_string(msg));
+            }
 
-    // if args.print_lexed {
-    //     println!("{tokens:#?}");
-    // }
-    //
+            process::exit(-1);
+        }
+    };
+
+    if args.print_lexed {
+        println!("{program:#?}");
+    }
+
     let statements = parse_program(program, &input);
-
-    // let statements = match parse(&mut tokens.into()) {
-    //     Ok(stms) => stms,
-    //     Err(e) => {
-    //         eprintln!("{e}");
-    //         process::exit(-1);
-    //     }
-    // };
 
     if args.print_parsed {
         println!("{statements:#?}");
