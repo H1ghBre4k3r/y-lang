@@ -1,5 +1,6 @@
 #[rust_sitter::grammar("ylang_grammar")]
 #[allow(dead_code)]
+#[allow(clippy::manual_non_exhaustive)]
 mod ylang_grammar {
     use rust_sitter::Spanned;
 

@@ -48,9 +48,3 @@ impl From<Instance<()>> for AstNode {
         AstNode::Instance(value)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    // Tests removed - instances are tested comprehensively in parser_integration.rs
-    // using the full grammar-based parsing approach
-}
