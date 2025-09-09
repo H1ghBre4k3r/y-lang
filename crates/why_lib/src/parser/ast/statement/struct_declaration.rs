@@ -64,9 +64,3 @@ impl From<StructFieldDeclaration<()>> for AstNode {
         Self::StructFieldDeclaration(value)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    // Tests removed - struct declarations are tested comprehensively in parser_integration.rs
-    // using the full grammar-based parsing approach
-}
