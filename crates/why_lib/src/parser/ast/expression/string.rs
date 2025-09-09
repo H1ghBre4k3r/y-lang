@@ -15,7 +15,7 @@ impl FromGrammar<grammar::StringLiteral> for AstString<()> {
     fn transform(item: rust_sitter::Spanned<grammar::StringLiteral>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
         AstString {
-            value: value.0.value, // StringLiteral(Spanned<String>) - extract the string value
+            value: unescape(&value.0.value).unwrap(), // StringLiteral(Spanned<String>) - extract the string value
             info: (),
             position: Span::new(span, source),
         }
@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn test_string_with_escaped_quotes() {
         let result = parse_string(r#""this is a test\"""#).unwrap();
-        assert_eq!(result.value, r#"this is a test\""#);
+        assert_eq!(result.value, "this is a test\"");
     }
 
     #[test]
