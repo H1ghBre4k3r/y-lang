@@ -1,11 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{
-        ast::{AstNode, Expression, Id, Postfix},
-        combinators::Comb,
-        FromTokens, ParseError, ParseState,
-    },
+    lexer::Span,
+    parser::ast::{AstNode, Expression, Id, Postfix},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -26,34 +22,6 @@ impl FromGrammar<grammar::Assignment> for Assignment<()> {
             info: (),
             position: Span::new(span, source),
         }
-    }
-}
-
-impl FromTokens<Token> for Assignment<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let lvalue = LValue::parse(tokens)?;
-
-        Comb::ASSIGN.parse(tokens)?;
-
-        let matcher = Comb::EXPR;
-
-        let result = matcher.parse(tokens).inspect_err(|e| {
-            tokens.add_error(e.clone());
-        })?;
-
-        let Some(AstNode::Expression(rvalue)) = result.first() else {
-            unreachable!()
-        };
-
-        Ok(Assignment {
-            lvalue,
-            rvalue: rvalue.clone(),
-            info: (),
-            position: position.merge(&rvalue.position()),
-        }
-        .into())
     }
 }
 
@@ -95,62 +63,6 @@ impl FromGrammar<grammar::LValue> for LValue<()> {
                     source,
                 ))
             }
-        }
-    }
-}
-
-impl LValue<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<LValue<()>, ParseError> {
-        let position = tokens.span()?;
-        let error = ParseError {
-            position: Some(position),
-            message: "Expected Id or postfix expression as lvalue!".to_string(),
-        };
-
-        let matcher = Comb::EXPR;
-
-        let result = matcher.parse(tokens)?;
-
-        let Some(lvalue) = result.first() else {
-            unreachable!()
-        };
-
-        let AstNode::Expression(lvalue) = lvalue else {
-            return Err(error);
-        };
-
-        let postfix = match lvalue {
-            Expression::Id(id) => return Ok(LValue::Id(id.clone())),
-            Expression::Postfix(postfix) => postfix.clone(),
-            _ => return Err(error),
-        };
-
-        Self::check_postfix(&postfix)?;
-
-        Ok(LValue::Postfix(postfix))
-    }
-
-    fn check_postfix(postfix: &Postfix<()>) -> Result<(), ParseError> {
-        let position = postfix.position();
-        let val = match postfix {
-            Postfix::Call { .. } => {
-                return Err(ParseError {
-                    position: Some(position),
-                    message: "Unexpected postfix call in lvalue".into(),
-                })
-            }
-            Postfix::Index { expr, .. } => expr,
-            Postfix::PropertyAccess { expr, .. } => expr,
-        }
-        .clone();
-
-        match *val {
-            Expression::Id(_) => Ok(()),
-            Expression::Postfix(postfix) => Self::check_postfix(&postfix),
-            other => Err(ParseError {
-                position: Some(position),
-                message: format!("Unexpected {other:?} in lvalue"),
-            }),
         }
     }
 }
@@ -198,141 +110,109 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::{
-            ast::{Expression, Id, LValue, Num, Postfix},
-            FromTokens,
-        },
-    };
-
-    use super::Assignment;
+    use crate::parser::ast::{Expression, LValue, Postfix};
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_parse_simple_assignment() {
-        let mut tokens = Lexer::new("a = 42").lex().expect("should work").into();
+        let result = parse_assignment("a = 42").unwrap();
 
-        let result = Assignment::parse(&mut tokens);
+        if let LValue::Id(id) = &result.lvalue {
+            assert_eq!(id.name, "a");
+        } else {
+            panic!("Expected Id lvalue");
+        }
 
-        assert_eq!(
-            result,
-            Ok(Assignment {
-                lvalue: LValue::Id(Id {
-                    name: "a".into(),
-                    position: Span::default(),
-                    info: ()
-                }),
-                rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
-                position: Span::default(),
-                info: ()
-            }
-            .into())
-        )
+        assert!(matches!(
+            result.rvalue,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
     fn test_indexed_assign() {
-        let mut tokens = Lexer::new("a[123] = 42").lex().expect("should work").into();
+        let result = parse_assignment("a[123] = 42").unwrap();
 
-        let result = Assignment::parse(&mut tokens);
+        if let LValue::Postfix(Postfix::Index { expr, index, .. }) = &result.lvalue {
+            assert!(matches!(**expr, Expression::Id(ref id) if id.name == "a"));
+            assert!(matches!(
+                **index,
+                Expression::Num(crate::parser::ast::Num::Integer(123, (), _))
+            ));
+        } else {
+            panic!("Expected Index postfix lvalue");
+        }
 
-        assert_eq!(
-            result,
-            Ok(Assignment {
-                lvalue: LValue::Postfix(Postfix::Index {
-                    expr: Box::new(Expression::Id(Id {
-                        name: "a".into(),
-                        position: Span::default(),
-                        info: ()
-                    })),
-                    index: Box::new(Expression::Num(Num::Integer(123, (), Span::default()))),
-                    info: (),
-                    position: Span::default()
-                }),
-                rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
-                position: Span::default(),
-                info: ()
-            }
-            .into())
-        )
+        assert!(matches!(
+            result.rvalue,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
     fn test_property_access_assign() {
-        let mut tokens = Lexer::new("a.b = 42").lex().expect("should work").into();
+        let result = parse_assignment("a.b = 42").unwrap();
 
-        let result = Assignment::parse(&mut tokens);
+        if let LValue::Postfix(Postfix::PropertyAccess { expr, property, .. }) = &result.lvalue {
+            assert!(matches!(**expr, Expression::Id(ref id) if id.name == "a"));
+            assert_eq!(property.name, "b");
+        } else {
+            panic!("Expected PropertyAccess postfix lvalue");
+        }
 
-        assert_eq!(
-            result,
-            Ok(Assignment {
-                lvalue: LValue::Postfix(Postfix::PropertyAccess {
-                    expr: Box::new(Expression::Id(Id {
-                        name: "a".into(),
-                        position: Span::default(),
-                        info: ()
-                    })),
-                    property: Id {
-                        name: "b".into(),
-                        position: Span::default(),
-                        info: ()
-                    },
-                    info: (),
-                    position: Span::default()
-                }),
-                rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
-                position: Span::default(),
-                info: ()
-            }
-            .into())
-        )
+        assert!(matches!(
+            result.rvalue,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
     fn test_combined_index_and_property_assign() {
-        let mut tokens = Lexer::new("a[123].b = 42")
-            .lex()
-            .expect("should work")
-            .into();
+        let result = parse_assignment("a[123].b = 42").unwrap();
 
-        let result = Assignment::parse(&mut tokens);
-
-        assert_eq!(
-            result,
-            Ok(Assignment {
-                lvalue: LValue::Postfix(Postfix::PropertyAccess {
-                    expr: Box::new(Expression::Postfix(Postfix::Index {
-                        expr: Box::new(Expression::Id(Id {
-                            name: "a".into(),
-                            position: Span::default(),
-                            info: ()
-                        })),
-                        index: Box::new(Expression::Num(Num::Integer(123, (), Span::default()))),
-                        info: (),
-                        position: Span::default()
-                    })),
-                    property: Id {
-                        name: "b".into(),
-                        position: Span::default(),
-                        info: ()
-                    },
-                    info: (),
-                    position: Span::default()
-                }),
-                rvalue: Expression::Num(Num::Integer(42, (), Span::default())),
-                position: Span::default(),
-                info: ()
+        if let LValue::Postfix(Postfix::PropertyAccess { expr, property, .. }) = &result.lvalue {
+            if let Expression::Postfix(Postfix::Index {
+                expr: inner_expr,
+                index,
+                ..
+            }) = &**expr
+            {
+                assert!(matches!(**inner_expr, Expression::Id(ref id) if id.name == "a"));
+                assert!(matches!(
+                    **index,
+                    Expression::Num(crate::parser::ast::Num::Integer(123, (), _))
+                ));
+            } else {
+                panic!("Expected Index postfix inside PropertyAccess");
             }
-            .into())
-        )
+            assert_eq!(property.name, "b");
+        } else {
+            panic!("Expected PropertyAccess postfix lvalue");
+        }
+
+        assert!(matches!(
+            result.rvalue,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
     fn test_error_on_invalid_lvalue() {
-        let mut tokens = Lexer::new("a() = 42").lex().expect("should work").into();
+        // This test might not work exactly the same way with rust-sitter parsing
+        // but we can test that function calls can't be assigned to
+        assert!(parse_assignment("a() = 42").is_err());
+    }
 
-        let result = Assignment::parse(&mut tokens);
+    #[test]
+    fn test_string_assignment() {
+        let result = parse_assignment("name = \"hello\"").unwrap();
 
-        assert!(result.is_err())
+        if let LValue::Id(id) = &result.lvalue {
+            assert_eq!(id.name, "name");
+        } else {
+            panic!("Expected Id lvalue");
+        }
+
+        assert!(matches!(result.rvalue, Expression::AstString(_)));
     }
 }

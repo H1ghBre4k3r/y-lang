@@ -1,10 +1,9 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
+    lexer::Span,
 };
 
-use super::{Expression, Id};
+use super::{AstNode, Expression, Id};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Lambda<T> {
@@ -36,43 +35,6 @@ impl FromGrammar<grammar::Lambda> for Lambda<()> {
     }
 }
 
-impl FromTokens<Token> for Lambda<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let matcher = Comb::BACKSLASH
-            >> Comb::LPAREN
-            // parameter list (optional)
-            >> (Comb::LAMBDA_PARAMETER % Comb::COMMA)
-            >> Comb::RPAREN
-            >> Comb::BIG_RIGHT_ARROW
-            // return type
-            >> Comb::EXPR;
-
-        let mut result = matcher.parse(tokens)?.into_iter().peekable();
-
-        let mut parameters = vec![];
-
-        while let Some(AstNode::LambdaParameter(param)) =
-            result.next_if(|item| matches!(item, AstNode::LambdaParameter(_)))
-        {
-            parameters.push(param);
-        }
-
-        let Some(AstNode::Expression(expression)) = result.next() else {
-            unreachable!()
-        };
-
-        Ok(Lambda {
-            parameters,
-            expression: Box::new(expression),
-            info: (),
-            position,
-        }
-        .into())
-    }
-}
-
 impl From<Lambda<()>> for AstNode {
     fn from(value: Lambda<()>) -> Self {
         AstNode::Lambda(value)
@@ -98,25 +60,6 @@ impl FromGrammar<grammar::LambdaParameter> for LambdaParameter<()> {
     }
 }
 
-impl FromTokens<Token> for LambdaParameter<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-        let matcher = Comb::ID;
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Id(name)) = result.first() else {
-            unreachable!()
-        };
-
-        Ok(LambdaParameter {
-            name: name.clone(),
-            info: (),
-            position,
-        }
-        .into())
-    }
-}
-
 impl From<LambdaParameter<()>> for AstNode {
     fn from(value: LambdaParameter<()>) -> Self {
         AstNode::LambdaParameter(value)
@@ -125,155 +68,86 @@ impl From<LambdaParameter<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::ast::{BinaryExpression, BinaryOperator, Block, Id, Num, Statement},
-    };
-
-    use super::*;
+    use crate::parser::ast::{BinaryOperator, Expression, Statement};
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_simple_lambda() {
-        let mut tokens = Lexer::new("\\() => 42")
-            .lex()
-            .expect("something is wrong")
-            .into();
+        let result = parse_lambda("\\() => 42").unwrap();
 
-        let result = Lambda::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Lambda {
-                parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        assert_eq!(result.parameters.len(), 0);
+        assert!(matches!(
+            &*result.expression,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
     fn test_lambda_with_multiple_params() {
-        let mut tokens = Lexer::new("\\(x, y) => x + y")
-            .lex()
-            .expect("something is wrong")
-            .into();
+        let result = parse_lambda("\\(x, y) => x + y").unwrap();
 
-        let result = Lambda::parse(&mut tokens);
+        assert_eq!(result.parameters.len(), 2);
+        assert_eq!(result.parameters[0].name.name, "x");
+        assert_eq!(result.parameters[1].name.name, "y");
 
-        assert_eq!(
-            Ok(Lambda {
-                parameters: vec![
-                    LambdaParameter {
-                        name: Id {
-                            name: "x".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        info: (),
-                        position: Span::default()
-                    },
-                    LambdaParameter {
-                        name: Id {
-                            name: "y".into(),
-                            info: (),
-                            position: Span::default()
-                        },
-                        info: (),
-                        position: Span::default()
-                    }
-                ],
-                expression: Box::new(Expression::Binary(Box::new(BinaryExpression {
-                    left: Expression::Id(Id {
-                        name: "x".into(),
-                        info: (),
-                        position: Span::default()
-                    }),
-                    right: Expression::Id(Id {
-                        name: "y".into(),
-                        info: (),
-                        position: Span::default()
-                    }),
-                    operator: BinaryOperator::Add,
-                    info: (),
-                    position: Span::default()
-                }))),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        if let Expression::Binary(binary) = &*result.expression {
+            assert!(matches!(binary.operator, BinaryOperator::Add));
+            assert!(matches!(&binary.left, Expression::Id(id) if id.name == "x"));
+            assert!(matches!(&binary.right, Expression::Id(id) if id.name == "y"));
+        } else {
+            panic!("Expected binary expression");
+        }
     }
 
     #[test]
     fn test_lambda_with_single_param() {
-        let mut tokens = Lexer::new("\\(x) => x")
-            .lex()
-            .expect("something is wrong")
-            .into();
+        let result = parse_lambda("\\(x) => x").unwrap();
 
-        let result = Lambda::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Lambda {
-                parameters: vec![LambdaParameter {
-                    name: Id {
-                        name: "x".into(),
-                        info: (),
-                        position: Span::default()
-                    },
-                    info: (),
-                    position: Span::default()
-                }],
-                expression: Box::new(Expression::Id(Id {
-                    name: "x".into(),
-                    info: (),
-                    position: Span::default()
-                })),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        assert_eq!(result.parameters.len(), 1);
+        assert_eq!(result.parameters[0].name.name, "x");
+        assert!(matches!(&*result.expression, Expression::Id(id) if id.name == "x"));
     }
 
     #[test]
     fn test_lambda_with_block() {
-        let mut tokens = Lexer::new("\\(x) => { x }")
-            .lex()
-            .expect("something is wrong")
-            .into();
+        let result = parse_lambda("\\(x) => { x }").unwrap();
 
-        let result = Lambda::parse(&mut tokens);
+        assert_eq!(result.parameters.len(), 1);
+        assert_eq!(result.parameters[0].name.name, "x");
 
-        assert_eq!(
-            Ok(Lambda {
-                parameters: vec![LambdaParameter {
-                    name: Id {
-                        name: "x".into(),
-                        info: (),
-                        position: Span::default()
-                    },
-                    info: (),
-                    position: Span::default()
-                }],
-                expression: Box::new(Expression::Block(Block {
-                    statements: vec![Statement::YieldingExpression(Expression::Id(Id {
-                        name: "x".into(),
-                        info: (),
-                        position: Span::default()
-                    }))],
-                    info: (),
-                    position: Span::default()
-                })),
-                info: (),
-                position: Span::default()
+        if let Expression::Block(block) = &*result.expression {
+            assert_eq!(block.statements.len(), 1);
+            assert!(matches!(
+                block.statements[0],
+                Statement::YieldingExpression(Expression::Id(ref id)) if id.name == "x"
+            ));
+        } else {
+            panic!("Expected block expression");
+        }
+    }
+
+    #[test]
+    fn test_complex_lambda_expression() {
+        let result = parse_lambda("\\(a, b) => a * b + 1").unwrap();
+
+        assert_eq!(result.parameters.len(), 2);
+        assert_eq!(result.parameters[0].name.name, "a");
+        assert_eq!(result.parameters[1].name.name, "b");
+
+        // Should be a + (b * c) due to operator precedence
+        if let Expression::Binary(binary) = &*result.expression {
+            assert!(matches!(binary.operator, BinaryOperator::Add));
+            // Left side should be a * b
+            if let Expression::Binary(left_binary) = &binary.left {
+                assert!(matches!(left_binary.operator, BinaryOperator::Multiply));
             }
-            .into()),
-            result
-        )
+            // Right side should be 1
+            assert!(matches!(
+                &binary.right,
+                Expression::Num(crate::parser::ast::Num::Integer(1, (), _))
+            ));
+        } else {
+            panic!("Expected binary expression");
+        }
     }
 }

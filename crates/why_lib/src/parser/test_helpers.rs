@@ -163,6 +163,63 @@ pub fn parse_struct_init(
     }
 }
 
+/// Helper to parse a lambda expression directly
+pub fn parse_lambda(code: &str) -> Result<crate::parser::ast::Lambda<()>, String> {
+    let expr = parse_expression(code)?;
+    match expr {
+        Expression::Lambda(lambda) => Ok(lambda),
+        _ => Err("Expected lambda expression".to_string()),
+    }
+}
+
+/// Helper to parse a declaration directly
+pub fn parse_declaration(code: &str) -> Result<crate::parser::ast::Declaration<()>, String> {
+    let program = grammar::parse(code).map_err(|e| format!("Parse error: {:?}", e))?;
+
+    if let Some(statement) = program.statements.first() {
+        let top_level = TopLevelStatement::transform(statement.clone(), code);
+        if let TopLevelStatement::Declaration(declaration) = top_level {
+            return Ok(declaration);
+        }
+    }
+
+    Err("Failed to extract declaration from parsed result".to_string())
+}
+
+/// Helper to parse an initialization statement by wrapping it in a function context
+pub fn parse_initialization(code: &str) -> Result<crate::parser::ast::Initialisation<()>, String> {
+    let wrapped = format!("fn main(): void {{ {} }}", code);
+    let program = grammar::parse(&wrapped).map_err(|e| format!("Parse error: {:?}", e))?;
+
+    if let Some(statement) = program.statements.first() {
+        let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
+        if let TopLevelStatement::Function(function) = top_level {
+            if let Some(Statement::Initialization(init)) = function.statements.first() {
+                return Ok(init.clone());
+            }
+        }
+    }
+
+    Err("Failed to extract initialization from parsed result".to_string())
+}
+
+/// Helper to parse an assignment statement by wrapping it in a function context
+pub fn parse_assignment(code: &str) -> Result<crate::parser::ast::Assignment<()>, String> {
+    let wrapped = format!("fn main(): void {{ {}; }}", code);
+    let program = grammar::parse(&wrapped).map_err(|e| format!("Parse error: {:?}", e))?;
+
+    if let Some(statement) = program.statements.first() {
+        let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
+        if let TopLevelStatement::Function(function) = top_level {
+            if let Some(Statement::Assignment(assignment)) = function.statements.first() {
+                return Ok(assignment.clone());
+            }
+        }
+    }
+
+    Err("Failed to extract assignment from parsed result".to_string())
+}
+
 /// Helper to parse a block by wrapping it in a function context
 pub fn parse_block(code: &str) -> Result<crate::parser::ast::Block<()>, String> {
     let wrapped = format!("fn test(): void {}", code);

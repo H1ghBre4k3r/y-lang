@@ -1,11 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{
-        ast::{AstNode, Block, Expression},
-        combinators::Comb,
-        FromTokens, ParseError, ParseState,
-    },
+    lexer::Span,
+    parser::ast::{AstNode, Block, Expression},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -26,33 +22,6 @@ impl FromGrammar<grammar::WhileStatement> for WhileLoop<()> {
             info: (),
             position: Span::new(span, source),
         }
-    }
-}
-
-impl FromTokens<Token> for WhileLoop<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let matcher =
-            Comb::WHILE_KEYWORD >> Comb::LPAREN >> Comb::EXPR >> Comb::RPAREN >> Comb::BLOCK;
-
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Expression(condition)) = result.first() else {
-            unreachable!()
-        };
-
-        let Some(AstNode::Block(block)) = result.get(1) else {
-            unreachable!()
-        };
-
-        Ok(WhileLoop {
-            condition: condition.clone(),
-            block: block.clone(),
-            info: (),
-            position,
-        }
-        .into())
     }
 }
 

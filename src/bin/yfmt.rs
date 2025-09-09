@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use clap::Parser;
-use why_lib::{formatter, lexer::Lexer, parser::parse};
+use why_lib::{formatter, grammar, parser::parse_program};
 
 #[derive(clap::Parser, Debug, serde::Serialize, serde::Deserialize)]
 #[command(author, version, about)]
@@ -38,16 +38,15 @@ fn main() -> anyhow::Result<()> {
 fn format_file(file_path: &Path, in_place: bool) -> anyhow::Result<()> {
     let input = fs::read_to_string(file_path)?;
 
-    let lexer = Lexer::new(&input);
-    let tokens = lexer.lex()?;
-
-    let statements = match parse(&mut tokens.into()) {
-        Ok(stms) => stms,
+    let program = match grammar::parse(&input) {
+        Ok(prog) => prog,
         Err(e) => {
-            eprintln!("Parse error in {}: {}", file_path.display(), e);
+            eprintln!("Parse error in {}: {:?}", file_path.display(), e);
             return Ok(()); // Continue processing other files
         }
     };
+
+    let statements = parse_program(program, &input);
 
     let formatted = formatter::format_program(&statements)
         .map_err(|e| anyhow::anyhow!("Formatting error in {}: {}", file_path.display(), e))?;

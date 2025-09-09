@@ -1,10 +1,9 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
+    lexer::Span,
 };
 
-use super::{Expression, Id};
+use super::{AstNode, Expression, Id};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StructInitialisation<T> {
@@ -28,37 +27,6 @@ impl FromGrammar<grammar::StructInitialisation> for StructInitialisation<()> {
             info: (),
             position: Span::new(span, source),
         }
-    }
-}
-
-impl FromTokens<Token> for StructInitialisation<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let matcher = Comb::ID
-            >> Comb::LBRACE
-            >> (Comb::STRUCT_FIELD_INITIALISATION % Comb::COMMA)
-            >> Comb::RBRACE;
-
-        let mut result = matcher.parse(tokens)?.into_iter();
-
-        let Some(AstNode::Id(id)) = result.next() else {
-            unreachable!();
-        };
-
-        let mut fields = vec![];
-
-        while let Some(AstNode::StructFieldInitialisation(field)) = result.next() {
-            fields.push(field);
-        }
-
-        Ok(StructInitialisation {
-            id,
-            fields,
-            info: (),
-            position,
-        }
-        .into())
     }
 }
 
@@ -89,32 +57,6 @@ impl FromGrammar<grammar::StructFieldInitialisation> for StructFieldInitialisati
             info: (),
             position: Span::new(span, source),
         }
-    }
-}
-
-impl FromTokens<Token> for StructFieldInitialisation<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let matcher = Comb::ID >> Comb::COLON >> Comb::EXPR;
-
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Id(name)) = result.first() else {
-            unreachable!();
-        };
-
-        let Some(AstNode::Expression(value)) = result.get(1) else {
-            unreachable!();
-        };
-
-        Ok(StructFieldInitialisation {
-            name: name.clone(),
-            value: value.clone(),
-            info: (),
-            position,
-        }
-        .into())
     }
 }
 

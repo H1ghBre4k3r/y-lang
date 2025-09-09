@@ -1,11 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{
-        ast::{AstNode, Expression, Id, TypeName},
-        combinators::Comb,
-        FromTokens, ParseError, ParseState,
-    },
+    lexer::Span,
+    parser::ast::{AstNode, Expression, Id, TypeName},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -35,60 +31,6 @@ impl FromGrammar<grammar::VariableDeclaration> for Initialisation<()> {
     }
 }
 
-impl FromTokens<Token> for Initialisation<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError>
-    where
-        Self: Sized,
-    {
-        let position = tokens.span()?;
-
-        Comb::LET.parse(tokens)?;
-
-        let mutable = matches!(tokens.peek(), Some(Token::Mut { .. }));
-
-        let matcher = !Comb::MUT
-            >> Comb::ID
-            >> !(Comb::COLON >> Comb::TYPE_NAME)
-            >> Comb::ASSIGN
-            >> Comb::EXPR;
-
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Id(id)) = result.first() else {
-            unreachable!()
-        };
-
-        let mut type_name = None;
-
-        let value: Expression<()>;
-
-        match result.get(1) {
-            Some(AstNode::TypeName(type_)) => {
-                type_name = Some(type_.clone());
-
-                let Some(AstNode::Expression(expr)) = result.get(2) else {
-                    unreachable!()
-                };
-                value = expr.clone();
-            }
-            Some(AstNode::Expression(expr)) => {
-                value = expr.clone();
-            }
-            _ => unreachable!(),
-        }
-
-        Ok(Initialisation {
-            id: id.clone(),
-            mutable,
-            value: value.clone(),
-            type_name,
-            info: (),
-            position,
-        }
-        .into())
-    }
-}
-
 impl From<Initialisation<()>> for AstNode {
     fn from(value: Initialisation<()>) -> Self {
         AstNode::Initialization(value)
@@ -97,91 +39,78 @@ impl From<Initialisation<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::{Lexer, Span},
-        parser::ast::Num,
-    };
-
-    use super::*;
+    use crate::parser::ast::{Expression, TypeName};
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_simple_initialisation() {
-        let mut tokens = Lexer::new("let foo = 42;")
-            .lex()
-            .expect("should work")
-            .into();
+        let result = parse_initialization("let foo = 42;").unwrap();
 
-        let result = Initialisation::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Initialisation {
-                id: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                mutable: false,
-                type_name: None,
-                value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        assert_eq!(result.id.name, "foo");
+        assert!(!result.mutable);
+        assert_eq!(result.type_name, None);
+        assert!(matches!(
+            result.value,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
     fn test_initialisation_with_typename() {
-        let mut tokens = Lexer::new("let foo: i32 = 42;")
-            .lex()
-            .expect("should work")
-            .into();
+        let result = parse_initialization("let foo: i32 = 42;").unwrap();
 
-        let result = Initialisation::parse(&mut tokens);
-
-        assert_eq!(
-            Ok(Initialisation {
-                id: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                mutable: false,
-                type_name: Some(TypeName::Literal("i32".into(), Span::default())),
-                value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+        assert_eq!(result.id.name, "foo");
+        assert!(!result.mutable);
+        assert!(matches!(result.type_name, Some(TypeName::Literal(ref name, _)) if name == "i32"));
+        assert!(matches!(
+            result.value,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
     }
 
     #[test]
     fn test_mutable_initialisation() {
-        let mut tokens = Lexer::new("let mut foo = 42;")
-            .lex()
-            .expect("should work")
-            .into();
+        let result = parse_initialization("let mut foo = 42;").unwrap();
 
-        let result = Initialisation::parse(&mut tokens);
+        assert_eq!(result.id.name, "foo");
+        assert!(result.mutable);
+        assert_eq!(result.type_name, None);
+        assert!(matches!(
+            result.value,
+            Expression::Num(crate::parser::ast::Num::Integer(42, (), _))
+        ));
+    }
 
-        assert_eq!(
-            Ok(Initialisation {
-                id: Id {
-                    name: "foo".into(),
-                    info: (),
-                    position: Span::default()
-                },
-                mutable: true,
-                type_name: None,
-                value: Expression::Num(Num::Integer(42, (), Span::default())),
-                info: (),
-                position: Span::default()
-            }
-            .into()),
-            result
-        )
+    #[test]
+    fn test_string_initialisation() {
+        let result = parse_initialization("let message = \"hello\";").unwrap();
+
+        assert_eq!(result.id.name, "message");
+        assert!(!result.mutable);
+        assert_eq!(result.type_name, None);
+        assert!(matches!(result.value, Expression::AstString(_)));
+    }
+
+    #[test]
+    fn test_expression_initialisation() {
+        let result = parse_initialization("let sum = x + y;").unwrap();
+
+        assert_eq!(result.id.name, "sum");
+        assert!(!result.mutable);
+        assert_eq!(result.type_name, None);
+        assert!(matches!(result.value, Expression::Binary(_)));
+    }
+
+    #[test]
+    fn test_typed_mutable_initialisation() {
+        let result = parse_initialization("let mut counter: i32 = 0;").unwrap();
+
+        assert_eq!(result.id.name, "counter");
+        assert!(result.mutable);
+        assert!(matches!(result.type_name, Some(TypeName::Literal(ref name, _)) if name == "i32"));
+        assert!(matches!(
+            result.value,
+            Expression::Num(crate::parser::ast::Num::Integer(0, (), _))
+        ));
     }
 }

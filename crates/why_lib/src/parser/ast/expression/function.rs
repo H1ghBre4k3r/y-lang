@@ -1,11 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{
-        ast::{AstNode, Statement, TypeName},
-        combinators::Comb,
-        FromTokens, ParseError, ParseState,
-    },
+    lexer::Span,
+    parser::ast::{AstNode, Statement, TypeName},
 };
 
 use super::{Block, Id};
@@ -42,56 +38,6 @@ impl FromGrammar<grammar::FunctionDeklaration> for Function<()> {
     }
 }
 
-impl FromTokens<Token> for Function<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-
-        let matcher = Comb::FN_KEYWORD
-            >> Comb::ID
-            >> Comb::LPAREN
-            // parameter list (optional)
-            >> (Comb::PARAMETER % Comb::COMMA)
-            >> Comb::RPAREN
-            // return type
-            >> Comb::COLON
-            >> Comb::TYPE_NAME
-            // body of the function
-            >> Comb::BLOCK;
-
-        let mut result = matcher.parse(tokens)?.into_iter().peekable();
-
-        let Some(AstNode::Id(id)) = result.next() else {
-            unreachable!()
-        };
-
-        let mut parameters = vec![];
-
-        while let Some(AstNode::FunctionParameter(param)) =
-            result.next_if(|item| matches!(item, AstNode::FunctionParameter(_)))
-        {
-            parameters.push(param);
-        }
-
-        let Some(AstNode::TypeName(return_type)) = result.next() else {
-            unreachable!();
-        };
-
-        let Some(AstNode::Block(block)) = result.next() else {
-            unreachable!();
-        };
-
-        Ok(Function {
-            id,
-            parameters,
-            return_type,
-            statements: block.statements,
-            info: (),
-            position,
-        }
-        .into())
-    }
-}
-
 impl From<Function<()>> for AstNode {
     fn from(value: Function<()>) -> Self {
         AstNode::Function(value)
@@ -116,30 +62,6 @@ impl FromGrammar<grammar::FunctionParameter> for FunctionParameter<()> {
             info: (),
             position: Span::new(span, source),
         }
-    }
-}
-
-impl FromTokens<Token> for FunctionParameter<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-        let matcher = Comb::ID >> Comb::COLON >> Comb::TYPE_NAME;
-        let result = matcher.parse(tokens)?;
-
-        let Some(AstNode::Id(name)) = result.first() else {
-            unreachable!()
-        };
-
-        let Some(AstNode::TypeName(type_name)) = result.get(1) else {
-            unreachable!()
-        };
-
-        Ok(FunctionParameter {
-            name: name.clone(),
-            type_name: type_name.clone(),
-            info: (),
-            position,
-        }
-        .into())
     }
 }
 
@@ -169,7 +91,9 @@ mod tests {
         assert_eq!(result.id.name, "add");
         assert_eq!(result.parameters.len(), 1);
         assert_eq!(result.parameters[0].name.name, "x");
-        assert!(matches!(result.parameters[0].type_name, TypeName::Literal(ref name, _) if name == "i32"));
+        assert!(
+            matches!(result.parameters[0].type_name, TypeName::Literal(ref name, _) if name == "i32")
+        );
         assert!(matches!(result.return_type, TypeName::Literal(ref name, _) if name == "i32"));
     }
 
@@ -178,13 +102,17 @@ mod tests {
         let result = parse_function("fn add(x: i32, y: i32): i32 { x + y }").unwrap();
         assert_eq!(result.id.name, "add");
         assert_eq!(result.parameters.len(), 2);
-        
+
         assert_eq!(result.parameters[0].name.name, "x");
-        assert!(matches!(result.parameters[0].type_name, TypeName::Literal(ref name, _) if name == "i32"));
-        
+        assert!(
+            matches!(result.parameters[0].type_name, TypeName::Literal(ref name, _) if name == "i32")
+        );
+
         assert_eq!(result.parameters[1].name.name, "y");
-        assert!(matches!(result.parameters[1].type_name, TypeName::Literal(ref name, _) if name == "i32"));
-        
+        assert!(
+            matches!(result.parameters[1].type_name, TypeName::Literal(ref name, _) if name == "i32")
+        );
+
         assert!(matches!(result.return_type, TypeName::Literal(ref name, _) if name == "i32"));
     }
 

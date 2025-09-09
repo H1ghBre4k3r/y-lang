@@ -1,10 +1,9 @@
 use crate::{
     grammar::{self, FromGrammar},
-    lexer::{Span, Token},
-    parser::{ast::AstNode, combinators::Comb, FromTokens, ParseError, ParseState},
+    lexer::Span,
 };
 
-use super::{Expression, Num};
+use super::{AstNode, Expression, Num};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Array<T> {
@@ -60,56 +59,6 @@ impl FromGrammar<grammar::Array> for Array<()> {
     }
 }
 
-impl FromTokens<Token> for Array<()> {
-    fn parse(tokens: &mut ParseState<Token>) -> Result<AstNode, ParseError> {
-        let position = tokens.span()?;
-        let start = tokens.get_index();
-        let matcher = Comb::LBRACKET >> (Comb::EXPR % Comb::COMMA) >> Comb::RBRACKET;
-
-        if let Ok(result) = matcher.parse(tokens) {
-            let mut values = vec![];
-
-            for node in result {
-                let AstNode::Expression(value) = node else {
-                    unreachable!();
-                };
-                values.push(value);
-            }
-            return Ok(Array::Literal {
-                values,
-                info: (),
-                position,
-            }
-            .into());
-        }
-        tokens.set_index(start);
-
-        let matcher = Comb::LBRACKET >> Comb::EXPR >> Comb::SEMI >> Comb::NUM >> Comb::RBRACKET;
-        if let Ok(result) = matcher.parse(tokens) {
-            let Some(AstNode::Expression(initial_value)) = result.first().cloned() else {
-                unreachable!()
-            };
-
-            let Some(AstNode::Num(length)) = result.get(1).cloned() else {
-                unreachable!()
-            };
-
-            return Ok(Array::Default {
-                initial_value: Box::new(initial_value),
-                length,
-                info: (),
-                position,
-            }
-            .into());
-        };
-
-        Err(ParseError {
-            message: "failed to parse array initialization".into(),
-            position: Some(position),
-        })
-    }
-}
-
 impl From<Array<()>> for AstNode {
     fn from(value: Array<()>) -> Self {
         Self::Array(value)
@@ -119,7 +68,7 @@ impl From<Array<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::{ast::Id, test_helpers::*};
+    use crate::parser::test_helpers::*;
 
     #[test]
     fn test_empty_array() {

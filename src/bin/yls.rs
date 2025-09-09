@@ -10,8 +10,8 @@ use tower_lsp_server::lsp_types::*;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use tracing::error;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
-use why_lib::lexer::{self, Span};
-use why_lib::parser::{self, parse_program};
+use why_lib::lexer::Span;
+use why_lib::parser::parse_program;
 use why_lib::typechecker::{self};
 use why_lib::{formatter, grammar};
 
@@ -133,19 +133,14 @@ impl Backend {
 
     fn format_code(&self, input: &str) -> std::result::Result<String, String> {
         // Parse the input
-        let lexed = match lexer::Lexer::new(input).lex() {
-            Ok(lexed) => lexed,
+        let program = match grammar::parse(input) {
+            Ok(program) => program,
             Err(e) => {
-                return Err(format!("Lexer error: {e}"));
+                return Err(format!("Parse error: {:?}", e));
             }
         };
 
-        let parsed = match parser::parse(&mut lexed.into()) {
-            Ok(parsed) => parsed,
-            Err(e) => {
-                return Err(format!("Parse error: {e}"));
-            }
-        };
+        let parsed = parse_program(program, input);
 
         // Format the AST
         match formatter::format_program(&parsed) {
