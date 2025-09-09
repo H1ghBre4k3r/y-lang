@@ -1,4 +1,3 @@
-use rust_sitter::errors::ParseErrorReason;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::Arc;
@@ -14,6 +13,7 @@ use why_lib::lexer::Span;
 use why_lib::parser::parse_program;
 use why_lib::typechecker::{self};
 use why_lib::{formatter, grammar};
+use y_lang::util::convert_parse_error;
 
 #[derive(Debug)]
 struct Backend {
@@ -73,36 +73,13 @@ impl Backend {
             .collect()
     }
 
-    fn convert_parse_error(
-        error: rust_sitter::errors::ParseError,
-        input: &str,
-        analysis: &mut Vec<(String, Span)>,
-    ) {
-        let span = Span::new((error.start, error.end), input);
-
-        match error.reason {
-            ParseErrorReason::UnexpectedToken(msg) => {
-                analysis.push((format!("Unexpected token: {msg}"), span));
-            }
-            ParseErrorReason::MissingToken(msg) => {
-                analysis.push((format!("expected {msg}"), span));
-            }
-            ParseErrorReason::FailedNode(errors) => {
-                analysis.push(("Failed to parse!".into(), span));
-                for e in errors {
-                    Self::convert_parse_error(e, input, analysis);
-                }
-            }
-        }
-    }
-
     fn perform_code_analysis(&self, input: &str) -> Vec<(String, Span)> {
         let program = match grammar::parse(input) {
             Ok(program) => program,
             Err(errors) => {
                 let mut analysis = vec![];
                 for error in errors {
-                    Self::convert_parse_error(error, input, &mut analysis);
+                    convert_parse_error(error, input, &mut analysis);
                 }
                 return analysis;
             }
