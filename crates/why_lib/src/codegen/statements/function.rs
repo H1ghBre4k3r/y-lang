@@ -29,10 +29,18 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
             unreachable!()
         };
 
+        // Special handling for void main function
+        let (actual_fn_name, create_main_wrapper) =
+            if id.name == "main" && **return_value == Type::Void {
+                ("y_main", true)
+            } else {
+                (id.name.as_str(), false)
+            };
+
         let llvm_fn_type = build_llvm_function_type_from_own_types(ctx, return_value, params);
 
         // get function value and store it in the scope (such that it can be referenced later)
-        let llvm_fn_value = ctx.module.add_function(&id.name, llvm_fn_type, None);
+        let llvm_fn_value = ctx.module.add_function(actual_fn_name, llvm_fn_type, None);
         ctx.store_function(&id.name, llvm_fn_value);
 
         // enter scope for function parameters and local variables
@@ -55,7 +63,13 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         }
 
         // Add terminator instruction if the basic block doesn't have one
-        if ctx.builder.get_insert_block().unwrap().get_terminator().is_none() {
+        if ctx
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_none()
+        {
             match return_value.as_ref() {
                 Type::Void => {
                     ctx.builder.build_return(None).unwrap();
@@ -64,6 +78,28 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
                     // Non-void function without explicit return is an error, but we'll add unreachable
                     ctx.builder.build_unreachable().unwrap();
                 }
+            }
+        }
+
+        // Create main wrapper if needed
+        if create_main_wrapper {
+            let main_fn_type = ctx.context.i32_type().fn_type(&[], false);
+            let main_fn = ctx.module.add_function("main", main_fn_type, None);
+            let main_bb = ctx.context.append_basic_block(main_fn, "entry");
+
+            // Store current builder position
+            let current_bb = ctx.builder.get_insert_block();
+
+            // Build the wrapper
+            ctx.builder.position_at_end(main_bb);
+            ctx.builder.build_call(llvm_fn_value, &[], "").unwrap();
+            ctx.builder
+                .build_return(Some(&ctx.context.i32_type().const_int(0, false)))
+                .unwrap();
+
+            // Restore builder position if it existed
+            if let Some(bb) = current_bb {
+                ctx.builder.position_at_end(bb);
             }
         }
 
