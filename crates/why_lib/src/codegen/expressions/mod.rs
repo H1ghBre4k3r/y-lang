@@ -3,6 +3,7 @@ mod binary;
 mod block;
 mod character;
 mod id;
+mod if_expression;
 mod num;
 mod postfix;
 mod prefix;
@@ -24,7 +25,7 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
             Expression::AstString(ast_string) => Some(ast_string.codegen(ctx)),
             Expression::Function(function) => todo!(),
             Expression::Lambda(lambda) => todo!(),
-            Expression::If(_) => todo!(),
+            Expression::If(if_expr) => if_expr.codegen(ctx),
             Expression::Block(block) => block.codegen(ctx),
             Expression::Parens(expression) => expression.codegen(ctx),
             Expression::Postfix(postfix) => postfix.codegen(ctx),

@@ -7,7 +7,7 @@ use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
-    types::{BasicMetadataTypeEnum, BasicTypeEnum},
+    types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
     values::{BasicValueEnum, FunctionValue},
 };
 
@@ -150,8 +150,34 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             let struct_type = ctx.context.struct_type(&llvm_fields, false);
             struct_type.into()
         }
-        // TODO: this should definetly return a pointer instead of metadata_type
-        Type::Function { .. } => ctx.context.metadata_type().into(),
+        // Function types are represented as function pointers
+        Type::Function { params, return_value } => {
+            // Create function type and return pointer to it
+            let llvm_param_types: Vec<_> = params
+                .iter()
+                .map(|param_type| ctx.get_llvm_type(param_type))
+                .collect();
+
+            match return_value.as_ref() {
+                Type::Void => {
+                    let llvm_void_type = ctx.context.void_type();
+                    let fn_type = llvm_void_type.fn_type(&llvm_param_types, false);
+                    ctx.context.ptr_type(Default::default()).into()
+                }
+                return_type => {
+                    let llvm_return_metadata_type = ctx.get_llvm_type(return_type);
+                    if let Some(basic_return_type) = convert_metadata_to_basic(llvm_return_metadata_type) {
+                        let _fn_type = basic_return_type.fn_type(&llvm_param_types, false);
+                        ctx.context.ptr_type(Default::default()).into()
+                    } else {
+                        // Fallback to void function pointer if conversion fails
+                        let llvm_void_type = ctx.context.void_type();
+                        let _fn_type = llvm_void_type.fn_type(&llvm_param_types, false);
+                        ctx.context.ptr_type(Default::default()).into()
+                    }
+                }
+            }
+        }
     }
 }
 
