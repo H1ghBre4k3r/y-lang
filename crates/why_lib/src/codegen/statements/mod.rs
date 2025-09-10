@@ -22,7 +22,15 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
             Statement::Expression(expression) => {
                 expression.codegen(ctx);
             }
-            Statement::YieldingExpression(expression) => todo!(),
+            Statement::YieldingExpression(expression) => {
+                let Some(llvm_return_value) = expression.codegen(ctx) else {
+                    unreachable!("YieldingExpression should always produce a value")
+                };
+
+                if let Err(e) = ctx.builder.build_return(Some(&llvm_return_value)) {
+                    panic!("{e}");
+                }
+            }
             Statement::Return(expression) => {
                 let Some(llvm_return_value) = expression.codegen(ctx) else {
                     unreachable!()

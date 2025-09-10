@@ -48,6 +48,26 @@ pub struct VCArgs {
 
     #[arg(short, long, default_value = "a.out")]
     pub output: std::path::PathBuf,
+
+    /// Emit LLVM IR (.ll files)
+    #[arg(long)]
+    pub emit_llvm: bool,
+
+    /// Emit LLVM bitcode (.bc files)
+    #[arg(long)]
+    pub emit_bitcode: bool,
+
+    /// Emit native assembly (.s files)
+    #[arg(long)]
+    pub emit_assembly: bool,
+
+    /// Emit object files (.o files)
+    #[arg(long)]
+    pub emit_object: bool,
+
+    /// Emit executable (link with system linker)
+    #[arg(long)]
+    pub emit_executable: bool,
 }
 
 impl VCArgs {
@@ -135,7 +155,10 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
             println!("{module:#?}");
         }
 
-        module.codegen();
+        if let Err(e) = module.codegen(args.emit_llvm, args.emit_bitcode, args.emit_assembly, args.emit_object) {
+            eprintln!("Codegen error: {e}");
+            process::exit(-1);
+        }
     } else {
         if args.print_lexed {
             eprintln!(
@@ -162,7 +185,10 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
         }
     }
 
-    module.compile(args.output.to_str().unwrap());
+    // Only compile to executable if explicitly requested or no other emit flags are set
+    if args.emit_executable || (!args.emit_llvm && !args.emit_bitcode && !args.emit_assembly && !args.emit_object) {
+        module.compile(args.output.to_str().unwrap());
+    }
 
     Ok(())
 }

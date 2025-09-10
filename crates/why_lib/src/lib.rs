@@ -1,7 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, fs, process::Command};
 
 use codegen::{CodeGen, CodegenContext, ScopeFrame};
-use inkwell::context::Context;
+use inkwell::{
+    context::Context,
+    module::Module as LLVMModule,
+    targets::{FileType, InitializationConfig, Target, TargetMachine},
+    OptimizationLevel,
+};
 use parser::ast::TopLevelStatement;
 use sha2::{Digest, Sha256};
 use typechecker::{TypeChecker, TypeInformation, ValidatedTypeInformation};
@@ -42,6 +47,22 @@ impl<A> Module<A> {
 
     pub fn file_path(&self) -> String {
         format!("out/{}.ll", self.hash())
+    }
+
+    pub fn llvm_file_path(&self) -> String {
+        format!("out/{}.ll", self.hash())
+    }
+
+    pub fn bitcode_file_path(&self) -> std::path::PathBuf {
+        format!("out/{}.bc", self.hash()).into()
+    }
+
+    pub fn assembly_file_path(&self) -> String {
+        format!("out/{}.s", self.hash())
+    }
+
+    pub fn object_file_path(&self) -> String {
+        format!("out/{}.o", self.hash())
     }
 
     pub fn exists(&self) -> bool {
@@ -103,7 +124,7 @@ impl Module<Vec<TopLevelStatement<TypeInformation>>> {
 }
 
 impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
-    pub fn codegen(&self) {
+    pub fn codegen(&self, emit_llvm: bool, emit_bitcode: bool, emit_assembly: bool, emit_object: bool) -> anyhow::Result<()> {
         let context = Context::create();
         let module = context.create_module(&self.hash());
         let builder = context.create_builder();
@@ -123,9 +144,88 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             statement.codegen(&codegen_context);
         }
 
-        codegen_context
-            .module
-            .print_to_file(self.file_path())
-            .expect("Error while writing to fil");
+        // Emit different output formats based on flags
+        if emit_llvm {
+            codegen_context
+                .module
+                .print_to_file(&self.llvm_file_path())
+                .map_err(|e| anyhow::anyhow!("Error writing LLVM IR file: {}", e))?;
+        }
+
+        if emit_bitcode {
+            codegen_context
+                .module
+                .write_bitcode_to_path(&self.bitcode_file_path());
+        }
+
+        if emit_assembly {
+            self.emit_assembly_file(&codegen_context.module)?;
+        }
+
+        if emit_object {
+            self.emit_object_file(&codegen_context.module)?;
+        }
+
+        // Default behavior: emit LLVM IR to the default path for backward compatibility
+        if !emit_llvm && !emit_bitcode && !emit_assembly && !emit_object {
+            codegen_context
+                .module
+                .print_to_file(self.file_path())
+                .map_err(|e| anyhow::anyhow!("Error writing default LLVM IR file: {}", e))?;
+        }
+
+        Ok(())
+    }
+
+    fn emit_assembly_file(&self, module: &LLVMModule) -> anyhow::Result<()> {
+        Target::initialize_native(&InitializationConfig::default())
+            .map_err(|e| anyhow::anyhow!("Failed to initialize native target: {}", e))?;
+
+        let target_triple = TargetMachine::get_default_triple();
+        let target = Target::from_triple(&target_triple)
+            .map_err(|e| anyhow::anyhow!("Failed to create target from triple: {}", e))?;
+
+        let target_machine = target
+            .create_target_machine(
+                &target_triple,
+                TargetMachine::get_host_cpu_name().to_str().unwrap(),
+                TargetMachine::get_host_cpu_features().to_str().unwrap(),
+                OptimizationLevel::None,
+                inkwell::targets::RelocMode::Default,
+                inkwell::targets::CodeModel::Default,
+            )
+            .ok_or_else(|| anyhow::anyhow!("Failed to create target machine"))?;
+
+        target_machine
+            .write_to_file(module, FileType::Assembly, std::path::Path::new(&self.assembly_file_path()))
+            .map_err(|e| anyhow::anyhow!("Failed to write assembly file: {}", e))?;
+
+        Ok(())
+    }
+
+    fn emit_object_file(&self, module: &LLVMModule) -> anyhow::Result<()> {
+        Target::initialize_native(&InitializationConfig::default())
+            .map_err(|e| anyhow::anyhow!("Failed to initialize native target: {}", e))?;
+
+        let target_triple = TargetMachine::get_default_triple();
+        let target = Target::from_triple(&target_triple)
+            .map_err(|e| anyhow::anyhow!("Failed to create target from triple: {}", e))?;
+
+        let target_machine = target
+            .create_target_machine(
+                &target_triple,
+                TargetMachine::get_host_cpu_name().to_str().unwrap(),
+                TargetMachine::get_host_cpu_features().to_str().unwrap(),
+                OptimizationLevel::None,
+                inkwell::targets::RelocMode::Default,
+                inkwell::targets::CodeModel::Default,
+            )
+            .ok_or_else(|| anyhow::anyhow!("Failed to create target machine"))?;
+
+        target_machine
+            .write_to_file(module, FileType::Object, std::path::Path::new(&self.object_file_path()))
+            .map_err(|e| anyhow::anyhow!("Failed to write object file: {}", e))?;
+
+        Ok(())
     }
 }
