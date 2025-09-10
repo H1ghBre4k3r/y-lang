@@ -54,6 +54,19 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
             statement.codegen(ctx);
         }
 
+        // Add terminator instruction if the basic block doesn't have one
+        if ctx.builder.get_insert_block().unwrap().get_terminator().is_none() {
+            match return_value.as_ref() {
+                Type::Void => {
+                    ctx.builder.build_return(None).unwrap();
+                }
+                _ => {
+                    // Non-void function without explicit return is an error, but we'll add unreachable
+                    ctx.builder.build_unreachable().unwrap();
+                }
+            }
+        }
+
         ctx.exit_scope();
     }
 }
