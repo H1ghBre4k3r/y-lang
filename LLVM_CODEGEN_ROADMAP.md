@@ -42,7 +42,7 @@ The compiler pipeline flows: `Source → Lexer → Parser → TypeChecker → Va
    - `--emit-bitcode` - Emit LLVM bitcode (.bc files) 
    - `--emit-assembly` - Emit native assembly (.s files)
    - `--emit-object` - Emit object files (.o files)
-   - `--emit-executable` - Emit executable (link with system linker)
+   - an executable is always emitted
 
 4. **Update main compilation pipeline**
    - Integrate codegen after validation step

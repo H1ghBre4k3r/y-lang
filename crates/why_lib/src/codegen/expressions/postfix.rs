@@ -37,17 +37,14 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                 let element_basic_type = convert_metadata_to_basic(llvm_element_type)
                     .expect("Array element type must be basic");
 
-                // For array indexing, we'll use a simpler approach
                 // Build GEP to get pointer to the indexed element
+                // Since we have a pointer to an array, we need to use the element type and just the index
                 let element_ptr = unsafe {
                     ctx.builder
                         .build_gep(
                             element_basic_type,
                             array_ptr,
-                            &[
-                                ctx.context.i32_type().const_zero(), // First index for array pointer
-                                index_int,                           // Second index for element
-                            ],
+                            &[index_int], // Just the index, no need for extra i32 0
                             "array_index",
                         )
                         .unwrap()

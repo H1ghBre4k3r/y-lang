@@ -1,0 +1,12 @@
+declare printf: (str) -> void;
+
+fn main(): void {
+    let left = 42;
+    let right = 1337;
+    let foo = &[left, right];
+    let mut x = 0;
+    while (x < 10) {
+        printf("Hello\n");
+        x = x + 1;
+    }
+}

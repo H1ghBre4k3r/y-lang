@@ -1,4 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, fs, process::Command};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fs,
+    io::Stderr,
+    process::{self, Command, Stdio},
+};
 
 use codegen::{CodeGen, CodegenContext, ScopeFrame};
 use inkwell::{
@@ -70,13 +76,23 @@ impl<A> Module<A> {
     }
 
     pub fn compile(&self, out: &str) {
-        if let Err(e) = Command::new("clang")
+        let out = Command::new("clang")
             .arg(self.file_path())
             .arg("-o")
             .arg(out)
-            .output()
-        {
-            eprintln!("{e}")
+            .stderr(Stdio::inherit())
+            .output();
+
+        match out {
+            Ok(std::process::Output { status, .. }) => {
+                if !status.success() {
+                    process::exit(status.code().unwrap_or(-1));
+                }
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                process::exit(-1);
+            }
         }
     }
 }
