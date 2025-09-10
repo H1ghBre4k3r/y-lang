@@ -2,7 +2,7 @@ use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 
 use crate::{
     codegen::{
-        statements::function::build_llvm_function_type_from_own_types, CodeGen, CodegenContext,
+        statements::function::build_llvm_function_type_from_own_types, convert_metadata_to_basic, CodeGen, CodegenContext,
     },
     parser::ast::{Expression, Postfix},
     typechecker::{Type, ValidatedTypeInformation},
@@ -17,9 +17,52 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
             Postfix::Index {
                 expr,
                 index,
-                info,
-                position,
-            } => todo!(),
+                ..
+            } => {
+                let Some(array_value) = expr.codegen(ctx) else {
+                    unreachable!("Array expression must produce a value")
+                };
+                
+                let Some(index_value) = index.codegen(ctx) else {
+                    unreachable!("Index expression must produce a value")
+                };
+                
+                let array_ptr = array_value.into_pointer_value();
+                let index_int = index_value.into_int_value();
+                
+                // We need to determine the array type from the original expression type
+                let expr_type = &expr.get_info().type_id;
+                let Type::Array(element_type) = expr_type else {
+                    unreachable!("Index expression must be on array type")
+                };
+                
+                let llvm_element_type = ctx.get_llvm_type(element_type);
+                let element_basic_type = convert_metadata_to_basic(llvm_element_type)
+                    .expect("Array element type must be basic");
+                
+                // For array indexing, we'll use a simpler approach
+                // Build GEP to get pointer to the indexed element
+                let element_ptr = unsafe {
+                    ctx.builder.build_gep(
+                        element_basic_type,
+                        array_ptr,
+                        &[
+                            ctx.context.i32_type().const_zero(), // First index for array pointer
+                            index_int,                           // Second index for element
+                        ],
+                        "array_index"
+                    ).unwrap()
+                };
+                
+                // Load the value from the element pointer
+                let element_value = ctx.builder.build_load(
+                    element_basic_type,
+                    element_ptr,
+                    "array_elem"
+                ).unwrap();
+                
+                Some(element_value)
+            },
             Postfix::PropertyAccess {
                 expr,
                 property,

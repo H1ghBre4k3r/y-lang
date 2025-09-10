@@ -240,6 +240,23 @@ pub fn parse_block(code: &str) -> Result<crate::parser::ast::Block<()>, String> 
     Err("Failed to extract block from parsed result".to_string())
 }
 
+/// Helper to parse a boolean literal by wrapping it in a function context
+pub fn parse_bool(code: &str) -> Result<crate::parser::ast::Bool<()>, String> {
+    let wrapped = format!("fn main(): void {{ {}; }}", code);
+    let program = grammar::parse(&wrapped).map_err(|e| format!("Parse error: {:?}", e))?;
+
+    if let Some(statement) = program.statements.first() {
+        let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
+        if let TopLevelStatement::Function(function) = top_level {
+            if let Some(Statement::Expression(Expression::Bool(bool_val))) = function.statements.first() {
+                return Ok(bool_val.clone());
+            }
+        }
+    }
+
+    Err("Failed to extract boolean from parsed result".to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
