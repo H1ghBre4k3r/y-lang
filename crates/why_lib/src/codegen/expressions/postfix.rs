@@ -44,16 +44,6 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
             unreachable!()
         };
 
-        let llvm_function_type =
-            build_llvm_function_type_from_own_types(ctx, &return_value, &params);
-        let Some(expr) = expr.codegen(ctx) else {
-            unreachable!()
-        };
-
-        let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr else {
-            unreachable!("The Expression in a Call-Postfix should always return a pointer");
-        };
-
         let args = args
             .iter()
             .map(|arg| {
@@ -63,6 +53,31 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
                 arg.into()
             })
             .collect::<Vec<BasicMetadataValueEnum<'ctx>>>();
+
+        // Check if this is a direct function call (Id expression)
+        if let Expression::Id(id) = expr {
+            // Try to find the function in the LLVM module by name
+            let function_name = &id.name;
+            if let Some(llvm_function) = ctx.module.get_function(function_name) {
+                // Direct call to declared/defined function
+                return ctx.builder
+                    .build_call(llvm_function, &args, "")
+                    .unwrap()
+                    .try_as_basic_value()
+                    .left();
+            }
+        }
+
+        // Fallback to indirect call through function pointer
+        let llvm_function_type =
+            build_llvm_function_type_from_own_types(ctx, &return_value, &params);
+        let Some(expr_value) = expr.codegen(ctx) else {
+            unreachable!()
+        };
+
+        let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr_value else {
+            unreachable!("The Expression in a Call-Postfix should always return a pointer");
+        };
 
         ctx.builder
             .build_indirect_call(llvm_function_type, llvm_fn_pointer, &args, "")
