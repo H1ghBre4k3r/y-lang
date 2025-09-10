@@ -31,13 +31,17 @@ pub struct Scope<'ctx> {
 
 impl<'ctx> CodegenContext<'ctx> {
     pub fn get_llvm_type(&self, our_type: &Type) -> BasicMetadataTypeEnum<'ctx> {
-        let mut types = self.types.borrow_mut();
-        if let Some(entry) = types.get(our_type) {
-            return *entry;
+        {
+            let types = self.types.borrow();
+            if let Some(entry) = types.get(our_type) {
+                return *entry;
+            }
         }
-
         let new_type = convert_our_type_to_llvm_basic_metadata_type(our_type, self);
-        types.insert(our_type.clone(), new_type);
+        {
+            let mut types = self.types.borrow_mut();
+            types.insert(our_type.clone(), new_type);
+        }
         new_type
     }
 
