@@ -11,7 +11,21 @@ impl<'ctx> CodeGen<'ctx> for Prefix<ValidatedTypeInformation> {
 
     fn codegen(&self, ctx: &crate::codegen::CodegenContext<'ctx>) -> Self::ReturnValue {
         match self {
-            Prefix::Negation { expr, position } => todo!(),
+            Prefix::Negation { expr, .. } => {
+                let expr_type = expr.get_info().type_id;
+                let Some(expr_value) = expr.codegen(ctx) else {
+                    unreachable!()
+                };
+
+                match expr_type {
+                    Type::Boolean => {
+                        let expr = expr_value.into_int_value();
+                        // Boolean negation: !true = false (0), !false = true (1)
+                        ctx.builder.build_not(expr, "").unwrap().into()
+                    }
+                    _ => unreachable!("Negation operator only valid for boolean types"),
+                }
+            }
             Prefix::Minus { expr, .. } => {
                 let expr_type = expr.get_info().type_id;
                 let Some(expr) = expr.codegen(ctx) else {

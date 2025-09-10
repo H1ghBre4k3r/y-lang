@@ -1,6 +1,7 @@
 mod ast_string;
 mod binary;
 mod block;
+mod bool;
 mod character;
 mod id;
 mod if_expression;
@@ -21,6 +22,7 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
         match self {
             Expression::Id(id) => Some(id.codegen(ctx)),
             Expression::Num(num) => Some(num.codegen(ctx)),
+            Expression::Bool(bool) => Some(bool.codegen(ctx)),
             Expression::Character(character) => Some(character.codegen(ctx)),
             Expression::AstString(ast_string) => Some(ast_string.codegen(ctx)),
             Expression::Function(function) => todo!(),

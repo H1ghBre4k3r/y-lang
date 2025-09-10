@@ -1,7 +1,7 @@
 use crate::{
     formatter::{Format, FormatterContext},
     parser::ast::{
-        Array, AstString, BinaryExpression, BinaryOperator, Block, Character, Expression, Function,
+        Array, AstString, BinaryExpression, BinaryOperator, Block, Bool, Character, Expression, Function,
         FunctionParameter, Id, If, Lambda, LambdaParameter, Num, Postfix, Prefix,
         StructFieldInitialisation, StructInitialisation, TypeName,
     },
@@ -13,6 +13,7 @@ impl Format for Expression<()> {
         match self {
             Expression::Id(id) => id.format(ctx),
             Expression::Num(num) => num.format(ctx),
+            Expression::Bool(bool) => bool.format(ctx),
             Expression::Character(character) => character.format(ctx),
             Expression::AstString(string) => string.format(ctx),
             Expression::Function(function) => function.format(ctx),
@@ -51,6 +52,12 @@ impl Format for Num<()> {
 impl Format for Character<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         write!(ctx.output, "'{}'", escape_char(self.character))
+    }
+}
+
+impl Format for Bool<()> {
+    fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
+        ctx.write(if self.value { "true" } else { "false" })
     }
 }
 
