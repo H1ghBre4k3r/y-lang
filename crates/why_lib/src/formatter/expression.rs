@@ -130,6 +130,7 @@ impl Format for If<()> {
                 }
                 Ok(())
             })?;
+            ctx.write_indent()?; // Add indentation for closing brace
         }
 
         ctx.write("}")?;
@@ -145,6 +146,7 @@ impl Format for If<()> {
                 }
                 Ok(())
             })?;
+            ctx.write_indent()?; // Add indentation for else closing brace
             ctx.write("}")?;
         }
 
