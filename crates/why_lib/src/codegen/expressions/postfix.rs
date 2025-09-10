@@ -60,7 +60,8 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
             let function_name = &id.name;
             if let Some(llvm_function) = ctx.module.get_function(function_name) {
                 // Direct call to declared/defined function
-                return ctx.builder
+                return ctx
+                    .builder
                     .build_call(llvm_function, &args, "")
                     .unwrap()
                     .try_as_basic_value()
