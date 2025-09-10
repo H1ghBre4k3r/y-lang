@@ -144,11 +144,11 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             let element_llvm_type = ctx.get_llvm_type(element_type);
             let element_basic_type = convert_metadata_to_basic(element_llvm_type)
                 .expect("Array element type must be basic");
-            
+
             // For now, we'll represent arrays as pointers to their element type
             // This matches how we handle them in codegen (stack-allocated arrays)
             ctx.context.ptr_type(Default::default()).into()
-        },
+        }
         Type::Struct(_, fields) => {
             let llvm_fields: Vec<_> = fields
                 .iter()

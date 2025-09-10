@@ -248,7 +248,9 @@ pub fn parse_bool(code: &str) -> Result<crate::parser::ast::Bool<()>, String> {
     if let Some(statement) = program.statements.first() {
         let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
         if let TopLevelStatement::Function(function) = top_level {
-            if let Some(Statement::Expression(Expression::Bool(bool_val))) = function.statements.first() {
+            if let Some(Statement::Expression(Expression::Bool(bool_val))) =
+                function.statements.first()
+            {
                 return Ok(bool_val.clone());
             }
         }

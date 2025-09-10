@@ -50,4 +50,3 @@ mod tests {
         assert!(parse_bool("").is_err()); // Empty string
     }
 }
-

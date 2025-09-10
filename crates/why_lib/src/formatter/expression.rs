@@ -1,8 +1,8 @@
 use crate::{
     formatter::{Format, FormatterContext},
     parser::ast::{
-        Array, AstString, BinaryExpression, BinaryOperator, Block, Bool, Character, Expression, Function,
-        FunctionParameter, Id, If, Lambda, LambdaParameter, Num, Postfix, Prefix,
+        Array, AstString, BinaryExpression, BinaryOperator, Block, Bool, Character, Expression,
+        Function, FunctionParameter, Id, If, Lambda, LambdaParameter, Num, Postfix, Prefix,
         StructFieldInitialisation, StructInitialisation, TypeName,
     },
 };
