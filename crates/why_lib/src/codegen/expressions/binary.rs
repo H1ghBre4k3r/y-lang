@@ -69,67 +69,127 @@ impl<'ctx> CodeGen<'ctx> for BinaryExpression<ValidatedTypeInformation> {
             // Comparison operations for integers - return boolean
             (BasicMetadataTypeEnum::IntType(_), BinaryOperator::Equals) => ctx
                 .builder
-                .build_int_compare(IntPredicate::EQ, left.into_int_value(), right.into_int_value(), "")
+                .build_int_compare(
+                    IntPredicate::EQ,
+                    left.into_int_value(),
+                    right.into_int_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::IntType(_), BinaryOperator::NotEquals) => ctx
                 .builder
-                .build_int_compare(IntPredicate::NE, left.into_int_value(), right.into_int_value(), "")
+                .build_int_compare(
+                    IntPredicate::NE,
+                    left.into_int_value(),
+                    right.into_int_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::IntType(_), BinaryOperator::LessThan) => ctx
                 .builder
-                .build_int_compare(IntPredicate::SLT, left.into_int_value(), right.into_int_value(), "")
+                .build_int_compare(
+                    IntPredicate::SLT,
+                    left.into_int_value(),
+                    right.into_int_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::IntType(_), BinaryOperator::LessOrEqual) => ctx
                 .builder
-                .build_int_compare(IntPredicate::SLE, left.into_int_value(), right.into_int_value(), "")
+                .build_int_compare(
+                    IntPredicate::SLE,
+                    left.into_int_value(),
+                    right.into_int_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::IntType(_), BinaryOperator::GreaterThan) => ctx
                 .builder
-                .build_int_compare(IntPredicate::SGT, left.into_int_value(), right.into_int_value(), "")
+                .build_int_compare(
+                    IntPredicate::SGT,
+                    left.into_int_value(),
+                    right.into_int_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::IntType(_), BinaryOperator::GreaterOrEqual) => ctx
                 .builder
-                .build_int_compare(IntPredicate::SGE, left.into_int_value(), right.into_int_value(), "")
+                .build_int_compare(
+                    IntPredicate::SGE,
+                    left.into_int_value(),
+                    right.into_int_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
-            
+
             // Comparison operations for floats - return boolean
             (BasicMetadataTypeEnum::FloatType(_), BinaryOperator::Equals) => ctx
                 .builder
-                .build_float_compare(FloatPredicate::OEQ, left.into_float_value(), right.into_float_value(), "")
+                .build_float_compare(
+                    FloatPredicate::OEQ,
+                    left.into_float_value(),
+                    right.into_float_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::FloatType(_), BinaryOperator::NotEquals) => ctx
                 .builder
-                .build_float_compare(FloatPredicate::ONE, left.into_float_value(), right.into_float_value(), "")
+                .build_float_compare(
+                    FloatPredicate::ONE,
+                    left.into_float_value(),
+                    right.into_float_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::FloatType(_), BinaryOperator::LessThan) => ctx
                 .builder
-                .build_float_compare(FloatPredicate::OLT, left.into_float_value(), right.into_float_value(), "")
+                .build_float_compare(
+                    FloatPredicate::OLT,
+                    left.into_float_value(),
+                    right.into_float_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::FloatType(_), BinaryOperator::LessOrEqual) => ctx
                 .builder
-                .build_float_compare(FloatPredicate::OLE, left.into_float_value(), right.into_float_value(), "")
+                .build_float_compare(
+                    FloatPredicate::OLE,
+                    left.into_float_value(),
+                    right.into_float_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::FloatType(_), BinaryOperator::GreaterThan) => ctx
                 .builder
-                .build_float_compare(FloatPredicate::OGT, left.into_float_value(), right.into_float_value(), "")
+                .build_float_compare(
+                    FloatPredicate::OGT,
+                    left.into_float_value(),
+                    right.into_float_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
             (BasicMetadataTypeEnum::FloatType(_), BinaryOperator::GreaterOrEqual) => ctx
                 .builder
-                .build_float_compare(FloatPredicate::OGE, left.into_float_value(), right.into_float_value(), "")
+                .build_float_compare(
+                    FloatPredicate::OGE,
+                    left.into_float_value(),
+                    right.into_float_value(),
+                    "",
+                )
                 .unwrap()
                 .into(),
-                
+
             _ => todo!(),
         }
     }

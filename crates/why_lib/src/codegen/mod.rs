@@ -151,7 +151,10 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             struct_type.into()
         }
         // Function types are represented as function pointers
-        Type::Function { params, return_value } => {
+        Type::Function {
+            params,
+            return_value,
+        } => {
             // Create function type and return pointer to it
             let llvm_param_types: Vec<_> = params
                 .iter()
@@ -166,7 +169,9 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
                 }
                 return_type => {
                     let llvm_return_metadata_type = ctx.get_llvm_type(return_type);
-                    if let Some(basic_return_type) = convert_metadata_to_basic(llvm_return_metadata_type) {
+                    if let Some(basic_return_type) =
+                        convert_metadata_to_basic(llvm_return_metadata_type)
+                    {
                         let _fn_type = basic_return_type.fn_type(&llvm_param_types, false);
                         ctx.context.ptr_type(Default::default()).into()
                     } else {

@@ -12,9 +12,9 @@ impl<'ctx> CodeGen<'ctx> for Block<ValidatedTypeInformation> {
     fn codegen(&self, ctx: &CodegenContext<'ctx>) -> Self::ReturnValue {
         // Enter a new scope for the block
         ctx.enter_scope();
-        
+
         let mut last_value = None;
-        
+
         // Execute all statements in the block except the last one
         let statements_len = self.statements.len();
         for (i, statement) in self.statements.iter().enumerate() {
@@ -31,10 +31,10 @@ impl<'ctx> CodeGen<'ctx> for Block<ValidatedTypeInformation> {
                 statement.codegen(ctx);
             }
         }
-        
+
         // Exit the scope when leaving the block
         ctx.exit_scope();
-        
+
         last_value
     }
 }

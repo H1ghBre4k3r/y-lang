@@ -155,7 +155,12 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
             println!("{module:#?}");
         }
 
-        if let Err(e) = module.codegen(args.emit_llvm, args.emit_bitcode, args.emit_assembly, args.emit_object) {
+        if let Err(e) = module.codegen(
+            args.emit_llvm,
+            args.emit_bitcode,
+            args.emit_assembly,
+            args.emit_object,
+        ) {
             eprintln!("Codegen error: {e}");
             process::exit(-1);
         }
@@ -186,7 +191,9 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     }
 
     // Only compile to executable if explicitly requested or no other emit flags are set
-    if args.emit_executable || (!args.emit_llvm && !args.emit_bitcode && !args.emit_assembly && !args.emit_object) {
+    if args.emit_executable
+        || (!args.emit_llvm && !args.emit_bitcode && !args.emit_assembly && !args.emit_object)
+    {
         module.compile(args.output.to_str().unwrap());
     }
 

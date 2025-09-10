@@ -124,7 +124,13 @@ impl Module<Vec<TopLevelStatement<TypeInformation>>> {
 }
 
 impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
-    pub fn codegen(&self, emit_llvm: bool, emit_bitcode: bool, emit_assembly: bool, emit_object: bool) -> anyhow::Result<()> {
+    pub fn codegen(
+        &self,
+        emit_llvm: bool,
+        emit_bitcode: bool,
+        emit_assembly: bool,
+        emit_object: bool,
+    ) -> anyhow::Result<()> {
         let context = Context::create();
         let module = context.create_module(&self.hash());
         let builder = context.create_builder();
@@ -148,14 +154,14 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
         if emit_llvm {
             codegen_context
                 .module
-                .print_to_file(&self.llvm_file_path())
+                .print_to_file(self.llvm_file_path())
                 .map_err(|e| anyhow::anyhow!("Error writing LLVM IR file: {}", e))?;
         }
 
         if emit_bitcode {
             codegen_context
                 .module
-                .write_bitcode_to_path(&self.bitcode_file_path());
+                .write_bitcode_to_path(self.bitcode_file_path());
         }
 
         if emit_assembly {
@@ -197,7 +203,11 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             .ok_or_else(|| anyhow::anyhow!("Failed to create target machine"))?;
 
         target_machine
-            .write_to_file(module, FileType::Assembly, std::path::Path::new(&self.assembly_file_path()))
+            .write_to_file(
+                module,
+                FileType::Assembly,
+                std::path::Path::new(&self.assembly_file_path()),
+            )
             .map_err(|e| anyhow::anyhow!("Failed to write assembly file: {}", e))?;
 
         Ok(())
@@ -223,7 +233,11 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             .ok_or_else(|| anyhow::anyhow!("Failed to create target machine"))?;
 
         target_machine
-            .write_to_file(module, FileType::Object, std::path::Path::new(&self.object_file_path()))
+            .write_to_file(
+                module,
+                FileType::Object,
+                std::path::Path::new(&self.object_file_path()),
+            )
             .map_err(|e| anyhow::anyhow!("Failed to write object file: {}", e))?;
 
         Ok(())
