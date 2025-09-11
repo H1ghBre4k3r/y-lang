@@ -1,7 +1,9 @@
 pub mod assignment;
+pub mod constant;
 pub mod declaration;
 pub mod function;
 pub mod initialisation;
+pub mod struct_declaration;
 pub mod while_loop;
 
 use crate::{
@@ -19,7 +21,7 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
             Statement::Function(function) => function.codegen(ctx),
             Statement::WhileLoop(while_loop) => while_loop.codegen(ctx),
             Statement::Initialization(initialisation) => initialisation.codegen(ctx),
-            Statement::Constant(constant) => todo!(),
+            Statement::Constant(constant) => constant.codegen(ctx),
             Statement::Assignment(assignment) => assignment.codegen(ctx),
             Statement::Expression(expression) => {
                 expression.codegen(ctx);
@@ -49,9 +51,9 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
                     panic!("{e}");
                 }
             }
-            Statement::Comment(_) => todo!(),
+            Statement::Comment(_) => {}, // Comments are no-ops in codegen
             Statement::Declaration(declaration) => declaration.codegen(ctx),
-            Statement::StructDeclaration(struct_declaration) => todo!(),
+            Statement::StructDeclaration(struct_declaration) => struct_declaration.codegen(ctx),
         }
     }
 }
@@ -61,11 +63,11 @@ impl<'ctx> CodeGen<'ctx> for TopLevelStatement<ValidatedTypeInformation> {
 
     fn codegen(&self, ctx: &CodegenContext<'ctx>) {
         match self {
-            TopLevelStatement::Comment(_) => todo!(),
+            TopLevelStatement::Comment(_) => {}, // Comments are no-ops in codegen
             TopLevelStatement::Function(function) => function.codegen(ctx),
-            TopLevelStatement::Constant(constant) => todo!(),
+            TopLevelStatement::Constant(constant) => constant.codegen(ctx),
             TopLevelStatement::Declaration(declaration) => declaration.codegen(ctx),
-            TopLevelStatement::StructDeclaration(struct_declaration) => todo!(),
+            TopLevelStatement::StructDeclaration(struct_declaration) => struct_declaration.codegen(ctx),
             TopLevelStatement::Instance(instance) => todo!(),
         }
     }

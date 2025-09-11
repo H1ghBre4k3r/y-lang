@@ -118,19 +118,33 @@ pub fn build_llvm_function_type_from_own_types<'ctx>(
         .collect::<Vec<_>>();
 
     match return_type {
-        Type::Boolean => todo!(),
-        Type::Character => todo!(),
-        Type::String => todo!(),
+        Type::Boolean => {
+            let llvm_bool_type = ctx.context.bool_type();
+            llvm_bool_type.fn_type(&llvm_param_types, false)
+        }
+        Type::Character => {
+            let llvm_char_type = ctx.context.i8_type();
+            llvm_char_type.fn_type(&llvm_param_types, false)
+        }
+        Type::String => {
+            // String is represented as a pointer to i8
+            let llvm_string_type = ctx.context.ptr_type(Default::default());
+            llvm_string_type.fn_type(&llvm_param_types, false)
+        }
         Type::Void => {
             let llvm_void_type = ctx.context.void_type();
-
             llvm_void_type.fn_type(&llvm_param_types, false)
         }
         Type::Unknown => todo!(),
         Type::Function {
-            params,
-            return_value,
-        } => todo!(),
+            params: fn_params,
+            return_value: fn_return_value,
+        } => {
+            // Function returning another function - return function pointer
+            ctx.context
+                .ptr_type(Default::default())
+                .fn_type(&llvm_param_types, false)
+        }
         return_type => {
             let llvm_return_type = ctx.get_llvm_type(return_type);
 

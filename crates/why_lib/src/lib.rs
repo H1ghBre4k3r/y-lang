@@ -157,6 +157,7 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             builder,
             types: RefCell::new(HashMap::default()),
             scopes: RefCell::new(vec![ScopeFrame::default()]),
+            lambda_counter: RefCell::new(0),
         };
 
         // TODO: this _must_ include insertion of functions types, etc.

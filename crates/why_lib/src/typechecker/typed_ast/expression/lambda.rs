@@ -165,6 +165,9 @@ impl TypedConstruct for Lambda<TypeInformation> {
             self.parameters[i].update_type(t.to_owned())?;
         }
 
+        // update our expression as well
+        self.expression = Box::new(expr);
+
         self.info.type_id = Rc::new(RefCell::new(Some(type_id)));
 
         Ok(())

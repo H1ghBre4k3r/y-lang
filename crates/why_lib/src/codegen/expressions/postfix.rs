@@ -62,8 +62,127 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                 expr,
                 property,
                 info,
-                position,
-            } => todo!(),
+                ..
+            } => {
+                // Generate code for the struct expression
+                let Some(struct_value) = expr.codegen(ctx) else {
+                    panic!("Struct expression must produce a value for property access");
+                };
+
+                // Get the property name
+                let property_name = &property.name;
+
+                // Try to determine the struct type and field index
+                // First try from the type information, but if that fails, try from the expression
+                let (struct_name, field_types, field_index) = match &info.type_id {
+                    Type::Struct(struct_name, field_types) => {
+                        // Find the field index by name
+                        let field_index = field_types
+                            .iter()
+                            .position(|(name, _)| name == property_name)
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "Field {} not found in struct {}",
+                                    property_name, struct_name
+                                )
+                            });
+                        (struct_name.clone(), field_types.clone(), field_index)
+                    }
+                    _ => {
+                        // Fallback: try to get struct information from the expression's original type
+                        match &expr.get_info().type_id {
+                            Type::Struct(struct_name, field_types) => {
+                                let field_index = field_types
+                                    .iter()
+                                    .position(|(name, _)| name == property_name)
+                                    .unwrap_or_else(|| {
+                                        panic!(
+                                            "Field {} not found in struct {}",
+                                            property_name, struct_name
+                                        )
+                                    });
+                                (struct_name.clone(), field_types.clone(), field_index)
+                            }
+                            other_type => {
+                                panic!("Property access only supported on struct types, got: {:?} from postfix and {:?} from expression", info.type_id, other_type);
+                            }
+                        }
+                    }
+                };
+
+                // Get the struct type from the context
+                let struct_type = {
+                    let types_guard = ctx.types.borrow();
+                    let struct_type_id = Type::Struct(struct_name.clone(), field_types.clone());
+
+                    match types_guard.get(&struct_type_id) {
+                        Some(llvm_type) => {
+                            if let inkwell::types::BasicMetadataTypeEnum::StructType(struct_type) =
+                                llvm_type
+                            {
+                                *struct_type
+                            } else {
+                                panic!(
+                                    "Expected struct type for property access, got: {:?}",
+                                    llvm_type
+                                )
+                            }
+                        }
+                        None => {
+                            panic!(
+                                "Struct type {} not found in type context for property access",
+                                struct_name
+                            );
+                        }
+                    }
+                };
+
+                // Allocate temporary storage for the struct if it's not already a pointer
+                let struct_ptr = if struct_value.is_pointer_value() {
+                    struct_value.into_pointer_value()
+                } else {
+                    // If it's not a pointer, allocate temporary storage and store the value
+                    let temp_ptr = ctx
+                        .builder
+                        .build_alloca(struct_type, "temp_struct")
+                        .unwrap();
+                    ctx.builder.build_store(temp_ptr, struct_value).unwrap();
+                    temp_ptr
+                };
+
+                // Get pointer to the field using GEP
+                let field_ptr = unsafe {
+                    ctx.builder
+                        .build_gep(
+                            struct_type,
+                            struct_ptr,
+                            &[
+                                ctx.context.i32_type().const_zero(),
+                                ctx.context.i32_type().const_int(field_index as u64, false),
+                            ],
+                            &format!(
+                                "{}_{}",
+                                struct_ptr.get_name().to_string_lossy(),
+                                property_name
+                            ),
+                        )
+                        .unwrap()
+                };
+
+                // Load the field value
+                let field_value = ctx
+                    .builder
+                    .build_load(
+                        struct_type
+                            .get_field_type_at_index(field_index as u32)
+                            .expect("Field type must exist"),
+                        field_ptr,
+                        property_name,
+                    )
+                    .unwrap();
+
+                Some(field_value)
+            }
         }
     }
 }

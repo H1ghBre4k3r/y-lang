@@ -19,6 +19,7 @@ pub struct CodegenContext<'ctx> {
     pub builder: Builder<'ctx>,
     pub types: RefCell<HashMap<Type, BasicMetadataTypeEnum<'ctx>>>,
     pub scopes: RefCell<Vec<ScopeFrame<'ctx>>>,
+    pub lambda_counter: RefCell<usize>,
 }
 
 pub type ScopeFrame<'ctx> = RefCell<Scope<'ctx>>;
@@ -27,6 +28,7 @@ pub type ScopeFrame<'ctx> = RefCell<Scope<'ctx>>;
 pub struct Scope<'ctx> {
     variables: HashMap<String, BasicValueEnum<'ctx>>,
     functions: HashMap<String, FunctionValue<'ctx>>,
+    constants: HashMap<String, BasicValueEnum<'ctx>>,
 }
 
 impl<'ctx> CodegenContext<'ctx> {
@@ -75,6 +77,27 @@ impl<'ctx> CodegenContext<'ctx> {
         });
     }
 
+    pub fn store_constant(&self, name: impl ToString, value: BasicValueEnum<'ctx>) {
+        let name = name.to_string();
+
+        let scopes = self.scopes.borrow();
+
+        scopes.last().inspect(|scope| {
+            scope.borrow_mut().constants.insert(name, value);
+        });
+    }
+
+    pub fn find_constant(&self, name: impl ToString) -> Option<BasicValueEnum<'ctx>> {
+        let name = name.to_string();
+        let scopes = self.scopes.borrow();
+
+        scopes
+            .iter()
+            .rev()
+            .find(|scope| scope.borrow().constants.contains_key(&name))
+            .and_then(|scope| scope.borrow().constants.get(&name).cloned())
+    }
+
     pub fn find_function(&self, name: impl ToString) -> FunctionValue<'ctx> {
         let name = name.to_string();
         let scopes = self.scopes.borrow();
@@ -88,6 +111,19 @@ impl<'ctx> CodegenContext<'ctx> {
     }
 
     pub fn store_function(&self, name: impl ToString, value: FunctionValue<'ctx>) {
+        let name = name.to_string();
+        let fn_pointer = value.as_global_value().as_pointer_value();
+
+        let scopes = self.scopes.borrow();
+
+        scopes.last().inspect(|scope| {
+            let mut scope_frame = scope.borrow_mut();
+            scope_frame.functions.insert(name.clone(), value);
+            scope_frame.variables.insert(name, fn_pointer.into());
+        });
+    }
+
+    pub fn store_lambda(&self, name: impl ToString, value: FunctionValue<'ctx>) {
         let name = name.to_string();
         let fn_pointer = value.as_global_value().as_pointer_value();
 

@@ -5,9 +5,11 @@ mod bool;
 mod character;
 mod id;
 mod if_expression;
+mod lambda;
 mod num;
 mod postfix;
 mod prefix;
+mod struct_initialisation;
 
 use inkwell::{types::BasicType, values::BasicValueEnum};
 
@@ -26,7 +28,7 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
             Expression::Character(character) => Some(character.codegen(ctx)),
             Expression::AstString(ast_string) => Some(ast_string.codegen(ctx)),
             Expression::Function(function) => todo!(),
-            Expression::Lambda(lambda) => todo!(),
+            Expression::Lambda(lambda) => lambda.codegen(ctx),
             Expression::If(if_expr) => if_expr.codegen(ctx),
             Expression::Block(block) => block.codegen(ctx),
             Expression::Parens(expression) => expression.codegen(ctx),
@@ -92,7 +94,7 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
                     }
                 }
             }
-            Expression::StructInitialisation(struct_initialisation) => todo!(),
+            Expression::StructInitialisation(struct_initialisation) => struct_initialisation.codegen(ctx),
         }
     }
 }
