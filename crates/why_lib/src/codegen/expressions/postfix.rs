@@ -72,9 +72,9 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                 // Get the property name
                 let property_name = &property.name;
 
-                // Try to determine the struct type and field index
-                // First try from the type information, but if that fails, try from the expression
-                let (struct_name, field_types, field_index) = match &info.type_id {
+                // Get struct type and field index from the expression being accessed
+                // For chained access like foo.bar.value, we need the type of foo.bar (which is Bar)
+                let (struct_name, field_types, field_index) = match &expr.get_info().type_id {
                     Type::Struct(struct_name, field_types) => {
                         // Find the field index by name
                         let field_index = field_types
@@ -88,25 +88,8 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                             });
                         (struct_name.clone(), field_types.clone(), field_index)
                     }
-                    _ => {
-                        // Fallback: try to get struct information from the expression's original type
-                        match &expr.get_info().type_id {
-                            Type::Struct(struct_name, field_types) => {
-                                let field_index = field_types
-                                    .iter()
-                                    .position(|(name, _)| name == property_name)
-                                    .unwrap_or_else(|| {
-                                        panic!(
-                                            "Field {} not found in struct {}",
-                                            property_name, struct_name
-                                        )
-                                    });
-                                (struct_name.clone(), field_types.clone(), field_index)
-                            }
-                            other_type => {
-                                panic!("Property access only supported on struct types, got: {:?} from postfix and {:?} from expression", info.type_id, other_type);
-                            }
-                        }
+                    other_type => {
+                        panic!("Property access only supported on struct types, got: {:?}", other_type);
                     }
                 };
 
