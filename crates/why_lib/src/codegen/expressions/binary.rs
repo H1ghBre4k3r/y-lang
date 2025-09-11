@@ -190,7 +190,48 @@ impl<'ctx> CodeGen<'ctx> for BinaryExpression<ValidatedTypeInformation> {
                 .unwrap()
                 .into(),
 
-            _ => todo!(),
+
+            // String operations - only comparison makes sense at LLVM level (pointer comparison)
+            (BasicMetadataTypeEnum::PointerType(_), BinaryOperator::Equals) => {
+                // Pointer equality comparison
+                ctx.builder
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        left.into_pointer_value(),
+                        right.into_pointer_value(),
+                        "",
+                    )
+                    .unwrap()
+                    .into()
+            }
+            (BasicMetadataTypeEnum::PointerType(_), BinaryOperator::NotEquals) => {
+                // Pointer inequality comparison
+                ctx.builder
+                    .build_int_compare(
+                        IntPredicate::NE,
+                        left.into_pointer_value(),
+                        right.into_pointer_value(),
+                        "",
+                    )
+                    .unwrap()
+                    .into()
+            }
+
+            // Unsupported operations - provide meaningful error messages
+            (BasicMetadataTypeEnum::StructType(_), _) => {
+                panic!("Binary operations on struct types are not supported. Structs cannot be used with arithmetic or comparison operators directly.");
+            }
+            (BasicMetadataTypeEnum::ArrayType(_), _) => {
+                panic!("Binary operations on array types are not supported. Use array element access or iteration instead.");
+            }
+            (BasicMetadataTypeEnum::PointerType(_), op) => {
+                panic!("Binary operation {:?} is not supported for pointer/string types. Only equality (==) and inequality (!=) are supported for pointers.", op);
+            }
+            
+            // Catch-all for any remaining unsupported combinations
+            (llvm_type, op) => {
+                panic!("Binary operation {:?} is not supported for LLVM type {:?}", op, llvm_type);
+            }
         }
     }
 }

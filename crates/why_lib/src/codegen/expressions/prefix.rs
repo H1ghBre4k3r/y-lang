@@ -44,19 +44,39 @@ impl<'ctx> CodeGen<'ctx> for Prefix<ValidatedTypeInformation> {
                         ctx.builder.build_float_neg(expr, "").unwrap().into()
                     }
 
-                    Type::Boolean => todo!(),
-                    Type::Character => todo!(),
-                    Type::String => todo!(),
-                    Type::Void => todo!(),
-                    Type::Unknown => todo!(),
-                    Type::Reference(_) => todo!(),
-                    Type::Tuple(items) => todo!(),
-                    Type::Array(_) => todo!(),
-                    Type::Struct(_, items) => todo!(),
-                    Type::Function {
-                        params,
-                        return_value,
-                    } => todo!(),
+                    Type::Boolean => {
+                        // Boolean negation using unary minus doesn't make semantic sense
+                        panic!("Unary minus operator (-) is not valid for boolean types. Use logical negation (!) instead.");
+                    }
+                    Type::Character => {
+                        // Character negation could be valid (negate ASCII value)
+                        let expr = expr.into_int_value();
+                        ctx.builder.build_int_neg(expr, "").unwrap().into()
+                    }
+                    Type::String => {
+                        panic!("Unary minus operator (-) is not valid for string types.");
+                    }
+                    Type::Void => {
+                        panic!("Unary minus operator (-) is not valid for void types.");
+                    }
+                    Type::Unknown => {
+                        panic!("Cannot apply unary minus to unknown type.");
+                    }
+                    Type::Reference(_) => {
+                        panic!("Unary minus operator (-) is not valid for reference types.");
+                    }
+                    Type::Tuple(_items) => {
+                        panic!("Unary minus operator (-) is not valid for tuple types.");
+                    }
+                    Type::Array(_) => {
+                        panic!("Unary minus operator (-) is not valid for array types.");
+                    }
+                    Type::Struct(_, _items) => {
+                        panic!("Unary minus operator (-) is not valid for struct types.");
+                    }
+                    Type::Function { .. } => {
+                        panic!("Unary minus operator (-) is not valid for function types.");
+                    }
                 }
             }
         }

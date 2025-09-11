@@ -3,6 +3,7 @@ pub mod constant;
 pub mod declaration;
 pub mod function;
 pub mod initialisation;
+pub mod instance;
 pub mod struct_declaration;
 pub mod while_loop;
 
@@ -68,7 +69,7 @@ impl<'ctx> CodeGen<'ctx> for TopLevelStatement<ValidatedTypeInformation> {
             TopLevelStatement::Constant(constant) => constant.codegen(ctx),
             TopLevelStatement::Declaration(declaration) => declaration.codegen(ctx),
             TopLevelStatement::StructDeclaration(struct_declaration) => struct_declaration.codegen(ctx),
-            TopLevelStatement::Instance(instance) => todo!(),
+            TopLevelStatement::Instance(instance) => instance.codegen(ctx),
         }
     }
 }

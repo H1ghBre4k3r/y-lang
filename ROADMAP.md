@@ -121,28 +121,29 @@
   - Struct method resolution
   - Integration with existing struct system
 
-### Complex Assignment Implementation
+### Variable Declarations Implementation
 - **Priority**: MEDIUM
-- **Description**: Complete assignment operations for complex types
+- **Description**: Complete variable declaration codegen for all types
 - **Files Needed**:
-  - `crates/why_lib/src/codegen/statements/assignment.rs` (enhancement)
+  - `crates/why_lib/src/codegen/statements/declaration.rs` (enhancement)
 - **Key Challenges**:
-  - Struct assignment semantics
-  - Array assignment operations
-  - Copy vs move semantics
-  - Type checking for complex assignments
+  - All type implementations are marked as `todo!()`
+  - Support for Integer, Boolean, Character, String types
+  - Array and Struct variable declarations
+  - Function variable declarations
+- **Status**: Critical - causes runtime panics
 
 ### Binary/Prefix Operations Implementation
-- **Priority**: LOW
-- **Description**: Finish remaining operator implementations
+- **Priority**: MEDIUM (upgraded from LOW)
+- **Description**: Complete remaining operator implementations
 - **Files Needed**:
   - `crates/why_lib/src/codegen/expressions/binary.rs` (enhancement)
-  - `crates/why_lib/src/codegen/expressions/prefix.rs` (enhancement)
+  - `crates/why_lib/src/codegen/expressions/prefix.rs` (enhancement)  
 - **Key Challenges**:
-  - Complete operator coverage
+  - Missing implementations for Boolean, Character, String, Struct, Function, Array types
   - Type safety for all operations
-  - Operator precedence handling
-  - Custom operator implementations
+  - Currently causes runtime panics with `todo!()`
+- **Status**: Critical - causes runtime panics
 
 ### Array Initialization Features
 - **Priority**: LOW
@@ -154,6 +155,40 @@
   - Multi-dimensional arrays
   - Array bounds checking
   - Array type inference
+
+## Critical Issues 🚨
+
+### Runtime Panics from Missing Implementations
+The following files contain `todo!()` implementations that cause runtime panics:
+
+1. **Variable Declarations** (`crates/why_lib/src/codegen/statements/declaration.rs`)
+   - All type implementations missing (lines 12-25)
+   - Affects: Integer, Boolean, Character, String, Struct, Array, Function declarations
+
+2. **Prefix Operations** (`crates/why_lib/src/codegen/expressions/prefix.rs`)
+   - Missing implementations for most types with unary operators
+   - Affects: Boolean, Character, String, Array, Struct negations
+
+3. **Binary Operations** (`crates/why_lib/src/codegen/expressions/binary.rs`)
+   - Missing implementations for specific operator/type combinations
+   - Affects: Complex type arithmetic and comparisons
+
+### Next Phase Implementation Plan
+
+#### Phase 1: Critical Issues (Week 1-2)
+1. **Complete Variable Declarations** - Fix all `todo!()` in declaration.rs
+2. **Complete Binary Operations** - Implement missing type support in binary.rs
+3. **Complete Prefix Operations** - Implement missing type support in prefix.rs
+
+#### Phase 2: Core Features (Week 3-4)
+1. **Instance Methods Implementation** - Add `instance` statement support
+2. **Method Dispatch System** - Enable struct method calls
+3. **Enhanced Testing** - Add comprehensive test coverage
+
+#### Phase 3: Advanced Features (Week 5-6)
+1. **Array Initialization** - Complete array literal features
+2. **Error Handling** - Improve error messages and recovery
+3. **Optimization** - Basic LLVM IR optimization passes
 
 ## Technical Implementation Details
 
