@@ -1,7 +1,7 @@
 use crate::{
     codegen::{CodeGen, CodegenContext},
-    parser::ast::{Instance, TypeName, FunctionParameter},
-    typechecker::{ValidatedTypeInformation, Type},
+    parser::ast::{FunctionParameter, Instance, TypeName},
+    typechecker::{Type, ValidatedTypeInformation},
 };
 
 use super::function::build_llvm_function_type_from_own_types;
@@ -21,24 +21,26 @@ impl<'ctx> CodeGen<'ctx> for Instance<ValidatedTypeInformation> {
         // For each function in the instance block, we need to:
         // 1. Generate the LLVM function with an implicit 'this' parameter
         // 2. Register the function in a way that it can be called on instances of the type
-        
+
         let type_name = match name {
             TypeName::Literal(name, _) => name,
             _ => {
-                panic!("Instance blocks can only be applied to literal type names, not complex types");
+                panic!(
+                    "Instance blocks can only be applied to literal type names, not complex types"
+                );
             }
         };
-        
+
         // Process function implementations
         for function in functions {
             // Generate the function with 'this' parameter injection
             // The function name will be something like "TypeName_methodName"
             let method_name = format!("{}_{}", type_name, function.id.name);
-            
+
             // Compile instance method with 'this' parameter injection
             self.compile_instance_method(ctx, function, type_name, &method_name);
         }
-        
+
         // Process method declarations (external methods)
         for _declaration in declarations {
             // Method declarations are just forward declarations
@@ -50,8 +52,8 @@ impl<'ctx> CodeGen<'ctx> for Instance<ValidatedTypeInformation> {
 
 impl<'ctx> Instance<ValidatedTypeInformation> {
     fn compile_instance_method(
-        &self, 
-        ctx: &CodegenContext<'ctx>, 
+        &self,
+        ctx: &CodegenContext<'ctx>,
         function: &crate::parser::ast::Function<ValidatedTypeInformation>,
         struct_type_name: &str,
         method_name: &str,
@@ -77,9 +79,13 @@ impl<'ctx> Instance<ValidatedTypeInformation> {
         };
 
         // Create 'this' parameter type - get actual struct type from type system
-        let struct_type = self.find_struct_type(ctx, struct_type_name)
+        let struct_type = self
+            .find_struct_type(ctx, struct_type_name)
             .unwrap_or_else(|| {
-                panic!("Struct type {} not found in type system for instance method", struct_type_name)
+                panic!(
+                    "Struct type {} not found in type system for instance method",
+                    struct_type_name
+                )
             });
         let this_type = Type::Reference(Box::new(struct_type));
 
@@ -88,15 +94,16 @@ impl<'ctx> Instance<ValidatedTypeInformation> {
         method_params.extend(params.clone());
 
         // Build LLVM function type with 'this' parameter
-        let llvm_fn_type = build_llvm_function_type_from_own_types(ctx, return_value, &method_params);
+        let llvm_fn_type =
+            build_llvm_function_type_from_own_types(ctx, return_value, &method_params);
 
         // Create LLVM function with modified name
         let llvm_fn_value = ctx.module.add_function(method_name, llvm_fn_type, None);
-        
+
         // Store the function in scope (for potential recursive calls)
         ctx.store_function(&id.name, llvm_fn_value);
 
-        // Enter scope for method parameters and local variables  
+        // Enter scope for method parameters and local variables
         ctx.enter_scope();
 
         // Inject 'this' parameter as first parameter

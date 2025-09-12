@@ -89,7 +89,10 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                         (struct_name.clone(), field_types.clone(), field_index)
                     }
                     other_type => {
-                        panic!("Property access only supported on struct types, got: {:?}", other_type);
+                        panic!(
+                            "Property access only supported on struct types, got: {:?}",
+                            other_type
+                        );
                     }
                 };
 
@@ -196,12 +199,17 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
 
         // Check if this is a method call (PropertyAccess on struct)
         if let Expression::Postfix(postfix) = expr {
-            if let Postfix::PropertyAccess { expr: struct_expr, property, .. } = postfix {
+            if let Postfix::PropertyAccess {
+                expr: struct_expr,
+                property,
+                ..
+            } = postfix
+            {
                 // Check if the struct expression has a struct type
                 if let Type::Struct(struct_name, _) = &struct_expr.get_info().type_id {
                     // This is a method call: struct_instance.method_name()
                     let method_name = format!("{}_{}", struct_name, property.name);
-                    
+
                     // Look up the instance method
                     if let Some(llvm_method) = ctx.module.get_function(&method_name) {
                         // Generate the struct instance as 'this' parameter
@@ -216,10 +224,8 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
                             // If it's not a pointer, create a temporary allocation and store the value
                             let temp_ptr = ctx
                                 .builder
-                                .build_alloca(
-                                    struct_instance.get_type(),
-                                    "temp_struct_for_method"
-                                ).unwrap();
+                                .build_alloca(struct_instance.get_type(), "temp_struct_for_method")
+                                .unwrap();
                             ctx.builder.build_store(temp_ptr, struct_instance).unwrap();
                             temp_ptr.into()
                         };

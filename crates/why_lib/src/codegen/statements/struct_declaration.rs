@@ -46,4 +46,3 @@ impl<'ctx> CodeGen<'ctx> for StructDeclaration<ValidatedTypeInformation> {
         );
     }
 }
-

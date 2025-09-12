@@ -1,22 +1,28 @@
 struct Bar {
+    hehe: f64;
+    test: i64;
     value: i64;
 }
 
 struct Foo {
+    random: i64;
     bar: Bar;
 }
 
 instance Foo {
-fn get_val(): i64 {
-    this.bar.value
+fn get_val(other: i64): i64 {
+    this.bar.value + other
 }
 }
 
 fn main(): i64 {
     let foo = Foo {
+        random: 1337,
         bar: Bar {
+            hehe: 69.5,
+            test: 16,
             value: 42
         }
     };
-    foo.get_val()
+    foo.get_val(10)
 }

@@ -71,8 +71,9 @@ impl<'ctx> CodeGen<'ctx> for Declaration<ValidatedTypeInformation> {
             }
             Type::Tuple(_items) => {
                 // Use the general type conversion for tuples
-                let llvm_type = crate::codegen::convert_metadata_to_basic(ctx.get_llvm_type(type_id))
-                    .expect("Failed to convert tuple type");
+                let llvm_type =
+                    crate::codegen::convert_metadata_to_basic(ctx.get_llvm_type(type_id))
+                        .expect("Failed to convert tuple type");
                 let llvm_alloca = ctx
                     .builder
                     .build_alloca(llvm_type, &name.name)
@@ -89,8 +90,9 @@ impl<'ctx> CodeGen<'ctx> for Declaration<ValidatedTypeInformation> {
             }
             Type::Struct(_name, _items) => {
                 // Use the general type conversion for structs
-                let llvm_type = crate::codegen::convert_metadata_to_basic(ctx.get_llvm_type(type_id))
-                    .expect("Failed to convert struct type");
+                let llvm_type =
+                    crate::codegen::convert_metadata_to_basic(ctx.get_llvm_type(type_id))
+                        .expect("Failed to convert struct type");
                 let llvm_alloca = ctx
                     .builder
                     .build_alloca(llvm_type, &name.name)

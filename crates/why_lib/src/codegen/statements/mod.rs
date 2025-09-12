@@ -52,7 +52,7 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
                     panic!("{e}");
                 }
             }
-            Statement::Comment(_) => {}, // Comments are no-ops in codegen
+            Statement::Comment(_) => {} // Comments are no-ops in codegen
             Statement::Declaration(declaration) => declaration.codegen(ctx),
             Statement::StructDeclaration(struct_declaration) => struct_declaration.codegen(ctx),
         }
@@ -64,11 +64,13 @@ impl<'ctx> CodeGen<'ctx> for TopLevelStatement<ValidatedTypeInformation> {
 
     fn codegen(&self, ctx: &CodegenContext<'ctx>) {
         match self {
-            TopLevelStatement::Comment(_) => {}, // Comments are no-ops in codegen
+            TopLevelStatement::Comment(_) => {} // Comments are no-ops in codegen
             TopLevelStatement::Function(function) => function.codegen(ctx),
             TopLevelStatement::Constant(constant) => constant.codegen(ctx),
             TopLevelStatement::Declaration(declaration) => declaration.codegen(ctx),
-            TopLevelStatement::StructDeclaration(struct_declaration) => struct_declaration.codegen(ctx),
+            TopLevelStatement::StructDeclaration(struct_declaration) => {
+                struct_declaration.codegen(ctx)
+            }
             TopLevelStatement::Instance(instance) => instance.codegen(ctx),
         }
     }

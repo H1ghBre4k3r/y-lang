@@ -21,7 +21,8 @@ impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
             // Constants are stored as global variable pointers, so we need to load their values
             return match constant {
                 BasicValueEnum::PointerValue(pointer_value) => {
-                    let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id)) else {
+                    let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id))
+                    else {
                         return constant;
                     };
 
@@ -44,7 +45,7 @@ impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
                 if matches!(type_id, Type::Function { .. }) {
                     return variable;
                 }
-                
+
                 let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id)) else {
                     return variable;
                 };

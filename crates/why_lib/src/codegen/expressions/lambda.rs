@@ -95,4 +95,3 @@ impl<'ctx> CodeGen<'ctx> for Lambda<ValidatedTypeInformation> {
         Some(lambda_fn.as_global_value().as_pointer_value().into())
     }
 }
-

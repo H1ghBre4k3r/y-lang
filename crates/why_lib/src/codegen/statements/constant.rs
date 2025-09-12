@@ -26,7 +26,7 @@ impl<'ctx> CodeGen<'ctx> for Constant<ValidatedTypeInformation> {
         // For constants, we typically create global variables or compile-time constants
         // Since we're working with LLVM IR generation, we'll create a global variable
         let constant_name = &id.name;
-        
+
         // Get the LLVM type for the constant from the value's type information
         let value_type_id = &value.get_info().type_id;
         let llvm_type = ctx.get_llvm_type(value_type_id);
@@ -34,11 +34,9 @@ impl<'ctx> CodeGen<'ctx> for Constant<ValidatedTypeInformation> {
             .expect("Constant type must be basic");
 
         // Create a global variable for the constant
-        let global_variable = ctx.module.add_global(
-            basic_type,
-            Some(AddressSpace::from(0)),
-            constant_name,
-        );
+        let global_variable =
+            ctx.module
+                .add_global(basic_type, Some(AddressSpace::from(0)), constant_name);
 
         // Set the global variable as constant (immutable)
         global_variable.set_constant(true);

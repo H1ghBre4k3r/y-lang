@@ -94,7 +94,9 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
                     }
                 }
             }
-            Expression::StructInitialisation(struct_initialisation) => struct_initialisation.codegen(ctx),
+            Expression::StructInitialisation(struct_initialisation) => {
+                struct_initialisation.codegen(ctx)
+            }
         }
     }
 }

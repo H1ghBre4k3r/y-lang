@@ -190,7 +190,6 @@ impl<'ctx> CodeGen<'ctx> for BinaryExpression<ValidatedTypeInformation> {
                 .unwrap()
                 .into(),
 
-
             // String operations - only comparison makes sense at LLVM level (pointer comparison)
             (BasicMetadataTypeEnum::PointerType(_), BinaryOperator::Equals) => {
                 // Pointer equality comparison
@@ -227,10 +226,13 @@ impl<'ctx> CodeGen<'ctx> for BinaryExpression<ValidatedTypeInformation> {
             (BasicMetadataTypeEnum::PointerType(_), op) => {
                 panic!("Binary operation {:?} is not supported for pointer/string types. Only equality (==) and inequality (!=) are supported for pointers.", op);
             }
-            
+
             // Catch-all for any remaining unsupported combinations
             (llvm_type, op) => {
-                panic!("Binary operation {:?} is not supported for LLVM type {:?}", op, llvm_type);
+                panic!(
+                    "Binary operation {:?} is not supported for LLVM type {:?}",
+                    op, llvm_type
+                );
             }
         }
     }
