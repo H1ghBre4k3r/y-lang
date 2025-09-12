@@ -1,3 +1,10 @@
+declare printf: (str) -> void;
+
+fn takes_fn(f: (i64) -> i64): i64 {
+    printf("takes_fn\n");
+    f(24)
+}
+
 struct Bar {
     hehe: f64;
     test: i64;
@@ -16,6 +23,17 @@ fn get_val(other: i64): i64 {
 }
 
 fn main(): i64 {
+    let left = 42;
+    let right = 1337;
+    let foo = &[left, right];
+    let mut x = 0;
+    while (x < 10) {
+        printf("Hello\n");
+        x = x + 1;
+    }
+    let val = takes_fn(\(x) => {
+        x + x
+    });
     let foo = Foo {
         random: 1337,
         bar: Bar {
@@ -24,5 +42,5 @@ fn main(): i64 {
             value: 42
         }
     };
-    foo.get_val(10)
+    foo.get_val(val)
 }
