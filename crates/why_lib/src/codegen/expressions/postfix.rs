@@ -194,6 +194,52 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
             })
             .collect::<Vec<BasicMetadataValueEnum<'ctx>>>();
 
+        // Check if this is a method call (PropertyAccess on struct)
+        if let Expression::Postfix(postfix) = expr {
+            if let Postfix::PropertyAccess { expr: struct_expr, property, .. } = postfix {
+                // Check if the struct expression has a struct type
+                if let Type::Struct(struct_name, _) = &struct_expr.get_info().type_id {
+                    // This is a method call: struct_instance.method_name()
+                    let method_name = format!("{}_{}", struct_name, property.name);
+                    
+                    // Look up the instance method
+                    if let Some(llvm_method) = ctx.module.get_function(&method_name) {
+                        // Generate the struct instance as 'this' parameter
+                        let Some(struct_instance) = struct_expr.codegen(ctx) else {
+                            unreachable!("Struct expression must produce a value")
+                        };
+
+                        // Convert struct instance to pointer if needed for 'this' parameter
+                        let struct_pointer = if struct_instance.is_pointer_value() {
+                            struct_instance.into_pointer_value().into()
+                        } else {
+                            // If it's not a pointer, create a temporary allocation and store the value
+                            let temp_ptr = ctx
+                                .builder
+                                .build_alloca(
+                                    struct_instance.get_type(),
+                                    "temp_struct_for_method"
+                                ).unwrap();
+                            ctx.builder.build_store(temp_ptr, struct_instance).unwrap();
+                            temp_ptr.into()
+                        };
+
+                        // Create argument list with 'this' as first parameter (passed as pointer)
+                        let mut method_args = vec![struct_pointer];
+                        method_args.extend(args);
+
+                        // Call the instance method with 'this' parameter
+                        return ctx
+                            .builder
+                            .build_call(llvm_method, &method_args, "")
+                            .unwrap()
+                            .try_as_basic_value()
+                            .left();
+                    }
+                }
+            }
+        }
+
         // Check if this is a direct function call (Id expression)
         if let Expression::Id(id) = expr {
             // Try to find the function in the LLVM module by name
