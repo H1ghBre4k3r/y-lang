@@ -28,6 +28,9 @@ impl TypeCheckable for Block<()> {
                 Statement::YieldingExpression(Expression::Block(block)) if i < len - 1 => {
                     checked_statements.push(Statement::Expression(Expression::Block(block)))
                 }
+                Statement::YieldingExpression(Expression::If(if_expression)) if i < len - 1 => {
+                    checked_statements.push(Statement::Expression(Expression::If(if_expression)))
+                }
                 Statement::YieldingExpression(other) if i < len - 1 => {
                     todo!("yielding expression is only allowed at the end of a function {other:?}");
                 }
