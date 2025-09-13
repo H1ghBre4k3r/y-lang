@@ -172,7 +172,8 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{
-            Block, Expression, Function, Id, Instance, MethodDeclaration, Postfix, Statement, TypeName,
+            Block, Expression, Function, Id, Instance, MethodDeclaration, Postfix, Statement,
+            TypeName,
         },
         typechecker::{
             context::Context, error::UndefinedType, types::Type, TypeCheckError, TypeCheckable,

@@ -84,7 +84,10 @@ mod tests {
         let result = parse_if("if (true) { 42; }").unwrap();
         // assert!(matches!(*result.condition, Expression::Bool(_)));
         assert_eq!(result.then_block.statements.len(), 1);
-        assert!(matches!(result.then_block.statements[0], Statement::Expression(_)));
+        assert!(matches!(
+            result.then_block.statements[0],
+            Statement::Expression(_)
+        ));
         assert_eq!(result.else_block.statements.len(), 0);
     }
 
@@ -93,7 +96,10 @@ mod tests {
         let result = parse_if("if (true) { 42; } else { 1337; }").unwrap();
         // assert!(matches!(*result.condition, Expression::Bool(_)));
         assert_eq!(result.then_block.statements.len(), 1);
-        assert!(matches!(result.then_block.statements[0], Statement::Expression(_)));
+        assert!(matches!(
+            result.then_block.statements[0],
+            Statement::Expression(_)
+        ));
         assert_eq!(result.else_block.statements.len(), 1);
         assert!(matches!(
             result.else_block.statements[0],

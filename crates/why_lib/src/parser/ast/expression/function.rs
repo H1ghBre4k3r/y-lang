@@ -128,7 +128,10 @@ mod tests {
         let result = parse_function("fn test(): void { let x: i32 = 42; }").unwrap();
         assert_eq!(result.id.name, "test");
         assert_eq!(result.body.statements.len(), 1);
-        assert!(matches!(result.body.statements[0], Statement::Initialization(_)));
+        assert!(matches!(
+            result.body.statements[0],
+            Statement::Initialization(_)
+        ));
     }
 
     #[test]
