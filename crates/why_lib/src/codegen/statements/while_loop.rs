@@ -42,9 +42,7 @@ impl<'ctx> CodeGen<'ctx> for WhileLoop<ValidatedTypeInformation> {
         // Build loop body block
         ctx.builder.position_at_end(loop_body_block);
         ctx.enter_scope();
-        for statement in &self.block.statements {
-            statement.codegen(ctx);
-        }
+        self.block.codegen(ctx);
         ctx.exit_scope();
 
         // Jump back to condition (if we haven't returned)

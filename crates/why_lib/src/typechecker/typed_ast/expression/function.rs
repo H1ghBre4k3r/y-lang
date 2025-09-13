@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
-    parser::ast::{Expression, Function, FunctionParameter, Id, Statement},
+    parser::ast::{Expression, Function, FunctionParameter, Id},
     typechecker::{
         context::Context,
         error::{
@@ -24,7 +24,7 @@ impl TypeCheckable for Function<()> {
             id,
             parameters,
             return_type,
-            statements,
+            body,
             position,
             ..
         } = self;
@@ -52,52 +52,29 @@ impl TypeCheckable for Function<()> {
             ));
         };
 
-        let mut checked_statements = vec![];
+        // Use unified block type checking with yielding context
+        let checked_body = body.check(ctx)?;
 
-        let len = statements.len();
-
-        // TODO: this should be done in the Block
-        for (i, stmt) in statements.into_iter().enumerate() {
-            let stmt = stmt.check(ctx)?;
-            match stmt {
-                Statement::YieldingExpression(Expression::Block(block)) if i < len - 1 => {
-                    checked_statements.push(Statement::Expression(Expression::Block(block)))
-                }
-                Statement::YieldingExpression(other) if i < len - 1 => {
-                    todo!("yielding expression is only allowed at the end of a function {other:?}");
-                }
-                _ => checked_statements.push(stmt),
-            }
-            // checked_statements.push(?);
-        }
-
-        match checked_statements.last_mut() {
-            Some(
-                last_stmt @ Statement::YieldingExpression(_) | last_stmt @ Statement::Return(_),
-            ) => {
-                let last_stmt_type = last_stmt.get_info().type_id.clone();
-                let inner = { last_stmt_type.borrow().clone() };
-
-                match inner {
-                    Some(inner_type) => {
-                        if inner_type != return_type_id {
-                            return Err(TypeCheckError::TypeMismatch(
-                                TypeMismatch {
-                                    expected: return_type_id,
-                                    actual: inner_type.clone(),
-                                },
-                                last_stmt.position(),
-                            ));
-                        }
-                    }
-                    None if return_type_id == Type::Void => {}
-                    None => {
-                        last_stmt.update_type(return_type_id.clone())?;
-                    }
+        // Verify that the block's inferred type matches the function's return type
+        let body_type = { checked_body.info.type_id.borrow().clone() };
+        match body_type {
+            Some(inferred_type) => {
+                if inferred_type != return_type_id {
+                    return Err(TypeCheckError::TypeMismatch(
+                        TypeMismatch {
+                            expected: return_type_id,
+                            actual: inferred_type,
+                        },
+                        checked_body.position.clone(),
+                    ));
                 }
             }
-            _ if return_type_id == Type::Void => {}
-            _ => {
+            None if return_type_id == Type::Void => {
+                // Block correctly inferred void type
+            }
+            None => {
+                // No type inferred but function expects non-void - this should not happen
+                // with proper block type checking, but handle gracefully
                 return Err(TypeCheckError::TypeMismatch(
                     TypeMismatch {
                         expected: return_type_id,
@@ -132,7 +109,7 @@ impl TypeCheckable for Function<()> {
             id: id.clone(),
             parameters: checked_parameters,
             return_type,
-            statements: checked_statements,
+            body: checked_body,
             info,
             position: position.clone(),
         };
@@ -145,7 +122,7 @@ impl TypeCheckable for Function<()> {
             id,
             parameters,
             return_type,
-            statements,
+            body,
             position,
             ..
         } = this;
@@ -154,7 +131,7 @@ impl TypeCheckable for Function<()> {
             id: TypeCheckable::revert(id),
             parameters: parameters.iter().map(TypeCheckable::revert).collect(),
             return_type: return_type.to_owned(),
-            statements: statements.iter().map(TypeCheckable::revert).collect(),
+            body: TypeCheckable::revert(body),
             info: (),
             position: position.clone(),
         }
@@ -229,7 +206,7 @@ impl TypedConstruct for Function<TypeInformation> {
             id,
             parameters,
             return_type,
-            statements,
+            body,
             info,
             position,
         } = self;
@@ -239,16 +216,11 @@ impl TypedConstruct for Function<TypeInformation> {
             validated_parameters.push(param.validate()?);
         }
 
-        let mut validated_statements = vec![];
-        for statement in statements {
-            validated_statements.push(statement.validate()?);
-        }
-
         Ok(Function {
             id: id.validate()?,
             parameters: validated_parameters,
             return_type,
-            statements: validated_statements,
+            body: body.validate()?,
             info: info.validate(&position)?,
             position,
         })
@@ -357,8 +329,8 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{
-            BinaryExpression, BinaryOperator, Expression, Function, FunctionParameter, Id, Num,
-            Statement, TypeName,
+            BinaryExpression, BinaryOperator, Block, Expression, Function, FunctionParameter, Id,
+            Num, Statement, TypeName,
         },
         typechecker::{
             context::Context,
@@ -429,9 +401,13 @@ mod tests {
                 info: (),
                 position: Span::default(),
             }],
-            statements: vec![Statement::YieldingExpression(Expression::Num(
-                Num::Integer(42, (), Span::default()),
-            ))],
+            body: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Num(
+                    Num::Integer(42, (), Span::default()),
+                ))],
+                info: (),
+                position: Span::default(),
+            },
             return_type: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
@@ -487,9 +463,13 @@ mod tests {
                 info: (),
                 position: Span::default(),
             }],
-            statements: vec![Statement::YieldingExpression(Expression::Num(
-                Num::Integer(42, (), Span::default()),
-            ))],
+            body: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Num(
+                    Num::Integer(42, (), Span::default()),
+                ))],
+                info: (),
+                position: Span::default(),
+            },
             return_type: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),
@@ -520,9 +500,13 @@ mod tests {
                 position: Span::default(),
             },
             parameters: vec![],
-            statements: vec![Statement::YieldingExpression(Expression::Num(
-                Num::Integer(42, (), Span::default()),
-            ))],
+            body: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Num(
+                    Num::Integer(42, (), Span::default()),
+                ))],
+                info: (),
+                position: Span::default(),
+            },
             return_type: TypeName::Literal("void".into(), Span::default()),
             info: (),
             position: Span::default(),
@@ -576,23 +560,27 @@ mod tests {
                     position: Span::default(),
                 },
             ],
-            statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
-                BinaryExpression {
-                    left: Expression::Id(Id {
-                        name: "x".into(),
+            body: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Binary(Box::new(
+                    BinaryExpression {
+                        left: Expression::Id(Id {
+                            name: "x".into(),
+                            position: Span::default(),
+                            info: (),
+                        }),
+                        right: Expression::Id(Id {
+                            name: "y".into(),
+                            position: Span::default(),
+                            info: (),
+                        }),
+                        operator: BinaryOperator::Add,
                         position: Span::default(),
                         info: (),
-                    }),
-                    right: Expression::Id(Id {
-                        name: "y".into(),
-                        position: Span::default(),
-                        info: (),
-                    }),
-                    operator: BinaryOperator::Add,
-                    position: Span::default(),
-                    info: (),
-                },
-            )))],
+                    },
+                )))],
+                info: (),
+                position: Span::default(),
+            },
             return_type: TypeName::Literal("i64".into(), Span::default()),
             info: (),
             position: Span::default(),

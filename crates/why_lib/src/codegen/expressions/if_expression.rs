@@ -33,18 +33,8 @@ impl<'ctx> CodeGen<'ctx> for If<ValidatedTypeInformation> {
         // Enter new scope for then block
         ctx.enter_scope();
 
-        for (i, statement) in self.statements.iter().enumerate() {
-            if i == self.statements.len() - 1 {
-                // For the last statement, if it's a yielding expression, get its value
-                if let crate::parser::ast::Statement::YieldingExpression(expr) = statement {
-                    then_value = expr.codegen(ctx);
-                } else {
-                    statement.codegen(ctx);
-                }
-            } else {
-                statement.codegen(ctx);
-            }
-        }
+        // Delegate to unified block code generation
+        then_value = self.then_block.codegen(ctx);
 
         ctx.exit_scope();
 
@@ -66,18 +56,8 @@ impl<'ctx> CodeGen<'ctx> for If<ValidatedTypeInformation> {
         // Enter new scope for else block
         ctx.enter_scope();
 
-        for (i, statement) in self.else_statements.iter().enumerate() {
-            if i == self.else_statements.len() - 1 {
-                // For the last statement, if it's a yielding expression, get its value
-                if let crate::parser::ast::Statement::YieldingExpression(expr) = statement {
-                    else_value = expr.codegen(ctx);
-                } else {
-                    statement.codegen(ctx);
-                }
-            } else {
-                statement.codegen(ctx);
-            }
-        }
+        // Delegate to unified block code generation
+        else_value = self.else_block.codegen(ctx);
 
         ctx.exit_scope();
 
@@ -105,7 +85,7 @@ impl<'ctx> CodeGen<'ctx> for If<ValidatedTypeInformation> {
                 phi.add_incoming(&[(&then_val, then_block), (&else_val, else_block)]);
                 Some(phi.as_basic_value())
             }
-            (Some(then_val), None) if self.else_statements.is_empty() => {
+            (Some(then_val), None) if self.else_block.statements.is_empty() => {
                 // If-without-else that produces a value - not typical, but handle it
                 Some(then_val)
             }

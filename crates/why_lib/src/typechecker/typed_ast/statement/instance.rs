@@ -172,7 +172,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{
-            Expression, Function, Id, Instance, MethodDeclaration, Postfix, Statement, TypeName,
+            Block, Expression, Function, Id, Instance, MethodDeclaration, Postfix, Statement, TypeName,
         },
         typechecker::{
             context::Context, error::UndefinedType, types::Type, TypeCheckError, TypeCheckable,
@@ -286,11 +286,15 @@ mod tests {
                 },
                 parameters: vec![],
                 return_type: TypeName::Literal("i64".into(), Span::default()),
-                statements: vec![Statement::YieldingExpression(Expression::Id(Id {
-                    name: "this".into(),
+                body: Block {
+                    statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                        name: "this".into(),
+                        info: (),
+                        position: Span::default(),
+                    }))],
                     info: (),
                     position: Span::default(),
-                }))],
+                },
                 info: (),
                 position: Span::default(),
             }],
@@ -319,14 +323,21 @@ mod tests {
                     },
                     parameters: vec![],
                     return_type: TypeName::Literal("i64".into(), Span::default()),
-                    statements: vec![Statement::YieldingExpression(Expression::Id(Id {
-                        name: "this".into(),
+                    body: Block {
+                        statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                            name: "this".into(),
+                            info: TypeInformation {
+                                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                                context: Context::default()
+                            },
+                            position: Span::default(),
+                        }))],
                         info: TypeInformation {
                             type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                             context: Context::default()
                         },
                         position: Span::default(),
-                    }))],
+                    },
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(Some(Type::Function {
                             params: vec![],
@@ -366,22 +377,26 @@ mod tests {
                 },
                 parameters: vec![],
                 return_type: TypeName::Literal("i64".into(), Span::default()),
-                statements: vec![Statement::YieldingExpression(Expression::Postfix(
-                    Postfix::PropertyAccess {
-                        expr: Box::new(Expression::Id(Id {
-                            name: "this".into(),
-                            info: (),
-                            position: Span::default(),
-                        })),
-                        property: Id {
-                            name: "baz".into(),
+                body: Block {
+                    statements: vec![Statement::YieldingExpression(Expression::Postfix(
+                        Postfix::PropertyAccess {
+                            expr: Box::new(Expression::Id(Id {
+                                name: "this".into(),
+                                info: (),
+                                position: Span::default(),
+                            })),
+                            property: Id {
+                                name: "baz".into(),
+                                info: (),
+                                position: Span::default(),
+                            },
                             info: (),
                             position: Span::default(),
                         },
-                        info: (),
-                        position: Span::default(),
-                    },
-                ))],
+                    ))],
+                    info: (),
+                    position: Span::default(),
+                },
                 info: (),
                 position: Span::default(),
             }],
@@ -410,34 +425,41 @@ mod tests {
                     },
                     parameters: vec![],
                     return_type: TypeName::Literal("i64".into(), Span::default()),
-                    statements: vec![Statement::YieldingExpression(Expression::Postfix(
-                        Postfix::PropertyAccess {
-                            expr: Box::new(Expression::Id(Id {
-                                name: "this".into(),
-                                info: TypeInformation {
-                                    type_id: Rc::new(RefCell::new(Some(Type::Struct(
-                                        "Foo".into(),
-                                        vec![("baz".into(), Type::Integer)],
-                                    )))),
-                                    context: Context::default(),
+                    body: Block {
+                        statements: vec![Statement::YieldingExpression(Expression::Postfix(
+                            Postfix::PropertyAccess {
+                                expr: Box::new(Expression::Id(Id {
+                                    name: "this".into(),
+                                    info: TypeInformation {
+                                        type_id: Rc::new(RefCell::new(Some(Type::Struct(
+                                            "Foo".into(),
+                                            vec![("baz".into(), Type::Integer)],
+                                        )))),
+                                        context: Context::default(),
+                                    },
+                                    position: Span::default(),
+                                })),
+                                property: Id {
+                                    name: "baz".into(),
+                                    info: TypeInformation {
+                                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                                        context: Context::default(),
+                                    },
+                                    position: Span::default(),
                                 },
-                                position: Span::default(),
-                            })),
-                            property: Id {
-                                name: "baz".into(),
                                 info: TypeInformation {
                                     type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                                     context: Context::default(),
                                 },
                                 position: Span::default(),
                             },
-                            info: TypeInformation {
-                                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
-                                context: Context::default(),
-                            },
-                            position: Span::default(),
+                        ))],
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: Context::default(),
                         },
-                    ))],
+                        position: Span::default(),
+                    },
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(Some(Type::Function {
                             params: vec![],
@@ -477,22 +499,26 @@ mod tests {
                 },
                 parameters: vec![],
                 return_type: TypeName::Literal("i64".into(), Span::default()),
-                statements: vec![Statement::YieldingExpression(Expression::Postfix(
-                    Postfix::PropertyAccess {
-                        expr: Box::new(Expression::Id(Id {
-                            name: "this".into(),
-                            info: (),
-                            position: Span::default(),
-                        })),
-                        property: Id {
-                            name: "baz".into(),
+                body: Block {
+                    statements: vec![Statement::YieldingExpression(Expression::Postfix(
+                        Postfix::PropertyAccess {
+                            expr: Box::new(Expression::Id(Id {
+                                name: "this".into(),
+                                info: (),
+                                position: Span::default(),
+                            })),
+                            property: Id {
+                                name: "baz".into(),
+                                info: (),
+                                position: Span::default(),
+                            },
                             info: (),
                             position: Span::default(),
                         },
-                        info: (),
-                        position: Span::default(),
-                    },
-                ))],
+                    ))],
+                    info: (),
+                    position: Span::default(),
+                },
                 info: (),
                 position: Span::default(),
             }],
@@ -540,34 +566,41 @@ mod tests {
                     },
                     parameters: vec![],
                     return_type: TypeName::Literal("i64".into(), Span::default()),
-                    statements: vec![Statement::YieldingExpression(Expression::Postfix(
-                        Postfix::PropertyAccess {
-                            expr: Box::new(Expression::Id(Id {
-                                name: "this".into(),
-                                info: TypeInformation {
-                                    type_id: Rc::new(RefCell::new(Some(Type::Struct(
-                                        "Foo".into(),
-                                        vec![("baz".into(), Type::Integer)],
-                                    )))),
-                                    context: Context::default(),
+                    body: Block {
+                        statements: vec![Statement::YieldingExpression(Expression::Postfix(
+                            Postfix::PropertyAccess {
+                                expr: Box::new(Expression::Id(Id {
+                                    name: "this".into(),
+                                    info: TypeInformation {
+                                        type_id: Rc::new(RefCell::new(Some(Type::Struct(
+                                            "Foo".into(),
+                                            vec![("baz".into(), Type::Integer)],
+                                        )))),
+                                        context: Context::default(),
+                                    },
+                                    position: Span::default(),
+                                })),
+                                property: Id {
+                                    name: "baz".into(),
+                                    info: TypeInformation {
+                                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                                        context: Context::default(),
+                                    },
+                                    position: Span::default(),
                                 },
-                                position: Span::default(),
-                            })),
-                            property: Id {
-                                name: "baz".into(),
                                 info: TypeInformation {
                                     type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                                     context: Context::default(),
                                 },
                                 position: Span::default(),
                             },
-                            info: TypeInformation {
-                                type_id: Rc::new(RefCell::new(Some(Type::Integer))),
-                                context: Context::default(),
-                            },
-                            position: Span::default(),
+                        ))],
+                        info: TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: Context::default(),
                         },
-                    ))],
+                        position: Span::default(),
+                    },
                     info: TypeInformation {
                         type_id: Rc::new(RefCell::new(Some(Type::Function {
                             params: vec![],

@@ -79,10 +79,10 @@ impl Format for Function<()> {
         self.return_type.format(ctx)?;
         ctx.write(" {")?;
 
-        if !self.statements.is_empty() {
+        if !self.body.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                for (i, stmt) in self.statements.iter().enumerate() {
+                for (i, stmt) in self.body.statements.iter().enumerate() {
                     if i > 0 {
                         ctx.write_newline()?;
                     }
@@ -127,10 +127,10 @@ impl Format for If<()> {
         self.condition.format(ctx)?;
         ctx.write(") {")?;
 
-        if !self.statements.is_empty() {
+        if !self.then_block.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                for stmt in &self.statements {
+                for stmt in &self.then_block.statements {
                     ctx.write_indent()?;
                     stmt.format(ctx)?;
                     ctx.write_newline()?;
@@ -142,11 +142,11 @@ impl Format for If<()> {
 
         ctx.write("}")?;
 
-        if !self.else_statements.is_empty() {
+        if !self.else_block.statements.is_empty() {
             ctx.write(" else {")?;
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                for stmt in &self.else_statements {
+                for stmt in &self.else_block.statements {
                     ctx.write_indent()?;
                     stmt.format(ctx)?;
                     ctx.write_newline()?;

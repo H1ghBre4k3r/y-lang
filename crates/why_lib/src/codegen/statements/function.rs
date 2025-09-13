@@ -13,7 +13,7 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let Function {
             id,
             parameters,
-            statements,
+            body,
             info:
                 ValidatedTypeInformation {
                     type_id:
@@ -58,9 +58,8 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
         ctx.builder.position_at_end(llvm_fn_bb);
 
-        for statement in statements {
-            statement.codegen(ctx);
-        }
+        // Delegate to unified block code generation
+        body.codegen(ctx);
 
         // Add terminator instruction if the basic block doesn't have one
         if ctx

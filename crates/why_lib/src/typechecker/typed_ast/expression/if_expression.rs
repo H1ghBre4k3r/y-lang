@@ -17,8 +17,8 @@ impl TypeCheckable for If<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let If {
             condition,
-            statements,
-            else_statements,
+            then_block,
+            else_block,
             position,
             ..
         } = self;
@@ -41,23 +41,14 @@ impl TypeCheckable for If<()> {
             _ => {}
         };
 
-        let mut checked_statements = vec![];
+        let checked_then_block = then_block.check(ctx)?;
+        let checked_else_block = else_block.check(ctx)?;
 
-        for statement in statements.into_iter() {
-            checked_statements.push(statement.check(ctx)?);
-        }
-
-        let mut checked_else_statements = vec![];
-
-        for statement in else_statements.into_iter() {
-            checked_else_statements.push(statement.check(ctx)?);
-        }
-
-        let type_id = match (checked_statements.last(), checked_else_statements.last()) {
-            (Some(first), Some(last)) => {
-                let first_type = { first.get_info().type_id.borrow().clone() };
-                let last_type = { last.get_info().type_id.borrow().clone() };
-
+        let type_id = match (
+            checked_then_block.info.type_id.borrow().clone(),
+            checked_else_block.info.type_id.borrow().clone(),
+        ) {
+            (first_type, last_type) => {
                 // check, if types of if and else match
                 match (first_type, last_type) {
                     (Some(first_type), Some(last_type)) => {
@@ -68,7 +59,7 @@ impl TypeCheckable for If<()> {
                                     expected: first_type,
                                     actual: last_type,
                                 },
-                                last.position(),
+                                checked_else_block.position,
                             ));
                         }
                         // otherwise (e.g., in case of both being None), we simply return the type
@@ -84,8 +75,8 @@ impl TypeCheckable for If<()> {
 
         Ok(If {
             condition: Box::new(condition),
-            statements: checked_statements,
-            else_statements: checked_else_statements,
+            then_block: checked_then_block,
+            else_block: checked_else_block,
             info: TypeInformation { type_id, context },
             position,
         })
@@ -94,18 +85,18 @@ impl TypeCheckable for If<()> {
     fn revert(this: &Self::Typed) -> Self {
         let If {
             condition,
-            statements,
-            else_statements,
+            then_block,
+            else_block,
             position,
             ..
         } = this;
 
         If {
             condition: Box::new(TypeCheckable::revert(condition.as_ref())),
-            statements: statements.iter().map(TypeCheckable::revert).collect(),
-            else_statements: else_statements.iter().map(TypeCheckable::revert).collect(),
-            info: (),
+            then_block: TypeCheckable::revert(then_block),
+            else_block: TypeCheckable::revert(else_block),
             position: position.clone(),
+            info: (),
         }
     }
 }
@@ -116,26 +107,16 @@ impl TypedConstruct for If<TypeInformation> {
     fn validate(self) -> Result<Self::Validated, TypeValidationError> {
         let If {
             condition,
-            statements,
-            else_statements,
+            then_block,
+            else_block,
             info,
             position,
         } = self;
 
-        let mut validated_statements = vec![];
-        for statement in statements {
-            validated_statements.push(statement.validate()?);
-        }
-
-        let mut validated_else_statements = vec![];
-        for statement in else_statements {
-            validated_else_statements.push(statement.validate()?);
-        }
-
         Ok(If {
             condition: Box::new(condition.validate()?),
-            statements: validated_statements,
-            else_statements: validated_else_statements,
+            then_block: then_block.validate()?,
+            else_block: else_block.validate()?,
             info: info.validate(&position)?,
             position,
         })
@@ -150,7 +131,7 @@ mod tests {
 
     use crate::{
         lexer::Span,
-        parser::ast::{Expression, Id, If, Statement},
+        parser::ast::{Block, Expression, Id, If, Statement},
         typechecker::{
             context::Context,
             error::{TypeCheckError, TypeMismatch},
@@ -181,8 +162,16 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![],
-            else_statements: vec![],
+            then_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
+            else_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
             info: (),
             position: Span::default(),
         };
@@ -216,8 +205,16 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![],
-            else_statements: vec![],
+            then_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
+            else_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
             info: (),
             position: Span::default(),
         };
@@ -284,16 +281,24 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![Statement::Expression(Expression::Id(Id {
-                name: "bar".into(),
+            then_block: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                    name: "bar".into(),
+                    info: (),
+                    position: Span::default(),
+                }))],
                 info: (),
                 position: Span::default(),
-            }))],
-            else_statements: vec![Statement::Expression(Expression::Id(Id {
-                name: "baz".into(),
+            },
+            else_block: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                    name: "baz".into(),
+                    info: (),
+                    position: Span::default(),
+                }))],
                 info: (),
                 position: Span::default(),
-            }))],
+            },
             info: (),
             position: Span::default(),
         };
@@ -348,12 +353,20 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![Statement::Expression(Expression::Id(Id {
-                name: "bar".into(),
+            then_block: Block {
+                statements: vec![Statement::Expression(Expression::Id(Id {
+                    name: "bar".into(),
+                    info: (),
+                    position: Span::default(),
+                }))],
                 info: (),
                 position: Span::default(),
-            }))],
-            else_statements: vec![],
+            },
+            else_block: Block {
+                statements: vec![],
+                info: (),
+                position: Span::default(),
+            },
             info: (),
             position: Span::default(),
         };

@@ -9,10 +9,8 @@ use super::{Block, Expression};
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct If<T> {
     pub condition: Box<Expression<T>>,
-    // TODO: This should/could just be a block
-    pub statements: Vec<Statement<T>>,
-    // TODO: This should/could just be a block
-    pub else_statements: Vec<Statement<T>>,
+    pub then_block: Block<T>,
+    pub else_block: Block<T>,
     pub info: T,
     pub position: Span,
 }
@@ -21,21 +19,25 @@ impl FromGrammar<grammar::IfExpression> for If<()> {
     fn transform(item: rust_sitter::Spanned<grammar::IfExpression>, source: &str) -> Self {
         let rust_sitter::Spanned { value, span } = item;
 
-        // Extract then block statements
+        // Keep then block intact
         let then_block = Block::transform(value.then_block.value, source);
 
-        // Extract else block statements if present
-        let else_statements = if let Some(else_clause) = value.else_block {
-            let else_block = Block::transform(else_clause.value.block.value, source);
-            else_block.statements
+        // Keep else block intact, or create empty block if no else clause
+        let else_block = if let Some(else_clause) = value.else_block {
+            Block::transform(else_clause.value.block.value, source)
         } else {
-            vec![]
+            // Create empty block for missing else clause
+            Block {
+                statements: vec![],
+                info: (),
+                position: Span::new(span, source),
+            }
         };
 
         If {
             condition: Box::new(Expression::transform(*value.condition, source)),
-            statements: then_block.statements,
-            else_statements,
+            then_block,
+            else_block,
             info: (),
             position: Span::new(span, source),
         }
@@ -57,44 +59,44 @@ mod tests {
     fn test_simple_if() {
         let result = parse_if("if (true) {}").unwrap();
         // assert!(matches!(*result.condition, Expression::Bool(_)));
-        assert_eq!(result.statements.len(), 0);
-        assert_eq!(result.else_statements.len(), 0);
+        assert_eq!(result.then_block.statements.len(), 0);
+        assert_eq!(result.else_block.statements.len(), 0);
     }
 
     #[test]
     fn test_if_with_identifier_condition() {
         let result = parse_if("if (x) {}").unwrap();
         assert!(matches!(*result.condition, Expression::Id(_)));
-        assert_eq!(result.statements.len(), 0);
-        assert_eq!(result.else_statements.len(), 0);
+        assert_eq!(result.then_block.statements.len(), 0);
+        assert_eq!(result.else_block.statements.len(), 0);
     }
 
     #[test]
     fn test_simple_if_else() {
         let result = parse_if("if (true) {} else {}").unwrap();
         // assert!(matches!(*result.condition, Expression::Bool(_)));
-        assert_eq!(result.statements.len(), 0);
-        assert_eq!(result.else_statements.len(), 0);
+        assert_eq!(result.then_block.statements.len(), 0);
+        assert_eq!(result.else_block.statements.len(), 0);
     }
 
     #[test]
     fn test_if_with_statements() {
         let result = parse_if("if (true) { 42; }").unwrap();
         // assert!(matches!(*result.condition, Expression::Bool(_)));
-        assert_eq!(result.statements.len(), 1);
-        assert!(matches!(result.statements[0], Statement::Expression(_)));
-        assert_eq!(result.else_statements.len(), 0);
+        assert_eq!(result.then_block.statements.len(), 1);
+        assert!(matches!(result.then_block.statements[0], Statement::Expression(_)));
+        assert_eq!(result.else_block.statements.len(), 0);
     }
 
     #[test]
     fn test_if_else_with_statements() {
         let result = parse_if("if (true) { 42; } else { 1337; }").unwrap();
         // assert!(matches!(*result.condition, Expression::Bool(_)));
-        assert_eq!(result.statements.len(), 1);
-        assert!(matches!(result.statements[0], Statement::Expression(_)));
-        assert_eq!(result.else_statements.len(), 1);
+        assert_eq!(result.then_block.statements.len(), 1);
+        assert!(matches!(result.then_block.statements[0], Statement::Expression(_)));
+        assert_eq!(result.else_block.statements.len(), 1);
         assert!(matches!(
-            result.else_statements[0],
+            result.else_block.statements[0],
             Statement::Expression(_)
         ));
     }
@@ -103,9 +105,9 @@ mod tests {
     fn test_if_with_yielding_expression() {
         let result = parse_if("if (true) { 42 }").unwrap();
         // assert!(matches!(*result.condition, Expression::Bool(_)));
-        assert_eq!(result.statements.len(), 1);
+        assert_eq!(result.then_block.statements.len(), 1);
         assert!(matches!(
-            result.statements[0],
+            result.then_block.statements[0],
             Statement::YieldingExpression(_)
         ));
     }

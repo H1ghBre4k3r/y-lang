@@ -62,7 +62,7 @@ impl<'ctx> Instance<ValidatedTypeInformation> {
         let crate::parser::ast::Function {
             id,
             parameters,
-            statements,
+            body,
             info:
                 ValidatedTypeInformation {
                     type_id:
@@ -128,9 +128,7 @@ impl<'ctx> Instance<ValidatedTypeInformation> {
         ctx.builder.position_at_end(llvm_fn_bb);
 
         // Compile method body
-        for statement in statements {
-            statement.codegen(ctx);
-        }
+        body.codegen(ctx);
 
         // Add terminator instruction if the basic block doesn't have one
         if ctx
