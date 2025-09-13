@@ -20,9 +20,9 @@
 - Complex assignments, empty arrays, lambda returns, closure capture
 
 ### Example Compilation Status
-- ✅ **Working**: `simple.why`, `foo.why` (partial)
+- ✅ **Working**: `simple.why`, `foo.why`, `printf.why`, `hello.why`
 - ❌ **Failing**: `assign.why`, `testarray.why`, `lambda.why` (closure parts)
-- **Success Rate**: 3/9 examples compile without panics
+- **Success Rate**: 4/11 examples compile without runtime issues
 
 ---
 
@@ -49,18 +49,19 @@
 **Impact**: Blocks `lambda.why` (`get_lambda()`, `create_add_x()`)  
 **Issues**: Function pointer return handling incomplete
 
-### 4. Lambda Closure Capture (HIGH) 
-**File**: `crates/why_lib/src/codegen/expressions/lambda.rs:56-69`  
-**Error**: `unwrap()` panic when accessing captured variables  
-**Impact**: Blocks closure syntax like `\(y) => x + y`  
+
+### 5. Lambda Closure Capture (HIGH)
+**File**: `crates/why_lib/src/codegen/expressions/lambda.rs:56-69`
+**Error**: `unwrap()` panic when accessing captured variables
+**Impact**: Blocks closure syntax like `\(y) => x + y`
 **Features Needed**:
 - Capture analysis in typechecker
 - Closure environment creation
 - Modified calling convention for captured variables
 
 ### 5. Default Array Syntax (MEDIUM)
-**File**: `crates/why_lib/src/codegen/expressions/mod.rs:93`  
-**Error**: `todo!("Default array initialization not yet implemented")`  
+**File**: `crates/why_lib/src/codegen/expressions/mod.rs:93`
+**Error**: `todo!("Default array initialization not yet implemented")`
 **Feature**: `&[value; length]` syntax
 
 ---
@@ -83,11 +84,12 @@
 ## Development Priorities
 
 ### Phase 1: Critical CodeGen Fixes (4-6 weeks)
-**Goal**: Get all current examples compiling  
-**Success Metrics**: 
+**Goal**: Get all current examples compiling
+**Success Metrics**:
 - ✅ `assign.why` compiles successfully
-- ✅ `testarray.why` compiles successfully  
-- ✅ 80%+ of examples compile without panics
+- ✅ `testarray.why` compiles successfully
+- ✅ `printf.why` runs without segmentation fault
+- ✅ 80%+ of examples compile without runtime issues
 
 ### Phase 2: Lambda Enhancements (3-4 weeks)
 **Goal**: Complete lambda functionality
@@ -108,9 +110,12 @@
 # Run all tests (183 parser tests, comprehensive type checking)
 cargo test
 
-# Build and test specific examples  
+# Build and test specific examples
 cargo run --bin yc -- example.why -o output
 ./output
+
+# Test hello.why example
+cargo run --bin yc -- examples/hello.why -o out/hello && ./out/hello
 
 # Quick build commands
 just build    # Development build

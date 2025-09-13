@@ -1,0 +1,10 @@
+declare printf: (str) -> void;
+
+fn println(value: str): void {
+    printf(value);
+    printf("\n");
+}
+
+fn main(): void {
+    println("Hello, world!");
+}

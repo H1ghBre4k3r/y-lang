@@ -46,6 +46,11 @@ impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
                     return variable;
                 }
 
+                // For string types, return the pointer directly (strings are passed by reference)
+                if matches!(type_id, Type::String) {
+                    return variable;
+                }
+
                 let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id)) else {
                     return variable;
                 };
