@@ -1,0 +1,15 @@
+declare printf: (str) -> void;
+
+fn println(value: str): void {
+    printf(value);
+    printf("\n");
+}
+
+fn main(): void {
+    let strings = &["First", "Second", "Third"];
+    let mut i = 0;
+    while (i < 3) {
+        println(strings[i]);
+        i = i + 1;
+    }
+}
