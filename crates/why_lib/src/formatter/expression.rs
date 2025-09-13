@@ -92,6 +92,7 @@ impl Format for Function<()> {
                 Ok(())
             })?;
             ctx.write_newline()?;
+            ctx.write_indent()?;
         }
 
         ctx.write("}")

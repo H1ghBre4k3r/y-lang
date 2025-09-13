@@ -1,4 +1,7 @@
-use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::typechecker::{Type, TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Assignment, LValue},
     typechecker::{
@@ -62,7 +65,7 @@ impl TypeCheckable for Assignment<()> {
             lvalue,
             rvalue,
             info: TypeInformation {
-                type_id: info.type_id.clone(),
+                type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },
             position,

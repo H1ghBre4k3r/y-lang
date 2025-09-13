@@ -25,6 +25,8 @@ instance Foo {
 fn get_val(other: i64): i64 {
     this.bar.value + other
 }
+
+declare test(str, i64): f64;
 }
 
 fn main(): i64 {
