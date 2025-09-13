@@ -127,8 +127,8 @@ impl<'ctx> Instance<ValidatedTypeInformation> {
         let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
         ctx.builder.position_at_end(llvm_fn_bb);
 
-        // Compile method body
-        body.codegen(ctx);
+        // Compile method body and capture yielded value
+        let yielded_value = body.codegen(ctx);
 
         // Add terminator instruction if the basic block doesn't have one
         if ctx
@@ -143,8 +143,13 @@ impl<'ctx> Instance<ValidatedTypeInformation> {
                     ctx.builder.build_return(None).unwrap();
                 }
                 _ => {
-                    // Non-void function without explicit return - add unreachable
-                    ctx.builder.build_unreachable().unwrap();
+                    // For non-void functions, use the yielded value if available
+                    if let Some(value) = yielded_value {
+                        ctx.builder.build_return(Some(&value)).unwrap();
+                    } else {
+                        // Only add unreachable if there's truly no value to return
+                        ctx.builder.build_unreachable().unwrap();
+                    }
                 }
             }
         }
