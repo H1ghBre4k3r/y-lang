@@ -1,5 +1,4 @@
 fn main(): void {
     let x: &[i64] = &[];
-
     x[0];
 }

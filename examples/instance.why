@@ -3,23 +3,23 @@ struct FooStruct {
 }
 
 instance FooStruct {
-    fn get_id(): i64 {
-        this.id
-    }
+fn get_id(): i64 {
+    this.id
+}
 }
 
 instance i64 {
-    declare add(i64): i64;
+declare add(i64): i64;
 }
 
 struct System {}
 
 instance System {
-    declare print(f64): void;
+fn answer(): i64 {
+    42
+}
 
-    fn answer(): i64 {
-        42
-    }
+declare print(i64): void;
 }
 
 declare Sys: System;

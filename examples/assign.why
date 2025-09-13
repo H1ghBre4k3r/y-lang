@@ -7,9 +7,8 @@ fn b(): i64 {
 }
 
 fn main(): void {
-    let a = Foo {
+    let mut a = Foo {
         b: 1337
     };
-
     a.b = 42;
 }
