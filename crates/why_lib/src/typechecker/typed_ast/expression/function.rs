@@ -54,8 +54,21 @@ impl TypeCheckable for Function<()> {
 
         let mut checked_statements = vec![];
 
-        for stmt in statements.into_iter() {
-            checked_statements.push(stmt.check(ctx)?);
+        let len = statements.len();
+
+        // TODO: this should be done in the Block
+        for (i, stmt) in statements.into_iter().enumerate() {
+            let stmt = stmt.check(ctx)?;
+            match stmt {
+                Statement::YieldingExpression(Expression::Block(block)) if i < len - 1 => {
+                    checked_statements.push(Statement::Expression(Expression::Block(block)))
+                }
+                Statement::YieldingExpression(other) if i < len - 1 => {
+                    todo!("yielding expression is only allowed at the end of a function {other:?}");
+                }
+                _ => checked_statements.push(stmt),
+            }
+            // checked_statements.push(?);
         }
 
         match checked_statements.last_mut() {

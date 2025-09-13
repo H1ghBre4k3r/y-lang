@@ -20,6 +20,8 @@ impl TypeCheckable for Block<()> {
         let mut checked_statements = vec![];
 
         for stmt in statements.into_iter() {
+            // TODO: this should throw errors of statement is yielding but not last.
+            // Furthermore, we should use a block for functions
             checked_statements.push(stmt.check(ctx)?);
         }
 

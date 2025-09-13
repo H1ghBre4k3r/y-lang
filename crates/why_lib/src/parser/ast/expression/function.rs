@@ -11,6 +11,7 @@ pub struct Function<T> {
     pub id: Id<T>,
     pub parameters: Vec<FunctionParameter<T>>,
     pub return_type: TypeName,
+    // TODO: this should be a block
     pub statements: Vec<Statement<T>>,
     pub info: T,
     pub position: Span,
@@ -21,6 +22,7 @@ impl FromGrammar<grammar::FunctionDeklaration> for Function<()> {
         let rust_sitter::Spanned { value, span } = item;
 
         // Extract block statements
+        // TODO: do not extract, but use block
         let block = Block::transform(value.block, source);
 
         Function {

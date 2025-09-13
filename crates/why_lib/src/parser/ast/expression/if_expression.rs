@@ -11,6 +11,7 @@ pub struct If<T> {
     pub condition: Box<Expression<T>>,
     // TODO: This should/could just be a block
     pub statements: Vec<Statement<T>>,
+    // TODO: This should/could just be a block
     pub else_statements: Vec<Statement<T>>,
     pub info: T,
     pub position: Span,
