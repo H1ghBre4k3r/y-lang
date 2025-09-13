@@ -2,55 +2,60 @@
 
 ## Current Status Summary (September 2024)
 
-### Overall Progress: 75% Complete for v0.1 Release
+### Overall Progress: 55% Complete for v0.1 Release
 
 **✅ Parser & Type System**: Excellent (95% complete)
 - Complete syntax parsing for all language features
 - Sophisticated type checking and inference
 - Advanced features: structs, lambdas, arrays, control flow
 
-**✅ Core CodeGen**: Good (75% complete) 
+**✅ Core CodeGen**: Good (60% complete)
 - Basic functions, variables, arithmetic
 - Struct declarations and initialization
 - Property reading (`obj.field`)
 - Non-capturing lambda expressions
 - Control flow (if-else, while loops)
+- String parameter handling (fixed segmentation faults)
 
-**❌ Critical CodeGen Gaps**: 4 blocking issues
-- Complex assignments, empty arrays, lambda returns, closure capture
+**✅ Formatter & Tooling**: Complete (100% complete)
+- Code formatter with blank line preservation
+- Proper indentation for all language constructs
+- Intelligent whitespace handling (preserves single blank lines, collapses multiple)
+
+**❌ Critical CodeGen Gaps**: 3 blocking issues
+- Complex assignments, empty arrays, lambda returns, closure capture 
 
 ### Example Compilation Status
-- ✅ **Working**: `simple.why`, `foo.why`, `printf.why`, `hello.why`
-- ❌ **Failing**: `assign.why`, `testarray.why`, `lambda.why` (closure parts)
-- **Success Rate**: 4/11 examples compile without runtime issues
+- ✅ **Working**: `simple.why`, `foo.why`, `printf.why`, `hello.why`, `instance.why`, `struct.why`
+- ❌ **Failing**: `assign.why`, `testarray.why`, `lambda.why`, `main.why`, `test.why`
+- **Success Rate**: 6/11 examples compile without runtime issues
 
 ---
 
 ## Critical Implementation Gaps (Priority Order)
 
 ### 1. Complex Assignment Operations (CRITICAL)
-**File**: `crates/why_lib/src/codegen/statements/assignment.rs:25`  
-**Error**: `todo!("Complex lvalue assignment not yet implemented")`  
-**Impact**: Blocks `assign.why`, major parts of `main.why`, `foo.why`  
+**File**: `crates/why_lib/src/codegen/statements/assignment.rs:25`
+**Error**: `todo!("Complex lvalue assignment not yet implemented")`
+**Impact**: Blocks `assign.why`, essential language feature
 **Features Needed**:
 - Struct field assignment: `obj.field = value`
 - Array element assignment: `arr[index] = value`
 - Integration with existing GEP operations
 
 ### 2. Empty Array Initialization (CRITICAL)
-**File**: `crates/why_lib/src/codegen/statements/initialisation.rs:15`  
-**Error**: `unreachable!()` when `&[]` generates no LLVM value  
-**Impact**: Blocks `testarray.why`  
+**File**: `crates/why_lib/src/codegen/statements/initialisation.rs:15`
+**Error**: `unreachable!()` when `&[]` generates no LLVM value
+**Impact**: Blocks `testarray.why`
 **Solution**: Generate valid LLVM IR for zero-length arrays
 
 ### 3. Lambda Return Values (CRITICAL)
-**Files**: `crates/why_lib/src/codegen/expressions/lambda.rs`, `/mod.rs:30`  
-**Error**: Cannot return lambda expressions from functions  
-**Impact**: Blocks `lambda.why` (`get_lambda()`, `create_add_x()`)  
+**Files**: `crates/why_lib/src/codegen/expressions/lambda.rs`, `/mod.rs:30`
+**Error**: Cannot return lambda expressions from functions
+**Impact**: Blocks `lambda.why` (`get_lambda()`, `create_add_x()`)
 **Issues**: Function pointer return handling incomplete
 
-
-### 5. Lambda Closure Capture (HIGH)
+### 4. Lambda Closure Capture (HIGH)
 **File**: `crates/why_lib/src/codegen/expressions/lambda.rs:56-69`
 **Error**: `unwrap()` panic when accessing captured variables
 **Impact**: Blocks closure syntax like `\(y) => x + y`
@@ -83,20 +88,27 @@
 
 ## Development Priorities
 
-### Phase 1: Critical CodeGen Fixes (4-6 weeks)
+### Phase 1: Critical CodeGen Fixes (3-4 weeks)
 **Goal**: Get all current examples compiling
 **Success Metrics**:
 - ✅ `assign.why` compiles successfully
 - ✅ `testarray.why` compiles successfully
-- ✅ `printf.why` runs without segmentation fault
-- ✅ 80%+ of examples compile without runtime issues
+- ✅ `lambda.why` compiles successfully (non-closure parts)
+- ✅ 90%+ of examples compile without runtime issues
 
-### Phase 2: Lambda Enhancements (3-4 weeks)
+### Phase 2: Lambda Enhancements (2-3 weeks)
 **Goal**: Complete lambda functionality
-- Return values from functions
 - Closure capture support
+- Advanced lambda features
 
-### Phase 3: Array System Completion (2-3 weeks) 
+### Phase 3: Code Quality & Tooling (1-2 weeks)
+**Goal**: Improve codebase quality and developer experience
+- Address compilation warnings (17 current warnings)
+- Clean up unused imports and variables
+- Enhanced error messages
+- Documentation updates
+
+### Phase 4: Array System Completion (1-2 weeks)
 **Goal**: Full array functionality
 - Default initialization syntax
 - Enhanced indexing operations
@@ -114,8 +126,13 @@ cargo test
 cargo run --bin yc -- example.why -o output
 ./output
 
-# Test hello.why example
+# Test working examples
 cargo run --bin yc -- examples/hello.why -o out/hello && ./out/hello
+cargo run --bin yc -- examples/foo.why -o out/foo && ./out/foo
+cargo run --bin yc -- examples/printf.why -o out/printf && ./out/printf
+
+# Format code with blank line preservation
+cargo run --bin yc -- --format example.why
 
 # Quick build commands
 just build    # Development build
@@ -130,14 +147,31 @@ instance Point {
     fn distance(): f64 { /* implementation */ }
 }
 
-// Non-capturing lambdas  
+// Non-capturing lambdas
 fn main(): i64 {
     let double = \(x) => x * 2;
     double(21)  // Returns 42
 }
 
-// Function parameters
+// Function parameters and string handling
 fn takes_fn(f: (i64) -> i64): i64 { f(24) }
+fn print_string(s: str): void { /* string operations */ }
+
+// Control flow with proper blank line preservation
+fn example(): void {
+    let x = 42;
+
+    if (x > 0) {
+        printf("positive");
+    } else {
+        printf("non-positive");
+    }
+
+    let mut i = 0;
+    while (i < 10) {
+        i = i + 1;
+    }
+}
 ```
 
 ---
@@ -252,9 +286,16 @@ fn takes_fn(f: (i64) -> i64): i64 { f(24) }
 
 ## Technical Debt & Quality
 
-**Codebase Quality**: Excellent - clean architecture, good separation of concerns  
-**Technical Debt**: Low - minimal `todo!()` implementations remain  
-**Runtime Stability**: Good - no segfaults, clean panics on unimplemented features  
+**Codebase Quality**: Excellent - clean architecture, good separation of concerns
+**Technical Debt**: Low - minimal `todo!()` implementations remain
+**Runtime Stability**: Good - no segfaults, clean panics on unimplemented features
 **LLVM IR Quality**: Good - generates correct, unoptimized IR
+**Formatter Quality**: Excellent - sophisticated blank line preservation and indentation
 
 **Current Focus**: Implementation completeness rather than optimization or features
+
+**Known Issues**:
+- 17 compilation warnings (unused imports, variables)
+- Need comprehensive testing of all 11 examples
+- Some lambda functionality incomplete (closure capture)
+- Complex assignment operations pending
