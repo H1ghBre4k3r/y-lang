@@ -30,9 +30,21 @@ declare test(str, i64): f64;
 }
 
 fn main(): i64 {
+
     let left = 42;
+
+
+
+
+
+
+
+
+
     let right = 1337;
+
     let foo = &[left, right];
+
     let mut i = 0;
     while (i < 10) {
         printf("Hello\n");

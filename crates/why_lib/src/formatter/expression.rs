@@ -3,7 +3,7 @@ use crate::{
     parser::ast::{
         Array, AstString, BinaryExpression, BinaryOperator, Block, Bool, Character, Expression,
         Function, FunctionParameter, Id, If, Lambda, LambdaParameter, Num, Postfix, Prefix,
-        StructFieldInitialisation, StructInitialisation, TypeName,
+        StructFieldInitialisation, StructInitialisation, TypeName, Statement,
     },
 };
 use std::fmt::Write;
@@ -82,16 +82,9 @@ impl Format for Function<()> {
         if !self.body.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                for (i, stmt) in self.body.statements.iter().enumerate() {
-                    if i > 0 {
-                        ctx.write_newline()?;
-                    }
-                    ctx.write_indent()?;
-                    stmt.format(ctx)?;
-                }
+                format_statements_with_blank_lines(&self.body.statements, ctx)?;
                 Ok(())
             })?;
-            ctx.write_newline()?;
             ctx.write_indent()?;
         }
 
@@ -131,11 +124,7 @@ impl Format for If<()> {
         if !self.then_block.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                for stmt in &self.then_block.statements {
-                    ctx.write_indent()?;
-                    stmt.format(ctx)?;
-                    ctx.write_newline()?;
-                }
+                format_statements_with_blank_lines(&self.then_block.statements, ctx)?;
                 Ok(())
             })?;
             ctx.write_indent()?; // Add indentation for closing brace
@@ -147,11 +136,7 @@ impl Format for If<()> {
             ctx.write(" else {")?;
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                for stmt in &self.else_block.statements {
-                    ctx.write_indent()?;
-                    stmt.format(ctx)?;
-                    ctx.write_newline()?;
-                }
+                format_statements_with_blank_lines(&self.else_block.statements, ctx)?;
                 Ok(())
             })?;
             ctx.write_indent()?; // Add indentation for else closing brace
@@ -162,6 +147,126 @@ impl Format for If<()> {
     }
 }
 
+// Helper function to format statements with blank line preservation
+fn format_statements_with_blank_lines(
+    statements: &[Statement<()>],
+    ctx: &mut FormatterContext,
+) -> Result<(), std::fmt::Error> {
+    for (i, stmt) in statements.iter().enumerate() {
+        // Format the current statement
+        ctx.write_indent()?;
+        stmt.format(ctx)?;
+
+        // Add newline after statement (but don't add extra blank lines yet)
+        if i < statements.len() - 1 {
+            let blank_lines = count_blank_lines_between_statements(stmt, &statements[i + 1]);
+
+            // If there were blank lines after this statement, preserve one
+            if blank_lines > 0 {
+                ctx.write_newline()?;
+                ctx.write_newline()?; // Add one blank line
+            } else {
+                ctx.write_newline()?; // Just separate with single newline
+            }
+        } else {
+            // Last statement, just add newline
+            ctx.write_newline()?;
+        }
+    }
+    Ok(())
+}
+
+// Helper function to count blank lines between statements
+fn count_blank_lines_between_statements(
+    first: &Statement<()>,
+    second: &Statement<()>,
+) -> usize {
+    let first_end_line = get_statement_end_line(first);
+    let second_start_line = get_statement_start_line(second);
+
+    if second_start_line > first_end_line {
+        second_start_line - first_end_line - 1
+    } else {
+        0
+    }
+}
+
+// Helper function to get the start line of a statement
+fn get_statement_start_line(stmt: &Statement<()>) -> usize {
+    match stmt {
+        Statement::Function(func) => func.position.start.0,
+        Statement::WhileLoop(while_loop) => while_loop.position.start.0,
+        Statement::Initialization(init) => init.position.start.0,
+        Statement::Constant(constant) => constant.position.start.0,
+        Statement::Assignment(assignment) => assignment.position.start.0,
+        Statement::Expression(expr) => get_expression_start_line(expr),
+        Statement::YieldingExpression(expr) => get_expression_start_line(expr),
+        Statement::Return(expr) => get_expression_start_line(expr),
+        Statement::Comment(_) => 0, // Comments don't have position info
+        Statement::Declaration(decl) => decl.position.start.0,
+        Statement::StructDeclaration(decl) => decl.position.start.0,
+    }
+}
+
+// Helper function to get the end line of a statement
+fn get_statement_end_line(stmt: &Statement<()>) -> usize {
+    match stmt {
+        Statement::Function(func) => func.position.end.0,
+        Statement::WhileLoop(while_loop) => while_loop.position.end.0,
+        Statement::Initialization(init) => init.position.end.0,
+        Statement::Constant(constant) => constant.position.end.0,
+        Statement::Assignment(assignment) => assignment.position.end.0,
+        Statement::Expression(expr) => get_expression_end_line(expr),
+        Statement::YieldingExpression(expr) => get_expression_end_line(expr),
+        Statement::Return(expr) => get_expression_end_line(expr),
+        Statement::Comment(_) => 0, // Comments don't have position info
+        Statement::Declaration(decl) => decl.position.end.0,
+        Statement::StructDeclaration(decl) => decl.position.end.0,
+    }
+}
+
+// Helper function to get the start line of an expression
+fn get_expression_start_line(expr: &Expression<()>) -> usize {
+    match expr {
+        Expression::Id(id) => id.position.start.0,
+        Expression::Num(num) => num.position().start.0,
+        Expression::Bool(bool) => bool.position.start.0,
+        Expression::Character(char) => char.position.start.0,
+        Expression::AstString(string) => string.position.start.0,
+        Expression::Function(func) => func.position.start.0,
+        Expression::Lambda(lambda) => lambda.position.start.0,
+        Expression::If(if_expr) => if_expr.position.start.0,
+        Expression::Block(block) => block.position.start.0,
+        Expression::Parens(expr) => get_expression_start_line(expr),
+        Expression::Postfix(postfix) => postfix.position().start.0,
+        Expression::Prefix(prefix) => prefix.position().start.0,
+        Expression::Binary(binary) => binary.position.start.0,
+        Expression::Array(array) => array.position().start.0,
+        Expression::StructInitialisation(struct_init) => struct_init.position.start.0,
+    }
+}
+
+// Helper function to get the end line of an expression
+fn get_expression_end_line(expr: &Expression<()>) -> usize {
+    match expr {
+        Expression::Id(id) => id.position.end.0,
+        Expression::Num(num) => num.position().end.0,
+        Expression::Bool(bool) => bool.position.end.0,
+        Expression::Character(char) => char.position.end.0,
+        Expression::AstString(string) => string.position.end.0,
+        Expression::Function(func) => func.position.end.0,
+        Expression::Lambda(lambda) => lambda.position.end.0,
+        Expression::If(if_expr) => if_expr.position.end.0,
+        Expression::Block(block) => block.position.end.0,
+        Expression::Parens(expr) => get_expression_end_line(expr),
+        Expression::Postfix(postfix) => postfix.position().end.0,
+        Expression::Prefix(prefix) => prefix.position().end.0,
+        Expression::Binary(binary) => binary.position.end.0,
+        Expression::Array(array) => array.position().end.0,
+        Expression::StructInitialisation(struct_init) => struct_init.position.end.0,
+    }
+}
+
 impl Format for Block<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         ctx.write("{")?;
@@ -169,11 +274,7 @@ impl Format for Block<()> {
         if !self.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                for stmt in &self.statements {
-                    ctx.write_indent()?;
-                    stmt.format(ctx)?;
-                    ctx.write_newline()?;
-                }
+                format_statements_with_blank_lines(&self.statements, ctx)?;
                 Ok(())
             })?;
             ctx.write_indent()?;
