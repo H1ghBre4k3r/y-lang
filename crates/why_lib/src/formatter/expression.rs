@@ -3,7 +3,7 @@ use crate::{
     parser::ast::{
         Array, AstString, BinaryExpression, BinaryOperator, Block, Bool, Character, Expression,
         Function, FunctionParameter, Id, If, Lambda, LambdaParameter, Num, Postfix, Prefix,
-        StructFieldInitialisation, StructInitialisation, TypeName, Statement,
+        Statement, StructFieldInitialisation, StructInitialisation, TypeName,
     },
 };
 use std::fmt::Write;
@@ -77,18 +77,8 @@ impl Format for Function<()> {
 
         ctx.write("): ")?;
         self.return_type.format(ctx)?;
-        ctx.write(" {")?;
-
-        if !self.body.statements.is_empty() {
-            ctx.write_newline()?;
-            ctx.with_indent(|ctx| {
-                format_statements_with_blank_lines(&self.body.statements, ctx)?;
-                Ok(())
-            })?;
-            ctx.write_indent()?;
-        }
-
-        ctx.write("}")
+        ctx.write(" ")?;
+        self.body.format(ctx)
     }
 }
 
@@ -119,68 +109,20 @@ impl Format for If<()> {
     fn format(&self, ctx: &mut FormatterContext) -> Result<(), std::fmt::Error> {
         ctx.write("if (")?;
         self.condition.format(ctx)?;
-        ctx.write(") {")?;
-
-        if !self.then_block.statements.is_empty() {
-            ctx.write_newline()?;
-            ctx.with_indent(|ctx| {
-                format_statements_with_blank_lines(&self.then_block.statements, ctx)?;
-                Ok(())
-            })?;
-            ctx.write_indent()?; // Add indentation for closing brace
-        }
-
-        ctx.write("}")?;
+        ctx.write(") ")?;
+        self.then_block.format(ctx)?;
 
         if !self.else_block.statements.is_empty() {
-            ctx.write(" else {")?;
-            ctx.write_newline()?;
-            ctx.with_indent(|ctx| {
-                format_statements_with_blank_lines(&self.else_block.statements, ctx)?;
-                Ok(())
-            })?;
-            ctx.write_indent()?; // Add indentation for else closing brace
-            ctx.write("}")?;
+            ctx.write(" else ")?;
+            self.else_block.format(ctx)?;
         }
 
         Ok(())
     }
 }
 
-// Helper function to format statements with blank line preservation
-fn format_statements_with_blank_lines(
-    statements: &[Statement<()>],
-    ctx: &mut FormatterContext,
-) -> Result<(), std::fmt::Error> {
-    for (i, stmt) in statements.iter().enumerate() {
-        // Format the current statement
-        ctx.write_indent()?;
-        stmt.format(ctx)?;
-
-        // Add newline after statement (but don't add extra blank lines yet)
-        if i < statements.len() - 1 {
-            let blank_lines = count_blank_lines_between_statements(stmt, &statements[i + 1]);
-
-            // If there were blank lines after this statement, preserve one
-            if blank_lines > 0 {
-                ctx.write_newline()?;
-                ctx.write_newline()?; // Add one blank line
-            } else {
-                ctx.write_newline()?; // Just separate with single newline
-            }
-        } else {
-            // Last statement, just add newline
-            ctx.write_newline()?;
-        }
-    }
-    Ok(())
-}
-
 // Helper function to count blank lines between statements
-fn count_blank_lines_between_statements(
-    first: &Statement<()>,
-    second: &Statement<()>,
-) -> usize {
+fn count_blank_lines_between_statements(first: &Statement<()>, second: &Statement<()>) -> usize {
     let first_end_line = get_statement_end_line(first);
     let second_start_line = get_statement_start_line(second);
 
@@ -274,7 +216,28 @@ impl Format for Block<()> {
         if !self.statements.is_empty() {
             ctx.write_newline()?;
             ctx.with_indent(|ctx| {
-                format_statements_with_blank_lines(&self.statements, ctx)?;
+                for (i, stmt) in self.statements.iter().enumerate() {
+                    // Format the current statement
+                    ctx.write_indent()?;
+                    stmt.format(ctx)?;
+
+                    // Add newline after statement (but don't add extra blank lines yet)
+                    if i < self.statements.len() - 1 {
+                        let blank_lines =
+                            count_blank_lines_between_statements(stmt, &self.statements[i + 1]);
+
+                        // If there were blank lines after this statement, preserve one
+                        if blank_lines > 0 {
+                            ctx.write_newline()?;
+                            ctx.write_newline()?; // Add one blank line
+                        } else {
+                            ctx.write_newline()?; // Just separate with single newline
+                        }
+                    } else {
+                        // Last statement, just add newline
+                        ctx.write_newline()?;
+                    }
+                }
                 Ok(())
             })?;
             ctx.write_indent()?;

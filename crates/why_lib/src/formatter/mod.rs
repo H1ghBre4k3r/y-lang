@@ -60,7 +60,10 @@ pub fn format_program(statements: &[TopLevelStatement<()>]) -> Result<String, st
     Ok(ctx.output)
 }
 
-fn count_blank_lines_between(first: &TopLevelStatement<()>, second: &TopLevelStatement<()>) -> usize {
+fn count_blank_lines_between(
+    first: &TopLevelStatement<()>,
+    second: &TopLevelStatement<()>,
+) -> usize {
     let first_end_line = get_end_line(first);
     let second_start_line = get_start_line(second);
 
