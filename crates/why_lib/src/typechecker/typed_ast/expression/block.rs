@@ -85,6 +85,14 @@ impl TypedConstruct for Block<TypeInformation> {
             match last_stmt {
                 crate::parser::ast::Statement::YieldingExpression(expr) => {
                     expr.update_type(type_id.clone())?;
+
+                    // After updating the expression, get its actual type which might be different
+                    // (e.g., lambda converted to closure)
+                    let actual_type = expr.get_info().type_id.borrow().clone();
+                    if let Some(actual_type) = actual_type {
+                        *self.info.type_id.borrow_mut() = Some(actual_type);
+                        return Ok(());
+                    }
                 }
                 _ => {
                     // If the last statement is not a yielding expression but we expect a non-void type,
@@ -93,7 +101,7 @@ impl TypedConstruct for Block<TypeInformation> {
             }
         }
 
-        // Update the block's own type
+        // Update the block's own type (fallback if no yielding expression or it has no type)
         *self.info.type_id.borrow_mut() = Some(type_id);
         Ok(())
     }

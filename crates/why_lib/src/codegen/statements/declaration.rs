@@ -109,6 +109,18 @@ impl<'ctx> CodeGen<'ctx> for Declaration<ValidatedTypeInformation> {
                 let llvm_fn_value = ctx.module.add_function(&name.name, llvm_fn_type, None);
                 ctx.store_function(&name.name, llvm_fn_value);
             }
+            Type::Closure {
+                params,
+                return_value,
+                ..
+            } => {
+                // For closure declarations, treat them like function pointers for now
+                let llvm_fn_type =
+                    build_llvm_function_type_from_own_types(ctx, return_value, params);
+
+                let llvm_fn_value = ctx.module.add_function(&name.name, llvm_fn_type, None);
+                ctx.store_function(&name.name, llvm_fn_value);
+            }
         }
     }
 }

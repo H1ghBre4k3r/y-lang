@@ -1,0 +1,11 @@
+// Test case: Zero captured variables (pure lambda)
+// This should work but may fail due to assumptions about captures
+
+fn main(): i64 {
+    let constant_func = makeConstant();
+    constant_func()
+}
+
+fn makeConstant(): () -> i64 {
+    \() => 42
+}

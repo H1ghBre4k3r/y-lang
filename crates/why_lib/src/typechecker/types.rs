@@ -24,6 +24,11 @@ pub enum Type {
         params: Vec<Type>,
         return_value: Box<Type>,
     },
+    Closure {
+        params: Vec<Type>,
+        return_value: Box<Type>,
+        captures: Vec<(String, Type)>,
+    },
 }
 
 impl Type {
@@ -42,6 +47,18 @@ impl Type {
                 Self::Function {
                     params: r_params,
                     return_value: r_return_value,
+                },
+            ) => l_params == r_params && l_return_value == r_return_value,
+            (
+                Self::Closure {
+                    params: l_params,
+                    return_value: l_return_value,
+                    captures: _,
+                },
+                Self::Closure {
+                    params: r_params,
+                    return_value: r_return_value,
+                    captures: _,
                 },
             ) => l_params == r_params && l_return_value == r_return_value,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
@@ -71,6 +88,23 @@ impl std::fmt::Debug for Type {
                 params
                     .iter()
                     .map(|i| format!("{i:?}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
+            Self::Closure {
+                params,
+                return_value,
+                captures,
+            } => f.write_fmt(format_args!(
+                "({}) -> {return_value:?} [captures: {}]",
+                params
+                    .iter()
+                    .map(|i| format!("{i:?}"))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                captures
+                    .iter()
+                    .map(|(name, ty)| format!("{name}: {ty:?}"))
                     .collect::<Vec<_>>()
                     .join(", ")
             )),

@@ -84,6 +84,9 @@ impl TypeCheckable for Initialisation<()> {
             ));
         }
 
+        // Check if the value is a closure and ensure proper typing
+        let value_type = value.get_info().type_id.borrow().clone();
+
         if ctx
             .scope
             .add_variable(&name, value.clone(), mutable)
@@ -96,6 +99,13 @@ impl TypeCheckable for Initialisation<()> {
                 id_position,
             ));
         };
+
+        // If the value is a closure, update the variable type to ensure closure capture info is preserved
+        if let Some(Type::Closure { params, return_value, captures }) = value_type {
+            let closure_type = Type::Closure { params, return_value, captures };
+            // Try to update the variable type, but don't fail if it's not found
+            let _ = ctx.scope.update_variable(&name, closure_type);
+        }
 
         Ok(Initialisation {
             id: Id {

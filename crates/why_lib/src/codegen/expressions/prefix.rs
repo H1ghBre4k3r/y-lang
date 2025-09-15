@@ -35,13 +35,15 @@ impl<'ctx> CodeGen<'ctx> for Prefix<ValidatedTypeInformation> {
                 match expr_type {
                     Type::Integer => {
                         let expr = expr.into_int_value();
-
                         ctx.builder.build_int_neg(expr, "").unwrap().into()
                     }
                     Type::FloatingPoint => {
                         let expr = expr.into_float_value();
-
                         ctx.builder.build_float_neg(expr, "").unwrap().into()
+                    }
+                    Type::Closure { .. } => {
+                        // Negation not supported for closure types
+                        panic!("Negation operator not supported for closure types");
                     }
 
                     Type::Boolean => {

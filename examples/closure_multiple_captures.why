@@ -1,0 +1,11 @@
+// Test case: Multiple captured variables
+// This should work but currently fails due to hardcoded single capture
+
+fn main(): i64 {
+    let complex_calc = makeComplexCalculator(10, 20, 5);
+    complex_calc(3)
+}
+
+fn makeComplexCalculator(a: i64, b: i64, c: i64): (i64) -> i64 {
+    \(x) => a * x + b - c
+}

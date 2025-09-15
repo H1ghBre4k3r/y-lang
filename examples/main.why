@@ -18,8 +18,6 @@ struct Bar {
 }
 
 instance TestStruct {
-    declare get_id(): i64;
-
     fn get_x(): i64 {
         return this.x;
     }
@@ -27,6 +25,8 @@ instance TestStruct {
     fn set_x(x: i64): void {
         this.x = x;
     }
+
+    declare get_id(): i64;
 }
 
 fn takes_function(func: (i64, i64) -> i64): i64 {

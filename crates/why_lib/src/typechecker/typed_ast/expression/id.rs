@@ -22,7 +22,6 @@ impl TypeCheckable for Id<()> {
                 position,
             ));
         };
-
         Ok(Id {
             name,
             info: TypeInformation {

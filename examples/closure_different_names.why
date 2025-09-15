@@ -1,0 +1,17 @@
+// Test case: Different function names (not just "get")
+// This should work but currently fails due to hardcoded function name
+
+fn main(): i64 {
+    let add_one = makeAdder(1);
+    let multiply_by_3 = makeMultiplier(3);
+
+    add_one(42) + multiply_by_3(10)
+}
+
+fn makeAdder(x: i64): (i64) -> i64 {
+    \(y) => x + y
+}
+
+fn makeMultiplier(factor: i64): (i64) -> i64 {
+    \(value) => factor * value
+}

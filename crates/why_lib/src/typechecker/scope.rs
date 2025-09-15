@@ -214,9 +214,8 @@ impl Scope {
         // explicitly drop scope to prevent borrow checker from crashing
         drop(scope);
 
-        exp.update_type(type_id.clone())?;
-
-        *variable_type.borrow_mut() = Some(type_id);
+        // Update the type_id directly instead of calling update_type on the expression
+        *variable_type.borrow_mut() = Some(type_id.clone());
         Ok(())
     }
 
@@ -246,11 +245,30 @@ impl Scope {
 
     fn get_constant(&self, name: impl ToString) -> Option<Type> {
         let name = name.to_string();
-        self.stacks
+        let found_scope = self.stacks
             .iter()
             .rev()
-            .find(|scope| scope.borrow().constants.contains_key(&name))
-            .and_then(|scope| scope.borrow_mut().constants.get(&name).cloned())
+            .find(|scope| scope.borrow().constants.contains_key(&name));
+        if let Some(scope) = found_scope {
+            let binding = scope.borrow();
+            let found_type = binding.constants.get(&name);
+            eprintln!("DEBUG: get_constant: found {} in scope with type: {:?}", name, found_type);
+            if let Some(Type::Function { params, return_value }) = found_type {
+                eprintln!("DEBUG: get_constant: function params: {:?}, return_value: {:?}", params, return_value);
+                match return_value.as_ref() {
+                    Type::Closure { params: closure_params, return_value: closure_return, captures: closure_captures } => {
+                        eprintln!("DEBUG: get_constant: FOUND CLOSURE! params: {:?}, return_value: {:?}, captures: {:?}", closure_params, closure_return, closure_captures);
+                    }
+                    other => {
+                        eprintln!("DEBUG: get_constant: return_value is NOT a closure: {:?}", other);
+                    }
+                }
+            }
+            found_type.cloned()
+        } else {
+            eprintln!("DEBUG: get_constant: {} not found in any scope", name);
+            None
+        }
     }
 
     pub fn add_constant(
@@ -273,11 +291,47 @@ impl Scope {
         Ok(())
     }
 
+    pub fn update_constant(
+        &mut self,
+        name: impl ToString,
+        type_id: Type,
+    ) -> Result<(), VariableAddError> {
+        let name = name.to_string();
+
+        // Remove ALL existing entries for this constant to prevent duplicates
+        for frame in self.stacks.iter_mut() {
+            if frame.borrow_mut().constants.remove(&name).is_some() {
+                eprintln!("DEBUG: update_constant: removed existing entry for {}", name);
+            }
+        }
+
+        // Add the updated type to the current (top) frame
+        let Some(last) = self.stacks.last_mut() else {
+            unreachable!("trying to update constant {name} in empty scope");
+        };
+        eprintln!("DEBUG: Scope update_constant: storing {} with type {:?}", name, type_id);
+        // Verify the stored type by reading it back
+        last.borrow_mut().constants.insert(name.clone(), type_id.clone());
+        let binding = last.borrow();
+        let stored_type = binding.constants.get(&name).unwrap();
+        eprintln!("DEBUG: Scope update_constant: verified stored type for {}: {:?}", name, stored_type);
+        Ok(())
+    }
+
     pub fn resolve_name(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
         let name = name.to_string();
-        self.get_constant(&name)
-            .map(|t| Rc::new(RefCell::new(Some(t))))
-            .or_else(|| self.get_variable(&name))
+        let result = self.get_constant(&name)
+            .map(|t| {
+                eprintln!("DEBUG: Scope resolve_name: found constant {} with type {:?}", name, t);
+                let cell = Rc::new(RefCell::new(Some(t)));
+                eprintln!("DEBUG: Scope resolve_name: storing in cell with value: {:?}", cell.borrow());
+                cell
+            })
+            .or_else(|| self.get_variable(&name));
+        if result.is_none() {
+            eprintln!("DEBUG: Scope resolve_name: {} not found", name);
+        }
+        result
     }
 
     /// Add a method (i.e., an associated function) to a type. This function will panic if you try

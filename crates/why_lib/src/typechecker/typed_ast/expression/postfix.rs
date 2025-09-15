@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
-    parser::ast::{Id, Postfix},
+    parser::ast::{Expression, Id, Postfix},
     typechecker::{
         context::Context,
         error::{TypeCheckError, TypeMismatch, UndefinedVariable},
@@ -27,6 +27,33 @@ impl TypeCheckable for Postfix<()> {
 
                 let expr_type_id = { expr.get_info().type_id.borrow() }.clone();
 
+                // Check if this is a function call that might need closure type resolution
+                if let Some(Type::Function { .. }) = &expr_type_id {
+                    // If the expression is an ID, check if it's a function that might return closures
+                    if let Expression::Id(id_expr) = &expr {
+                        // Check if this function has been processed for closures yet
+                        // Force a scope refresh to get the latest type information
+                        if let Some(updated_type) = ctx.scope.resolve_name(&id_expr.name) {
+                            let updated_type = updated_type.borrow().clone();
+                            if let Some(updated_type) = updated_type {
+                                // Update the expression type if the scope has newer information
+                                *expr.get_info().type_id.borrow_mut() = Some(updated_type.clone());
+                                let expr_type_id = { expr.get_info().type_id.borrow() }.clone();
+                                // eprintln!("DEBUG: Refreshed function type for {}: {:?}", id_expr.name, expr_type_id);
+
+                                // If it's a function type, check what the return value looks like
+                                if let Type::Function {
+                                    params,
+                                    return_value,
+                                } = &updated_type
+                                {
+                                    // eprintln!("DEBUG: Function has params: {:?}, return_value: {:?}", params, return_value);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 let mut checked_args = vec![];
                 for arg in args.into_iter() {
                     checked_args.push(arg.check(ctx)?);
@@ -47,18 +74,19 @@ impl TypeCheckable for Postfix<()> {
                 };
 
                 let type_id = match &expr_type_id {
-                    Some(
-                        expr_type_id @ Type::Function {
-                            params,
-                            return_value,
-                        },
-                    ) => {
+                    Some(Type::Function {
+                        params,
+                        return_value,
+                    }) => {
                         // param length did not match
                         if params.len() != checked_args.len() {
                             return Err(TypeCheckError::TypeMismatch(
                                 TypeMismatch {
                                     expected: expected_type,
-                                    actual: expr_type_id.clone(),
+                                    actual: Type::Function {
+                                        params: params.clone(),
+                                        return_value: return_value.clone(),
+                                    },
                                 },
                                 position,
                             ));
@@ -81,7 +109,104 @@ impl TypeCheckable for Postfix<()> {
                             }
                         }
 
-                        Rc::new(RefCell::new(Some(return_value.as_ref().clone())))
+                        eprintln!("DEBUG: Function call return_value: {:?}", return_value);
+
+                        // CRITICAL FIX: Check if this is a call to a function that might have been updated
+                        // with closure type information after initial processing
+                        let final_return_type = if let Expression::Id(id_expr) = &expr {
+                            // Get the most recent type information from scope
+                            if let Some(updated_function_type) = ctx.scope.resolve_name(&id_expr.name) {
+                                let borrowed = updated_function_type.borrow();
+                                let full_type = borrowed.as_ref();
+                                eprintln!("DEBUG: Full function type from scope: {:?}", full_type);
+
+                                if let Some(Type::Function { return_value: updated_return, .. }) = full_type {
+                                    eprintln!("DEBUG: Extracted return value from function type: {:?}", updated_return);
+
+                                    // INTELLIGENT TYPE SELECTION: Prefer closure types over function types
+                                    let current_return = return_value.as_ref();
+                                    let scope_return = updated_return.as_ref();
+
+                                    let final_type = match (current_return, scope_return) {
+                                        // If scope has closure and current doesn't, use scope
+                                        (Type::Function { .. }, Type::Closure { .. }) => {
+                                            eprintln!("DEBUG: Scope has closure, current has function - using scope closure");
+                                            scope_return.clone()
+                                        }
+                                        // If current has closure and scope doesn't, use current
+                                        (Type::Closure { .. }, Type::Function { .. }) => {
+                                            eprintln!("DEBUG: Current has closure, scope has function - using current closure");
+                                            current_return.clone()
+                                        }
+                                        // If both are closures, use scope (more recent)
+                                        (Type::Closure { .. }, Type::Closure { .. }) => {
+                                            eprintln!("DEBUG: Both are closures - using scope (more recent)");
+                                            scope_return.clone()
+                                        }
+                                        // Otherwise use scope
+                                        _ => {
+                                            eprintln!("DEBUG: Using scope return value");
+                                            scope_return.clone()
+                                        }
+                                    };
+
+                                    eprintln!("DEBUG: Final selected type: {:?}", final_type);
+                                    final_type
+                                } else {
+                                    eprintln!("DEBUG: Scope doesn't contain function type, using original");
+                                    return_value.as_ref().clone()
+                                }
+                            } else {
+                                eprintln!("DEBUG: Function not found in scope, using original");
+                                return_value.as_ref().clone()
+                            }
+                        } else {
+                            eprintln!("DEBUG: Not an ID expression, using original");
+                            return_value.as_ref().clone()
+                        };
+
+                        eprintln!("DEBUG: Function call final return_type: {:?}", final_return_type);
+                        Rc::new(RefCell::new(Some(final_return_type)))
+                    }
+                    Some(Type::Closure {
+                        params,
+                        return_value,
+                        captures,
+                    }) => {
+                        // Handle closure calls - return the closure type that was returned
+                        if params.len() != checked_args.len() {
+                            return Err(TypeCheckError::TypeMismatch(
+                                TypeMismatch {
+                                    expected: expected_type,
+                                    actual: Type::Function {
+                                        params: params.clone(),
+                                        return_value: return_value.clone(),
+                                    },
+                                },
+                                position,
+                            ));
+                        }
+
+                        // check if types of parameters and arguments match
+                        for (i, arg) in checked_args.iter_mut().enumerate() {
+                            let expected = params[i].clone();
+                            let actual = arg_types[i].clone();
+
+                            if actual != expected {
+                                if actual == Type::Unknown {
+                                    arg.update_type(expected)?;
+                                } else {
+                                    return Err(TypeCheckError::TypeMismatch(
+                                        TypeMismatch { expected, actual },
+                                        arg.position(),
+                                    ));
+                                }
+                            }
+                        }
+
+                        // Simply use the return value as-is for closure calls too
+                        let return_type = return_value.as_ref().clone();
+                        Rc::new(RefCell::new(Some(return_type)))
                     }
                     Some(t) => {
                         return Err(TypeCheckError::TypeMismatch(
@@ -95,6 +220,7 @@ impl TypeCheckable for Postfix<()> {
                     _ => Rc::new(RefCell::new(None)),
                 };
 
+                // eprintln!("DEBUG: Final call type_id: {:?}", type_id);
                 Ok(Postfix::Call {
                     expr: Box::new(expr),
                     args: checked_args,

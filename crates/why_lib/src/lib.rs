@@ -157,6 +157,8 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             types: RefCell::new(HashMap::default()),
             scopes: RefCell::new(vec![ScopeFrame::default()]),
             lambda_counter: RefCell::new(0),
+            environment_types: RefCell::new(HashMap::default()),
+            environment_counter: RefCell::new(0),
         };
 
         // Two-pass compilation to handle forward function references

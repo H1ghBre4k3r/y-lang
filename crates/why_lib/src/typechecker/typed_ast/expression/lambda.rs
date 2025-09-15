@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
@@ -10,6 +10,149 @@ use crate::{
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
+
+/// Analyzes an expression to find free variables (variables that are not defined in the current scope)
+fn find_free_variables(
+    expr: &Expression<TypeInformation>,
+    param_names: &HashSet<String>,
+) -> Vec<(String, Type)> {
+    let mut free_vars = HashSet::new();
+    collect_free_variables(expr, param_names, &mut free_vars);
+    free_vars.into_iter().collect()
+}
+
+/// Recursively collects free variables from an expression
+fn collect_free_variables(
+    expr: &Expression<TypeInformation>,
+    param_names: &HashSet<String>,
+    free_vars: &mut HashSet<(String, Type)>,
+) {
+    match expr {
+        Expression::Id(id) => {
+            // If this is not a parameter and has a known type, it's a free variable
+            if !param_names.contains(&id.name) {
+                if let Some(type_id) = id.info.type_id.borrow().as_ref() {
+                    if type_id != &Type::Unknown {
+                        free_vars.insert((id.name.clone(), type_id.clone()));
+                    }
+                }
+            }
+        }
+        Expression::Lambda(lambda) => {
+            // For nested lambdas, we need to exclude their parameters too
+            let mut nested_param_names = param_names.clone();
+            for param in &lambda.parameters {
+                nested_param_names.insert(param.name.name.clone());
+            }
+            collect_free_variables(&lambda.expression, &nested_param_names, free_vars);
+        }
+        Expression::Parens(expr) => {
+            collect_free_variables(expr, param_names, free_vars);
+        }
+        Expression::Binary(binary) => {
+            collect_free_variables(&binary.left, param_names, free_vars);
+            collect_free_variables(&binary.right, param_names, free_vars);
+        }
+        Expression::Postfix(postfix) => match postfix {
+            crate::parser::ast::Postfix::Call { expr, args, .. } => {
+                collect_free_variables(expr, param_names, free_vars);
+                for arg in args {
+                    collect_free_variables(arg, param_names, free_vars);
+                }
+            }
+            crate::parser::ast::Postfix::Index { expr, index, .. } => {
+                collect_free_variables(expr, param_names, free_vars);
+                collect_free_variables(index, param_names, free_vars);
+            }
+            crate::parser::ast::Postfix::PropertyAccess { expr, .. } => {
+                collect_free_variables(expr, param_names, free_vars);
+            }
+        },
+        Expression::Prefix(prefix) => match prefix {
+            crate::parser::ast::Prefix::Negation { expr, .. } => {
+                collect_free_variables(expr, param_names, free_vars);
+            }
+            crate::parser::ast::Prefix::Minus { expr, .. } => {
+                collect_free_variables(expr, param_names, free_vars);
+            }
+        },
+        Expression::If(if_expr) => {
+            collect_free_variables(&if_expr.condition, param_names, free_vars);
+            // For blocks, we need to collect from each statement
+            for stmt in &if_expr.then_block.statements {
+                match stmt {
+                    crate::parser::ast::Statement::Expression(expr) => {
+                        collect_free_variables(expr, param_names, free_vars);
+                    }
+                    crate::parser::ast::Statement::YieldingExpression(expr) => {
+                        collect_free_variables(expr, param_names, free_vars);
+                    }
+                    _ => {}
+                }
+            }
+            // Check if else_block has any statements (i.e., it's not empty)
+            if !if_expr.else_block.statements.is_empty() {
+                for stmt in &if_expr.else_block.statements {
+                    match stmt {
+                        crate::parser::ast::Statement::Expression(expr) => {
+                            collect_free_variables(expr, param_names, free_vars);
+                        }
+                        crate::parser::ast::Statement::YieldingExpression(expr) => {
+                            collect_free_variables(expr, param_names, free_vars);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        Expression::Block(block) => {
+            for stmt in &block.statements {
+                match stmt {
+                    crate::parser::ast::Statement::Expression(expr) => {
+                        collect_free_variables(expr, param_names, free_vars);
+                    }
+                    crate::parser::ast::Statement::YieldingExpression(expr) => {
+                        collect_free_variables(expr, param_names, free_vars);
+                    }
+                    crate::parser::ast::Statement::Declaration(_) => {
+                        // Local declarations don't affect free variables in outer scopes
+                    }
+                    _ => {
+                        // Other statement types don't contain expressions to analyze
+                    }
+                }
+            }
+        }
+        // Other expression types don't contain variables
+        Expression::Num(_) => {}
+        Expression::Bool(_) => {}
+        Expression::Character(_) => {}
+        Expression::AstString(_) => {}
+        Expression::Function(_) => {}
+        Expression::Array(array) => {
+            match array {
+                crate::parser::ast::Array::Literal { values, .. } => {
+                    for value in values {
+                        collect_free_variables(value, param_names, free_vars);
+                    }
+                }
+                crate::parser::ast::Array::Default {
+                    initial_value,
+                    length,
+                    ..
+                } => {
+                    collect_free_variables(initial_value, param_names, free_vars);
+                    // length is a Num, which doesn't contain variables
+                }
+            }
+        }
+        Expression::StructInitialisation(struct_init) => {
+            for field in &struct_init.fields {
+                collect_free_variables(&field.value, param_names, free_vars);
+            }
+        }
+    }
+}
 
 impl TypeCheckable for Lambda<()> {
     type Typed = Lambda<TypeInformation>;
@@ -38,6 +181,11 @@ impl TypeCheckable for Lambda<()> {
 
         // Infer function type from parameters and return expression
         let mut param_types = vec![];
+        let param_names: HashSet<String> = checked_parameters
+            .iter()
+            .map(|p| p.name.name.clone())
+            .collect();
+
         for param in &checked_parameters {
             // For now, if parameter types are unknown, we can't fully infer the lambda type
             // This will be resolved during type propagation
@@ -52,16 +200,29 @@ impl TypeCheckable for Lambda<()> {
             .clone()
             .unwrap_or(Type::Unknown);
 
+        // Analyze free variables for closure capture
+        let free_variables = find_free_variables(&checked_expression, &param_names);
+
         // Create function type if we have concrete types, otherwise leave as None for later inference
         let function_type = if param_types.iter().any(|t| matches!(t, Type::Unknown))
             || matches!(return_type, Type::Unknown)
         {
             None
-        } else {
+        } else if free_variables.is_empty() {
+            // Non-capturing lambda - use regular function type
             Some(Type::Function {
                 params: param_types,
                 return_value: Box::new(return_type),
             })
+        } else {
+            // Capturing lambda - use closure type with capture information
+            let closure_type = Type::Closure {
+                params: param_types,
+                return_value: Box::new(return_type),
+                captures: free_variables,
+            };
+            eprintln!("Lambda creating closure type: {:?}", closure_type);
+            Some(closure_type)
         };
 
         Ok(Lambda {
@@ -107,13 +268,37 @@ impl TypedConstruct for Lambda<TypeInformation> {
             self.position.clone(),
         ));
 
-        // check, if we have function
-        let Type::Function {
-            params,
-            return_value,
-        } = type_id.clone()
-        else {
-            return err;
+        // check if we have function or closure
+        let (params, return_value, actual_type_id) = match type_id.clone() {
+            Type::Function {
+                params,
+                return_value,
+            } => {
+                // For function types, check if we actually need a closure due to captures
+                let param_names: HashSet<String> = self.parameters
+                    .iter()
+                    .map(|p| p.name.name.clone())
+                    .collect();
+                let free_variables = find_free_variables(&self.expression, &param_names);
+
+                if !free_variables.is_empty() {
+                    // Convert to closure type
+                    let closure_type = Type::Closure {
+                        params: params.clone(),
+                        return_value: return_value.clone(),
+                        captures: free_variables.clone(),
+                    };
+                    (params, return_value, closure_type)
+                } else {
+                    (params, return_value, type_id.clone())
+                }
+            },
+            Type::Closure {
+                params,
+                return_value,
+                ..
+            } => (params, return_value, type_id.clone()),
+            _ => return err,
         };
 
         if let Some(current_type) = self.info.type_id.borrow().as_ref() {
@@ -221,7 +406,7 @@ impl TypedConstruct for Lambda<TypeInformation> {
         // update our expression as well
         self.expression = Box::new(expr);
 
-        self.info.type_id = Rc::new(RefCell::new(Some(type_id)));
+        self.info.type_id = Rc::new(RefCell::new(Some(actual_type_id)));
 
         Ok(())
     }

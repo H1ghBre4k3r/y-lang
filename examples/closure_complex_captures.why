@@ -1,0 +1,15 @@
+// Test case: Complex expressions with captures
+// This tests more sophisticated capture scenarios
+
+fn main(): i64 {
+    let base = 10;
+    let multiplier = 3;
+    let calculator = makeCalculatorWithState(base, multiplier);
+
+    calculator(5)
+}
+
+fn makeCalculatorWithState(initial: i64, factor: i64): (i64) -> i64 {
+    let computed_offset = initial * 2;
+    \(input) => input * factor + computed_offset
+}

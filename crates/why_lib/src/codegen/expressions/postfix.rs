@@ -174,12 +174,10 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
         expr: &Expression<ValidatedTypeInformation>,
         args: &[Expression<ValidatedTypeInformation>],
     ) -> Option<BasicValueEnum<'ctx>> {
-        let Type::Function {
-            params,
-            return_value,
-        } = expr.get_info().type_id
-        else {
-            unreachable!()
+        let (params, return_value) = match &expr.get_info().type_id {
+            Type::Function { params, return_value } => (params.clone(), return_value.as_ref().clone()),
+            Type::Closure { params, return_value, .. } => (params.clone(), return_value.as_ref().clone()),
+            _ => unreachable!("Call expression should have function or closure type")
         };
 
         let args = args
@@ -256,21 +254,67 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
             }
         }
 
-        // Fallback to indirect call through function pointer
-        let llvm_function_type =
-            build_llvm_function_type_from_own_types(ctx, &return_value, &params);
+        // Fallback to indirect call through function pointer or closure
         let Some(expr_value) = expr.codegen(ctx) else {
             unreachable!()
         };
 
-        let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr_value else {
-            unreachable!("The Expression in a Call-Postfix should always return a pointer");
-        };
+        // Check if this is a closure call or function call based on the expression type
+        let expr_type = &expr.get_info().type_id;
+        match expr_type {
+            Type::Closure { .. } => {
+                // Closure call: extract function pointer and environment from closure struct
+                let closure_struct_type = ctx.get_closure_struct_type();
 
-        ctx.builder
-            .build_indirect_call(llvm_function_type, llvm_fn_pointer, &args, "")
-            .unwrap()
-            .try_as_basic_value()
-            .left()
+                // For closure calls, we need to modify the function type to include environment parameter
+                let mut closure_params = vec![Type::Reference(Box::new(Type::Void))]; // Environment pointer
+                closure_params.extend(params.iter().cloned());
+                let llvm_function_type = build_llvm_function_type_from_own_types(ctx, &return_value, &closure_params);
+
+                // Get closure pointer and load closure struct
+                let BasicValueEnum::PointerValue(closure_ptr) = expr_value else {
+                    unreachable!("Closure expression should return a pointer to closure struct");
+                };
+                let closure_struct = ctx.builder
+                    .build_load(closure_struct_type, closure_ptr, "closure_struct")
+                    .unwrap();
+
+                // Extract function pointer from closure struct (field 0)
+                let func_ptr = ctx.builder
+                    .build_extract_value(closure_struct.into_struct_value(), 0, "closure_func_ptr")
+                    .unwrap()
+                    .into_pointer_value();
+
+                // Extract environment pointer from closure struct (field 1)
+                let env_ptr = ctx.builder
+                    .build_extract_value(closure_struct.into_struct_value(), 1, "closure_env_ptr")
+                    .unwrap()
+                    .into_pointer_value();
+
+                // Create argument list with environment as first parameter
+                let mut closure_args = vec![env_ptr.into()];
+                closure_args.extend(args);
+
+                ctx.builder
+                    .build_indirect_call(llvm_function_type, func_ptr, &closure_args, "")
+                    .unwrap()
+                    .try_as_basic_value()
+                    .left()
+            }
+            Type::Function { .. } => {
+                // Regular function call
+                let llvm_function_type = build_llvm_function_type_from_own_types(ctx, &return_value, &params);
+                let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr_value else {
+                    unreachable!("Function expression should return a pointer");
+                };
+
+                ctx.builder
+                    .build_indirect_call(llvm_function_type, llvm_fn_pointer, &args, "")
+                    .unwrap()
+                    .try_as_basic_value()
+                    .left()
+            }
+            _ => unreachable!("Call expression should have function or closure type"),
+        }
     }
 }

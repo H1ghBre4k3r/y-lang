@@ -1,0 +1,12 @@
+// Test case: Nested closures
+// This is a complex case that tests multiple levels of closure creation
+
+fn main(): i64 {
+    let outer_func = makeNestedAdder(10);
+    let inner_func = outer_func(5);
+    inner_func(3)
+}
+
+fn makeNestedAdder(x: i64): (i64) -> (i64) -> i64 {
+    \(y) => \(z) => x + y + z
+}
