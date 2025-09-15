@@ -2,17 +2,18 @@
 
 ## Current Status Summary (September 2024)
 
-### Overall Progress: 55% Complete for v0.1 Release
+### Overall Progress: 60% Complete for v0.1 Release
 
 **✅ Parser & Type System**: Excellent (95% complete)
 - Complete syntax parsing for all language features
 - Sophisticated type checking and inference
 - Advanced features: structs, lambdas, arrays, control flow
 
-**✅ Core CodeGen**: Good (60% complete)
+**✅ Core CodeGen**: Good (70% complete)
 - Basic functions, variables, arithmetic
 - Struct declarations and initialization
 - Property reading (`obj.field`)
+- Complex assignment operations (`obj.field = value`, `arr[index] = value`)
 - Non-capturing lambda expressions
 - Control flow (if-else, while loops)
 - String parameter handling (fixed segmentation faults)
@@ -23,39 +24,30 @@
 - Intelligent whitespace handling (preserves single blank lines, collapses multiple)
 
 **❌ Critical CodeGen Gaps**: 3 blocking issues
-- Complex assignments, empty arrays, lambda returns, closure capture 
+- Empty arrays, lambda returns, closure capture 
 
 ### Example Compilation Status
-- ✅ **Working**: `simple.why`, `foo.why`, `printf.why`, `hello.why`, `instance.why`, `struct.why`
-- ❌ **Failing**: `assign.why`, `testarray.why`, `lambda.why`, `main.why`, `test.why`
-- **Success Rate**: 6/11 examples compile without runtime issues
+- ✅ **Working**: `simple.why`, `foo.why`, `printf.why`, `hello.why`, `instance.why`, `struct.why`, `assign.why`
+- ❌ **Failing**: `testarray.why`, `lambda.why`, `main.why`, `test.why`
+- **Success Rate**: 7/11 examples compile without runtime issues
 
 ---
 
 ## Critical Implementation Gaps (Priority Order)
 
-### 1. Complex Assignment Operations (CRITICAL)
-**File**: `crates/why_lib/src/codegen/statements/assignment.rs:25`
-**Error**: `todo!("Complex lvalue assignment not yet implemented")`
-**Impact**: Blocks `assign.why`, essential language feature
-**Features Needed**:
-- Struct field assignment: `obj.field = value`
-- Array element assignment: `arr[index] = value`
-- Integration with existing GEP operations
-
-### 2. Empty Array Initialization (CRITICAL)
+### 1. Empty Array Initialization (CRITICAL)
 **File**: `crates/why_lib/src/codegen/statements/initialisation.rs:15`
 **Error**: `unreachable!()` when `&[]` generates no LLVM value
 **Impact**: Blocks `testarray.why`
 **Solution**: Generate valid LLVM IR for zero-length arrays
 
-### 3. Lambda Return Values (CRITICAL)
+### 2. Lambda Return Values (CRITICAL)
 **Files**: `crates/why_lib/src/codegen/expressions/lambda.rs`, `/mod.rs:30`
 **Error**: Cannot return lambda expressions from functions
 **Impact**: Blocks `lambda.why` (`get_lambda()`, `create_add_x()`)
 **Issues**: Function pointer return handling incomplete
 
-### 4. Lambda Closure Capture (HIGH)
+### 3. Lambda Closure Capture (HIGH)
 **File**: `crates/why_lib/src/codegen/expressions/lambda.rs:56-69`
 **Error**: `unwrap()` panic when accessing captured variables
 **Impact**: Blocks closure syntax like `\(y) => x + y`
@@ -64,7 +56,7 @@
 - Closure environment creation
 - Modified calling convention for captured variables
 
-### 5. Default Array Syntax (MEDIUM)
+### 4. Default Array Syntax (MEDIUM)
 **File**: `crates/why_lib/src/codegen/expressions/mod.rs:93`
 **Error**: `todo!("Default array initialization not yet implemented")`
 **Feature**: `&[value; length]` syntax
@@ -91,7 +83,6 @@
 ### Phase 1: Critical CodeGen Fixes (3-4 weeks)
 **Goal**: Get all current examples compiling
 **Success Metrics**:
-- ✅ `assign.why` compiles successfully
 - ✅ `testarray.why` compiles successfully
 - ✅ `lambda.why` compiles successfully (non-closure parts)
 - ✅ 90%+ of examples compile without runtime issues
