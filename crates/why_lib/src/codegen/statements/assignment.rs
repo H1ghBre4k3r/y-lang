@@ -125,8 +125,93 @@ fn build_nested_assignment_pointer<'ctx>(
                             .unwrap()
                     }
                 }
+                Postfix::Index {
+                    expr: array_expr,
+                    index,
+                    ..
+                } => {
+                    // Handle array indexing: e.g., "arr[0].field"
+                    let Some(array_value) = array_expr.codegen(ctx) else {
+                        panic!("Array expression must produce a value for indexed assignment");
+                    };
+
+                    let Some(index_value) = index.codegen(ctx) else {
+                        panic!("Index expression must produce a value for indexed assignment");
+                    };
+
+                    let array_ptr = array_value.into_pointer_value();
+                    let index_int = index_value.into_int_value();
+
+                    // Get the array element type
+                    let array_expr_type = &array_expr.get_info().type_id;
+                    let crate::typechecker::Type::Array(element_type) = array_expr_type else {
+                        panic!("Expected array type for indexed assignment");
+                    };
+
+                    // The element should be a struct type
+                    let (element_struct_name, element_field_types) = match &**element_type {
+                        crate::typechecker::Type::Struct(name, fields) => {
+                            (name.clone(), fields.clone())
+                        }
+                        other => {
+                            panic!("Expected struct element type for indexed struct assignment, got: {other:?}");
+                        }
+                    };
+
+                    // Get the LLVM struct type for the element
+                    let element_struct_type = {
+                        let types = ctx.types.borrow();
+                        let element_type_id = crate::typechecker::Type::Struct(
+                            element_struct_name,
+                            element_field_types,
+                        );
+
+                        match types.get(&element_type_id) {
+                            Some(llvm_type) => {
+                                if let inkwell::types::BasicMetadataTypeEnum::StructType(
+                                    struct_type,
+                                ) = llvm_type
+                                {
+                                    *struct_type
+                                } else {
+                                    panic!("Expected struct type for array element");
+                                }
+                            }
+                            None => {
+                                panic!("Struct type for array element not found");
+                            }
+                        }
+                    };
+
+                    // Build GEP to get pointer to the indexed struct element
+                    let element_ptr = unsafe {
+                        ctx.builder
+                            .build_gep(
+                                element_struct_type,
+                                array_ptr,
+                                &[index_int],
+                                "indexed_struct_ptr",
+                            )
+                            .unwrap()
+                    };
+
+                    // Now build GEP to get the field pointer within the struct
+                    unsafe {
+                        ctx.builder
+                            .build_gep(
+                                struct_type,
+                                element_ptr,
+                                &[
+                                    ctx.context.i32_type().const_zero(),
+                                    ctx.context.i32_type().const_int(field_index as u64, false),
+                                ],
+                                &format!("indexed_{}_ptr", property_name),
+                            )
+                            .unwrap()
+                    }
+                }
                 _ => {
-                    // For other postfix types (Index, Call), fall back to the old method
+                    // For other postfix types (Call), fall back to the old method
                     let Some(struct_value) = expr.codegen(ctx) else {
                         panic!(
                             "Struct expression must produce a value for property access assignment"

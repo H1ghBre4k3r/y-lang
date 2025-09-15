@@ -1,0 +1,20 @@
+AGENTS Quick Guide (Y Language) — build, test, style
+- Build: `just build` or `cargo build --workspace` (stable).
+- Release: `just build-release` or `cargo build --release --workspace`.
+- Binaries: `just bins`; run: `cargo run --bin yc -- examples/simple.why -o out/a.out`.
+- Tests (all): `just test` or `cargo test --workspace` (set `RUST_BACKTRACE=1` if needed).
+- Single test: `cargo test parser_integration::test_simple_function` or `cargo test -p why_lib <filter>`.
+- Lint: `cargo clippy --all-targets --workspace` (consider `-D warnings` locally).
+- Format check: `cargo fmt -- --check`; fix with `cargo fmt`.
+- Dev loop: `just watch`; install: `just install`.
+- LLVM: install LLVM 18; set `LLVM_SYS_181_PREFIX` when building if needed.
+- Formatting: use rustfmt defaults; no project `rustfmt.toml`.
+- Imports: group std/external/crate; no wildcard imports; sort within groups.
+- Types: use `anyhow::Result<T>` in bins/public entrypoints; library layers define specific errors (e.g., `TypeCheckError`).
+- Error handling: prefer `?`; avoid `unwrap/expect` in libraries; include context where useful.
+- Naming: snake_case functions/vars/modules; CamelCase types/enums/traits; SCREAMING_SNAKE_CASE consts.
+- Modules/files: snake_case; keep modules small and cohesive.
+- Tests style: deterministic, no I/O unless needed; unit tests near code, integration tests in `tests/`.
+- Docs: add rustdoc for public items; explain invariants and safety.
+- CI parity: run clippy+fmt+tests before commits to match CI.
+- Cursor/Copilot: none found in repo; follow this guide.

@@ -7,13 +7,13 @@ struct Bar {
 }
 
 fn main(): i64 {
-    let mut b = Bar {
-        foo: Foo {
-            b: 1337
-        }
-    };
+    let mut test = &[Foo {
+        b: 1337
+    }, Foo {
+        b: 42
+    }];
 
-    b.foo.b = 32;
+    test[0].b = 17;
 
-    b.foo.b
+    test[0].b
 }
