@@ -64,7 +64,7 @@ impl<'ctx> CodegenContext<'ctx> {
             .rev()
             .find(|scope| scope.borrow().variables.contains_key(&name))
             .and_then(|scope| scope.borrow().variables.get(&name).cloned())
-            .unwrap()
+            .unwrap_or_else(|| panic!("epected variable '{name}' to be defined"))
     }
 
     pub fn store_variable(&self, name: impl ToString, value: BasicValueEnum<'ctx>) {
@@ -177,6 +177,7 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             struct_type.into()
         }
         Type::Array(element_type) => {
+            // TODO: do we actually need this?
             let element_llvm_type = ctx.get_llvm_type(element_type);
             let element_basic_type = convert_metadata_to_basic(element_llvm_type)
                 .expect("Array element type must be basic");
@@ -211,6 +212,7 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
 
             match return_value.as_ref() {
                 Type::Void => {
+                    // TODO: is this correct? Why dont we use them?
                     let llvm_void_type = ctx.context.void_type();
                     let fn_type = llvm_void_type.fn_type(&llvm_param_types, false);
                     ctx.context.ptr_type(Default::default()).into()

@@ -2,13 +2,18 @@ struct Foo {
     b: i64;
 }
 
-fn b(): i64 {
-    42
+struct Bar {
+    foo: Foo;
 }
 
-fn main(): void {
-    let mut a = Foo {
-        b: 1337
+fn main(): i64 {
+    let mut b = Bar {
+        foo: Foo {
+            b: 1337
+        }
     };
-    a.b = 42;
+
+    b.foo.b = 32;
+
+    b.foo.b
 }

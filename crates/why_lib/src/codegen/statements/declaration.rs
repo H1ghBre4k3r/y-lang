@@ -61,7 +61,7 @@ impl<'ctx> CodeGen<'ctx> for Declaration<ValidatedTypeInformation> {
             Type::Unknown => {
                 panic!("Cannot declare variable of unknown type: {}", name.name);
             }
-            Type::Reference(inner_type) => {
+            Type::Reference(_inner_type) => {
                 let llvm_type = ctx.context.ptr_type(Default::default());
                 let llvm_alloca = ctx
                     .builder

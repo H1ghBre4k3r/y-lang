@@ -34,13 +34,13 @@ mod tests {
     #[test]
     fn test_parse_true() {
         let result = parse_bool("true").unwrap();
-        assert_eq!(result.value, true);
+        assert!(result.value);
     }
 
     #[test]
     fn test_parse_false() {
         let result = parse_bool("false").unwrap();
-        assert_eq!(result.value, false);
+        assert!(!result.value);
     }
 
     #[test]

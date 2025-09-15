@@ -2,7 +2,6 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     fs,
-    io::Stderr,
     process::{self, Command, Stdio},
 };
 

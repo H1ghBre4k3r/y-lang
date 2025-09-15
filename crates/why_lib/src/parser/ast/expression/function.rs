@@ -1,7 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
     lexer::Span,
-    parser::ast::{AstNode, Statement, TypeName},
+    parser::ast::{AstNode, TypeName},
 };
 
 use super::{Block, Id};
@@ -73,8 +73,10 @@ impl From<FunctionParameter<()>> for AstNode {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parser::test_helpers::*;
+    use crate::parser::{
+        ast::{Statement, TypeName},
+        test_helpers::*,
+    };
 
     #[test]
     fn test_simple_function() {

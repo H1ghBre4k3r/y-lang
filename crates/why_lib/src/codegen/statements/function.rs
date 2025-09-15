@@ -141,8 +141,8 @@ pub fn build_llvm_function_type_from_own_types<'ctx>(
         }
         Type::Unknown => todo!(),
         Type::Function {
-            params: fn_params,
-            return_value: fn_return_value,
+            params: _fn_params,
+            return_value: _fn_return_value,
         } => {
             // Function returning another function - return function pointer
             ctx.context

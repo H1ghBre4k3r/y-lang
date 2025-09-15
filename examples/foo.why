@@ -16,33 +16,28 @@ struct Bar {
     value: i64;
 }
 
+instance Bar {
+    fn set_value(new: i64): void {
+        this.value = new;
+    }
+}
+
 struct Foo {
     random: i64;
     bar: Bar;
 }
 
 instance Foo {
-fn get_val(other: i64): i64 {
-    this.bar.value + other
-}
+    fn get_val(other: i64): i64 {
+        this.bar.value + other
+    }
 
-declare test(str, i64): f64;
+    declare test(str, i64): f64;
 }
 
 fn main(): i64 {
-
     let left = 42;
-
-
-
-
-
-
-
-
-
     let right = 1337;
-
     let foo = &[left, right];
 
     let mut i = 0;
@@ -50,14 +45,17 @@ fn main(): i64 {
         printf("Hello\n");
         i = i + 1;
     }
+
     if (i == 10) {
         println("YES!");
     } else {
         println("NO!");
     }
+
     let val = takes_fn(\(x) => {
         x + x
     });
+
     {
         let some_strings = &["First", "Second", "Third"];
         let mut i = 0;
@@ -66,6 +64,7 @@ fn main(): i64 {
             i = i + 1;
         }
     }
+
     let foo = Foo {
         random: 1337,
         bar: Bar {
@@ -74,5 +73,8 @@ fn main(): i64 {
             value: 42
         }
     };
+
+    foo.bar.set_value(1);
+
     foo.get_val(val)
 }

@@ -1,7 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
     lexer::Span,
-    parser::ast::{AstNode, Statement},
+    parser::ast::AstNode,
 };
 
 use super::{Block, Expression};
@@ -53,7 +53,7 @@ impl From<If<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::test_helpers::*;
+    use crate::parser::{ast::Statement, test_helpers::*};
 
     #[test]
     fn test_simple_if() {

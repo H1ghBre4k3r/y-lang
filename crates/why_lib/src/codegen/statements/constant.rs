@@ -1,4 +1,4 @@
-use inkwell::{values::BasicValueEnum, AddressSpace};
+use inkwell::AddressSpace;
 
 use crate::{
     codegen::{CodeGen, CodegenContext},
@@ -14,7 +14,6 @@ impl<'ctx> CodeGen<'ctx> for Constant<ValidatedTypeInformation> {
             id,
             type_name: _,
             value,
-            info,
             ..
         } = self;
 

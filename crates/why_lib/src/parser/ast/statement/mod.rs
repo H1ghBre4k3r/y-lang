@@ -85,6 +85,7 @@ impl FromGrammar<grammar::Statement> for Statement<()> {
 
 /// Everything that is allowed at toplevel
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum TopLevelStatement<T> {
     Comment(String),
     Function(Function<T>),
