@@ -13,7 +13,7 @@ fn main(): i64 {
         b: 42
     }];
 
-    test[0].b = 17;
+    test[0].b = 17 + test[1].b;
 
     test[0].b
 }
