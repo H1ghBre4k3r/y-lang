@@ -163,6 +163,7 @@ impl TypedConstruct for Initialisation<TypeInformation> {
 mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
+    use crate::parser::ast::LambdaParameter;
     use crate::typechecker::error::MissingInitialisationType;
     use crate::{
         lexer::Span,
@@ -317,8 +318,20 @@ mod tests {
             mutable: false,
             type_name: None,
             value: Expression::Lambda(Lambda {
-                parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(42, (), Span::default()))),
+                parameters: vec![LambdaParameter {
+                    name: Id {
+                        name: "x".into(),
+                        info: (),
+                        position: Span::default(),
+                    },
+                    info: (),
+                    position: Span::default(),
+                }],
+                expression: Box::new(Expression::Id(Id {
+                    name: "x".into(),
+                    info: (),
+                    position: Span::default(),
+                })),
                 info: (),
                 position: Span::default(),
             }),

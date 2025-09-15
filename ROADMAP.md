@@ -2,20 +2,20 @@
 
 ## Current Status Summary (September 2024)
 
-### Overall Progress: 65% Complete for v0.1 Release
+### Overall Progress: 70% Complete for v0.1 Release
 
 **✅ Parser & Type System**: Excellent (95% complete)
 - Complete syntax parsing for all language features
 - Sophisticated type checking and inference
 - Advanced features: structs, lambdas, arrays, control flow
 
-**✅ Core CodeGen**: Good (75% complete)
+**✅ Core CodeGen**: Good (80% complete)
 - Basic functions, variables, arithmetic
 - Struct declarations and initialization
 - Property reading (`obj.field`)
 - Complex assignment operations (`obj.field = value`, `arr[index] = value`)
 - Empty array initialization (`&[]` with explicit type annotations)
-- Non-capturing lambda expressions
+- Lambda expressions with return value support
 - Control flow (if-else, while loops)
 - String parameter handling (fixed segmentation faults)
 
@@ -24,8 +24,8 @@
 - Proper indentation for all language constructs
 - Intelligent whitespace handling (preserves single blank lines, collapses multiple)
 
-**❌ Critical CodeGen Gaps**: 2 blocking issues
-- Lambda returns, closure capture 
+**❌ Critical CodeGen Gaps**: 1 blocking issue
+- Closure capture 
 
 ### Example Compilation Status
 - ✅ **Working**: `simple.why`, `foo.why`, `printf.why`, `hello.why`, `instance.why`, `struct.why`, `assign.why`, `testarray.why`
@@ -36,13 +36,7 @@
 
 ## Critical Implementation Gaps (Priority Order)
 
-### 1. Lambda Return Values (CRITICAL)
-**Files**: `crates/why_lib/src/codegen/expressions/lambda.rs`, `/mod.rs:30`
-**Error**: Cannot return lambda expressions from functions
-**Impact**: Blocks `lambda.why` (`get_lambda()`, `create_add_x()`)
-**Issues**: Function pointer return handling incomplete
-
-### 2. Lambda Closure Capture (HIGH)
+### 1. Lambda Closure Capture (HIGH)
 **File**: `crates/why_lib/src/codegen/expressions/lambda.rs:56-69`
 **Error**: `unwrap()` panic when accessing captured variables
 **Impact**: Blocks closure syntax like `\(y) => x + y`
@@ -51,7 +45,7 @@
 - Closure environment creation
 - Modified calling convention for captured variables
 
-### 3. Default Array Syntax (MEDIUM)
+### 2. Default Array Syntax (MEDIUM)
 **File**: `crates/why_lib/src/codegen/expressions/mod.rs:93`
 **Error**: `todo!("Default array initialization not yet implemented")`
 **Feature**: `&[value; length]` syntax
@@ -78,7 +72,7 @@
 ### Phase 1: Critical CodeGen Fixes (3-4 weeks)
 **Goal**: Get all current examples compiling
 **Success Metrics**:
-- ✅ `lambda.why` compiles successfully (non-closure parts)
+- ✅ `lambda.why` compiles successfully (non-closure parts need function lookup fix)
 - ✅ 90%+ of examples compile without runtime issues
 
 ### Phase 2: Lambda Enhancements (2-3 weeks)

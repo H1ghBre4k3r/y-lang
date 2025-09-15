@@ -11,8 +11,8 @@ mod postfix;
 mod prefix;
 mod struct_initialisation;
 
+use crate::typechecker::{Type, ValidatedTypeInformation};
 use inkwell::{types::BasicType, values::BasicValueEnum};
-use crate::typechecker::{ValidatedTypeInformation, Type};
 
 use crate::parser::ast::Expression;
 
@@ -53,7 +53,8 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
                                 let array_type = element_basic_type.array_type(0);
 
                                 // Allocate array on stack
-                                let array_alloca = ctx.builder.build_alloca(array_type, "empty_array").unwrap();
+                                let array_alloca =
+                                    ctx.builder.build_alloca(array_type, "empty_array").unwrap();
 
                                 return Some(array_alloca.into());
                             } else {

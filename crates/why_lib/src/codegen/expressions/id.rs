@@ -41,11 +41,6 @@ impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
 
         match variable {
             BasicValueEnum::PointerValue(pointer_value) => {
-                // Check if this is a function type - if so, return the pointer directly
-                if matches!(type_id, Type::Function { .. }) {
-                    return variable;
-                }
-
                 // For string types, return the pointer directly (strings are passed by reference)
                 if matches!(type_id, Type::String) {
                     return variable;

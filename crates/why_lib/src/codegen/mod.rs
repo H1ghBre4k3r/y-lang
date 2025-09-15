@@ -67,6 +67,18 @@ impl<'ctx> CodegenContext<'ctx> {
             .unwrap_or_else(|| panic!("epected variable '{name}' to be defined"))
     }
 
+    pub fn resolve_function(&self, name: impl ToString) -> FunctionValue<'ctx> {
+        let name = name.to_string();
+        let scopes = self.scopes.borrow();
+
+        scopes
+            .iter()
+            .rev()
+            .find(|scope| scope.borrow().functions.contains_key(&name))
+            .and_then(|scope| scope.borrow().functions.get(&name).cloned())
+            .unwrap_or_else(|| panic!("expected function '{name}' to be defined"))
+    }
+
     pub fn store_variable(&self, name: impl ToString, value: BasicValueEnum<'ctx>) {
         let name = name.to_string();
 

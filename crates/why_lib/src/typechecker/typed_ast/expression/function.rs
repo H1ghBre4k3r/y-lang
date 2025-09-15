@@ -56,6 +56,7 @@ impl TypeCheckable for Function<()> {
         let checked_body = body.check(ctx)?;
 
         // Verify that the block's inferred type matches the function's return type
+        let mut checked_body = checked_body;
         let body_type = { checked_body.info.type_id.borrow().clone() };
         match body_type {
             Some(inferred_type) => {
@@ -73,15 +74,18 @@ impl TypeCheckable for Function<()> {
                 // Block correctly inferred void type
             }
             None => {
-                // No type inferred but function expects non-void - this should not happen
-                // with proper block type checking, but handle gracefully
-                return Err(TypeCheckError::TypeMismatch(
-                    TypeMismatch {
-                        expected: return_type_id,
-                        actual: Type::Void,
-                    },
-                    return_type.position(),
-                ));
+                // Block has no inferred type but function expects a specific return type
+                // Try to propagate the expected return type to the block
+                if let Err(_) = checked_body.update_type(return_type_id.clone()) {
+                    // If type propagation fails, it's a type mismatch
+                    return Err(TypeCheckError::TypeMismatch(
+                        TypeMismatch {
+                            expected: return_type_id,
+                            actual: Type::Void,
+                        },
+                        return_type.position(),
+                    ));
+                }
             }
         }
 

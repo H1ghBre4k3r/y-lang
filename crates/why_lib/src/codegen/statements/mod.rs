@@ -75,3 +75,20 @@ impl<'ctx> CodeGen<'ctx> for TopLevelStatement<ValidatedTypeInformation> {
         }
     }
 }
+
+impl TopLevelStatement<ValidatedTypeInformation> {
+    /// First pass: Register function declarations without generating bodies
+    /// This allows forward references to functions defined later in the file
+    pub fn register_function_declaration<'ctx>(&self, ctx: &CodegenContext<'ctx>) {
+        match self {
+            TopLevelStatement::Function(function) => {
+                function.register_declaration(ctx);
+            }
+            TopLevelStatement::Instance(instance) => {
+                instance.register_declarations(ctx);
+            }
+            // Other statements don't need declaration registration
+            _ => {}
+        }
+    }
+}

@@ -58,12 +58,7 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
 
                 Some(element_value)
             }
-            Postfix::PropertyAccess {
-                expr,
-                property,
-                info,
-                ..
-            } => {
+            Postfix::PropertyAccess { expr, property, .. } => {
                 // Generate code for the struct expression
                 let Some(struct_value) = expr.codegen(ctx) else {
                     panic!("Struct expression must produce a value for property access");

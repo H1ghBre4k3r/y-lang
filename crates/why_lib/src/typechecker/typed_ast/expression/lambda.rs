@@ -36,11 +36,39 @@ impl TypeCheckable for Lambda<()> {
 
         ctx.scope.exit_scope();
 
+        // Infer function type from parameters and return expression
+        let mut param_types = vec![];
+        for param in &checked_parameters {
+            // For now, if parameter types are unknown, we can't fully infer the lambda type
+            // This will be resolved during type propagation
+            let param_type = param.info.type_id.borrow().clone().unwrap_or(Type::Unknown);
+            param_types.push(param_type);
+        }
+
+        let return_type = checked_expression
+            .get_info()
+            .type_id
+            .borrow()
+            .clone()
+            .unwrap_or(Type::Unknown);
+
+        // Create function type if we have concrete types, otherwise leave as None for later inference
+        let function_type = if param_types.iter().any(|t| matches!(t, Type::Unknown))
+            || matches!(return_type, Type::Unknown)
+        {
+            None
+        } else {
+            Some(Type::Function {
+                params: param_types,
+                return_value: Box::new(return_type),
+            })
+        };
+
         Ok(Lambda {
             parameters: checked_parameters,
             expression: Box::new(checked_expression),
             info: TypeInformation {
-                type_id: Rc::new(RefCell::new(None)),
+                type_id: Rc::new(RefCell::new(function_type)),
                 context,
             },
             position,
@@ -93,14 +121,39 @@ impl TypedConstruct for Lambda<TypeInformation> {
                 return Ok(());
             }
 
-            // TODO: maybe use different error for this
-            return Err(TypeCheckError::TypeMismatch(
-                TypeMismatch {
-                    expected: current_type.clone(),
-                    actual: type_id,
-                },
-                self.position.clone(),
-            ));
+            // Check if current type can be refined by the new type
+            // This allows lambdas with Unknown parameter types to be updated
+            if let Type::Function {
+                params: current_params,
+                return_value: current_return,
+            } = current_type
+            {
+                // If current lambda has Unknown parameter types, allow refinement
+                let can_refine = current_params.iter().any(|p| matches!(p, Type::Unknown))
+                    || matches!(current_return.as_ref(), Type::Unknown);
+
+                if can_refine {
+                    // Allow the update to proceed - fall through to the update logic below
+                } else {
+                    // Types are concrete and don't match - this is an error
+                    return Err(TypeCheckError::TypeMismatch(
+                        TypeMismatch {
+                            expected: current_type.clone(),
+                            actual: type_id,
+                        },
+                        self.position.clone(),
+                    ));
+                }
+            } else {
+                // Current type is not a function - this is an error
+                return Err(TypeCheckError::TypeMismatch(
+                    TypeMismatch {
+                        expected: current_type.clone(),
+                        actual: type_id,
+                    },
+                    self.position.clone(),
+                ));
+            }
         }
 
         // check for correct arity
@@ -367,25 +420,30 @@ mod tests {
 
         let lambda = lambda.check(&mut ctx)?;
 
-        assert_eq!(
-            lambda,
-            Lambda {
-                parameters: vec![],
-                expression: Box::new(Expression::Num(Num::Integer(
-                    42,
-                    TypeInformation {
-                        type_id: Rc::new(RefCell::new(Some(Type::Integer))),
-                        context: Context::default(),
-                    },
-                    Span::default()
-                ))),
-                info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(None)),
+        let expected = Lambda {
+            parameters: vec![],
+            expression: Box::new(Expression::Num(Num::Integer(
+                42,
+                TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Integer))),
                     context: Context::default(),
                 },
-                position: Span::default(),
-            }
-        );
+                Span::default(),
+            ))),
+            info: TypeInformation {
+                type_id: Rc::new(RefCell::new(Some(Type::Function {
+                    params: vec![],
+                    return_value: Box::new(Type::Integer),
+                }))),
+                context: Context::default(),
+            },
+            position: Span::default(),
+        };
+
+        eprintln!("{lambda:#?}");
+        eprintln!("{expected:#?}");
+
+        assert_eq!(lambda, expected);
 
         Ok(())
     }

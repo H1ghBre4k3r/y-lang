@@ -159,9 +159,15 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             lambda_counter: RefCell::new(0),
         };
 
-        // TODO: this _must_ include insertion of functions types, etc.
-        // Otherwise, one can not reference functions which are later in the files
+        // Two-pass compilation to handle forward function references
         let top_level_statements = &self.inner;
+
+        // First pass: Register all function declarations
+        for statement in top_level_statements {
+            statement.register_function_declaration(&codegen_context);
+        }
+
+        // Second pass: Generate function bodies
         for statement in top_level_statements {
             statement.codegen(&codegen_context);
         }

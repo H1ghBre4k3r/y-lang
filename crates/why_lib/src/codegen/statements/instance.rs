@@ -6,6 +6,19 @@ use crate::{
 
 use super::function::build_llvm_function_type_from_own_types;
 
+impl Instance<ValidatedTypeInformation> {
+    /// First pass: Register instance method declarations
+    pub fn register_declarations<'ctx>(&self, ctx: &CodegenContext<'ctx>) {
+        // For now, just register function declarations in the instance
+        // More complex instance handling can be added later
+        let Instance { functions, .. } = self;
+
+        for function in functions {
+            function.register_declaration(ctx);
+        }
+    }
+}
+
 impl<'ctx> CodeGen<'ctx> for Instance<ValidatedTypeInformation> {
     type ReturnValue = ();
 

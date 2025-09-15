@@ -6,14 +6,11 @@ use crate::{
     typechecker::{Type, ValidatedTypeInformation},
 };
 
-impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
-    type ReturnValue = ();
-
-    fn codegen(&self, ctx: &CodegenContext<'ctx>) {
+impl Function<ValidatedTypeInformation> {
+    /// First pass: Register function declaration without generating the body
+    pub fn register_declaration<'ctx>(&self, ctx: &CodegenContext<'ctx>) {
         let Function {
             id,
-            parameters,
-            body,
             info:
                 ValidatedTypeInformation {
                     type_id:
@@ -30,18 +27,44 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         };
 
         // Special handling for void main function
-        let (actual_fn_name, create_main_wrapper) =
-            if id.name == "main" && **return_value == Type::Void {
-                ("y_main", true)
-            } else {
-                (id.name.as_str(), false)
-            };
+        let actual_fn_name = if id.name == "main" && **return_value == Type::Void {
+            "y_main"
+        } else {
+            id.name.as_str()
+        };
 
         let llvm_fn_type = build_llvm_function_type_from_own_types(ctx, return_value, params);
 
-        // get function value and store it in the scope (such that it can be referenced later)
+        // Create function declaration and store it in the scope
         let llvm_fn_value = ctx.module.add_function(actual_fn_name, llvm_fn_type, None);
         ctx.store_function(&id.name, llvm_fn_value);
+    }
+}
+
+impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
+    type ReturnValue = ();
+
+    fn codegen(&self, ctx: &CodegenContext<'ctx>) {
+        let Function {
+            id,
+            parameters,
+            body,
+            info:
+                ValidatedTypeInformation {
+                    type_id: Type::Function { return_value, .. },
+                    ..
+                },
+            ..
+        } = self
+        else {
+            unreachable!()
+        };
+
+        // Retrieve the pre-registered function from the scope
+        let llvm_fn_value = ctx.resolve_function(&id.name);
+
+        // Special handling for void main function wrapper
+        let create_main_wrapper = id.name == "main" && **return_value == Type::Void;
 
         // enter scope for function parameters and local variables
         ctx.enter_scope();
