@@ -1,4 +1,6 @@
-fn main(): void {
+fn main(): i64 {
     let x: &[i64] = &[];
-    x[0];
+    let y: &[f64] = &[];
+
+    42
 }

@@ -12,8 +12,9 @@ mod prefix;
 mod struct_initialisation;
 
 use inkwell::{types::BasicType, values::BasicValueEnum};
+use crate::typechecker::{ValidatedTypeInformation, Type};
 
-use crate::{parser::ast::Expression, typechecker::ValidatedTypeInformation};
+use crate::parser::ast::Expression;
 
 use super::CodeGen;
 
@@ -37,11 +38,28 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
             Expression::Binary(binary_expression) => Some(binary_expression.codegen(ctx)),
             Expression::Array(array) => {
                 match array {
-                    crate::parser::ast::Array::Literal { values, .. } => {
+                    crate::parser::ast::Array::Literal { values, info, .. } => {
                         // For now, create a stack-allocated array
                         if values.is_empty() {
-                            // TODO: Handle empty arrays properly
-                            return None;
+                            // Handle empty arrays: get element type from type information
+                            let ValidatedTypeInformation { type_id, .. } = info;
+                            if let Type::Array(element_type) = type_id {
+                                let llvm_element_type = ctx.get_llvm_type(element_type);
+                                let element_basic_type =
+                                    super::convert_metadata_to_basic(llvm_element_type)
+                                        .expect("Array element type must be basic");
+
+                                // Create zero-length array type
+                                let array_type = element_basic_type.array_type(0);
+
+                                // Allocate array on stack
+                                let array_alloca = ctx.builder.build_alloca(array_type, "empty_array").unwrap();
+
+                                return Some(array_alloca.into());
+                            } else {
+                                // If we don't have proper type information, we can't create the array
+                                return None;
+                            }
                         }
 
                         // Get the element type from the first element
