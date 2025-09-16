@@ -5,7 +5,7 @@ use crate::{
         statements::function::build_llvm_function_type_from_own_types, CodeGen, CodegenContext,
     },
     parser::ast::{Lambda, LambdaParameter},
-    typechecker::{Type, ValidatedTypeInformation, get_lambda_captures, CaptureInfo},
+    typechecker::{get_lambda_captures, CaptureInfo, Type, ValidatedTypeInformation},
 };
 
 impl<'ctx> CodeGen<'ctx> for Lambda<ValidatedTypeInformation> {
@@ -32,8 +32,10 @@ impl<'ctx> CodeGen<'ctx> for Lambda<ValidatedTypeInformation> {
         };
 
         // Generate unique lambda identifier from position
-        let lambda_id = format!("lambda_{}_{}_{}_{}",
-            position.start.0, position.start.1, position.end.0, position.end.1);
+        let lambda_id = format!(
+            "lambda_{}_{}_{}_{}",
+            position.start.0, position.start.1, position.end.0, position.end.1
+        );
 
         // Retrieve capture information
         let captures = get_lambda_captures(&lambda_id);
@@ -103,7 +105,10 @@ impl<'ctx> Lambda<ValidatedTypeInformation> {
 
         // Create closure struct with env = null
         let fn_ptr = lambda_fn.as_global_value().as_pointer_value();
-        let null_env = ctx.context.ptr_type(inkwell::AddressSpace::default()).const_null();
+        let null_env = ctx
+            .context
+            .ptr_type(inkwell::AddressSpace::default())
+            .const_null();
         let closure_struct = ctx.build_closure_value(fn_ptr, null_env);
 
         Some(closure_struct.into())
@@ -130,7 +135,14 @@ impl<'ctx> Lambda<ValidatedTypeInformation> {
         let (env_struct_type, env_ptr) = self.create_and_populate_environment(ctx, capture_info);
 
         // Generate function body (with environment parameter)
-        self.generate_lambda_body(ctx, closure_fn, parameters, expression, return_value, Some((env_struct_type, capture_info)));
+        self.generate_lambda_body(
+            ctx,
+            closure_fn,
+            parameters,
+            expression,
+            return_value,
+            Some((env_struct_type, capture_info)),
+        );
 
         // Create closure struct
         let fn_ptr = closure_fn.as_global_value().as_pointer_value();
@@ -171,27 +183,33 @@ impl<'ctx> Lambda<ValidatedTypeInformation> {
                 .into_pointer_value();
 
             // Cast environment pointer back to struct type
-            let env_struct_ptr = ctx.builder.build_bit_cast(
-                env_param,
-                ctx.context.ptr_type(inkwell::AddressSpace::default()),
-                "env_cast",
-            ).unwrap().into_pointer_value();
+            let env_struct_ptr = ctx
+                .builder
+                .build_bit_cast(
+                    env_param,
+                    ctx.context.ptr_type(inkwell::AddressSpace::default()),
+                    "env_cast",
+                )
+                .unwrap()
+                .into_pointer_value();
 
             // Bind captured variables into scope
             for (i, (var_name, _var_type)) in capture_info.captures.iter().enumerate() {
-                let field_ptr = ctx.builder.build_struct_gep(
-                    env_struct_type,
-                    env_struct_ptr,
-                    i as u32,
-                    &format!("capture_{}_ptr", var_name),
-                ).unwrap();
+                let field_ptr = ctx
+                    .builder
+                    .build_struct_gep(
+                        env_struct_type,
+                        env_struct_ptr,
+                        i as u32,
+                        &format!("capture_{}_ptr", var_name),
+                    )
+                    .unwrap();
 
                 let field_type = env_struct_type.get_field_type_at_index(i as u32).unwrap();
-                let field_value = ctx.builder.build_load(
-                    field_type,
-                    field_ptr,
-                    &format!("capture_{}", var_name),
-                ).unwrap();
+                let field_value = ctx
+                    .builder
+                    .build_load(field_type, field_ptr, &format!("capture_{}", var_name))
+                    .unwrap();
 
                 ctx.store_variable(var_name, field_value);
             }
@@ -241,7 +259,10 @@ impl<'ctx> Lambda<ValidatedTypeInformation> {
         &self,
         ctx: &CodegenContext<'ctx>,
         capture_info: &CaptureInfo,
-    ) -> (inkwell::types::StructType<'ctx>, inkwell::values::PointerValue<'ctx>) {
+    ) -> (
+        inkwell::types::StructType<'ctx>,
+        inkwell::values::PointerValue<'ctx>,
+    ) {
         // Create environment struct type
         let mut field_types = Vec::new();
         for (_name, var_type) in &capture_info.captures {
@@ -265,28 +286,37 @@ impl<'ctx> Lambda<ValidatedTypeInformation> {
             ctx.module.add_function("malloc", malloc_type, None)
         });
 
-        let env_ptr_i8 = ctx.builder.build_call(
-            malloc_fn,
-            &[env_size.into()],
-            "env_malloc",
-        ).unwrap().try_as_basic_value().unwrap_left().into_pointer_value();
+        let env_ptr_i8 = ctx
+            .builder
+            .build_call(malloc_fn, &[env_size.into()], "env_malloc")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value();
 
         // Cast to struct pointer
-        let env_ptr = ctx.builder.build_bit_cast(
-            env_ptr_i8,
-            ctx.context.ptr_type(inkwell::AddressSpace::default()),
-            "env_cast",
-        ).unwrap().into_pointer_value();
+        let env_ptr = ctx
+            .builder
+            .build_bit_cast(
+                env_ptr_i8,
+                ctx.context.ptr_type(inkwell::AddressSpace::default()),
+                "env_cast",
+            )
+            .unwrap()
+            .into_pointer_value();
 
         // Populate environment with captured values
         for (i, (var_name, _var_type)) in capture_info.captures.iter().enumerate() {
             let captured_value = ctx.find_variable(var_name);
-            let field_ptr = ctx.builder.build_struct_gep(
-                env_struct_type,
-                env_ptr,
-                i as u32,
-                &format!("env_field_{}", i),
-            ).unwrap();
+            let field_ptr = ctx
+                .builder
+                .build_struct_gep(
+                    env_struct_type,
+                    env_ptr,
+                    i as u32,
+                    &format!("env_field_{}", i),
+                )
+                .unwrap();
 
             ctx.builder.build_store(field_ptr, captured_value).unwrap();
         }

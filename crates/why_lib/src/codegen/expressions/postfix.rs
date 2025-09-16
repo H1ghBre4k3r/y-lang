@@ -269,11 +269,15 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
         let env_ptr = ctx.extract_closure_env_ptr(closure_struct);
 
         // Check if this is a non-capturing closure (env_ptr is null)
-        let null_env = ctx.context.ptr_type(inkwell::AddressSpace::default()).const_null();
+        let null_env = ctx
+            .context
+            .ptr_type(inkwell::AddressSpace::default())
+            .const_null();
 
         if env_ptr == null_env {
             // Non-capturing closure - call as normal function
-            let llvm_function_type = build_llvm_function_type_from_own_types(ctx, &return_value, &params);
+            let llvm_function_type =
+                build_llvm_function_type_from_own_types(ctx, &return_value, &params);
             let fn_ptr = ctx.extract_closure_fn_ptr(closure_struct, llvm_function_type);
 
             ctx.builder

@@ -11,8 +11,8 @@ use std::fmt::{Display, Formatter};
 use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
 use self::context::Context;
+pub use self::typed_ast::expression::lambda::{get_lambda_captures, CaptureInfo};
 pub use self::{error::TypeCheckError, types::Type};
-pub use self::typed_ast::expression::lambda::{CaptureInfo, get_lambda_captures};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {

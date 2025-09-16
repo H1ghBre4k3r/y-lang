@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, collections::HashSet, sync::Mutex};
+use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::Mutex};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
@@ -11,8 +11,8 @@ use crate::{
     },
 };
 
-use std::collections::HashMap;
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
 /// Global storage for lambda capture information, keyed by lambda position
 static LAMBDA_CAPTURES: Lazy<Mutex<HashMap<String, CaptureInfo>>> =
@@ -87,33 +87,29 @@ impl IdentifierCollector {
                 self.visit_expression(&binary.left);
                 self.visit_expression(&binary.right);
             }
-            Expression::Prefix(prefix) => {
-                match prefix {
-                    crate::parser::ast::Prefix::Negation { expr, .. } => {
-                        self.visit_expression(expr);
-                    }
-                    crate::parser::ast::Prefix::Minus { expr, .. } => {
-                        self.visit_expression(expr);
+            Expression::Prefix(prefix) => match prefix {
+                crate::parser::ast::Prefix::Negation { expr, .. } => {
+                    self.visit_expression(expr);
+                }
+                crate::parser::ast::Prefix::Minus { expr, .. } => {
+                    self.visit_expression(expr);
+                }
+            },
+            Expression::Postfix(postfix) => match postfix {
+                crate::parser::ast::Postfix::Call { expr, args, .. } => {
+                    self.visit_expression(expr);
+                    for arg in args {
+                        self.visit_expression(arg);
                     }
                 }
-            }
-            Expression::Postfix(postfix) => {
-                match postfix {
-                    crate::parser::ast::Postfix::Call { expr, args, .. } => {
-                        self.visit_expression(expr);
-                        for arg in args {
-                            self.visit_expression(arg);
-                        }
-                    }
-                    crate::parser::ast::Postfix::Index { expr, index, .. } => {
-                        self.visit_expression(expr);
-                        self.visit_expression(index);
-                    }
-                    crate::parser::ast::Postfix::PropertyAccess { expr, .. } => {
-                        self.visit_expression(expr);
-                    }
+                crate::parser::ast::Postfix::Index { expr, index, .. } => {
+                    self.visit_expression(expr);
+                    self.visit_expression(index);
                 }
-            }
+                crate::parser::ast::Postfix::PropertyAccess { expr, .. } => {
+                    self.visit_expression(expr);
+                }
+            },
             Expression::If(if_expr) => {
                 self.visit_expression(&if_expr.condition);
                 // For now, just visit the condition. Block traversal can be added later.
@@ -129,7 +125,10 @@ impl IdentifierCollector {
             Expression::StructInitialisation(_) => {}
             Expression::Array(_) => {}
             // Leaf nodes - no further traversal needed
-            Expression::Num(_) | Expression::Bool(_) | Expression::Character(_) | Expression::AstString(_) => {}
+            Expression::Num(_)
+            | Expression::Bool(_)
+            | Expression::Character(_)
+            | Expression::AstString(_) => {}
             // Other expression types
             Expression::Function(_) => {}
             Expression::Parens(inner) => {
@@ -408,8 +407,10 @@ impl TypedConstruct for Lambda<TypeInformation> {
         let captures = analyze_captures(&expression, &parameters, &mut ctx);
 
         // Generate a unique lambda ID from position for capture storage
-        let lambda_id = format!("lambda_{}_{}_{}_{}",
-            position.start.0, position.start.1, position.end.0, position.end.1);
+        let lambda_id = format!(
+            "lambda_{}_{}_{}_{}",
+            position.start.0, position.start.1, position.end.0, position.end.1
+        );
 
         // Store capture information globally
         store_lambda_captures(lambda_id.clone(), captures.clone());

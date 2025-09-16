@@ -11,7 +11,7 @@ use inkwell::{
     values::{BasicValueEnum, FunctionValue},
 };
 
-use crate::typechecker::{Type, CaptureInfo};
+use crate::typechecker::{CaptureInfo, Type};
 
 pub struct CodegenContext<'ctx> {
     pub context: &'ctx Context,
@@ -51,7 +51,8 @@ impl<'ctx> CodegenContext<'ctx> {
     /// Get the canonical closure struct type {i8*, i8*}
     pub fn get_closure_struct_type(&self) -> inkwell::types::StructType<'ctx> {
         let i8_ptr_type = self.context.ptr_type(inkwell::AddressSpace::default());
-        self.context.struct_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false)
+        self.context
+            .struct_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false)
     }
 
     /// Create a closure-impl function type (i8*, params...) -> ret
@@ -97,26 +98,27 @@ impl<'ctx> CodegenContext<'ctx> {
         let closure_undef = closure_type.get_undef();
 
         // Insert function pointer (cast to i8*)
-        let fn_ptr_as_i8 = self.builder.build_bit_cast(
-            fn_ptr,
-            self.context.ptr_type(inkwell::AddressSpace::default()),
-            "fn_ptr_cast",
-        ).unwrap().into_pointer_value();
+        let fn_ptr_as_i8 = self
+            .builder
+            .build_bit_cast(
+                fn_ptr,
+                self.context.ptr_type(inkwell::AddressSpace::default()),
+                "fn_ptr_cast",
+            )
+            .unwrap()
+            .into_pointer_value();
 
-        let closure_with_fn = self.builder.build_insert_value(
-            closure_undef,
-            fn_ptr_as_i8,
-            0,
-            "closure_with_fn",
-        ).unwrap().into_struct_value();
+        let closure_with_fn = self
+            .builder
+            .build_insert_value(closure_undef, fn_ptr_as_i8, 0, "closure_with_fn")
+            .unwrap()
+            .into_struct_value();
 
         // Insert environment pointer
-        self.builder.build_insert_value(
-            closure_with_fn,
-            env_ptr,
-            1,
-            "closure_complete",
-        ).unwrap().into_struct_value()
+        self.builder
+            .build_insert_value(closure_with_fn, env_ptr, 1, "closure_complete")
+            .unwrap()
+            .into_struct_value()
     }
 
     /// Extract function pointer from closure value and cast to target type
@@ -125,18 +127,17 @@ impl<'ctx> CodegenContext<'ctx> {
         closure_value: inkwell::values::StructValue<'ctx>,
         target_fn_type: inkwell::types::FunctionType<'ctx>,
     ) -> inkwell::values::PointerValue<'ctx> {
-        let fn_ptr_i8 = self.builder.build_extract_value(
-            closure_value,
-            0,
-            "extract_fn_ptr",
-        ).unwrap().into_pointer_value();
+        let fn_ptr_i8 = self
+            .builder
+            .build_extract_value(closure_value, 0, "extract_fn_ptr")
+            .unwrap()
+            .into_pointer_value();
 
         let target_ptr_type = self.context.ptr_type(inkwell::AddressSpace::default());
-        self.builder.build_bit_cast(
-            fn_ptr_i8,
-            target_ptr_type,
-            "cast_fn_ptr",
-        ).unwrap().into_pointer_value()
+        self.builder
+            .build_bit_cast(fn_ptr_i8, target_ptr_type, "cast_fn_ptr")
+            .unwrap()
+            .into_pointer_value()
     }
 
     /// Extract environment pointer from closure value
@@ -144,16 +145,17 @@ impl<'ctx> CodegenContext<'ctx> {
         &self,
         closure_value: inkwell::values::StructValue<'ctx>,
     ) -> inkwell::values::PointerValue<'ctx> {
-        self.builder.build_extract_value(
-            closure_value,
-            1,
-            "extract_env_ptr",
-        ).unwrap().into_pointer_value()
+        self.builder
+            .build_extract_value(closure_value, 1, "extract_env_ptr")
+            .unwrap()
+            .into_pointer_value()
     }
 
     /// Store capture information for a lambda
     pub fn store_lambda_captures(&self, lambda_id: String, captures: CaptureInfo) {
-        self.lambda_captures.borrow_mut().insert(lambda_id, captures);
+        self.lambda_captures
+            .borrow_mut()
+            .insert(lambda_id, captures);
     }
 
     /// Retrieve capture information for a lambda
@@ -255,7 +257,10 @@ impl<'ctx> CodegenContext<'ctx> {
         let fn_pointer = value.as_global_value().as_pointer_value();
 
         // Create closure struct with env = null for non-capturing lambdas
-        let null_env = self.context.ptr_type(inkwell::AddressSpace::default()).const_null();
+        let null_env = self
+            .context
+            .ptr_type(inkwell::AddressSpace::default())
+            .const_null();
         let closure_struct = self.build_closure_value(fn_pointer, null_env);
 
         let scopes = self.scopes.borrow();

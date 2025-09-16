@@ -53,7 +53,8 @@ impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
                         .unwrap();
                     closure_value
                 } else {
-                    let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id)) else {
+                    let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id))
+                    else {
                         return variable;
                     };
 
