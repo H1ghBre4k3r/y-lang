@@ -167,10 +167,9 @@ pub fn build_llvm_function_type_from_own_types<'ctx>(
             params: _fn_params,
             return_value: _fn_return_value,
         } => {
-            // Function returning another function - return function pointer
-            ctx.context
-                .ptr_type(Default::default())
-                .fn_type(&llvm_param_types, false)
+            // Function returning another function - return closure struct
+            let closure_struct_type = ctx.get_closure_struct_type();
+            closure_struct_type.fn_type(&llvm_param_types, false)
         }
         return_type => {
             let llvm_return_type = ctx.get_llvm_type(return_type);

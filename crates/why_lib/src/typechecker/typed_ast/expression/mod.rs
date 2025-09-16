@@ -6,7 +6,7 @@ mod character;
 mod function;
 mod id;
 mod if_expression;
-mod lambda;
+pub mod lambda;
 mod num;
 mod postfix;
 mod prefix;

@@ -256,21 +256,45 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
             }
         }
 
-        // Fallback to indirect call through function pointer
-        let llvm_function_type =
-            build_llvm_function_type_from_own_types(ctx, &return_value, &params);
+        // Fallback to indirect call through closure struct
         let Some(expr_value) = expr.codegen(ctx) else {
             unreachable!()
         };
 
-        let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr_value else {
-            unreachable!("The Expression in a Call-Postfix should always return a pointer");
+        let BasicValueEnum::StructValue(closure_struct) = expr_value else {
+            unreachable!("The Expression in a Call-Postfix should always return a closure struct");
         };
 
-        ctx.builder
-            .build_indirect_call(llvm_function_type, llvm_fn_pointer, &args, "")
-            .unwrap()
-            .try_as_basic_value()
-            .left()
+        // Extract function pointer and environment from closure
+        let env_ptr = ctx.extract_closure_env_ptr(closure_struct);
+
+        // Check if this is a non-capturing closure (env_ptr is null)
+        let null_env = ctx.context.ptr_type(inkwell::AddressSpace::default()).const_null();
+
+        if env_ptr == null_env {
+            // Non-capturing closure - call as normal function
+            let llvm_function_type = build_llvm_function_type_from_own_types(ctx, &return_value, &params);
+            let fn_ptr = ctx.extract_closure_fn_ptr(closure_struct, llvm_function_type);
+
+            ctx.builder
+                .build_indirect_call(llvm_function_type, fn_ptr, &args, "")
+                .unwrap()
+                .try_as_basic_value()
+                .left()
+        } else {
+            // Capturing closure - call with environment as first parameter
+            let closure_fn_type = ctx.create_closure_impl_fn_type(&return_value, &params);
+            let fn_ptr = ctx.extract_closure_fn_ptr(closure_struct, closure_fn_type);
+
+            // Add environment as first argument
+            let mut closure_args = vec![env_ptr.into()];
+            closure_args.extend(args);
+
+            ctx.builder
+                .build_indirect_call(closure_fn_type, fn_ptr, &closure_args, "")
+                .unwrap()
+                .try_as_basic_value()
+                .left()
+        }
     }
 }

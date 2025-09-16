@@ -39,24 +39,34 @@ impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
         // If not found as constant, try as a variable
         let variable = ctx.find_variable(name);
 
-        match variable {
+        let result = match variable {
             BasicValueEnum::PointerValue(pointer_value) => {
                 // For string types, return the pointer directly (strings are passed by reference)
                 if matches!(type_id, Type::String) {
-                    return variable;
+                    variable
+                } else if matches!(type_id, Type::Function { .. }) {
+                    // For function types, load the closure struct from the pointer
+                    let closure_struct_type = ctx.get_closure_struct_type();
+                    let closure_value = ctx
+                        .builder
+                        .build_load(closure_struct_type, pointer_value, "")
+                        .unwrap();
+                    closure_value
+                } else {
+                    let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id)) else {
+                        return variable;
+                    };
+
+                    let val = ctx
+                        .builder
+                        .build_load(llvm_type, pointer_value, "")
+                        .unwrap();
+                    val
                 }
-
-                let Some(llvm_type) = convert_metadata_to_basic(ctx.get_llvm_type(type_id)) else {
-                    return variable;
-                };
-
-                let val = ctx
-                    .builder
-                    .build_load(llvm_type, pointer_value, "")
-                    .unwrap();
-                val
             }
             variable => variable,
-        }
+        };
+
+        result
     }
 }

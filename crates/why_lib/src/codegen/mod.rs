@@ -11,7 +11,7 @@ use inkwell::{
     values::{BasicValueEnum, FunctionValue},
 };
 
-use crate::typechecker::Type;
+use crate::typechecker::{Type, CaptureInfo};
 
 pub struct CodegenContext<'ctx> {
     pub context: &'ctx Context,
@@ -20,6 +20,7 @@ pub struct CodegenContext<'ctx> {
     pub types: RefCell<HashMap<Type, BasicMetadataTypeEnum<'ctx>>>,
     pub scopes: RefCell<Vec<ScopeFrame<'ctx>>>,
     pub lambda_counter: RefCell<usize>,
+    pub lambda_captures: RefCell<HashMap<String, CaptureInfo>>,
 }
 
 pub type ScopeFrame<'ctx> = RefCell<Scope<'ctx>>;
@@ -45,6 +46,119 @@ impl<'ctx> CodegenContext<'ctx> {
             types.insert(our_type.clone(), new_type);
         }
         new_type
+    }
+
+    /// Get the canonical closure struct type {i8*, i8*}
+    pub fn get_closure_struct_type(&self) -> inkwell::types::StructType<'ctx> {
+        let i8_ptr_type = self.context.ptr_type(inkwell::AddressSpace::default());
+        self.context.struct_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false)
+    }
+
+    /// Create a closure-impl function type (i8*, params...) -> ret
+    pub fn create_closure_impl_fn_type(
+        &self,
+        return_type: &Type,
+        param_types: &[Type],
+    ) -> inkwell::types::FunctionType<'ctx> {
+        // Environment pointer as first parameter
+        let i8_ptr_type = self.context.ptr_type(inkwell::AddressSpace::default());
+        let mut llvm_param_types = vec![i8_ptr_type.into()];
+
+        // Add user parameters
+        for param_type in param_types {
+            llvm_param_types.push(self.get_llvm_type(param_type));
+        }
+
+        match return_type {
+            Type::Void => {
+                let void_type = self.context.void_type();
+                void_type.fn_type(&llvm_param_types, false)
+            }
+            _ => {
+                let return_metadata = self.get_llvm_type(return_type);
+                if let Some(basic_return_type) = convert_metadata_to_basic(return_metadata) {
+                    basic_return_type.fn_type(&llvm_param_types, false)
+                } else {
+                    // Fallback to void
+                    let void_type = self.context.void_type();
+                    void_type.fn_type(&llvm_param_types, false)
+                }
+            }
+        }
+    }
+
+    /// Construct a closure value from function pointer and environment pointer
+    pub fn build_closure_value(
+        &self,
+        fn_ptr: inkwell::values::PointerValue<'ctx>,
+        env_ptr: inkwell::values::PointerValue<'ctx>,
+    ) -> inkwell::values::StructValue<'ctx> {
+        let closure_type = self.get_closure_struct_type();
+        let closure_undef = closure_type.get_undef();
+
+        // Insert function pointer (cast to i8*)
+        let fn_ptr_as_i8 = self.builder.build_bit_cast(
+            fn_ptr,
+            self.context.ptr_type(inkwell::AddressSpace::default()),
+            "fn_ptr_cast",
+        ).unwrap().into_pointer_value();
+
+        let closure_with_fn = self.builder.build_insert_value(
+            closure_undef,
+            fn_ptr_as_i8,
+            0,
+            "closure_with_fn",
+        ).unwrap().into_struct_value();
+
+        // Insert environment pointer
+        self.builder.build_insert_value(
+            closure_with_fn,
+            env_ptr,
+            1,
+            "closure_complete",
+        ).unwrap().into_struct_value()
+    }
+
+    /// Extract function pointer from closure value and cast to target type
+    pub fn extract_closure_fn_ptr(
+        &self,
+        closure_value: inkwell::values::StructValue<'ctx>,
+        target_fn_type: inkwell::types::FunctionType<'ctx>,
+    ) -> inkwell::values::PointerValue<'ctx> {
+        let fn_ptr_i8 = self.builder.build_extract_value(
+            closure_value,
+            0,
+            "extract_fn_ptr",
+        ).unwrap().into_pointer_value();
+
+        let target_ptr_type = self.context.ptr_type(inkwell::AddressSpace::default());
+        self.builder.build_bit_cast(
+            fn_ptr_i8,
+            target_ptr_type,
+            "cast_fn_ptr",
+        ).unwrap().into_pointer_value()
+    }
+
+    /// Extract environment pointer from closure value
+    pub fn extract_closure_env_ptr(
+        &self,
+        closure_value: inkwell::values::StructValue<'ctx>,
+    ) -> inkwell::values::PointerValue<'ctx> {
+        self.builder.build_extract_value(
+            closure_value,
+            1,
+            "extract_env_ptr",
+        ).unwrap().into_pointer_value()
+    }
+
+    /// Store capture information for a lambda
+    pub fn store_lambda_captures(&self, lambda_id: String, captures: CaptureInfo) {
+        self.lambda_captures.borrow_mut().insert(lambda_id, captures);
+    }
+
+    /// Retrieve capture information for a lambda
+    pub fn get_lambda_captures(&self, lambda_id: &str) -> Option<CaptureInfo> {
+        self.lambda_captures.borrow().get(lambda_id).cloned()
     }
 
     pub fn enter_scope(&self) {
@@ -131,6 +245,7 @@ impl<'ctx> CodegenContext<'ctx> {
         scopes.last().inspect(|scope| {
             let mut scope_frame = scope.borrow_mut();
             scope_frame.functions.insert(name.clone(), value);
+            // Store function pointer directly for now - we'll wrap it as closure when used
             scope_frame.variables.insert(name, fn_pointer.into());
         });
     }
@@ -139,12 +254,16 @@ impl<'ctx> CodegenContext<'ctx> {
         let name = name.to_string();
         let fn_pointer = value.as_global_value().as_pointer_value();
 
+        // Create closure struct with env = null for non-capturing lambdas
+        let null_env = self.context.ptr_type(inkwell::AddressSpace::default()).const_null();
+        let closure_struct = self.build_closure_value(fn_pointer, null_env);
+
         let scopes = self.scopes.borrow();
 
         scopes.last().inspect(|scope| {
             let mut scope_frame = scope.borrow_mut();
             scope_frame.functions.insert(name.clone(), value);
-            scope_frame.variables.insert(name, fn_pointer.into());
+            scope_frame.variables.insert(name, closure_struct.into());
         });
     }
 }
@@ -211,39 +330,14 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             let struct_type = ctx.context.struct_type(&llvm_fields, false);
             struct_type.into()
         }
-        // Function types are represented as function pointers
+        // Function types are now represented as closure structs {i8*, i8*}
         Type::Function {
-            params,
-            return_value,
+            params: _,
+            return_value: _,
         } => {
-            // Create function type and return pointer to it
-            let llvm_param_types: Vec<_> = params
-                .iter()
-                .map(|param_type| ctx.get_llvm_type(param_type))
-                .collect();
-
-            match return_value.as_ref() {
-                Type::Void => {
-                    // TODO: is this correct? Why dont we use them?
-                    let llvm_void_type = ctx.context.void_type();
-                    let fn_type = llvm_void_type.fn_type(&llvm_param_types, false);
-                    ctx.context.ptr_type(Default::default()).into()
-                }
-                return_type => {
-                    let llvm_return_metadata_type = ctx.get_llvm_type(return_type);
-                    if let Some(basic_return_type) =
-                        convert_metadata_to_basic(llvm_return_metadata_type)
-                    {
-                        let _fn_type = basic_return_type.fn_type(&llvm_param_types, false);
-                        ctx.context.ptr_type(Default::default()).into()
-                    } else {
-                        // Fallback to void function pointer if conversion fails
-                        let llvm_void_type = ctx.context.void_type();
-                        let _fn_type = llvm_void_type.fn_type(&llvm_param_types, false);
-                        ctx.context.ptr_type(Default::default()).into()
-                    }
-                }
-            }
+            // All function types use the same closure struct representation
+            let closure_struct_type = ctx.get_closure_struct_type();
+            closure_struct_type.into()
         }
     }
 }

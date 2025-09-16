@@ -1534,6 +1534,7 @@ dependencies = [
  "colored",
  "inkwell",
  "lex_derive",
+ "once_cell",
  "regex",
  "rust-sitter",
  "rust-sitter-tool",

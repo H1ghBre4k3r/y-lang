@@ -1,2 +1,2 @@
-mod expression;
+pub mod expression;
 mod statement;

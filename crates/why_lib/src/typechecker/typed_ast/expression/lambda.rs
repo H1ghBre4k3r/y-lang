@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, collections::HashSet, sync::Mutex};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
@@ -10,6 +10,175 @@ use crate::{
         TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
+
+use std::collections::HashMap;
+use once_cell::sync::Lazy;
+
+/// Global storage for lambda capture information, keyed by lambda position
+static LAMBDA_CAPTURES: Lazy<Mutex<HashMap<String, CaptureInfo>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// Store capture information globally
+pub fn store_lambda_captures(lambda_id: String, captures: CaptureInfo) {
+    LAMBDA_CAPTURES.lock().unwrap().insert(lambda_id, captures);
+}
+
+/// Retrieve capture information globally
+pub fn get_lambda_captures(lambda_id: &str) -> Option<CaptureInfo> {
+    LAMBDA_CAPTURES.lock().unwrap().get(lambda_id).cloned()
+}
+
+/// Information about captures in a lambda expression
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CaptureInfo {
+    /// Names of variables captured from outer scopes with their types
+    pub captures: Vec<(String, Type)>,
+}
+
+impl CaptureInfo {
+    fn new() -> Self {
+        CaptureInfo {
+            captures: Vec::new(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.captures.is_empty()
+    }
+}
+
+/// Extended type information for lambda expressions that includes capture analysis
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ValidatedLambdaTypeInformation {
+    pub type_id: Type,
+    #[serde(skip)]
+    pub context: Context,
+    pub captures: CaptureInfo,
+}
+
+impl ValidatedLambdaTypeInformation {
+    pub fn new(type_id: Type, context: Context, captures: CaptureInfo) -> Self {
+        ValidatedLambdaTypeInformation {
+            type_id,
+            context,
+            captures,
+        }
+    }
+}
+
+/// Visitor to collect all identifier references in an expression
+struct IdentifierCollector {
+    identifiers: HashSet<String>,
+}
+
+impl IdentifierCollector {
+    fn new() -> Self {
+        IdentifierCollector {
+            identifiers: HashSet::new(),
+        }
+    }
+
+    fn visit_expression(&mut self, expr: &Expression<TypeInformation>) {
+        match expr {
+            Expression::Id(id) => {
+                self.identifiers.insert(id.name.clone());
+            }
+            Expression::Binary(binary) => {
+                self.visit_expression(&binary.left);
+                self.visit_expression(&binary.right);
+            }
+            Expression::Prefix(prefix) => {
+                match prefix {
+                    crate::parser::ast::Prefix::Negation { expr, .. } => {
+                        self.visit_expression(expr);
+                    }
+                    crate::parser::ast::Prefix::Minus { expr, .. } => {
+                        self.visit_expression(expr);
+                    }
+                }
+            }
+            Expression::Postfix(postfix) => {
+                match postfix {
+                    crate::parser::ast::Postfix::Call { expr, args, .. } => {
+                        self.visit_expression(expr);
+                        for arg in args {
+                            self.visit_expression(arg);
+                        }
+                    }
+                    crate::parser::ast::Postfix::Index { expr, index, .. } => {
+                        self.visit_expression(expr);
+                        self.visit_expression(index);
+                    }
+                    crate::parser::ast::Postfix::PropertyAccess { expr, .. } => {
+                        self.visit_expression(expr);
+                    }
+                }
+            }
+            Expression::If(if_expr) => {
+                self.visit_expression(&if_expr.condition);
+                // For now, just visit the condition. Block traversal can be added later.
+            }
+            Expression::Lambda(lambda) => {
+                // For nested lambdas, we still want to collect identifiers
+                // but we need to be careful about their parameter scopes
+                self.visit_expression(&lambda.expression);
+            }
+            // For now, skip complex traversal of blocks, structs, arrays
+            // We can add these incrementally as needed
+            Expression::Block(_) => {}
+            Expression::StructInitialisation(_) => {}
+            Expression::Array(_) => {}
+            // Leaf nodes - no further traversal needed
+            Expression::Num(_) | Expression::Bool(_) | Expression::Character(_) | Expression::AstString(_) => {}
+            // Other expression types
+            Expression::Function(_) => {}
+            Expression::Parens(inner) => {
+                self.visit_expression(inner);
+            }
+        }
+    }
+
+    fn collect_from(expr: &Expression<TypeInformation>) -> HashSet<String> {
+        let mut collector = IdentifierCollector::new();
+        collector.visit_expression(expr);
+        collector.identifiers
+    }
+}
+
+/// Analyze captures for a lambda expression
+fn analyze_captures(
+    lambda_expr: &Expression<TypeInformation>,
+    parameters: &[LambdaParameter<TypeInformation>],
+    ctx: &mut Context,
+) -> CaptureInfo {
+    // Collect all identifiers referenced in the lambda body
+    let referenced_identifiers = IdentifierCollector::collect_from(lambda_expr);
+
+    // Filter out lambda parameters
+    let param_names: HashSet<String> = parameters
+        .iter()
+        .map(|param| param.name.name.clone())
+        .collect();
+
+    // Find captures: identifiers that are referenced but not parameters
+    let mut captures = Vec::new();
+    for identifier in referenced_identifiers {
+        if !param_names.contains(&identifier) {
+            // This identifier is potentially captured from outer scope
+            // Try to resolve its type in the current context
+            if let Some(type_ref) = ctx.scope.resolve_name(&identifier) {
+                if let Some(var_type) = type_ref.borrow().clone() {
+                    captures.push((identifier, var_type));
+                }
+            }
+        }
+    }
+
+    // Sort captures for deterministic order
+    captures.sort_by(|a, b| a.0.cmp(&b.0));
+
+    CaptureInfo { captures }
+}
 
 impl TypeCheckable for Lambda<()> {
     type Typed = Lambda<TypeInformation>;
@@ -234,15 +403,33 @@ impl TypedConstruct for Lambda<TypeInformation> {
             position,
         } = self;
 
+        // Perform capture analysis before consuming parameters
+        let mut ctx = info.context.clone();
+        let captures = analyze_captures(&expression, &parameters, &mut ctx);
+
+        // Generate a unique lambda ID from position for capture storage
+        let lambda_id = format!("lambda_{}_{}_{}_{}",
+            position.start.0, position.start.1, position.end.0, position.end.1);
+
+        // Store capture information globally
+        store_lambda_captures(lambda_id.clone(), captures.clone());
+
+        // For debugging - print capture info
+        if !captures.is_empty() {
+            eprintln!("Lambda {} captures: {:?}", lambda_id, captures.captures);
+        }
+
         let mut validated_parameters = vec![];
         for param in parameters {
             validated_parameters.push(param.validate()?);
         }
 
+        let validated_info = info.validate(&position)?;
+
         Ok(Lambda {
             parameters: validated_parameters,
             expression: Box::new(expression.validate()?),
-            info: info.validate(&position)?,
+            info: validated_info,
             position,
         })
     }
