@@ -18,28 +18,97 @@ Functions can accept an arbitrary amount of arguments and return a value. Both, 
 
 ## Lambdas
 
-Lambdas can be either used as anonymous functions or be assigned to a variable:
+Lambdas are anonymous functions that can be used inline or assigned to variables. They provide a concise way to create function values:
 
 ```why
-let foo = takesFunction((x) => x * x);
+// Anonymous lambda passed directly
+let foo = takesFunction(\(x) => x * x);
 
-let bar: (i32, i32) -> i32 = (x, y) = x + y;
+// Lambda assigned to variable (type annotation required)
+let bar: (i64, i64) -> i64 = \(x, y) => x + y;
+
+// Multi-line lambda with block
+let complex: (i64) -> i64 = \(x) => {
+    let doubled = x * 2;
+    doubled + 1
+};
 ```
 
-When assigning them to a variable, you have to explicitly annotate the type of the lambda.
+### Variable Capture in Lambdas
+
+One of the most powerful features of lambdas is their ability to capture variables from their surrounding scope, creating **closures**:
+
+```why
+fn createAdder(x: i64): (i64) -> i64 {
+    // This lambda captures the variable 'x'
+    \(y) => x + y
+}
+
+fn main(): i64 {
+    let addFive = createAdder(5);
+    addFive(10)  // Returns 15
+}
+```
+
+**Key points about variable capture:**
+- Variables are captured **by value** at lambda creation time
+- Captured values are copied into the lambda's environment
+- Both simple variables and struct fields can be captured
+
+```why
+struct Point {
+    x: i64;
+    y: i64;
+}
+
+fn createTranslator(offset: Point): (Point) -> Point {
+    \(p) => Point {
+        x: p.x + offset.x,  // offset is captured
+        y: p.y + offset.y
+    }
+}
+```
+
+For more details on closures and capture mechanics, see [Closures](./closures.md).
 
 ### Function Types
 
-As you can see in the above example, using functions introduces a new type: Functions.
+Functions introduce a new type category that can be used anywhere a type is expected:
 
-Function types consist of the list of arguments and the type of the return value. Using that, you can annotate every variable, parameter or even return type of a function to be a function:
+Function types consist of the parameter types and return type: `(param_types...) -> return_type`
 
 ```why
-fn takesFunction(f: (i32) -> i32): i32 {
-    return f(42)
+// Function that takes a function parameter
+fn takesFunction(f: (i64) -> i64): i64 {
+    f(42)
 }
 
-fn returnsFunction(): (i32, i32) -> i32 {
-    return (x, y) => x * y;
+// Function that returns a function
+fn returnsFunction(): (i64, i64) -> i64 {
+    \(x, y) => x * y
+}
+
+// Function variables
+let myFunc: (i64) -> i64 = \(x) => x * 2;
+let result = myFunc(5);  // result = 10
+```
+
+### Combining Functions and Lambdas
+
+You can mix named functions and lambdas seamlessly:
+
+```why
+fn square(x: i64): i64 {
+    x * x
+}
+
+fn main(): i64 {
+    // Pass named function as value
+    let squarer: (i64) -> i64 = square;
+
+    // Create lambda that uses both
+    let combo = \(x) => square(x) + x;
+
+    combo(5)  // Returns 30 (25 + 5)
 }
 ```
