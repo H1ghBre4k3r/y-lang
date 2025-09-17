@@ -2,14 +2,20 @@ struct P {
     x: i64;
 }
 
+struct N {
+    z: i64;
+}
+
 fn main(): i64 {
     let add_one = foo(P {
         x: 2
+    }, 17, N {
+        z: 10
     });
 
     add_one(42)
 }
 
-fn foo(p: P): (i64) -> i64 {
-    \(y) => p.x + y
+fn foo(p: P, i: i64, n: N): (i64) -> i64 {
+    \(y) => p.x + y + n.z + i
 }

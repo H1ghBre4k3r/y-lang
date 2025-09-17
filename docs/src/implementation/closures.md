@@ -13,10 +13,10 @@ Y implements closures using a unified representation where all function-typed va
 All function values in Y use a consistent representation:
 
 ```llvm
-{ ptr, ptr }  ; {function_pointer, environment_pointer}
+{ ptr, ptr }  ; {function_pointer_opaque, environment_pointer}
 ```
 
-- **Function Pointer**: Points to the actual executable code
+- **Function Pointer**: Erased/opaque pointer to code (typed at call site)
 - **Environment Pointer**: Points to captured variables (null for non-capturing functions)
 
 ### Function Signatures
@@ -80,7 +80,7 @@ fn get_closure_struct_type() -> StructType<'ctx>
 // Build closure value from function and environment pointers
 fn build_closure_value(fn_ptr: PointerValue, env_ptr: PointerValue) -> StructValue
 
-// Extract function pointer and cast to target type
+// Extract function pointer (generic); type at call site
 fn extract_closure_fn_ptr(closure: StructValue, target_type: FunctionType) -> PointerValue
 
 // Extract environment pointer
@@ -214,7 +214,7 @@ if let Some(llvm_function) = ctx.module.get_function(function_name) {
 
 #### Indirect Calls
 
-Function-typed expressions are called through closure unpacking:
+Function-typed expressions are called through closure unpacking. The function pointer remains generic; the indirect call is typed with a concrete FunctionType:
 
 ```rust
 fn call_closure(closure_struct: StructValue) {
@@ -239,7 +239,7 @@ fn call_closure(closure_struct: StructValue) {
 
 **File**: `crates/why_lib/src/codegen/expressions/id.rs`
 
-When accessing function-typed variables, the system properly loads closure structs:
+When accessing function-typed variables, higher‑order positions must yield a closure struct. Named functions may be stored as raw pointers and wrapped lazily at use sites:
 
 ```rust
 impl CodeGen for Id<ValidatedTypeInformation> {
@@ -271,9 +271,12 @@ Captured environments are allocated on the heap using malloc:
 
 ### Memory Cleanup
 
-**Current Limitation**: The implementation doesn't include automatic memory deallocation. Captured environments remain allocated for the program's lifetime.
+Current limitation: no automatic deallocation; environments intentionally leak until a lifetime/GC strategy is added.
 
-**Future Improvement**: Add reference counting or explicit cleanup mechanisms.
+Future improvements:
+- Reference counting or arenas/epochs
+- Escape analysis to promote some environments to stack
+- Small closure optimisation for empty envs
 
 ## Type System Integration
 

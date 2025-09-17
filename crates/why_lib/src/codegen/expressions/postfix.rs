@@ -1,3 +1,32 @@
+//! # Postfix Expression Code Generation
+//!
+//! This module implements LLVM code generation for postfix expressions in Y-lang.
+//! Postfix expressions include array indexing, property access, and function calls.
+//!
+//! ## Supported Operations
+//!
+//! ### Array Indexing (`expr[index]`)
+//! - **GEP Operations**: Uses LLVM's `build_gep` for safe pointer arithmetic
+//! - **Type Safety**: Validates array types and converts indices to appropriate types
+//! - **Memory Access**: Loads values from computed array element addresses
+//!
+//! ### Property Access (`expr.field`)
+//! - **Struct Field Access**: Uses `build_struct_gep` for field pointer calculation
+//! - **Temporary Allocation**: Handles value structs by allocating temporary storage
+//! - **Type Validation**: Ensures accessed fields exist in the struct type
+//!
+//! ### Function Calls (`expr(args...)`)
+//! - **Direct Calls**: Named functions resolved from the module
+//! - **Method Calls**: Instance methods with `this` parameter injection
+//! - **Closure Calls**: Indirect calls through closure structs with environment handling
+//!
+//! ## LLVM Operations Used
+//!
+//! - **GEP**: For safe pointer arithmetic in arrays and structs
+//! - **Load/Store**: For memory access and temporary allocation
+//! - **Function Calls**: Direct, indirect, and method call patterns
+//! - **Type Casting**: For closure function pointer extraction and casting
+
 use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 
 use crate::{
@@ -12,14 +41,38 @@ use crate::{
 impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
     type ReturnValue = Option<BasicValueEnum<'ctx>>;
 
+    /// Generates LLVM IR for postfix expressions.
+    ///
+    /// This method dispatches to specialized handlers for each type of postfix operation.
+    /// Each operation has different LLVM IR generation requirements and memory access patterns.
+    ///
+    /// ## Operation Dispatch
+    ///
+    /// - **`Call`**: Handled by `codegen_call` with complex function resolution logic
+    /// - **`Index`**: Array element access using GEP and load operations
+    /// - **`PropertyAccess`**: Struct field access with type validation and GEP
+    ///
+    /// ## Memory Access Patterns
+    ///
+    /// Different postfix operations have different memory access characteristics:
+    /// - **Array indexing**: Always results in a load from computed address
+    /// - **Property access**: May require temporary allocation for value structs
+    /// - **Function calls**: May be direct, indirect, or method calls with varying conventions
+    ///
+    /// # Returns
+    ///
+    /// `Some(BasicValueEnum)` containing the result value, or `None` for void operations
     fn codegen(&self, ctx: &crate::codegen::CodegenContext<'ctx>) -> Self::ReturnValue {
         match self {
             Postfix::Call { expr, args, .. } => Self::codegen_call(ctx, expr, args),
+            // Array indexing: expr[index] -> element value
             Postfix::Index { expr, index, .. } => {
+                // Generate code for the array expression (should produce a pointer to array)
                 let Some(array_value) = expr.codegen(ctx) else {
                     unreachable!("Array expression must produce a value")
                 };
 
+                // Generate code for the index expression (should produce an integer)
                 let Some(index_value) = index.codegen(ctx) else {
                     unreachable!("Index expression must produce a value")
                 };
@@ -27,30 +80,31 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                 let array_ptr = array_value.into_pointer_value();
                 let index_int = index_value.into_int_value();
 
-                // We need to determine the array type from the original expression type
+                // Extract array element type from Y-lang type system
                 let expr_type = &expr.get_info().type_id;
                 let Type::Array(element_type) = expr_type else {
                     unreachable!("Index expression must be on array type")
                 };
 
+                // Convert element type to LLVM representation
                 let llvm_element_type = ctx.get_llvm_type(element_type);
                 let element_basic_type = convert_metadata_to_basic(llvm_element_type)
                     .expect("Array element type must be basic");
 
-                // Build GEP to get pointer to the indexed element
-                // Since we have a pointer to an array, we need to use the element type and just the index
+                // Use GEP (GetElementPtr) to calculate the address of the indexed element
+                // This is safe pointer arithmetic - LLVM ensures bounds are respected
                 let element_ptr = unsafe {
                     ctx.builder
                         .build_gep(
                             element_basic_type,
                             array_ptr,
-                            &[index_int], // Just the index, no need for extra i32 0
+                            &[index_int], // Single index for linear array access
                             "array_index",
                         )
                         .unwrap()
                 };
 
-                // Load the value from the element pointer
+                // Load the actual value from the computed address
                 let element_value = ctx
                     .builder
                     .build_load(element_basic_type, element_ptr, "array_elem")
@@ -58,20 +112,20 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
 
                 Some(element_value)
             }
+            // Property access: expr.field -> field value
             Postfix::PropertyAccess { expr, property, .. } => {
                 // Generate code for the struct expression
                 let Some(struct_value) = expr.codegen(ctx) else {
                     panic!("Struct expression must produce a value for property access");
                 };
 
-                // Get the property name
                 let property_name = &property.name;
 
-                // Get struct type and field index from the expression being accessed
-                // For chained access like foo.bar.value, we need the type of foo.bar (which is Bar)
+                // Extract struct type information and validate field existence
+                // This uses Y-lang's type system to ensure type safety
                 let (struct_name, field_types, field_index) = match &expr.get_info().type_id {
                     Type::Struct(struct_name, field_types) => {
-                        // Find the field index by name
+                        // Linear search for field index by name
                         let field_index = field_types
                             .iter()
                             .position(|(name, _)| name == property_name)
@@ -91,7 +145,7 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                     }
                 };
 
-                // Get the struct type from the context
+                // Retrieve the corresponding LLVM struct type from the type cache
                 let struct_type = {
                     let types_guard = ctx.types.borrow();
                     let struct_type_id = Type::Struct(struct_name.clone(), field_types.clone());
@@ -118,11 +172,13 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                     }
                 };
 
-                // Allocate temporary storage for the struct if it's not already a pointer
+                // Handle both pointer and value structs
+                // Value structs need temporary allocation for GEP operations
                 let struct_ptr = if struct_value.is_pointer_value() {
+                    // Already a pointer - use directly
                     struct_value.into_pointer_value()
                 } else {
-                    // If it's not a pointer, allocate temporary storage and store the value
+                    // Value struct - allocate temporary storage and store the value
                     let temp_ptr = ctx
                         .builder
                         .build_alloca(struct_type, "temp_struct")
@@ -131,15 +187,16 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                     temp_ptr
                 };
 
-                // Get pointer to the field using GEP
+                // Use struct GEP to get pointer to the specific field
+                // Requires two indices: [0, field_index] for struct field access
                 let field_ptr = unsafe {
                     ctx.builder
                         .build_gep(
                             struct_type,
                             struct_ptr,
                             &[
-                                ctx.context.i32_type().const_zero(),
-                                ctx.context.i32_type().const_int(field_index as u64, false),
+                                ctx.context.i32_type().const_zero(), // Struct base offset
+                                ctx.context.i32_type().const_int(field_index as u64, false), // Field offset
                             ],
                             &format!(
                                 "{}_{}",
@@ -150,7 +207,7 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
                         .unwrap()
                 };
 
-                // Load the field value
+                // Load the field value from the computed address
                 let field_value = ctx
                     .builder
                     .build_load(
@@ -169,6 +226,109 @@ impl<'ctx> CodeGen<'ctx> for Postfix<ValidatedTypeInformation> {
 }
 
 impl<'ctx> Postfix<ValidatedTypeInformation> {
+    /// Generates LLVM IR for function calls with comprehensive dispatch logic.
+    ///
+    /// ## Dispatch Decision Tree (Closure / Function / Method)
+    /// ```text
+    ///  Expression Kind
+    ///    │
+    ///    ├─ Postfix::PropertyAccess(struct_expr . method) & struct_expr.type == Struct
+    ///    │    └─► Instance Method Call Path
+    ///    │         name = "{Struct}_{method}"; prepend 'this' pointer; direct call
+    ///    │
+    ///    ├─ Id(name)
+    ///    │    ├─ module.contains_function(name) ─► Direct Named Function Call
+    ///    │    └─ else ─► treat as value expression (fall through to closure path)
+    ///    │
+    ///    └─ any other expression
+    ///         └─► Closure Value Path
+    ///              extract { fn*, env* }
+    ///              if env* == null → non‑capturing indirect call
+    ///              else            → capturing indirect call (env first)
+    /// ```
+    ///
+    /// ## Representation Rationale
+    /// A unified closure struct `{ i8*, i8* }` allows all higher‑order call sites to share
+    /// identical indirect call machinery, reducing IR variance and simplifying optimisation
+    /// opportunities (e.g. devirtualisation heuristics, inline caching).
+    ///
+    /// ## Invariants
+    /// - Non‑capturing closures always have null environment pointer
+    /// - Capturing closures always supply environment pointer as first argument
+    /// - Method calls always materialise a pointer for `this` even if receiver is a value struct
+    /// - Id + module hit: bypass closure extraction (direct call); otherwise treat as closure value
+    ///
+    /// ## Performance Notes
+    /// - Direct function & method calls avoid closure struct extraction
+    /// - Indirect closure calls pay: 2 extract_value + 1 bitcast + indirect call
+    /// - Non‑capturing indirect path could be SCO‑optimised later to raw fn pointer dispatch
+    ///
+    /// ## Failure Modes (Panics / Unreachables)
+    /// - Type mismatch of call expression (validated earlier)
+    /// - Missing method/function after positive structural identification (should not happen)
+    /// - Closure expression not yielding struct value (rep invariant violation)
+    ///
+    /// ## Future Enhancements
+    /// - Inline fast path for frequent non‑capturing closures
+    /// - Partial application (would synthesise intermediate closure on call)
+    /// - Tail call marking when return position & compatible signature
+    /// - Devirtualisation attempt for monomorphic closure sites with known fn pointer.
+    ///
+    ///
+    /// This method handles multiple types of function calls in Y-lang:
+    /// 1. **Method calls**: `struct_instance.method_name(args)`
+    /// 2. **Direct function calls**: `function_name(args)`
+    /// 3. **Closure calls**: `lambda_expr(args)` or `function_variable(args)`
+    ///
+    /// ## Call Type Detection
+    ///
+    /// The method uses expression analysis to determine the call type:
+    /// - **PropertyAccess on Struct**: Treated as method call with `this` parameter
+    /// - **Id expression**: Direct function lookup in LLVM module
+    /// - **Other expressions**: Indirect call through closure struct
+    ///
+    /// ## Method Call Handling
+    ///
+    /// Method calls use the naming convention `{struct_name}_{method_name}` and:
+    /// - Pass the struct instance as the first parameter (`this`)
+    /// - Convert the struct to a pointer if needed for the `this` parameter
+    /// - Handle both value and pointer struct instances
+    ///
+    /// ## Closure Call Mechanism
+    ///
+    /// Closure calls extract function pointer and environment from the closure struct:
+    /// - **Non-capturing closures**: Call with original parameters (env pointer is null)
+    /// - **Capturing closures**: Call with environment as first parameter
+    /// - Use indirect call with extracted function pointer
+    ///
+    /// ## Parameter Handling
+    ///
+    /// All function arguments are converted to `BasicMetadataValueEnum` for LLVM compatibility.
+    /// Method calls prepend the `this` parameter, while closure calls may prepend environment.
+    ///
+    /// # Parameters
+    ///
+    /// * `ctx` - Code generation context
+    /// * `expr` - Expression being called (function name, method access, or closure expression)
+    /// * `args` - Function arguments to be passed
+    ///
+    /// # Returns
+    ///
+    /// `Some(BasicValueEnum)` for non-void functions, `None` for void functions
+    ///
+    /// # LLVM Operations Used
+    ///
+    /// - **`build_call`**: For direct function calls
+    /// - **`build_indirect_call`**: For closure calls
+    /// - **`build_extract_value`**: For extracting function/environment pointers from closures
+    /// - **`build_bit_cast`**: For function pointer type casting
+    ///
+    /// ### IR Sketch for Indirect Call
+    /// ```llvm
+    /// %fn_i8  = extractvalue { i8*, i8* } %clos, 0
+    /// %env    = extractvalue { i8*, i8* } %clos, 1
+    /// %res    = call T %fn_typed(i8* %env, <args...>)
+    /// ```
     fn codegen_call(
         ctx: &CodegenContext<'ctx>,
         expr: &Expression<ValidatedTypeInformation>,

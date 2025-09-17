@@ -1,3 +1,24 @@
+//! # Prefix Expression Code Generation
+//!
+//! This module implements LLVM code generation for prefix (unary) expressions in Y-lang.
+//! It handles logical negation and arithmetic negation with type-specific operations.
+//!
+//! ## Supported Operations
+//!
+//! ### Logical Negation (`!expr`)
+//! - **Boolean negation**: Uses LLVM's `build_not` for bitwise NOT on i1 values
+//! - **Type restriction**: Only valid for boolean types
+//!
+//! ### Arithmetic Negation (`-expr`)
+//! - **Integer negation**: Uses LLVM's `build_int_neg` for two's complement negation
+//! - **Float negation**: Uses LLVM's `build_float_neg` for IEEE 754 sign bit flip
+//! - **Character negation**: Treats characters as integers for ASCII arithmetic
+//!
+//! ## Type Safety
+//!
+//! The implementation includes comprehensive type checking with descriptive error
+//! messages for invalid type/operator combinations, helping catch type system issues.
+
 use inkwell::values::BasicValueEnum;
 
 use crate::{
@@ -9,6 +30,18 @@ use crate::{
 impl<'ctx> CodeGen<'ctx> for Prefix<ValidatedTypeInformation> {
     type ReturnValue = BasicValueEnum<'ctx>;
 
+    /// Generates LLVM IR for prefix (unary) expressions.
+    ///
+    /// Dispatches to appropriate LLVM unary operations based on the operator
+    /// and operand type, with comprehensive type validation.
+    ///
+    /// # Returns
+    ///
+    /// LLVM value representing the result of the unary operation
+    ///
+    /// # Panics
+    ///
+    /// Panics with descriptive messages for invalid type/operator combinations
     fn codegen(&self, ctx: &crate::codegen::CodegenContext<'ctx>) -> Self::ReturnValue {
         match self {
             Prefix::Negation { expr, .. } => {

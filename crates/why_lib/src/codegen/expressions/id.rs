@@ -1,3 +1,29 @@
+//! # Identifier Expression Code Generation
+//!
+//! This module implements LLVM code generation for identifier expressions in Y-lang.
+//! Identifiers can reference constants, variables, or functions with different
+//! resolution and loading strategies.
+//!
+//! ## Resolution Order
+//!
+//! 1. **Constants**: Compile-time known values stored globally
+//! 2. **Variables**: Runtime values stored in stack or as parameters
+//! 3. **Functions**: Function declarations stored in the symbol table
+//!
+//! ## Type-Specific Handling
+//!
+//! - **Strings**: Returned as pointers (pass-by-reference semantics)
+//! - **Functions**: May resolve to raw function pointers (direct calls) or closure structs when used as values; higher‑order positions should expect a closure struct
+//! - **Other types**: Loaded from memory addresses as values
+//!
+//! ## Memory Access Patterns
+//!
+//! Variables and constants may be stored as pointers requiring load operations
+//! to retrieve their actual values, except for types that are naturally
+//! represented as pointers (strings, closures). In higher‑order positions (e.g. passing
+//! as an argument expecting a function), identifiers must yield a closure struct; named
+//! functions are wrapped lazily if needed.
+
 use inkwell::values::BasicValueEnum;
 
 use crate::{
@@ -9,6 +35,15 @@ use crate::{
 impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
     type ReturnValue = BasicValueEnum<'ctx>;
 
+    /// Generates LLVM IR for identifier expressions.
+    ///
+    /// Resolves identifiers by searching through constants and variables,
+    /// handling type-specific loading and access patterns.
+    ///
+    /// # Returns
+    ///
+    /// The LLVM value corresponding to the identifier, with appropriate
+    /// loading and type conversion applied
     fn codegen(&self, ctx: &crate::codegen::CodegenContext<'ctx>) -> Self::ReturnValue {
         let Id {
             name,
