@@ -42,10 +42,6 @@ pub struct VCArgs {
     #[arg(long)]
     pub format_output: Option<std::path::PathBuf>,
 
-    /// Force compiler pipeline.
-    #[arg(short = 'f', long)]
-    pub force: bool,
-
     #[arg(short, long, default_value = "a.out")]
     pub output: std::path::PathBuf,
 }
@@ -59,108 +55,81 @@ impl VCArgs {
 pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
     let module = Module::new(args.file.to_str().map(|path| path.to_string()).expect(""))?;
 
-    if !module.exists() || args.force {
-        let module = match module.lex() {
-            Ok(program) => program,
-            Err(errors) => {
-                let mut spans = vec![];
-                for error in errors {
-                    convert_parse_error(error, &module.input, &mut spans);
-                }
-                for (msg, span) in spans {
-                    eprintln!("{}", span.to_string(msg));
-                }
-                process::exit(-1);
+    let module = match module.lex() {
+        Ok(program) => program,
+        Err(errors) => {
+            let mut spans = vec![];
+            for error in errors {
+                convert_parse_error(error, &module.input, &mut spans);
             }
-        };
-
-        if args.print_lexed {
-            println!("{:#?}", module.inner);
-        }
-
-        let module = match module.parse() {
-            Ok(module) => module,
-            Err(e) => {
-                eprintln!("{e}");
-                process::exit(-1);
+            for (msg, span) in spans {
+                eprintln!("{}", span.to_string(msg));
             }
-        };
+            process::exit(-1);
+        }
+    };
 
-        if args.print_parsed {
-            println!("{:#?}", module.inner);
+    if args.print_lexed {
+        println!("{:#?}", module.inner);
+    }
+
+    let module = match module.parse() {
+        Ok(module) => module,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(-1);
+        }
+    };
+
+    if args.print_parsed {
+        println!("{:#?}", module.inner);
+    }
+
+    // Handle formatting requests
+    if args.format || args.format_output.is_some() {
+        let formatted = formatter::format_program(&module.inner)
+            .map_err(|e| anyhow::anyhow!("Formatting error: {}", e))?;
+
+        if args.format {
+            println!("{formatted}");
         }
 
-        // Handle formatting requests
-        if args.format || args.format_output.is_some() {
-            let formatted = formatter::format_program(&module.inner)
-                .map_err(|e| anyhow::anyhow!("Formatting error: {}", e))?;
-
-            if args.format {
-                println!("{formatted}");
-            }
-
-            let format_output_provided = args.format_output.is_some();
-            if let Some(output_path) = args.format_output {
-                fs::write(output_path, formatted)?;
-            }
-
-            // If only formatting was requested, return early
-            if args.format && format_output_provided && !args.print_checked && !args.print_validated
-            {
-                return Ok(());
-            }
+        let format_output_provided = args.format_output.is_some();
+        if let Some(output_path) = args.format_output {
+            fs::write(output_path, formatted)?;
         }
 
-        let module = match module.check() {
-            Ok(module) => module,
-            Err(e) => {
-                eprintln!("{e}");
-                process::exit(-1);
-            }
-        };
-
-        if args.print_checked {
-            println!("{:#?}", module.inner);
-        }
-
-        let module = match module.validate() {
-            Ok(module) => module,
-            Err(e) => {
-                eprintln!("{e}");
-                process::exit(-1);
-            }
-        };
-
-        if args.print_validated {
-            println!("{module:#?}");
-        }
-
-        module.codegen();
-    } else {
-        if args.print_lexed {
-            eprintln!(
-                "[WARN] CLI argument '-l' | '--print-lexed' ignored since module is already present! Use '-f' to run the compiler pipeline!"
-            );
-        }
-
-        if args.print_parsed {
-            eprintln!(
-                "[WARN] CLI argument '-p' | '--print-parsed' ignored since module is already present! Use '-f' to run the compiler pipeline!"
-            );
-        }
-
-        if args.print_checked {
-            eprintln!(
-                "[WARN] CLI argument '-c' | '--print-checked' ignored since module is already present! Use '-f' to run the compiler pipeline!"
-            );
-        }
-
-        if args.print_validated {
-            eprintln!(
-                "[WARN] CLI argument '-v' | '--print-validated' ignored since module is already present! Use '-f' to run the compiler pipeline!"
-            );
+        // If only formatting was requested, return early
+        if args.format && format_output_provided && !args.print_checked && !args.print_validated {
+            return Ok(());
         }
     }
+
+    let module = match module.check() {
+        Ok(module) => module,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(-1);
+        }
+    };
+
+    if args.print_checked {
+        println!("{:#?}", module.inner);
+    }
+
+    let module = match module.validate() {
+        Ok(module) => module,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(-1);
+        }
+    };
+
+    if args.print_validated {
+        println!("{module:#?}");
+    }
+
+    module.codegen();
 
     module.compile(args.output.to_str().unwrap());
 

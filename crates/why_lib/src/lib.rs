@@ -1,7 +1,17 @@
-use std::{cell::RefCell, collections::HashMap, fs, process::Command};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fs,
+    process::{self, Command, Stdio},
+};
 
 use codegen::{CodeGen, CodegenContext, ScopeFrame};
-use inkwell::context::Context;
+use inkwell::{
+    context::Context,
+    module::Module as LLVMModule,
+    targets::{FileType, InitializationConfig, Target, TargetMachine},
+    OptimizationLevel,
+};
 use parser::ast::TopLevelStatement;
 use sha2::{Digest, Sha256};
 use typechecker::{TypeChecker, TypeInformation, ValidatedTypeInformation};
@@ -44,18 +54,32 @@ impl<A> Module<A> {
         format!("out/{}.ll", self.hash())
     }
 
+    pub fn assembly_file_path(&self) -> String {
+        format!("out/{}.s", self.hash())
+    }
+
     pub fn exists(&self) -> bool {
         matches!(std::fs::exists(self.file_path()), Ok(true))
     }
 
     pub fn compile(&self, out: &str) {
-        if let Err(e) = Command::new("clang")
+        let out = Command::new("clang")
             .arg(self.file_path())
             .arg("-o")
             .arg(out)
-            .output()
-        {
-            eprintln!("{e}")
+            .stderr(Stdio::inherit())
+            .output();
+
+        match out {
+            Ok(std::process::Output { status, .. }) => {
+                if !status.success() {
+                    process::exit(status.code().unwrap_or(-1));
+                }
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                process::exit(-1);
+            }
         }
     }
 }
@@ -103,7 +127,7 @@ impl Module<Vec<TopLevelStatement<TypeInformation>>> {
 }
 
 impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
-    pub fn codegen(&self) {
+    pub fn codegen(&self) -> anyhow::Result<()> {
         let context = Context::create();
         let module = context.create_module(&self.hash());
         let builder = context.create_builder();
@@ -123,9 +147,43 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             statement.codegen(&codegen_context);
         }
 
+        self.emit_assembly_file(&codegen_context.module)?;
+
         codegen_context
             .module
             .print_to_file(self.file_path())
-            .expect("Error while writing to fil");
+            .expect("Error while writing to file");
+
+        Ok(())
+    }
+
+    fn emit_assembly_file(&self, module: &LLVMModule) -> anyhow::Result<()> {
+        Target::initialize_native(&InitializationConfig::default())
+            .map_err(|e| anyhow::anyhow!("Failed to initialize native target: {}", e))?;
+
+        let target_triple = TargetMachine::get_default_triple();
+        let target = Target::from_triple(&target_triple)
+            .map_err(|e| anyhow::anyhow!("Failed to create target from triple: {}", e))?;
+
+        let target_machine = target
+            .create_target_machine(
+                &target_triple,
+                TargetMachine::get_host_cpu_name().to_str().unwrap(),
+                TargetMachine::get_host_cpu_features().to_str().unwrap(),
+                OptimizationLevel::None,
+                inkwell::targets::RelocMode::Default,
+                inkwell::targets::CodeModel::Default,
+            )
+            .ok_or_else(|| anyhow::anyhow!("Failed to create target machine"))?;
+
+        target_machine
+            .write_to_file(
+                module,
+                FileType::Assembly,
+                std::path::Path::new(&self.assembly_file_path()),
+            )
+            .map_err(|e| anyhow::anyhow!("Failed to write assembly file: {}", e))?;
+
+        Ok(())
     }
 }
