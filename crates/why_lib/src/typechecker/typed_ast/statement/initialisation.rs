@@ -1,3 +1,17 @@
+//! # Variable Initialization Type Checking: Inference with Optional Annotations
+//!
+//! Variable initialization in Y balances type safety with developer convenience
+//! through optional explicit type annotations. This hybrid approach enables both
+//! rapid prototyping and precise type control:
+//!
+//! - Type inference reduces boilerplate for obvious cases (let x = 42)
+//! - Optional annotations provide type precision when needed (let x: i64 = 42)
+//! - Mutability annotations enable selective optimization strategies
+//! - LLVM can optimize immutable variables more aggressively than mutable ones
+//!
+//! The flexible annotation system adapts to developer preferences while maintaining
+//! the type safety guarantees that enable zero-cost abstractions.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
@@ -17,6 +31,11 @@ use crate::{
 impl TypeCheckable for Initialisation<()> {
     type Typed = Initialisation<TypeInformation>;
 
+    /// Initialization type checking supports both inference and explicit annotations.
+    ///
+    /// This flexibility accommodates different coding styles while maintaining type
+    /// safety. The value is type-checked first to establish a baseline, then the
+    /// annotation (if present) provides additional constraints or clarification.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Initialisation {
             id,
@@ -35,23 +54,26 @@ impl TypeCheckable for Initialisation<()> {
             ..
         } = id;
 
+        // Step 1: Type check the initialization value expression
+        // The value's type will be used for type inference if no explicit annotation is provided
         let mut value = value.check(ctx)?;
 
         let info = value.get_info();
 
-        // check for annotated type
+        // Step 2: Handle optional explicit type annotation
+        // Variables can be initialized with or without explicit type annotations
         if let Some(type_name) = type_name.clone() {
-            // is it actually a valid type?
+            // Explicit type annotation provided - validate and enforce it
             if let Ok(type_id) = Type::try_from((&type_name, &*ctx)) {
-                // check of type of associated expression
+                // Step 2a: Verify type compatibility between annotation and inferred value type
                 let inner = info.type_id.clone();
                 let inner = inner.borrow_mut().clone();
 
                 match inner.as_ref() {
-                    // we have a type...
+                    // Value has a concrete type - must match the declared type exactly
                     Some(inner_type) => {
-                        // check, if they are equal
                         if type_id != *inner_type {
+                            // Type mismatch between declared type and inferred value type
                             return Err(TypeCheckError::TypeMismatch(
                                 TypeMismatch {
                                     expected: type_id,
@@ -61,16 +83,17 @@ impl TypeCheckable for Initialisation<()> {
                             ));
                         }
                     }
-                    // oups - no value of associated expression
+                    // Value has unknown type - propagate the declared type to the value
                     None => {
-                        // update type of underlying expression
+                        // Update the value expression to have the declared type
                         value.update_type(type_id.clone())?;
 
-                        // ...and the type of enclosed in the information
+                        // Update the value's type information to match the declaration
                         *info.type_id.borrow_mut() = Some(type_id);
                     }
                 }
             } else {
+                // Type annotation references an undefined or invalid type
                 let position = type_name.position();
                 return Err(TypeCheckError::UndefinedType(
                     UndefinedType { type_name },
@@ -78,17 +101,22 @@ impl TypeCheckable for Initialisation<()> {
                 ));
             }
         } else if !info.has_type() {
+            // Step 2b: No type annotation and value type cannot be inferred
+            // This typically happens with complex expressions like lambdas that need explicit types
             return Err(TypeCheckError::MissingInitialisationType(
                 MissingInitialisationType,
                 init_position,
             ));
         }
 
+        // Step 3: Register the variable in the scope with its mutability setting
+        // Variables must have unique names within their scope - redefinition is an error
         if ctx
             .scope
             .add_variable(&name, value.clone(), mutable)
             .is_err()
         {
+            // Variable with this name already exists in the current scope
             return Err(TypeCheckError::RedefinedConstant(
                 RedefinedConstant {
                     constant_name: name.to_string(),
@@ -97,6 +125,8 @@ impl TypeCheckable for Initialisation<()> {
             ));
         };
 
+        // Step 4: Return the typed initialization with void type for the statement itself
+        // Variable initializations are statements and don't yield values
         Ok(Initialisation {
             id: Id {
                 name,
@@ -107,6 +137,7 @@ impl TypeCheckable for Initialisation<()> {
             type_name,
             value,
             info: TypeInformation {
+                // Initialization statements always have Void type as they don't yield values
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },

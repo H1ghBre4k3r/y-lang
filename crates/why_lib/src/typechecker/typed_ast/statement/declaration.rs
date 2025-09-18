@@ -1,3 +1,17 @@
+//! # Variable Declaration Type Checking: Forward Reference Support
+//!
+//! Variable declarations in Y establish type bindings without initialization,
+//! enabling forward references and separation of concerns. This design supports
+//! complex declaration patterns while maintaining type safety:
+//!
+//! - Forward declarations enable mutual recursion and complex data structures
+//! - Explicit type annotations eliminate inference ambiguity in declaration context
+//! - Two-phase checking allows circular references between declarations
+//! - LLVM can allocate stack space with known types before initialization
+//!
+//! The separation between declaration and initialization enables developers to
+//! establish variable contracts before providing implementations.
+
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Declaration, Id},
@@ -13,6 +27,11 @@ use std::{cell::RefCell, rc::Rc};
 impl TypeCheckable for Declaration<()> {
     type Typed = Declaration<TypeInformation>;
 
+    /// Declaration type checking validates type annotations without requiring values.
+    ///
+    /// This approach enables forward declarations and complex dependency patterns
+    /// while ensuring type correctness. The explicit type requirement prevents
+    /// inference ambiguity in contexts where variable purposes aren't immediately clear.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Declaration {
             name,
@@ -28,7 +47,10 @@ impl TypeCheckable for Declaration<()> {
             ..
         } = name;
 
+        // Step 1: Parse and validate the type annotation
+        // Declarations require explicit type annotations to define the variable's type
         let Ok(type_id) = Type::try_from((&type_name, &*ctx)) else {
+            // Type annotation references an undefined or invalid type
             let position = type_name.position();
             return Err(TypeCheckError::UndefinedType(
                 UndefinedType { type_name },
@@ -36,6 +58,8 @@ impl TypeCheckable for Declaration<()> {
             ));
         };
 
+        // Step 2: Create type information for the declared variable
+        // The variable will have the explicitly declared type
         let type_id = Rc::new(RefCell::new(Some(type_id)));
 
         let id = Id {
@@ -47,10 +71,13 @@ impl TypeCheckable for Declaration<()> {
             position: id_position,
         };
 
+        // Step 3: Return the typed declaration with void type for the statement itself
+        // Variable declarations are statements and don't yield values
         Ok(Declaration {
             name: id,
             type_name,
             info: TypeInformation {
+                // Declaration statements always have Void type as they don't yield values
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },
@@ -96,12 +123,20 @@ impl TypedConstruct for Declaration<TypeInformation> {
 }
 
 impl ShallowCheck for Declaration<()> {
+    /// Shallow checking establishes declared names in scope before full validation.
+    ///
+    /// This enables complex declaration ordering where variables may reference
+    /// each other's types. Early name registration prevents undefined variable
+    /// errors during the full type checking phase for interdependent declarations.
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
         let Declaration {
             name, type_name, ..
         } = self;
 
+        // Step 1: Parse the type annotation and validate it exists in the type scope
+        // Shallow check ensures type names are resolved before full type checking
         let Ok(type_id) = Type::try_from((type_name, &*ctx)) else {
+            // Type annotation references an undefined or invalid type
             let position = type_name.position();
             return Err(TypeCheckError::UndefinedType(
                 UndefinedType {
@@ -111,7 +146,10 @@ impl ShallowCheck for Declaration<()> {
             ));
         };
 
+        // Step 2: Register the declared variable in the scope for later references
+        // Variable declarations must have unique names within their scope
         if ctx.scope.add_constant(&name.name, type_id).is_err() {
+            // Variable with this name already exists in the current scope
             return Err(TypeCheckError::RedefinedConstant(
                 RedefinedConstant {
                     constant_name: name.name.clone(),

@@ -15,10 +15,14 @@ impl TypeCheckable for AstString<()> {
             value, position, ..
         } = self;
 
+        // String literal type checking is straightforward - all string literals get String type
+        // String literals ("hello", "world") have a deterministic type with no inference needed
+        // Similar to numeric literals, the type is immediately known from the syntax
         Ok(AstString {
             value,
             position,
             info: TypeInformation {
+                // Assign concrete String type immediately - no Unknown phase needed
                 type_id: Rc::new(RefCell::new(Some(Type::String))),
                 context: ctx.clone(),
             },

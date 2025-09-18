@@ -8,25 +8,50 @@ use super::{
 };
 
 #[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+/// Canonical semantic type representation used throughout inference,
+/// validation and code generation. Variants are intentionally minimal;
+/// additional semantic concepts (e.g., generics) would extend this.
 pub enum Type {
+    /// 64-bit signed integer primitive
     Integer,
+    /// 64-bit IEEE 754 floating point primitive
     FloatingPoint,
+    /// Boolean truth value primitive
     Boolean,
+    /// Unicode scalar value (character) primitive
     Character,
+    /// Immutable UTF-8 string value
     String,
+    /// Unit / no-value type used for statements or functions that do not return a value
     Void,
+    /// Placeholder used during inference when a concrete type has not yet been determined
     Unknown,
+    /// Borrow-style reference to an underlying type (treated transparently for equality)
     Reference(Box<Type>),
+    /// Fixed-length heterogeneous ordered collection
     Tuple(Vec<Type>),
+    /// Homogeneous sequential collection of elements with a single element type
     Array(Box<Type>),
+    /// User defined struct with name and ordered list of (field_name, field_type) pairs
     Struct(String, Vec<(String, Type)>),
+    /// Function signature with parameter types and return type
     Function {
+        /// Ordered parameter types
         params: Vec<Type>,
+        /// Return value type
         return_value: Box<Type>,
     },
 }
 
 impl Type {
+    /// Structural semantic equality with lightweight reference collapsing.
+    ///
+    /// Behaviour summary:
+    /// - `Reference(T)` equals `T` (one level transparent indirection)
+    /// - Function, tuple, array and struct variants compare their contained types structurally
+    /// - All other primitives compare by discriminant only
+    /// - Does not perform recursive dereferencing of nested `Reference(Reference(T))` chains
+    ///   (only a single layer is collapsed) which is sufficient for current language semantics.
     pub fn does_eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Reference(l0), r0) => l0.as_ref() == r0,
@@ -79,6 +104,8 @@ impl std::fmt::Debug for Type {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Error converting a parsed `TypeName` AST node into a concrete `Type`.
+/// Usually indicates an undefined user type or unsupported literal.
 pub struct TypeFromTypeNameError {
     source: TypeName,
 }
@@ -105,6 +132,9 @@ impl From<TypeFromTypeNameError> for TypeCheckError {
     }
 }
 
+/// Convert a parsed `TypeName` (or convertible) plus current `Context` into
+/// a fully resolved `Type`, performing recursive resolution of nested types
+/// and validating user defined type references.
 impl<T> TryFrom<(T, &Context)> for Type
 where
     T: Into<TypeName>,

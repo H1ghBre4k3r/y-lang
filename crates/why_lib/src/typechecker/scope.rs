@@ -5,6 +5,9 @@ use crate::parser::ast::Expression;
 use super::{error::TypeCheckError, types::Type, TypeInformation, TypedConstruct};
 
 #[derive(Clone)]
+/// Internal stored variable metadata held in a frame.
+/// Contains the original (typed) expression, a shared mutable type slot
+/// used during inference / updates and mutability flag.
 struct StoredVariable {
     value: Expression<TypeInformation>,
     type_id: Rc<RefCell<Option<Type>>>,
@@ -14,7 +17,11 @@ struct StoredVariable {
 // TODO: this should probably store the location (i.e, span) for all variables, constants and types
 // as well
 #[derive(Clone, Default)]
-/// A frame within a stack, holding information about all variables, types, and constants.
+/// A single lexical frame in the scope stack.
+/// Stores separately:
+/// - variables: mutable bindings with evolving type slots
+/// - constants: immutable bindings storing final types
+/// - types: user defined types visible in this frame
 pub struct Frame {
     /// All available variables in this frame
     variables: HashMap<String, StoredVariable>,
@@ -46,9 +53,14 @@ impl std::fmt::Debug for Frame {
     }
 }
 
+/// Reference counted mutable pointer to a Frame.
+/// Cheaply clonable handle passed around during scope operations.
 type StackFrame = Rc<RefCell<Frame>>;
 
 #[derive(Clone, Debug)]
+/// Hierarchical lexical scope stack plus associated type → method map.
+/// The `stacks` vector forms an inner-most at the end model; lookups walk
+/// from end backwards. `methods` stores associated functions per concrete type.
 pub struct Scope {
     stacks: Vec<StackFrame>,
     /// all method available for certain type
@@ -114,18 +126,28 @@ impl Display for MethodAddError {
 impl std::error::Error for MethodAddError {}
 
 impl Scope {
+    /// Create a new root scope with a single initial frame.
+    /// Allocate a fresh root scope containing a single empty frame.
     pub fn new() -> Scope {
         Self::default()
     }
 
+    /// Push a new empty lexical frame onto the stack (enter block/function).
+    /// Push a new empty frame representing entry into a nested lexical region.
     pub fn enter_scope(&mut self) {
         self.stacks.push(StackFrame::default())
     }
 
+    /// Pop the most recent lexical frame (leave block/function).
+    /// Pop the most recent frame. Panics if called on an empty stack (should not happen).
     pub fn exit_scope(&mut self) {
         self.stacks.pop();
     }
 
+    /// Insert or override a variable binding in the current frame.
+    /// Constants take precedence; attempting to shadow a constant yields error.
+    /// Add or override a variable binding in the current frame. Will fail if attempting to
+    /// shadow an existing constant of the same name.
     pub fn add_variable(
         &mut self,
         name: impl ToString,
@@ -153,6 +175,8 @@ impl Scope {
         Ok(())
     }
 
+    /// Resolve a variable binding returning its shared type slot (internal).
+    /// Internal helper: locate a variable binding walking outward and return its shared type slot.
     fn get_variable(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
         let name = name.to_string();
         self.stacks
@@ -169,6 +193,8 @@ impl Scope {
             })
     }
 
+    /// Return mutability flag for a variable if present.
+    /// Determine whether a variable is mutable (if it exists); returns None if unresolved.
     pub fn is_variable_mutable(&mut self, name: impl ToString) -> Option<bool> {
         let name = name.to_string();
         self.stacks
@@ -185,6 +211,10 @@ impl Scope {
             })
     }
 
+    /// Update (unify) the concrete type of an existing variable binding.
+    /// Fails if variable not found (todo placeholder currently).
+    /// Update the concrete type associated with a variable (unification result). Propagates the
+    /// new concrete type into the underlying expression via `update_type`.
     pub fn update_variable(
         &mut self,
         name: impl ToString,
@@ -220,6 +250,8 @@ impl Scope {
         Ok(())
     }
 
+    /// Register a user defined type in the current frame.
+    /// Register a user defined type in the current innermost frame; errors on duplicate.
     pub fn add_type(&mut self, name: impl ToString, type_id: Type) -> Result<(), TypeAddError> {
         let name = name.to_string();
         let Some(last) = self.stacks.last_mut() else {
@@ -235,6 +267,8 @@ impl Scope {
         Ok(())
     }
 
+    /// Lookup a type by name walking outward through frames.
+    /// Resolve a type name to its registered definition searching outward frames.
     pub fn get_type(&self, name: impl ToString) -> Option<Type> {
         let name = name.to_string();
         self.stacks
@@ -244,6 +278,8 @@ impl Scope {
             .and_then(|scope| scope.borrow().types.get(&name).cloned())
     }
 
+    /// Internal constant lookup helper.
+    /// Internal helper: resolve a constant binding and return its final type.
     fn get_constant(&self, name: impl ToString) -> Option<Type> {
         let name = name.to_string();
         self.stacks
@@ -253,6 +289,8 @@ impl Scope {
             .and_then(|scope| scope.borrow_mut().constants.get(&name).cloned())
     }
 
+    /// Add an immutable constant binding to the current frame.
+    /// Insert a new immutable constant; fails if any value (constant or variable) exists.
     pub fn add_constant(
         &mut self,
         name: impl ToString,
@@ -273,6 +311,8 @@ impl Scope {
         Ok(())
     }
 
+    /// Resolve any value name (constant preferred, else variable) to a shared type slot.
+    /// Resolve either a constant (preferred) or variable to a shared type slot.
     pub fn resolve_name(&mut self, name: impl ToString) -> Option<Rc<RefCell<Option<Type>>>> {
         let name = name.to_string();
         self.get_constant(&name)
@@ -282,6 +322,8 @@ impl Scope {
 
     /// Add a method (i.e., an associated function) to a type. This function will panic if you try
     /// to add a non-function.
+    /// Attach an associated function (method) to a type. Panics for non-function type.
+    /// Associate a function with a type as a method, ensuring no field / method collision.
     pub fn add_method_to_type(
         &mut self,
         type_id: Type,
@@ -321,6 +363,8 @@ impl Scope {
 
     /// Try to resolve a property associated with a given type. For structs, fields are checked
     /// first. After that (and by default for every other type), associated functions are checked.
+    /// Resolve either a struct field or previously registered associated method.
+    /// Resolve a struct field (priority) or an associated method for a given type.
     pub fn resolve_property_for_type(
         &mut self,
         type_id: Type,

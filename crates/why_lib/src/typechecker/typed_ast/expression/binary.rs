@@ -1,3 +1,16 @@
+//! # Binary Expression Type Checking: Operator Overloading Prevention
+//!
+//! Y deliberately avoids operator overloading to maintain predictable performance
+//! characteristics. Binary operations are restricted to primitive types because:
+//!
+//! - LLVM can generate optimal assembly for primitive operations
+//! - No hidden method calls or allocations behind operators
+//! - Compile-time operation cost is always known
+//! - Prevents accidental expensive operations disguised as simple syntax
+//!
+//! This design philosophy prioritizes explicitness over convenience, ensuring
+//! that complex operations require explicit method calls rather than operators.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::error::UnsupportedBinaryOperation;
@@ -14,6 +27,12 @@ use crate::{
 impl TypeCheckable for BinaryExpression<()> {
     type Typed = BinaryExpression<TypeInformation>;
 
+    /// Type compatibility is strictly enforced to prevent subtle runtime errors.
+    ///
+    /// Y requires explicit type conversions rather than implicit coercion because
+    /// implicit conversions can hide performance costs and introduce unexpected
+    /// precision loss. This design prevents common programming errors while
+    /// maintaining zero-cost abstractions.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
         let BinaryExpression {
@@ -24,12 +43,15 @@ impl TypeCheckable for BinaryExpression<()> {
             ..
         } = self;
 
+        // Type check both operands recursively
         let left = left.check(ctx)?;
         let right = right.check(ctx)?;
 
+        // Extract the concrete types from both operands
         let left_type = { left.get_info().type_id.borrow() }.clone();
         let right_type = { right.get_info().type_id.borrow() }.clone();
 
+        // Verify that both operands have compatible types (if known)
         let compount_type = if let (Some(left_type), Some(right_type)) = (left_type, right_type) {
             if !left_type.does_eq(&right_type) {
                 return Err(TypeCheckError::UnsupportedBinaryOperation(
@@ -41,9 +63,11 @@ impl TypeCheckable for BinaryExpression<()> {
             }
             Some(left_type)
         } else {
+            // If either operand has unknown type, defer type checking
             None
         };
 
+        // Ensure binary operations are only performed on supported primitive types
         if let Some(t) = &compount_type {
             match t {
                 Type::Integer | Type::FloatingPoint | Type::Boolean => {}
@@ -58,11 +82,14 @@ impl TypeCheckable for BinaryExpression<()> {
             }
         }
 
+        // Determine the result type based on the operator
         let type_id = match operator {
+            // Arithmetic operations preserve the operand type
             BinaryOperator::Add
             | BinaryOperator::Substract
             | BinaryOperator::Multiply
             | BinaryOperator::Divide => compount_type,
+            // Comparison operations always produce boolean results
             BinaryOperator::Equals
             | BinaryOperator::NotEquals
             | BinaryOperator::GreaterThan

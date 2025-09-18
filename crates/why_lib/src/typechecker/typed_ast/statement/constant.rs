@@ -1,3 +1,18 @@
+//! # Constant Declaration Type Checking: Explicit Types for Clarity
+//!
+//! Constant declarations in Y require explicit type annotations to eliminate
+//! ambiguity and support compile-time evaluation. This design enforces clarity
+//! over convenience because constants are often used in performance-critical
+//! contexts where type precision matters:
+//!
+//! - Explicit types prevent hidden type conversions in constant expressions
+//! - LLVM can embed constants directly in machine code with known types
+//! - Type annotations serve as documentation for API consumers
+//! - Compiler can validate constant initialization without inference complexity
+//!
+//! The two-phase checking (shallow then full) enables forward references while
+//! maintaining dependency ordering for type resolution.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
@@ -14,6 +29,11 @@ use crate::{
 impl TypeCheckable for Constant<()> {
     type Typed = Constant<TypeInformation>;
 
+    /// Constant type checking validates explicit annotations against inferred types.
+    ///
+    /// This approach catches type errors early while allowing the value expression
+    /// to benefit from type inference. The explicit annotation requirement prevents
+    /// accidental type changes when constant values are modified during development.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Constant {
             id,
@@ -31,11 +51,16 @@ impl TypeCheckable for Constant<()> {
             ..
         } = id;
 
+        // Step 1: Type check the constant's value expression
+        // Constants must have their values fully resolved at compile time
         let mut value = value.check(ctx)?;
 
         let info = value.get_info();
 
+        // Step 2: Parse and validate the explicit type annotation
+        // Constants require explicit type annotations to ensure clarity and prevent ambiguity
         let Ok(type_id) = Type::try_from((&type_name, &*ctx)) else {
+            // Type annotation is invalid or references an undefined type
             return Err(TypeCheckError::InvalidConstantType(
                 InvalidConstantType {
                     constant_name: name,
@@ -44,13 +69,17 @@ impl TypeCheckable for Constant<()> {
             ));
         };
 
+        // Step 3: Verify type compatibility between annotation and value
+        // The value's inferred type must match the explicitly declared type
         {
             let inner = info.type_id.clone();
             let mut inner = inner.borrow_mut();
 
             match inner.as_ref() {
+                // Value has a concrete type - must match the declared type exactly
                 Some(inner_type) => {
                     if type_id != *inner_type {
+                        // Type mismatch between declared type and inferred value type
                         return Err(TypeCheckError::TypeMismatch(
                             TypeMismatch {
                                 expected: type_id,
@@ -60,12 +89,12 @@ impl TypeCheckable for Constant<()> {
                         ));
                     }
                 }
-                // oups - no value of associated expression
+                // Value has unknown type - propagate the declared type to the value
                 None => {
-                    // update type of underlying expression
+                    // Update the value expression to have the declared type
                     value.update_type(type_id.clone())?;
 
-                    // ...and the type of enclosed in the information
+                    // Update the value's type information to match the declaration
                     *inner = Some(type_id.clone());
                 }
             }
@@ -80,6 +109,7 @@ impl TypeCheckable for Constant<()> {
             type_name,
             value,
             info: TypeInformation {
+                // Constant declarations always have Void type as statements
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },
@@ -129,12 +159,20 @@ impl TypedConstruct for Constant<TypeInformation> {
 }
 
 impl ShallowCheck for Constant<()> {
+    /// Shallow checking establishes constant names before validating values.
+    ///
+    /// This two-phase approach enables constants to reference each other without
+    /// complex dependency ordering. The type annotation is validated early to
+    /// catch invalid type references before expensive value type checking occurs.
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
         let Constant { id, type_name, .. } = self;
 
         let name = id.name.clone();
 
+        // Step 1: Parse the type annotation and validate it exists in the type scope
+        // Shallow check ensures type names are valid before full type checking begins
         let Ok(type_id) = Type::try_from((type_name, &*ctx)) else {
+            // Type annotation references an undefined or invalid type
             return Err(TypeCheckError::InvalidConstantType(
                 InvalidConstantType {
                     constant_name: name,
@@ -143,7 +181,10 @@ impl ShallowCheck for Constant<()> {
             ));
         };
 
+        // Step 2: Register the constant in the scope to make it available for later references
+        // Constants must have unique names within their scope - redefinition is an error
         if ctx.scope.add_constant(&name, type_id).is_err() {
+            // Constant with this name already exists in the current scope
             return Err(TypeCheckError::RedefinedConstant(
                 RedefinedConstant {
                     constant_name: name,

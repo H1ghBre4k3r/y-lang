@@ -22,3 +22,21 @@ watch:
 
 install:
     cargo install --path .
+
+test-unit:
+    cargo test --workspace --lib
+
+test-integration:
+    cargo test --workspace --tests
+
+fmt:
+    cargo fmt --all
+
+lint:
+    cargo clippy --workspace --all-targets -- -D warnings
+
+doc:
+    cargo doc --workspace --no-deps
+
+clean:
+    cargo clean

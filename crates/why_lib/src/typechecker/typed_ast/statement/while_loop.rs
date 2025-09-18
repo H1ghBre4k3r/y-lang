@@ -1,3 +1,17 @@
+//! # While Loop Type Checking: Boolean-Gated Control Flow
+//!
+//! While loops in Y provide conditional iteration with strict boolean condition
+//! requirements. This design ensures predictable control flow behavior and
+//! eliminates common programming errors:
+//!
+//! - Boolean-only conditions prevent truthiness confusion from other languages
+//! - Explicit type checking catches condition type errors at compile time
+//! - LLVM can optimize boolean conditions more efficiently than general expressions
+//! - Clear semantics enable static analysis and loop optimization opportunities
+//!
+//! The strict boolean requirement maintains Y's philosophy of explicit behavior
+//! over implicit conversions that might hide logical errors.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
@@ -14,6 +28,11 @@ use crate::{
 impl TypeCheckable for WhileLoop<()> {
     type Typed = WhileLoop<TypeInformation>;
 
+    /// While loop type checking enforces boolean conditions for predictable control flow.
+    ///
+    /// The strict boolean requirement prevents common errors from truthy value
+    /// semantics in other languages. Condition type validation occurs before
+    /// body checking to provide clear error messages for type mismatches.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let WhileLoop {
             condition,
@@ -24,26 +43,36 @@ impl TypeCheckable for WhileLoop<()> {
 
         let context = ctx.clone();
 
+        // Step 1: Type check the loop condition expression
+        // While loops require a boolean condition to determine when to continue looping
         let condition = condition.check(ctx)?;
 
+        // Step 2: Verify the condition expression has boolean type
+        // While loop conditions must evaluate to true/false to control loop execution
         match &*condition.get_info().type_id.borrow() {
             Some(Type::Boolean) => {}
             Some(other) => {
+                // Condition has non-boolean type - this is a type error
                 return Err(TypeCheckError::TypeMismatch(
                     TypeMismatch {
                         expected: Type::Boolean,
                         actual: other.clone(),
                     },
                     condition.position(),
-                ))
+                ));
             }
             _ => {}
         };
 
+        // Step 3: Type check the loop body block
+        // The loop body can contain any statements and expressions
+        // Step 4: Return the typed while loop with void type for the statement itself
+        // While loops are statements and don't yield values
         Ok(WhileLoop {
             condition,
             block: block.check(ctx)?,
             info: TypeInformation {
+                // While loops always have Void type as they are statements
                 type_id: Rc::new(RefCell::new(Some(Type::Void))),
                 context,
             },

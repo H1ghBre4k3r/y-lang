@@ -1,3 +1,16 @@
+//! # Array Type Checking: Homogeneity for LLVM Memory Layout
+//!
+//! Arrays in Y are intentionally homogeneous to guarantee predictable memory layouts
+//! for efficient LLVM code generation. This design choice enables:
+//!
+//! - Contiguous memory allocation without padding
+//! - Compile-time size calculations for stack allocation
+//! - Efficient element access with pointer arithmetic
+//! - Type-safe array operations without runtime type checks
+//!
+//! The trade-off is reduced flexibility compared to heterogeneous collections,
+//! but this aligns with Y's performance-first philosophy.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
@@ -14,24 +27,32 @@ use crate::{
 impl TypeCheckable for Array<()> {
     type Typed = Array<TypeInformation>;
 
+    /// Array homogeneity is enforced because Y prioritizes LLVM optimization opportunities.
+    ///
+    /// Homogeneous arrays enable LLVM's vectorization passes and allow for efficient
+    /// bounds checking elimination. The strict type enforcement here prevents runtime
+    /// type confusion that would require expensive dynamic checks.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
         match self {
             Array::Literal {
                 values, position, ..
             } => {
+                // Type check each expression in the array literal
                 let mut checked_values = vec![];
-
                 for value in values.into_iter() {
                     checked_values.push(value.check(ctx)?);
                 }
 
+                // Extract the type information from the first element to establish array type
                 let type_id = checked_values.first().map(|val| val.get_info().type_id);
 
                 if let Some(type_id) = &type_id {
+                    // Get the concrete type from the first element
                     let type_id = { type_id.borrow() }.clone();
                     for value in checked_values.iter() {
                         let value_type = { value.get_info().type_id.borrow() }.clone();
+                        // Verify all elements have the same type (homogeneous array)
                         if let (Some(type_id), Some(value_type)) = (&type_id, value_type) {
                             if *type_id != value_type {
                                 return Err(TypeCheckError::TypeMismatch(
@@ -46,14 +67,15 @@ impl TypeCheckable for Array<()> {
                     }
                 }
 
+                // Create the final array type from the element type
                 Ok(Array::Literal {
                     values: checked_values,
                     info: TypeInformation {
                         type_id: type_id.map_or(
-                            // TODO: which one?
+                            // Empty array or elements with unknown types
                             Rc::new(RefCell::new(None)),
-                            // Rc::new(RefCell::new(Some(Type::Array(Box::new(Type::Unknown))))),
                             |type_id| {
+                                // Wrap element type in Array type
                                 Rc::new(RefCell::new(
                                     type_id
                                         .borrow()
@@ -73,12 +95,13 @@ impl TypeCheckable for Array<()> {
                 position,
                 ..
             } => {
+                // Type check the default value that will fill the array
                 let initial_value = initial_value.check(ctx)?;
 
-                // TODO: This should be an expression which evaluates to an integer
-                // FIXME: This currently allows for FloatingPoint lengths
+                // Type check the length expression (should eventually be enforced as integer)
                 let length = length.check(ctx)?;
 
+                // Get the type of the default value to determine array element type
                 let type_id = { initial_value.get_info().type_id.borrow() }.clone();
 
                 Ok(Array::Default {
@@ -86,9 +109,9 @@ impl TypeCheckable for Array<()> {
                     length,
                     info: TypeInformation {
                         type_id: type_id.map_or(
-                            // TODO: which one?
+                            // Default value has unknown type
                             Rc::new(RefCell::new(None)),
-                            // Rc::new(RefCell::new(Some(Type::Array(Box::new(Type::Unknown))))),
+                            // Create array type from default value type
                             |type_id| Rc::new(RefCell::new(Some(Type::Array(Box::new(type_id))))),
                         ),
                         context,

@@ -1,3 +1,17 @@
+//! # Lambda Expression Type Checking: Closures with Capture Analysis
+//!
+//! Lambda expressions in Y implement closures that can capture variables from
+//! outer scopes while maintaining predictable performance characteristics. The
+//! design balances functional programming expressiveness with LLVM optimization:
+//!
+//! - Explicit capture analysis prevents hidden allocations
+//! - Lexical scoping ensures predictable variable access patterns
+//! - Type inference supports anonymous functions without verbose annotations
+//! - Closure conversion enables efficient function pointer generation
+//!
+//! The global capture storage system exists because LLVM code generation needs
+//! to know exactly which variables to allocate in closure environments.
+
 use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::Mutex};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
@@ -182,6 +196,11 @@ fn analyze_captures(
 impl TypeCheckable for Lambda<()> {
     type Typed = Lambda<TypeInformation>;
 
+    /// Lambda type checking implements closure semantics with explicit capture tracking.
+    ///
+    /// The scope isolation prevents parameter names from leaking while the capture
+    /// analysis ensures LLVM knows exactly which outer variables need to be included
+    /// in the closure environment, avoiding hidden allocation surprises.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let Lambda {
             parameters,
@@ -192,27 +211,36 @@ impl TypeCheckable for Lambda<()> {
 
         let context = ctx.clone();
 
+        // Lambda type checking requires a new scope for its parameters
+        // Parameters are only accessible within the lambda body
         ctx.scope.enter_scope();
 
         let mut checked_parameters = vec![];
 
+        // Process each lambda parameter and add it to the current scope
+        // Lambda parameters may have inferred types initially (no explicit annotations)
         for param in parameters.into_iter() {
             checked_parameters.push(param.check(ctx)?);
         }
 
+        // Type check the lambda body expression within the parameter scope
+        // The body expression determines the lambda's return type
         let checked_expression = expression.check(ctx)?;
 
+        // Exit the parameter scope - lambda parameters are no longer accessible
         ctx.scope.exit_scope();
 
-        // Infer function type from parameters and return expression
+        // Build the lambda's function type from its parameters and return expression
         let mut param_types = vec![];
         for param in &checked_parameters {
-            // For now, if parameter types are unknown, we can't fully infer the lambda type
-            // This will be resolved during type propagation
+            // Extract parameter types for the function signature
+            // If parameter types are unknown, we mark them as Unknown for later inference
             let param_type = param.info.type_id.borrow().clone().unwrap_or(Type::Unknown);
             param_types.push(param_type);
         }
 
+        // Extract the return type from the body expression
+        // If the return type is unknown, mark it as Unknown for later inference
         let return_type = checked_expression
             .get_info()
             .type_id
@@ -220,12 +248,15 @@ impl TypeCheckable for Lambda<()> {
             .clone()
             .unwrap_or(Type::Unknown);
 
-        // Create function type if we have concrete types, otherwise leave as None for later inference
+        // Create the lambda's function type if all types are concrete
+        // If any type is Unknown, defer type creation until inference completes
         let function_type = if param_types.iter().any(|t| matches!(t, Type::Unknown))
             || matches!(return_type, Type::Unknown)
         {
+            // Some types are still unknown - defer function type creation
             None
         } else {
+            // All types are concrete - create the complete function type
             Some(Type::Function {
                 params: param_types,
                 return_value: Box::new(return_type),

@@ -1,3 +1,21 @@
+//! Comprehensive error type definitions for the type checking phase.
+//! Each concrete struct represents a distinct diagnosable condition
+//! encountered while validating a program. They are wrapped in the
+//! `TypeCheckError` enumeration together with a `Span` indicating
+//! the precise source location (where applicable). Variants fall into
+//! several broad categories:
+//!
+//! - Name resolution failures (e.g. [`UndefinedVariable`], [`UndefinedType`])
+//! - Redeclaration violations (e.g. [`RedefinedConstant`], [`RedefinedFunction`], [`RedefinedMethod`])
+//! - Type formation / expectation problems (e.g. [`TypeMismatch`], [`InvalidConstantType`], [`MissingInitialisationType`])
+//! - Mutability enforcement (e.g. [`ImmutableReassign`])
+//! - Entry point validation (e.g. [`MissingMainFunction`], [`InvalidMainSignature`])
+//! - Operation legality (e.g. [`UnsupportedBinaryOperation`])
+//!
+//! All structs implement `Display` with a user-oriented diagnostic
+//! message and derive `serde` traits to allow serialization for LSP or
+//! other tooling. `TypeCheckError::err` produces an owned boxed
+//! trait object for uniform error reporting pipelines.
 use std::{error::Error, fmt::Display};
 
 use crate::{lexer::Span, parser::ast::TypeName};
@@ -5,6 +23,9 @@ use crate::{lexer::Span, parser::ast::TypeName};
 use super::types::Type;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Top-level tagged error enumeration produced by the type checker.
+/// Carries the concrete error payload plus the originating [`Span`] for
+/// source mapping (except for global conditions like a missing `main`).
 pub enum TypeCheckError {
     TypeMismatch(TypeMismatch, Span),
     UndefinedVariable(UndefinedVariable, Span),
@@ -27,6 +48,8 @@ impl Display for TypeCheckError {
 }
 
 impl TypeCheckError {
+    /// Return the source span associated with the error. For global
+    /// errors without a location a default span is returned.
     pub fn span(&self) -> Span {
         match self {
             TypeCheckError::TypeMismatch(_, span) => span.clone(),
@@ -44,6 +67,9 @@ impl TypeCheckError {
         }
     }
 
+    /// Produce a boxed clone of the underlying concrete error implementing
+    /// `Error + Send`. This enables downstream aggregation without matching
+    /// individual variants again.
     pub fn err(&self) -> Box<dyn Error + Send> {
         match self {
             TypeCheckError::TypeMismatch(e, _) => Box::new(e.clone()),
@@ -65,6 +91,8 @@ impl TypeCheckError {
 impl Error for TypeCheckError {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Error emitted when a value's inferred or actual type does not
+/// match the expected type required by the surrounding context.
 pub struct TypeMismatch {
     pub expected: Type,
     pub actual: Type,
@@ -82,6 +110,7 @@ impl Display for TypeMismatch {
 impl Error for TypeMismatch {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Referenced identifier was not found in any accessible lexical scope.
 pub struct UndefinedVariable {
     pub variable_name: String,
 }
@@ -98,6 +127,7 @@ impl Display for UndefinedVariable {
 impl Error for UndefinedVariable {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// A referenced user (or builtin) type name could not be resolved.
 pub struct UndefinedType {
     pub type_name: TypeName,
 }
@@ -111,6 +141,8 @@ impl Display for UndefinedType {
 impl Error for UndefinedType {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// A declaration requires an explicit type (or an inferable initializer)
+/// but no concrete type information was available.
 pub struct MissingInitialisationType;
 
 impl Display for MissingInitialisationType {
@@ -122,6 +154,7 @@ impl Display for MissingInitialisationType {
 impl Error for MissingInitialisationType {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// A constant was declared without a valid / explicit type annotation.
 pub struct InvalidConstantType {
     pub constant_name: String,
 }
@@ -138,6 +171,7 @@ impl Display for InvalidConstantType {
 impl Error for InvalidConstantType {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Attempt to declare a constant with a name already in use in the same scope.
 pub struct RedefinedConstant {
     pub constant_name: String,
 }
@@ -154,6 +188,8 @@ impl Display for RedefinedConstant {
 impl Error for RedefinedConstant {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Attempt to declare a function whose name already exists in the current
+/// module / namespace.
 pub struct RedefinedFunction {
     pub function_name: String,
 }
@@ -170,6 +206,8 @@ impl Display for RedefinedFunction {
 impl Error for RedefinedFunction {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Attempt to add an associated method whose name already exists either as
+/// a property (struct field) or previously registered method for the type.
 pub struct RedefinedMethod {
     pub type_id: Type,
     pub function_name: String,
@@ -187,6 +225,7 @@ impl Display for RedefinedMethod {
 impl Error for RedefinedMethod {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Mutation attempted on a binding that was declared immutable.
 pub struct ImmutableReassign {
     pub variable_name: String,
 }
@@ -203,6 +242,7 @@ impl Display for ImmutableReassign {
 impl Error for ImmutableReassign {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// Program lacks a required `main` entry point function.
 pub struct MissingMainFunction;
 
 impl Display for MissingMainFunction {
@@ -214,6 +254,8 @@ impl Display for MissingMainFunction {
 impl Error for MissingMainFunction {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// The `main` function does not conform to the accepted signatures
+/// (no parameters, returning `void` or an integer).
 pub struct InvalidMainSignature;
 
 impl Display for InvalidMainSignature {
@@ -225,6 +267,8 @@ impl Display for InvalidMainSignature {
 impl Error for InvalidMainSignature {}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// A binary operator was applied to a pair of operand types for which
+/// no semantic rule is defined.
 pub struct UnsupportedBinaryOperation {
     pub operands: (Type, Type),
 }

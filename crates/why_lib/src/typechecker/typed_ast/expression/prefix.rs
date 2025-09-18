@@ -13,18 +13,23 @@ impl TypeCheckable for Prefix<()> {
     type Typed = Prefix<TypeInformation>;
 
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
+        // Prefix operators modify their operand expressions in specific ways
+        // Both negation (!) and minus (-) have strict type requirements for their operands
         match self {
+            // Logical negation operator (!expr) - requires boolean operand
             Prefix::Negation { expr, position } => {
+                // First type check the operand expression
                 let expr = expr.check(ctx)?;
 
+                // Extract the operand's type to verify it's boolean
                 let info = expr.get_info();
-
                 let type_id_ref = info.type_id;
                 let type_id = type_id_ref.borrow().clone();
 
-                // check if we actually have a boolean type
+                // Verify the operand has boolean type - negation only works on booleans
                 if let Some(type_id) = type_id {
                     if type_id != Type::Boolean {
+                        // Operand is not boolean - this is a type error
                         return Err(TypeCheckError::TypeMismatch(
                             TypeMismatch {
                                 expected: Type::Boolean,
@@ -35,22 +40,26 @@ impl TypeCheckable for Prefix<()> {
                     }
                 }
 
+                // Negation result inherits the boolean type from its operand
                 Ok(Prefix::Negation {
                     expr: Box::new(expr),
                     position,
                 })
             }
+            // Arithmetic negation operator (-expr) - requires numeric operand
             Prefix::Minus { expr, position } => {
+                // First type check the operand expression
                 let expr = expr.check(ctx)?;
 
+                // Extract the operand's type to verify it's numeric
                 let info = expr.get_info();
-
                 let type_id_ref = info.type_id;
                 let type_id = type_id_ref.borrow().clone();
 
-                // check if we actually have a numeric type
+                // Verify the operand has numeric type - minus only works on numbers
                 if let Some(type_id) = type_id {
                     if type_id != Type::Integer && type_id != Type::FloatingPoint {
+                        // Operand is not numeric - this is a type error
                         return Err(TypeCheckError::TypeMismatch(
                             TypeMismatch {
                                 expected: Type::Integer,
@@ -61,6 +70,7 @@ impl TypeCheckable for Prefix<()> {
                     }
                 }
 
+                // Minus result inherits the numeric type from its operand
                 Ok(Prefix::Minus {
                     expr: Box::new(expr),
                     position,

@@ -1,3 +1,17 @@
+//! # If Expression Type Checking: Expression-Oriented Conditionals
+//!
+//! If expressions in Y are true expressions rather than statements, which enables
+//! functional programming patterns and compositional code structure. This design
+//! choice reflects several architectural priorities:
+//!
+//! - Consistent expression-oriented syntax throughout the language
+//! - LLVM can optimize conditional expressions more effectively than statements
+//! - Functional composition patterns become natural and efficient
+//! - Eliminates the need for ternary operators or complex conditional syntax
+//!
+//! The branch type compatibility checking ensures that LLVM can generate efficient
+//! conditional moves and select instructions without runtime type dispatching.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
@@ -14,6 +28,11 @@ use crate::{
 impl TypeCheckable for If<()> {
     type Typed = If<TypeInformation>;
 
+    /// If expression type checking enforces branch compatibility for LLVM optimization.
+    ///
+    /// Both branches must yield the same type because LLVM's conditional move and
+    /// select instructions require type uniformity. This strict checking prevents
+    /// runtime type confusion while enabling efficient conditional code generation.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let If {
             condition,
@@ -25,10 +44,16 @@ impl TypeCheckable for If<()> {
 
         let context = ctx.clone();
 
+        // Step 1: Type check the condition expression
+        // The condition must evaluate to a boolean type for the if-expression to be valid
         let condition = condition.check(ctx)?;
 
+        // Step 2: Verify the condition has boolean type
+        // If-expressions require boolean conditions - other types are rejected
         match &*condition.get_info().type_id.borrow() {
+            // Condition is correctly typed as boolean - proceed
             Some(Type::Boolean) => {}
+            // Condition has a concrete non-boolean type - this is a type error
             Some(other) => {
                 return Err(TypeCheckError::TypeMismatch(
                     TypeMismatch {
@@ -38,22 +63,32 @@ impl TypeCheckable for If<()> {
                     condition.position(),
                 ))
             }
+            // Condition has unknown type - allow it through (may be resolved later)
             _ => {}
         };
 
+        // Step 3: Type check both branches of the if-expression
+        // Both blocks are checked in the same outer scope context
+        // Individual blocks manage their own inner scopes as needed
         let checked_then_block = then_block.check(ctx)?;
         let checked_else_block = else_block.check(ctx)?;
 
+        // Step 4: Determine the result type of the entire if-expression
+        // If-expressions can yield values if both branches yield compatible types
+        // Type reconciliation rules:
+        // - Both branches yield same type: if-expression has that type
+        // - Branches yield different types: type error
+        // - One or both branches yield no value: if-expression yields no value (void)
         let type_id = match (
             checked_then_block.info.type_id.borrow().clone(),
             checked_else_block.info.type_id.borrow().clone(),
         ) {
             (first_type, last_type) => {
-                // check, if types of if and else match
                 match (first_type, last_type) {
+                    // Both branches yield concrete types - they must match
                     (Some(first_type), Some(last_type)) => {
-                        // if they do not match, we have a fucky wucky
                         if first_type != last_type {
+                            // Type mismatch between branches - report error at else block
                             return Err(TypeCheckError::TypeMismatch(
                                 TypeMismatch {
                                     expected: first_type,
@@ -62,14 +97,14 @@ impl TypeCheckable for If<()> {
                                 checked_else_block.position,
                             ));
                         }
-                        // otherwise (e.g., in case of both being None), we simply return the type
-                        // of the if branch
+                        // Both branches have the same type - if-expression yields that type
                         Rc::new(RefCell::new(Some(first_type)))
                     }
+                    // At least one branch yields no value - if-expression yields no value
                     _ => Rc::new(RefCell::new(None)),
                 }
             }
-            // if we do not have if & else, we simply return void as a type
+            // Fallback case for missing type information - treat as void
             _ => Rc::new(RefCell::new(Some(Type::Void))),
         };
 

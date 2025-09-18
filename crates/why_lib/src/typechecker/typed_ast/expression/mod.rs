@@ -1,16 +1,46 @@
+//! Typed expression forms.
+//!
+//! This module groups the typed variants of all expression kinds produced
+//! by the inference phase. Each submodule implements [`TypeCheckable`]
+//! and [`TypedConstruct`] for its concrete expression node mapping the
+//! parser representation (`Expression<()>`) into progressively enriched
+//! forms (`Expression<TypeInformation>` then `Expression<ValidatedTypeInformation>`).
+//!
+//! Responsibilities per node type include:
+//! - Attaching / resolving a mutable type slot
+//! - Performing local constraint generation and propagation
+//! - Validating structural invariants (e.g. array homogeneity, function
+//!   parameter arity, field existence for struct initialisation)
+//! - Propagating updates during unification via `update_type`
+//!
+//! The `lambda` submodule additionally exposes capture analysis helpers
+//! used during later code generation to materialize closure environments.
 mod array;
+/// Binary operator expressions (type check numeric / logical compatibility)
 mod binary;
+/// Block expressions introduce an inner scope and yield the last expression value
 mod block;
+/// Boolean literal expressions
 mod bool;
+/// Character literal expressions
 mod character;
+/// Named function reference expressions (not calls)
 mod function;
+/// Identifier resolution expressions
 mod id;
+/// Conditional branching (if / else) expressions
 mod if_expression;
+/// Lambda expressions and capture analysis utilities
 pub mod lambda;
+/// Numeric literal expressions
 mod num;
+/// Postfix operator expressions (e.g. property / method access)
 mod postfix;
+/// Prefix operator expressions (negation, logical not)
 mod prefix;
+/// String literal expressions
 mod string;
+/// Struct instance construction expressions
 mod struct_initialisation;
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};

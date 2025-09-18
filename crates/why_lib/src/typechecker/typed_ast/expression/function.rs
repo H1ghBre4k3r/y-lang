@@ -1,3 +1,17 @@
+//! # Function Type Checking: First-Class Citizens with Scope Management
+//!
+//! Functions in Y are first-class citizens that must integrate seamlessly with
+//! the type system while maintaining efficient LLVM code generation. The design
+//! priorities that drive this implementation:
+//!
+//! - Lexical scoping that prevents variable capture complexity
+//! - Explicit parameter types to avoid inference overhead at call sites
+//! - Return type verification to catch logic errors at compile time
+//! - Zero-cost function calls through LLVM's function pointer optimization
+//!
+//! The scope management here is critical because Y supports nested functions
+//! and lambdas, requiring careful isolation of parameter bindings.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
@@ -16,8 +30,14 @@ use crate::{
 impl TypeCheckable for Function<()> {
     type Typed = Function<TypeInformation>;
 
+    /// Function type checking balances first-class function support with performance.
+    ///
+    /// The scope isolation here is essential because Y supports closures and nested
+    /// functions. Without proper parameter scoping, variable capture could introduce
+    /// hidden allocations and complicate LLVM's optimization passes.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
-        // at start of function, enter scope
+        // Function type checking requires managing a new scope for parameters and local variables
+        // Enter a new scope to isolate function parameters from the outer scope
         ctx.scope.enter_scope();
 
         let Function {
@@ -32,16 +52,24 @@ impl TypeCheckable for Function<()> {
         let mut checked_parameters = vec![];
         let mut param_types = vec![];
 
+        // Process each function parameter in order
+        // Parameters create new variable bindings within the function scope
         for param in parameters.into_iter() {
+            // Type check parameter: resolves its type annotation and adds variable to scope
             let param = param.check(ctx)?;
+
+            // Extract the concrete parameter type for the function signature
+            // Parameters must have explicit types (no inference allowed)
             let Some(param_type) = { param.info.type_id.borrow() }.clone() else {
+                // This should not happen since parameters have explicit type annotations
                 todo!()
             };
-
             checked_parameters.push(param);
             param_types.push(param_type);
         }
 
+        // Resolve the function's declared return type to a concrete Type
+        // The return type annotation must reference a valid, known type
         let Ok(return_type_id) = Type::try_from((&return_type, &*ctx)) else {
             let position = return_type.position();
             return Err(TypeCheckError::UndefinedType(
@@ -52,13 +80,16 @@ impl TypeCheckable for Function<()> {
             ));
         };
 
-        // Use unified block type checking with yielding context
+        // Type check the function body within the parameter scope
+        // The body is a block that may or may not produce a return value
         let checked_body = body.check(ctx)?;
 
-        // Verify that the block's inferred type matches the function's return type
+        // Verify that the body's inferred type matches the declared return type
+        // This is where we enforce return type correctness
         let mut checked_body = checked_body;
         let body_type = { checked_body.info.type_id.borrow().clone() };
         match body_type {
+            // Body has a concrete inferred type - must match declared return type
             Some(inferred_type) => {
                 if inferred_type != return_type_id {
                     return Err(TypeCheckError::TypeMismatch(
@@ -70,14 +101,16 @@ impl TypeCheckable for Function<()> {
                     ));
                 }
             }
+            // Body produces no value but function expects void - this is correct
             None if return_type_id == Type::Void => {
-                // Block correctly inferred void type
+                // Body correctly produces no value for void function
             }
+            // Body produces no value but function expects a specific type
             None => {
-                // Block has no inferred type but function expects a specific return type
-                // Try to propagate the expected return type to the block
+                // Try to propagate the expected return type down to the body's yielding expression
+                // This allows type inference to work backwards from the return type
                 if let Err(_) = checked_body.update_type(return_type_id.clone()) {
-                    // If type propagation fails, it's a type mismatch
+                    // Type propagation failed - body cannot produce the expected type
                     return Err(TypeCheckError::TypeMismatch(
                         TypeMismatch {
                             expected: return_type_id,
@@ -89,13 +122,17 @@ impl TypeCheckable for Function<()> {
             }
         }
 
+        // Exit the function parameter scope - parameters are no longer accessible
         ctx.scope.exit_scope();
 
+        // Construct the function's type signature from its parameters and return type
+        // This creates the Type::Function that represents this function's interface
         let function_type_id = Type::Function {
             params: param_types,
             return_value: Box::new(return_type_id),
         };
 
+        // Create shared type information for both the function and its identifier
         let function_type = Rc::new(RefCell::new(Some(function_type_id.clone())));
 
         let info = TypeInformation {
@@ -103,6 +140,7 @@ impl TypeCheckable for Function<()> {
             context: ctx.clone(),
         };
 
+        // Type the function identifier with the complete function type
         let id = Id {
             name: id.name,
             position: id.position,
@@ -248,29 +286,38 @@ impl TypeCheckable for FunctionParameter<()> {
             ..
         } = name;
 
+        // Initialize type information container for the parameter
         let info = TypeInformation {
             type_id: Rc::new(RefCell::new(None)),
             context: ctx.clone(),
         };
 
+        // Resolve the parameter's type annotation to a concrete Type
+        // Function parameters must have explicit type annotations
         match Type::try_from((&type_name, &*ctx)) {
+            // Type annotation is valid - store the resolved type
             Ok(type_id) => *info.type_id.borrow_mut() = Some(type_id),
+            // Type annotation references an undefined type - propagate the error
             Err(e) => {
                 return Err(e);
             }
         };
 
+        // Create the typed identifier for this parameter
         let id = Id {
             name: name.clone(),
             info: info.clone(),
             position: id_position.clone(),
         };
 
+        // Add the parameter as an immutable variable in the current function scope
+        // Parameters cannot be reassigned within the function body
         if ctx
             .scope
             .add_variable(&id.name, Expression::Id(id.clone()), false)
             .is_err()
         {
+            // Parameter name conflicts with an existing binding in this scope
             return Err(TypeCheckError::RedefinedConstant(
                 RedefinedConstant {
                     constant_name: id.name,

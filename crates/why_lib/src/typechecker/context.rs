@@ -1,3 +1,8 @@
+//! Inference context wrapper holding the current lexical `Scope` during
+//! type checking. Cloned frequently (cheap) to snapshot scope state when
+//! constructing nested AST nodes; equality is intentionally degenerate
+//! (always true) because context identity is not semantically relevant
+//! to type equality comparisons.
 use super::scope::Scope;
 
 #[derive(Debug, Clone)]

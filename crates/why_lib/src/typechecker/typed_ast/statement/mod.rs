@@ -1,10 +1,30 @@
+//! # Statement Type Checking: Control Flow and Declaration Management
+//!
+//! Statement type checking in Y handles declarations, control flow, and
+//! side effects while maintaining expression-oriented language semantics.
+//! This design balances imperative convenience with functional principles:
+//!
+//! - Two-phase checking enables forward references and mutual recursion
+//! - Statement type delegation maintains modularity and code organization
+//! - Type information threading preserves context across statement boundaries
+//! - LLVM optimization benefits from clear statement vs expression distinctions
+//!
+//! The trait implementations provide consistent type checking patterns while
+//! enabling each statement type to implement domain-specific validation logic.
 mod assignment;
+/// Constant (immutable value) declarations with required explicit type
 mod constant;
+/// Variable / function forward declarations
 mod declaration;
+/// Variable initialisation with optional explicit annotation
 mod initialisation;
+/// Instance block declarations adding methods to a struct
 mod instance;
+/// Method declaration within an instance block
 mod method_declaration;
+/// Struct type declarations (fields registered in shallow pass)
 mod struct_declaration;
+/// While loop control flow construct
 mod while_loop;
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
@@ -19,6 +39,11 @@ use crate::{
 impl TypeCheckable for TopLevelStatement<()> {
     type Typed = TopLevelStatement<TypeInformation>;
 
+    /// Top-level statement type checking delegates to specific statement implementations.
+    ///
+    /// This delegation pattern maintains separation of concerns while enabling
+    /// consistent type checking behavior across different statement types.
+    /// Each statement type handles its own validation logic and type constraints.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             TopLevelStatement::Function(func) => Ok(TopLevelStatement::Function(func.check(ctx)?)),
@@ -59,6 +84,11 @@ impl TypeCheckable for TopLevelStatement<()> {
 }
 
 impl ShallowCheck for TopLevelStatement<()> {
+    /// Shallow checking delegates to individual statement shallow check implementations.
+    ///
+    /// This enables forward references and complex declaration ordering without
+    /// requiring explicit dependency resolution. Each statement registers its
+    /// declarations early to support mutual references between statements.
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
         match self {
             TopLevelStatement::Comment(_) => Ok(()),
@@ -103,6 +133,11 @@ impl TypedConstruct for TopLevelStatement<TypeInformation> {
 impl TypeCheckable for Statement<()> {
     type Typed = Statement<TypeInformation>;
 
+    /// Statement type checking provides consistent dispatch to statement-specific logic.
+    ///
+    /// This centralized dispatch ensures all statement types follow the same
+    /// type checking protocol while allowing each statement to implement its
+    /// own validation rules and type constraints.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         match self {
             Statement::Function(func) => Ok(Statement::Function(func.check(ctx)?)),

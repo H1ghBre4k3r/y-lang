@@ -1,3 +1,17 @@
+//! # Struct Declaration Type Checking: User-Defined Composite Types
+//!
+//! Struct declarations in Y define custom composite types with named fields,
+//! enabling data structure organization and encapsulation. This design supports
+//! both performance and expressiveness:
+//!
+//! - Explicit field type annotations ensure memory layout predictability
+//! - Two-phase checking enables structs to reference each other mutually
+//! - LLVM can optimize struct layout for cache efficiency and alignment
+//! - Field type validation prevents undefined type references at compile time
+//!
+//! The separation between declaration and usage enables complex type relationships
+//! while maintaining static type safety and efficient code generation.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
@@ -14,6 +28,11 @@ use crate::{
 impl TypeCheckable for StructDeclaration<()> {
     type Typed = StructDeclaration<TypeInformation>;
 
+    /// Struct type checking validates field types and registers the struct type.
+    ///
+    /// This approach enables efficient memory layout planning and type safety.
+    /// Field validation occurs during checking to catch type errors early
+    /// while struct registration during shallow checking enables mutual references.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let StructDeclaration {
             id,
@@ -30,12 +49,16 @@ impl TypeCheckable for StructDeclaration<()> {
             ..
         } = id;
 
+        // Step 1: Type check all struct field declarations
+        // Each field must have a valid type annotation that resolves to a known type
         let mut checked_fields = vec![];
 
         for field in fields.into_iter() {
             checked_fields.push(field.check(ctx)?);
         }
 
+        // Step 2: Return the typed struct declaration with void type for the statement itself
+        // Struct declarations are statements and don't yield values
         let info = TypeInformation {
             type_id: Rc::new(RefCell::new(Some(Type::Void))),
             context,
@@ -100,9 +123,16 @@ impl TypedConstruct for StructDeclaration<TypeInformation> {
 }
 
 impl ShallowCheck for StructDeclaration<()> {
+    /// Shallow checking registers struct types before field validation.
+    ///
+    /// This two-phase approach enables structs to reference each other mutually
+    /// without forward declaration ordering constraints. Early type registration
+    /// supports complex data structure patterns while maintaining type safety.
     fn shallow_check(&self, ctx: &mut Context) -> TypeResult<()> {
         let StructDeclaration { id, fields, .. } = self;
 
+        // Step 1: Parse and validate all field type annotations
+        // Shallow check ensures all field types are valid before full type checking
         let mut field_types = vec![];
 
         for StructFieldDeclaration {
@@ -110,6 +140,7 @@ impl ShallowCheck for StructDeclaration<()> {
         } in fields.iter()
         {
             let Ok(type_id) = Type::try_from((type_name, &*ctx)) else {
+                // Field type annotation references an undefined or invalid type
                 return Err(TypeCheckError::UndefinedType(
                     UndefinedType {
                         type_name: type_name.clone(),
@@ -121,6 +152,8 @@ impl ShallowCheck for StructDeclaration<()> {
             field_types.push((name.name.clone(), type_id));
         }
 
+        // Step 2: Create the struct type and register it in the type scope
+        // This makes the struct type available for use in other declarations and expressions
         let type_id = Type::Struct(id.name.clone(), field_types);
 
         if let Err(e) = ctx.scope.add_type(&id.name, type_id) {
@@ -134,6 +167,11 @@ impl ShallowCheck for StructDeclaration<()> {
 impl TypeCheckable for StructFieldDeclaration<()> {
     type Typed = StructFieldDeclaration<TypeInformation>;
 
+    /// Field type checking validates explicit type annotations for memory layout.
+    ///
+    /// Explicit field types enable LLVM to generate efficient struct layouts
+    /// and memory access patterns. Type validation ensures field types exist
+    /// and prevents undefined type references in struct definitions.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let StructFieldDeclaration {
             name,
@@ -142,16 +180,21 @@ impl TypeCheckable for StructFieldDeclaration<()> {
             ..
         } = self;
 
+        // Step 1: Parse and validate the field's type annotation
+        // Struct fields must have explicit type annotations that resolve to valid types
         let type_id = match Type::try_from((&type_name, &*ctx)) {
             Ok(type_id) => type_id,
             Err(_) => {
+                // Field type annotation references an undefined or invalid type
                 return Err(TypeCheckError::UndefinedType(
                     UndefinedType { type_name },
                     position,
-                ))
+                ));
             }
         };
 
+        // Step 2: Create type information for the struct field
+        // The field will have the explicitly declared type
         let info = TypeInformation {
             type_id: Rc::new(RefCell::new(Some(type_id))),
             context: ctx.clone(),

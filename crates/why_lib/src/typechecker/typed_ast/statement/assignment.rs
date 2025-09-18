@@ -1,3 +1,17 @@
+//! # Assignment Type Checking: Immutability by Default
+//!
+//! Assignment statements in Y enforce immutability by default, requiring explicit
+//! mutability annotations for variable reassignment. This design choice reflects
+//! several key language philosophy decisions:
+//!
+//! - Memory safety through compile-time mutability tracking
+//! - Functional programming encouragement via immutable-first design
+//! - LLVM optimization enablement through aliasing guarantees
+//! - Predictable state changes that prevent action-at-a-distance bugs
+//!
+//! The type compatibility checking ensures that LLVM can generate efficient
+//! assignment instructions without runtime type conversion overhead.
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -14,6 +28,11 @@ use crate::{
 impl TypeCheckable for Assignment<()> {
     type Typed = Assignment<TypeInformation>;
 
+    /// Assignment type checking enforces mutability constraints to prevent aliasing bugs.
+    ///
+    /// The mutability check occurs first because it's cheaper than type checking and
+    /// provides clearer error messages. This ordering also matches developer mental
+    /// models where permission to modify comes before type compatibility.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let context = ctx.clone();
         let Assignment {
@@ -23,8 +42,11 @@ impl TypeCheckable for Assignment<()> {
             ..
         } = self;
 
+        // Step 1: Verify the target variable is mutable before allowing assignment
+        // Extract the root variable name from the lvalue (handles both direct IDs and property access)
         let name = lvalue.get_original_variable_name().name;
         if let Some(false) = ctx.scope.is_variable_mutable(&name) {
+            // Variable was declared as immutable - assignment is not allowed
             return Err(TypeCheckError::ImmutableReassign(
                 ImmutableReassign {
                     variable_name: name,
@@ -33,17 +55,21 @@ impl TypeCheckable for Assignment<()> {
             ));
         }
 
+        // Step 2: Type check both the assignment target and the value being assigned
         let lvalue = lvalue.check(ctx)?;
-
         let mut rvalue = rvalue.check(ctx)?;
         let info = rvalue.get_info();
 
+        // Step 3: Extract types for compatibility verification
         let variable_type_id = { lvalue.get_info().type_id.borrow().clone() };
         let rvalue_type_id = { rvalue.get_info().type_id.borrow().clone() };
 
+        // Step 4: Ensure type compatibility between assignment target and value
         match (variable_type_id, rvalue_type_id) {
+            // Both sides have concrete types - they must match exactly
             (Some(variable_type_id), Some(rvalue_type_id)) => {
                 if variable_type_id != rvalue_type_id {
+                    // Type mismatch between variable and assigned value
                     return Err(TypeCheckError::TypeMismatch(
                         TypeMismatch {
                             expected: variable_type_id,
@@ -53,14 +79,17 @@ impl TypeCheckable for Assignment<()> {
                     ));
                 }
             }
+            // Variable has concrete type, rvalue has unknown type - propagate variable's type
             (Some(variable_type_id), None) => {
+                // Update the rvalue to match the variable's type
                 rvalue.update_type(variable_type_id.clone())?;
-
                 *info.type_id.borrow_mut() = Some(variable_type_id);
             }
+            // Other cases (unknown variable type) - defer type checking
             _ => {}
         }
 
+        // Step 5: Assignment statements always yield void (no return value)
         Ok(Assignment {
             lvalue,
             rvalue,
@@ -112,9 +141,18 @@ impl TypedConstruct for Assignment<TypeInformation> {
 impl TypeCheckable for LValue<()> {
     type Typed = LValue<TypeInformation>;
 
+    /// LValue type checking delegates to expression checkers to maintain modularity.
+    ///
+    /// Rather than duplicating assignment-specific logic, this delegation leverages
+    /// existing expression type checking for consistency. This design prevents
+    /// assignment semantics from diverging from expression semantics unexpectedly.
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
+        // LValue type checking delegates to the appropriate expression type checker
+        // LValues represent assignable locations (variables, struct fields, array elements)
         match self {
+            // Simple variable assignment - delegate to identifier type checking
             LValue::Id(id) => Ok(LValue::Id(id.check(ctx)?)),
+            // Complex assignment target (struct.field, array[index]) - delegate to postfix type checking
             LValue::Postfix(postfix) => Ok(LValue::Postfix(postfix.check(ctx)?)),
         }
     }

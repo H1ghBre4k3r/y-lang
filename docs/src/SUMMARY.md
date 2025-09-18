@@ -28,6 +28,7 @@
   - [Type Checking](./implementation/typechecking.md)
   - [Code Generation](./implementation/codegen.md)
   - [Closure Implementation](./implementation/closures.md)
+  - [Extending the Compiler](./implementation/extending-compiler.md)
   - [Optimization](./implementation/optimization.md)
 - [Tools and Ecosystem](./tools/README.md)
   - [Compiler (yc)](./tools/compiler.md)

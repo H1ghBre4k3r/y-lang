@@ -31,8 +31,11 @@ impl TypeCheckable for StructInitialisation<()> {
             ..
         } = id;
 
+        // Step 1: Resolve the struct type from the type scope
+        // Struct initializations require that the named struct type exists and is accessible
         let Some(Type::Struct(struct_type_name, struct_type_fields)) = ctx.scope.get_type(&name)
         else {
+            // Struct type not found in scope - report undefined type error
             return Err(TypeCheckError::UndefinedType(
                 UndefinedType {
                     type_name: TypeName::Literal(name, Span::default()),
@@ -41,24 +44,32 @@ impl TypeCheckable for StructInitialisation<()> {
             ));
         };
 
+        // Step 2: Type check all field initializations provided in the source
+        // Each field initialization is checked independently for type correctness
         let mut checked_fields = vec![];
-
         for field in fields.into_iter() {
             checked_fields.push(field.check(ctx)?);
         }
 
+        // Step 3: Create a lookup map for efficient field resolution
+        // This allows us to match provided fields against the struct's declared fields
         let mut checked_fields_map = checked_fields
             .iter()
             .map(|dec| (dec.name.name.clone(), dec.clone()))
             .collect::<HashMap<_, _>>();
 
+        // Step 4: Validate that all required struct fields are initialized with correct types
         let mut checked_fields = vec![];
 
+        // Iterate through each field declared in the struct type definition
+        // Every declared field must be initialized with a value of the correct type
         for (struct_field_name, struct_field_type) in struct_type_fields.iter() {
+            // Look up the initialization for this struct field
             let Some(mut initialised_field) =
                 checked_fields_map.get_mut(struct_field_name).cloned()
             else {
-                // TODO: use different error for this
+                // Required struct field was not provided in the initialization - this is an error
+                // TODO: use different error for this (should be "missing field" not "undefined variable")
                 return Err(TypeCheckError::UndefinedVariable(
                     UndefinedVariable {
                         variable_name: format!("{name}.{struct_field_name}"),
@@ -67,16 +78,19 @@ impl TypeCheckable for StructInitialisation<()> {
                 ));
             };
 
+            // Extract the type of the initialized field value
             let field_type = initialised_field.info.type_id.clone();
-
             let initialised_field_type = {
                 let inner = field_type.borrow_mut();
                 inner.as_ref().cloned()
             };
 
+            // Verify type compatibility between initialized value and struct field declaration
             match initialised_field_type {
+                // Field has a concrete type - must match the struct's declared field type
                 Some(field_type) => {
                     if field_type != *struct_field_type {
+                        // Type mismatch between initialized value and struct field declaration
                         return Err(TypeCheckError::TypeMismatch(
                             TypeMismatch {
                                 expected: struct_field_type.clone(),
@@ -86,11 +100,14 @@ impl TypeCheckable for StructInitialisation<()> {
                         ));
                     }
                 }
+                // Field has unknown type - propagate the expected type from struct declaration
                 None => {
+                    // Update the field value with the expected type from struct definition
                     initialised_field
                         .value
                         .update_type(struct_field_type.clone())?;
 
+                    // Update the field's type information to match the struct declaration
                     *field_type.borrow_mut() = Some(struct_field_type.clone());
                 }
             }
@@ -183,8 +200,12 @@ impl TypeCheckable for StructFieldInitialisation<()> {
             ..
         } = name;
 
+        // Type check the value expression being assigned to this struct field
+        // The value's type will be verified against the struct field's declared type later
         let value = value.check(ctx)?;
 
+        // Extract the value's inferred type to use for this field initialization
+        // This type will be compared against the struct's field type during struct initialization
         let type_id = value.get_info().type_id;
 
         let info = TypeInformation { type_id, context };
