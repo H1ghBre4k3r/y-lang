@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/H1ghBre4k3r/y-lang"
 
 [workspace]
-members = ["crates/why_lib", "crates/lex_derive"]
+members = ["crates/why_lib"]
 
 [dependencies]
 anyhow = "1.0.99"
