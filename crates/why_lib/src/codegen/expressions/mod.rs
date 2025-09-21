@@ -1,5 +1,6 @@
 mod ast_string;
 mod binary;
+mod block;
 mod bool;
 mod id;
 mod num;
