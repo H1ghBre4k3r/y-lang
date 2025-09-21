@@ -129,7 +129,7 @@ pub fn compile_file(args: VCArgs) -> anyhow::Result<()> {
         println!("{module:#?}");
     }
 
-    module.codegen();
+    module.codegen()?;
 
     module.compile(args.output.to_str().unwrap());
 
