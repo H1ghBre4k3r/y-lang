@@ -4,13 +4,13 @@ struct FooStruct {
 }
 
 instance FooStruct {
-fn get_id(): i64 {
-    this.id
-}
+    fn get_id(): i64 {
+        this.id
+    }
 
-fn get_amount(): f64 {
-    this.amount
-}
+    fn get_amount(): f64 {
+        this.amount
+    }
 }
 
 fn main(): void {
