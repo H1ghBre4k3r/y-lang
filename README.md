@@ -1,142 +1,264 @@
 # Y Lang
 
-> **Attention:** Everything in this project is subject to change! The documentation of the code is nearly non-existent. Furthermore, the currently executable does nothing really useful.
+An experimental, expression-centric programming language implemented in Rust. Y treats most constructs as expressions and targets LLVM via Inkwell. This repo includes the core library (why_lib) and three binaries: yc (compiler), yfmt (formatter), and yls (language server).
 
-Parsing all the way down.
+> Status: Early-stage and evolving. See ROADMAP.md for planned work.
 
-An innovative parser for an ever more innovative programming language!
+## Table of contents
+- Features
+- Project structure
+- Installation
+- Quick start
+- Usage reference (yc, yfmt, yls)
+- Language examples
+- Documentation
+- Code generation status (checklist)
+- Development
+- Editor/LSP integration
+- Building the docs site
+- Troubleshooting
+- License
 
-Ok, jokes aside: This is just a small project to "restart" my programming language (formerly known as `Y`).
+## Features
+- Expression-first design (blocks/if/while as expressions)
+- Static typing with inference and annotations
+- Functions as first-class values, lambdas (design in progress)
+- Structs and instances (design and parser support present)
+- LLVM-based code generation
 
-# Language
+## Project structure
+- Root crate (y-lang)
+  - Binaries
+    - src/bin/yc.rs — compiler frontend/driver
+    - src/bin/yfmt.rs — formatter CLI
+    - src/bin/yls.rs — language server (LSP over stdio)
+- crates/
+  - why_lib — core implementation (lexer, parser, typechecker, codegen)
+  - lex_derive — procedural macros for lexer generation
+- docs/
+  - src — mdBook sources for language/implementation docs
+  - book — prebuilt HTML (if present)
+- examples/ — sample .why programs
+- ROADMAP.md — planned features and milestones
 
-_Note:_ This language specification is subject to change and far from complete!
+## Installation
 
-Here are my thoughts on the syntax of the language :)
+Prerequisites
+- Rust toolchain (latest stable)
+- LLVM 18 (required by Inkwell 0.6 with llvm18-1)
+- just (optional task runner)
+- mdBook (optional, for building docs)
 
-## Expressions
+Tips for LLVM 18
+- Ensure your environment exposes LLVM 18. If your package manager installs it in a non-default prefix, set an env var like:
+  - macOS (Homebrew): `export LLVM_SYS_180_PREFIX="$(brew --prefix llvm@18)"`
+  - Otherwise: point `LLVM_SYS_180_PREFIX` to your LLVM 18 install directory (the one containing bin/llvm-config)
 
-Everything is an expression. Well, almost everything. There are some things which are no expressions, e.g., statements. For statements, see a later section.
+Install optional tools
+- macOS (Homebrew): `brew install just mdbook llvm@18`
+- Linux: install equivalents from your package manager
 
-A very basic expression is this:
+Build
+- With just: `just build`
+- With Cargo: `cargo build --workspace`
+- Release build: `just build-release` or `cargo build --release --workspace`
 
+Binaries are built in `target/debug/` (or `target/release/`).
+
+## Quick start
+
+Compile and run an example
+
+```bash
+# Compile examples/hello.why to an executable
+./target/debug/yc examples/hello.why -o out/hello
+./out/hello
 ```
-17 + 25
+
+Format code
+
+```bash
+# Print formatted code to stdout
+./target/debug/yfmt examples/hello.why
+
+# Format in place (file or directory)
+./target/debug/yfmt examples -i
 ```
 
-Even this is an expression:
+Language server (LSP over stdio)
 
-```
-1337
-```
-
-Or this:
-
-```
-"foo"
+```bash
+# Starts an LSP server on stdio; configure your editor to launch this binary
+./target/debug/yls
 ```
 
-### Variables
+## Usage reference
 
-You can assign values to variables:
+yc
 
+```text
+USAGE: yc <file> [options]
+
+Options:
+  -l, --print-lexed        Print the lexed source tree
+  -p, --print-parsed       Print the parsed AST
+  -c, --print-checked      Print the typechecked AST
+  -v, --print-validated    Print the validated AST
+      --format             Pretty-print formatted source to stdout
+      --format-output <p>  Write formatted source to a file
+  -o <path>                Output executable path (default: a.out)
 ```
-let foo = 42;
+
+yfmt
+
+```text
+USAGE: yfmt <path> [options]
+
+Args:
+  path                     File or directory to format
+
+Options:
+  -i, --in-place           Edit files in place
 ```
 
-Aside from these simple expressions, we also have more...complicated expressions.
+yls
+- Implements an LSP server over stdio. Point your editor’s LSP client to the `yls` binary.
 
-### Control Flow
+## Language examples
 
-To control the flow of your program, you can utilize several control flow constructs.
+Hello world and simple functions (from examples/hello.why and examples/simple.why)
 
-#### If-expressions
+```why
+declare printf: (str) -> void;
 
-Whoop whoop, the basic foundations of every sane programming language: `if`-`else`
+fn println(val: str): void {
+    printf(val);
+    printf("\n");
+}
 
-```
-if someCondition {
-    42
-} else {
-    1337
+fn add(x: i64, y: i64): i64 {
+    x + y
+}
+
+fn main(): i64 {
+    println("Hello, world!");
+    let a = add(42, 1337);
+    a
 }
 ```
 
-_Note:_ Both arms _must have_ the same return type. If the return type of the `if` arm is `void`, the `else` arm _can_ be omitted.
+From examples/simple.why
 
-#### Match
+```why
+declare printf: (str) -> void;
 
-A more advanced version of control flow is the `match` expression. It is like `switch` from other languages. But on steriods.
+fn baz(x: i64): i64 {
+    let intermediate = x * 2;
+    return intermediate;
+}
 
-```
-match someValue {
-    42 => doSomething()
-    1337 => doSomethingElse()
-    _ => doSomethingVeryDifferent()
-    ^-- this is a wildcard
+fn main(): i64 {
+    printf("Foo\n");
+    let x = 12;
+    let a = baz(x);
+    return x + a;
 }
 ```
 
-You may notice the weird strings with `()` after them - these are function calls. We get to them at a later point.
+Structs and instance methods (from examples/struct.why)
 
-To make matters even more interesting, you can also bind variables to matches:
+```why
+struct FooStruct {
+    id: i64;
+    amount: f64;
+}
 
-```
-match x in someFunction(x) {
-    42 => doSomethingWhere42Matched()
-    1337 => doSomethingWhere1377Matched()
-    _ => noneOfTheAboveMatched()
+instance FooStruct {
+    fn get_id(): i64 { this.id }
+    fn get_amount(): f64 { this.amount }
 }
 ```
 
-#### Functions
+More examples live in the `examples/` directory.
 
-In this programming language, functions are first class citizens. You can use them as values and hand them to other functions. Here's how you declare a function which adds two integers (we'll get to types later):
+## Documentation
+- Language and implementation docs (mdBook sources): `docs/src/`
+- Prebuilt HTML docs (if present): `docs/book/`
+- Roadmap: [ROADMAP.md](./ROADMAP.md)
 
-```
-fn add(x: i32, y: i32): i32 {
-    return x + y;
-}
-```
+## Code generation status (checklist)
 
-Additionally, you can define functions as lambdas:
+Expressions
+- [x] Integer and floating-point literals
+- [x] Boolean literals
+- [x] String literals (as global string pointers)
+- [x] Identifiers (load from alloca when applicable)
+- [x] Prefix operators: logical not (!bool), numeric minus (-int/-float)
+- [x] Binary arithmetic: +, -, *, / for int/float
+- [ ] Comparisons and logical ops (==, !=, <, &&, ||, ...)
+- [ ] Character literals
+- [ ] Arrays (literal, index, mutation)
+- [ ] Struct literals and field access
+- [ ] If expressions
+- [ ] While loops
+- [ ] Lambda/closure literals
 
-```
-let add: (i32, i32) -> i32 = \(x, y) => x + y;
-```
+Blocks and statements
+- [x] Block expressions (yield last expression)
+- [x] Variable initialization (alloca + store)
+- [ ] Assignment updates
+- [ ] Constants
 
-Note, how we have to explicitly annotate the type of the function at the variable. Although, it might seem to very verbose, lambdas are very usefull, when passing function as arguments to other functions:
+Functions
+- [x] Function declaration (prototype) emission
+- [x] Function definition with parameter allocas and returns
+- [x] Calls (direct/indirect via function pointers)
+- [ ] Functions returning/accepting strings, chars, aggregates (full support)
 
-```
-fn foo(func: (i32, i32) -> i32): i32 {
-    func(42, 1337) * 3
-};
+Types and layout
+- [x] Integer, float, bool mapping
+- [x] Tuples and structs (type mapping)
+- [ ] Arrays
+- [ ] References and advanced aggregates
 
-let bar = foo(\(x, y) => x + y));
-```
+Control flow and misc
+- [ ] If/else lowering
+- [ ] While lowering
+- [ ] PHI nodes and advanced flow
 
-Furthermore, you can assign functions to variables:
+Update this checklist as features land.
 
-```
-let add = fn (x: i32, y: i32): i32 {
-    return x + y;
-}
-```
+## Development
 
-... I would not recommend this way. ^^
+Common tasks (using just)
+- `just build` / `just b` — build the project
+- `just test` / `just t` — run tests across the workspace
+- `just watch` — watch and rebuild binaries
+- `just bins` / `just bins-release` — build all binaries
 
-BUT, you can also assign _existing_ functions to variables (or use them as parameters, etc.):
+With Cargo
+- `cargo build` — build the workspace
+- `cargo test --workspace` — run all tests
+- `cargo run --bin yc -- <file>` — compile a .why file
+- `cargo run --bin yfmt -- <path>` — format a file or directory
+- `cargo run --bin yls` — start the language server
 
-```
-fn add(x: i32, y: i32): i32 {
-    return x + y;
-}
+## Editor/LSP integration
+- yls speaks LSP over stdio. Configure your editor’s LSP client to:
+  - Launch the built `yls` binary
+  - Attach to files with the `.why` extension
+  - Capabilities: full document sync, formatting, basic diagnostics
+- For most editors, you can point a “custom”/“external” LSP to `./target/debug/yls`.
 
-fn foo(func: (i32, i32) -> i32): i32 {
-    func(42, 1337) * 3
-};
+## Building the docs site
+- Build once: `mdbook build docs`
+- Serve with live reload: `mdbook serve docs -o`
+- Output goes to `docs/book/`
 
-let test = foo;
+## Troubleshooting
+- LLVM version errors (e.g., LLVM_SYS_180): ensure LLVM 18 is installed and set `LLVM_SYS_180_PREFIX` to its prefix if needed.
+- Linker/toolchain issues: ensure a C toolchain is installed (e.g., Xcode Command Line Tools on macOS; build-essential/clang on Linux).
+- Undefined externs (e.g., printf): declare the function in .why and ensure your system toolchain provides the symbol at link time.
 
-let bar = test(add);
-```
+## License
+GPL-3.0
