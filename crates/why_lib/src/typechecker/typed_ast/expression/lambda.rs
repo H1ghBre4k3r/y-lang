@@ -93,14 +93,39 @@ impl TypedConstruct for Lambda<TypeInformation> {
                 return Ok(());
             }
 
-            // TODO: maybe use different error for this
-            return Err(TypeCheckError::TypeMismatch(
-                TypeMismatch {
-                    expected: current_type.clone(),
-                    actual: type_id,
-                },
-                self.position.clone(),
-            ));
+            // Check if current type can be refined by the new type
+            // This allows lambdas with Unknown parameter types to be updated
+            if let Type::Function {
+                params: current_params,
+                return_value: current_return,
+            } = current_type
+            {
+                // If current lambda has Unknown parameter types, allow refinement
+                let can_refine = current_params.iter().any(|p| matches!(p, Type::Unknown))
+                    || matches!(current_return.as_ref(), Type::Unknown);
+
+                if can_refine {
+                    // Allow the update to proceed - fall through to the update logic below
+                } else {
+                    // Types are concrete and don't match - this is an error
+                    return Err(TypeCheckError::TypeMismatch(
+                        TypeMismatch {
+                            expected: current_type.clone(),
+                            actual: type_id,
+                        },
+                        self.position.clone(),
+                    ));
+                }
+            } else {
+                // Current type is not a function - this is an error
+                return Err(TypeCheckError::TypeMismatch(
+                    TypeMismatch {
+                        expected: current_type.clone(),
+                        actual: type_id,
+                    },
+                    self.position.clone(),
+                ));
+            }
         }
 
         // check for correct arity
@@ -164,6 +189,9 @@ impl TypedConstruct for Lambda<TypeInformation> {
         for (i, t) in params.iter().enumerate() {
             self.parameters[i].update_type(t.to_owned())?;
         }
+
+        // update our expression as well
+        self.expression = Box::new(expr);
 
         self.info.type_id = Rc::new(RefCell::new(Some(type_id)));
 
