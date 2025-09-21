@@ -11,6 +11,7 @@ pub enum AstNode {
     Expression(Expression<()>),
     Id(Id<()>),
     Num(Num<()>),
+    Bool(Bool<()>),
     Character(Character<()>),
     AstString(AstString<()>),
     Statement(Statement<()>),

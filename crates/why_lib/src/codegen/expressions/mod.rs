@@ -1,5 +1,6 @@
 mod ast_string;
 mod binary;
+mod bool;
 mod id;
 mod num;
 mod postfix;
@@ -19,6 +20,7 @@ impl<'ctx> CodeGen<'ctx> for Expression<ValidatedTypeInformation> {
             Expression::Id(id) => Some(id.codegen(ctx)),
             Expression::Num(num) => Some(num.codegen(ctx)),
             Expression::Character(character) => todo!(),
+            Expression::Bool(bool) => Some(bool.codegen(ctx)),
             Expression::AstString(ast_string) => Some(ast_string.codegen(ctx)),
             Expression::Function(function) => todo!(),
             Expression::Lambda(lambda) => todo!(),

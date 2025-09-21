@@ -1,6 +1,7 @@
 mod array;
 mod binary;
 mod block;
+mod bool;
 mod character;
 mod function;
 mod id;
@@ -28,6 +29,7 @@ impl TypeCheckable for Expression<()> {
         match self {
             Expression::Id(id) => Ok(Expression::Id(id.check(ctx)?)),
             Expression::Num(num) => Ok(Expression::Num(num.check(ctx)?)),
+            Expression::Bool(bool) => Ok(Expression::Bool(bool.check(ctx)?)),
             Expression::Character(character) => Ok(Expression::Character(character.check(ctx)?)),
             Expression::AstString(string) => Ok(Expression::AstString(string.check(ctx)?)),
             Expression::Function(func) => Ok(Expression::Function(func.check(ctx)?)),
@@ -49,6 +51,7 @@ impl TypeCheckable for Expression<()> {
         match this {
             Expression::Id(id) => Expression::Id(TypeCheckable::revert(id)),
             Expression::Num(num) => Expression::Num(TypeCheckable::revert(num)),
+            Expression::Bool(bool) => Expression::Bool(TypeCheckable::revert(bool)),
             Expression::Character(character) => {
                 Expression::Character(TypeCheckable::revert(character))
             }
@@ -78,6 +81,7 @@ impl TypedConstruct for Expression<TypeInformation> {
         match self {
             Expression::Id(_) => unreachable!(),
             Expression::Num(num) => num.update_type(type_id),
+            Expression::Bool(_) => unreachable!(),
             Expression::Character(_) => unreachable!(),
             Expression::AstString(_) => unreachable!(),
             Expression::Function(_) => unreachable!(),
@@ -97,6 +101,7 @@ impl TypedConstruct for Expression<TypeInformation> {
         match self {
             Expression::Id(id) => Ok(Expression::Id(id.validate()?)),
             Expression::Num(num) => Ok(Expression::Num(num.validate()?)),
+            Expression::Bool(bool) => Ok(Expression::Bool(bool.validate()?)),
             Expression::Character(character) => Ok(Expression::Character(character.validate()?)),
             Expression::AstString(string) => Ok(Expression::AstString(string.validate()?)),
             Expression::Function(function) => Ok(Expression::Function(function.validate()?)),

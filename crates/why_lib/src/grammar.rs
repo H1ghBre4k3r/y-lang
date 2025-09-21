@@ -49,6 +49,7 @@ mod ylang_grammar {
 
     #[derive(Debug, Clone)]
     pub enum Expression {
+        Boolean(Spanned<BooleanLiteral>),
         Identifier(Spanned<Identifier>),
         Number(Spanned<Number>),
         String(Spanned<StringLiteral>),
@@ -65,6 +66,7 @@ mod ylang_grammar {
     }
 
     #[derive(Debug, Clone)]
+    #[rust_sitter::word]
     pub struct Identifier(
         #[rust_sitter::leaf(pattern = "[_a-zA-Z][_a-zA-Z0-9]*", transform = |v| v.to_string())]
         pub Spanned<String>,
@@ -103,6 +105,14 @@ mod ylang_grammar {
         })]
         pub Spanned<char>,
     );
+
+    #[derive(Debug, Clone)]
+    pub enum BooleanLiteral {
+        #[rust_sitter::leaf(text = "true")]
+        True,
+        #[rust_sitter::leaf(text = "false")]
+        False,
+    }
 
     #[derive(Debug, Clone)]
     pub struct ParenthesizedExpression {
