@@ -1,32 +1,82 @@
 # Variables
 
-One of the building blocks of each Y program are variables. Variables are used to store values during the runtime of the program. Declaring and instantiating a variable is straight forward:
+Variables are fundamental building blocks in Y programs. They store values during program execution. Y emphasizes immutability by default, requiring explicit declaration when mutability is needed.
+
+## Variable Declaration
+
+The basic syntax for declaring a variable uses the `let` keyword:
 
 ```why
-let foo = 42;
+let x = 12;
+let a = baz(x);
+let test_char = 'a';
+let test_str = "test";
 ```
 
-This snippet creates a variable with the name `foo` and the value `42`. As you can see, a variable declaration & instantiation always consists of at least these three components:
+A variable declaration consists of:
+- The `let` keyword
+- An identifier (variable name)
+- The `=` assignment operator
+- An expression that provides the initial value
 
-- the `let` keyword
-- an identifier for the variable
-- (technically `=` to perform an assignment)
-- a value to assign to this variable
+## Type Annotations
+
+Y can infer types automatically, but you can also explicitly specify the type:
+
+```why
+let foo: u32 = 42;
+let x: (i64) -> i64 = \(x) => x;  // Function type
+let arr: &[i64] = &[];            // Array reference type
+```
 
 ## Mutability
 
-By default, variables in Y are immutable. That means, once you assigned a value to a variable, you can not re-assign this variable. E.g., the following is invalid Y code:
+Variables are **immutable by default**. Once assigned, their value cannot be changed:
 
 ```why
 let foo = 42;
-foo = 1337; // <- invalid
+foo = 1337; // Error: cannot assign to immutable variable
 ```
 
-If you want to re-assign a variable, you first need to declare this variable as mutable using the `mut` keyword:
+To create a mutable variable, use the `mut` keyword:
 
 ```why
 let mut foo = 42;
-foo = 1337;
+foo = 1337;  // Valid: foo is mutable
+
+let mut i = 0;
+while (i < 10) {
+    i = i + 1;  // Mutating i in a loop
+}
 ```
 
-This allows you to mutate variables at your own will. However, it is discouraged to just declare every variable as mutable, since this might introduce unwanted bugs to your program.
+## Practical Examples
+
+From real Y programs:
+
+```why
+fn main(): i64 {
+    // Immutable variables
+    let x = 12;
+    let a = baz(x);
+
+    // Mutable array
+    let mut arr = &[42, 1337];
+    arr[0] = 100;  // Modifying array contents
+
+    // Mutable struct
+    let mut my_struct = TestStruct {
+        x: 42,
+        bar: add
+    };
+    my_struct.x = 100;  // Modifying struct field
+
+    return x + a;
+}
+```
+
+## Best Practices
+
+- Prefer immutable variables when possible - they prevent accidental mutations and make code easier to reason about
+- Use `mut` only when you actually need to modify the variable's value
+- Choose descriptive variable names that clearly indicate their purpose
