@@ -46,13 +46,31 @@ impl<'ctx> CodeGen<'ctx> for If<ValidatedTypeInformation> {
         let then_value = then_block.codegen(ctx);
         ctx.exit_scope();
 
-        ctx.builder.build_unconditional_branch(merge_label).ok()?;
+        if ctx
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_none()
+        {
+            ctx.builder.build_unconditional_branch(merge_label).ok()?;
+        }
 
         ctx.builder.position_at_end(else_label);
 
         ctx.enter_scope();
         let else_value = else_block.codegen(ctx);
         ctx.exit_scope();
+
+        if ctx
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_none()
+        {
+            ctx.builder.build_unconditional_branch(merge_label).ok()?;
+        }
 
         ctx.builder.position_at_end(merge_label);
 
