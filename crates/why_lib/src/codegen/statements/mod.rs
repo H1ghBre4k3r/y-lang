@@ -47,7 +47,7 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
                     panic!("{e}");
                 }
             }
-            Statement::Comment(_) => todo!(),
+            Statement::Comment(_) => {}
             Statement::Declaration(declaration) => declaration.codegen(ctx),
             Statement::StructDeclaration(struct_declaration) => todo!(),
         }

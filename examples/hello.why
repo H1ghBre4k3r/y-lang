@@ -1,8 +1,12 @@
 declare printf: (str) -> void;
 
-fn main(): i64 {
-    printf("Hello, world!\n");
+fn println(val: str): void {
+    printf(val);
+    printf("\n");
+}
 
-    let ret = 0;
-    ret
+fn main(): i64 {
+    println("Hello, world!");
+
+    0
 }

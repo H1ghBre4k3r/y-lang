@@ -50,9 +50,29 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
         ctx.builder.position_at_end(llvm_fn_bb);
 
-        // TODO: implement codegen for blocks
-        for statement in &body.statements {
-            statement.codegen(ctx);
+        // Generate function body
+        let block_result = body.codegen(ctx);
+
+        // Only add return instruction if the basic block isn't already terminated
+        let current_bb = ctx.builder.get_insert_block().unwrap();
+        if current_bb.get_terminator().is_none() {
+            // No terminator means we need to add a return instruction
+            match return_value.as_ref() {
+                Type::Void => {
+                    // Void functions need explicit 'ret void' instruction
+                    ctx.builder.build_return(None).unwrap();
+                }
+                _ => {
+                    // Non-void functions should return the block result
+                    if let Some(return_value) = block_result {
+                        ctx.builder.build_return(Some(&return_value)).unwrap();
+                    } else {
+                        // If no value was produced, this is a function that should have
+                        // an explicit return statement. This is likely a type checker issue.
+                        panic!("Non-void function reached end without explicit return or yielding expression");
+                    }
+                }
+            }
         }
 
         ctx.exit_scope();
