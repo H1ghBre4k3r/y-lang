@@ -12,6 +12,7 @@ This roadmap outlines the development plan for the Y Lang programming language c
 - String literals, integer literals, variable initialization
 - Function calls and external declarations (like printf)
 - Basic control flow (simple functions work)
+- If/else expressions with proper conditional branching and LLVM codegen
 
 ### ❌ What's Missing (Many `todo!()` placeholders)
 - Lambda expressions and closures (critical missing feature)
@@ -21,7 +22,6 @@ This roadmap outlines the development plan for the Y Lang programming language c
 - Character literals
 - Float literals
 - Block expressions
-- If/else expressions
 - Method calls and instances
 - Property access
 - Assignment statements
@@ -31,6 +31,7 @@ This roadmap outlines the development plan for the Y Lang programming language c
 
 ### 🧪 Test Status
 - ✅ `examples/simple.why` - Compiles and runs successfully
+- ✅ `examples/if.why` - Compiles and runs successfully with conditional expressions
 - ❌ `examples/main.why` - Panics on lambda expressions in type checker
 - ❌ Most complex language features untested due to missing implementations
 
@@ -43,7 +44,7 @@ This roadmap outlines the development plan for the Y Lang programming language c
   - Fix panic in `examples/main.why`
   - Implement closure capture semantics
   - Add proper lifetime management
-- [ ] **If/Else Expressions** - Full conditional expression support with proper type checking
+- ✅ **If/Else Expressions** - ✅ COMPLETED: Full conditional expression support with proper type checking and LLVM codegen
 - [ ] **Block Expressions** - Scoped execution blocks with proper variable handling
 - [ ] **Arrays** - Array literals, indexing, and memory management
   - Static arrays: `[42, 1337]`
@@ -134,8 +135,7 @@ This roadmap outlines the development plan for the Y Lang programming language c
 1. **Fix Lambda Type Checking** - Resolve the panic in `examples/main.why`
 2. **Implement Block Expressions** - Required for most control flow
 3. **Add Array Support** - Critical for practical programs
-4. **Complete If/Else** - Essential conditional logic
-5. **Add While Loops** - Basic iteration support
+4. **Add While Loops** - Basic iteration support
 
 ## Architecture Considerations
 
