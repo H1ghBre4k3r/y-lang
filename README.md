@@ -198,7 +198,7 @@ Expressions
 - [ ] Character literals
 - [ ] Arrays (literal, index, mutation)
 - [ ] Struct literals and field access
-- [ ] If expressions
+- [x] If expressions
 - [ ] While loops
 - [ ] Lambda/closure literals
 
