@@ -17,18 +17,24 @@ impl TypeCheckable for If<()> {
     fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed> {
         let If {
             condition,
-            statements,
-            else_statements,
+            then_block,
+            else_block,
             position,
             ..
         } = self;
 
         let context = ctx.clone();
 
+        // Step 1: Type check the condition expression
+        // The condition must evaluate to a boolean type for the if-expression to be valid
         let condition = condition.check(ctx)?;
 
+        // Step 2: Verify the condition has boolean type
+        // If-expressions require boolean conditions - other types are rejected
         match &*condition.get_info().type_id.borrow() {
+            // Condition is correctly typed as boolean - proceed
             Some(Type::Boolean) => {}
+            // Condition has a concrete non-boolean type - this is a type error
             Some(other) => {
                 return Err(TypeCheckError::TypeMismatch(
                     TypeMismatch {
@@ -38,54 +44,53 @@ impl TypeCheckable for If<()> {
                     condition.position(),
                 ))
             }
+            // Condition has unknown type - allow it through (may be resolved later)
             _ => {}
         };
 
-        let mut checked_statements = vec![];
+        // Step 3: Type check both branches of the if-expression
+        // Both blocks are checked in the same outer scope context
+        // Individual blocks manage their own inner scopes as needed
+        let checked_then_block = then_block.check(ctx)?;
+        let checked_else_block = else_block.check(ctx)?;
 
-        for statement in statements.into_iter() {
-            checked_statements.push(statement.check(ctx)?);
-        }
-
-        let mut checked_else_statements = vec![];
-
-        for statement in else_statements.into_iter() {
-            checked_else_statements.push(statement.check(ctx)?);
-        }
-
-        let type_id = match (checked_statements.last(), checked_else_statements.last()) {
-            (Some(first), Some(last)) => {
-                let first_type = { first.get_info().type_id.borrow().clone() };
-                let last_type = { last.get_info().type_id.borrow().clone() };
-
-                // check, if types of if and else match
+        // Step 4: Determine the result type of the entire if-expression
+        // If-expressions can yield values if both branches yield compatible types
+        // Type reconciliation rules:
+        // - Both branches yield same type: if-expression has that type
+        // - Branches yield different types: type error
+        // - One or both branches yield no value: if-expression yields no value (void)
+        let type_id = match (
+            checked_then_block.info.type_id.borrow().clone(),
+            checked_else_block.info.type_id.borrow().clone(),
+        ) {
+            (first_type, last_type) => {
                 match (first_type, last_type) {
+                    // Both branches yield concrete types - they must match
                     (Some(first_type), Some(last_type)) => {
-                        // if they do not match, we have a fucky wucky
                         if first_type != last_type {
+                            // Type mismatch between branches - report error at else block
                             return Err(TypeCheckError::TypeMismatch(
                                 TypeMismatch {
                                     expected: first_type,
                                     actual: last_type,
                                 },
-                                last.position(),
+                                checked_else_block.position,
                             ));
                         }
-                        // otherwise (e.g., in case of both being None), we simply return the type
-                        // of the if branch
+                        // Both branches have the same type - if-expression yields that type
                         Rc::new(RefCell::new(Some(first_type)))
                     }
+                    // At least one branch yields no value - if-expression yields no value
                     _ => Rc::new(RefCell::new(None)),
                 }
-            }
-            // if we do not have if & else, we simply return void as a type
-            _ => Rc::new(RefCell::new(Some(Type::Void))),
+            } // Fallback case for missing type information - treat as void
         };
 
         Ok(If {
             condition: Box::new(condition),
-            statements: checked_statements,
-            else_statements: checked_else_statements,
+            then_block: checked_then_block,
+            else_block: checked_else_block,
             info: TypeInformation { type_id, context },
             position,
         })
@@ -94,18 +99,18 @@ impl TypeCheckable for If<()> {
     fn revert(this: &Self::Typed) -> Self {
         let If {
             condition,
-            statements,
-            else_statements,
+            then_block,
+            else_block,
             position,
             ..
         } = this;
 
         If {
             condition: Box::new(TypeCheckable::revert(condition.as_ref())),
-            statements: statements.iter().map(TypeCheckable::revert).collect(),
-            else_statements: else_statements.iter().map(TypeCheckable::revert).collect(),
-            info: (),
+            then_block: TypeCheckable::revert(then_block),
+            else_block: TypeCheckable::revert(else_block),
             position: position.clone(),
+            info: (),
         }
     }
 }
@@ -116,26 +121,16 @@ impl TypedConstruct for If<TypeInformation> {
     fn validate(self) -> Result<Self::Validated, TypeValidationError> {
         let If {
             condition,
-            statements,
-            else_statements,
+            then_block,
+            else_block,
             info,
             position,
         } = self;
 
-        let mut validated_statements = vec![];
-        for statement in statements {
-            validated_statements.push(statement.validate()?);
-        }
-
-        let mut validated_else_statements = vec![];
-        for statement in else_statements {
-            validated_else_statements.push(statement.validate()?);
-        }
-
         Ok(If {
             condition: Box::new(condition.validate()?),
-            statements: validated_statements,
-            else_statements: validated_else_statements,
+            then_block: then_block.validate()?,
+            else_block: else_block.validate()?,
             info: info.validate(&position)?,
             position,
         })
@@ -150,7 +145,7 @@ mod tests {
 
     use crate::{
         lexer::Span,
-        parser::ast::{Expression, Id, If, Statement},
+        parser::ast::{Block, Expression, Id, If, Statement},
         typechecker::{
             context::Context,
             error::{TypeCheckError, TypeMismatch},
@@ -181,8 +176,16 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![],
-            else_statements: vec![],
+            then_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
+            else_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
             info: (),
             position: Span::default(),
         };
@@ -216,8 +219,16 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![],
-            else_statements: vec![],
+            then_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
+            else_block: Block {
+                statements: vec![],
+                position: Span::default(),
+                info: (),
+            },
             info: (),
             position: Span::default(),
         };
@@ -284,16 +295,24 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![Statement::Expression(Expression::Id(Id {
-                name: "bar".into(),
+            then_block: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                    name: "bar".into(),
+                    info: (),
+                    position: Span::default(),
+                }))],
                 info: (),
                 position: Span::default(),
-            }))],
-            else_statements: vec![Statement::Expression(Expression::Id(Id {
-                name: "baz".into(),
+            },
+            else_block: Block {
+                statements: vec![Statement::YieldingExpression(Expression::Id(Id {
+                    name: "baz".into(),
+                    info: (),
+                    position: Span::default(),
+                }))],
                 info: (),
                 position: Span::default(),
-            }))],
+            },
             info: (),
             position: Span::default(),
         };
@@ -348,12 +367,20 @@ mod tests {
                 info: (),
                 position: Span::default(),
             })),
-            statements: vec![Statement::Expression(Expression::Id(Id {
-                name: "bar".into(),
+            then_block: Block {
+                statements: vec![Statement::Expression(Expression::Id(Id {
+                    name: "bar".into(),
+                    info: (),
+                    position: Span::default(),
+                }))],
                 info: (),
                 position: Span::default(),
-            }))],
-            else_statements: vec![],
+            },
+            else_block: Block {
+                statements: vec![],
+                info: (),
+                position: Span::default(),
+            },
             info: (),
             position: Span::default(),
         };

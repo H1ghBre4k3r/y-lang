@@ -13,7 +13,7 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let Function {
             id,
             parameters,
-            statements,
+            body,
             info:
                 ValidatedTypeInformation {
                     type_id:
@@ -50,7 +50,8 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
         ctx.builder.position_at_end(llvm_fn_bb);
 
-        for statement in statements {
+        // TODO: implement codegen for blocks
+        for statement in &body.statements {
             statement.codegen(ctx);
         }
 
