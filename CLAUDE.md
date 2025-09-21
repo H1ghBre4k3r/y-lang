@@ -30,7 +30,6 @@ The project uses Just as a task runner alongside Cargo. Common commands:
 ### Workspace Structure
 - **Root crate** (`y-lang`): Contains CLI interface and three binaries
 - **why_lib**: Core language implementation library
-- **lex_derive**: Procedural macro crate for lexer generation
 
 ### Binaries
 - **yc**: Main compiler binary (`src/bin/yc.rs`)
@@ -43,7 +42,7 @@ The language implementation follows a traditional compiler pipeline:
 
 1. **Grammar** (`src/grammar.rs`): Uses rust-sitter to define language grammar with procedural macros. The grammar defines the concrete syntax tree structure.
 
-2. **Lexer** (`src/lexer/`): Tokenizes source code using pattern matching and regex-based token recognition.
+2. **Lexer** (`src/lexer/`): Provides error reporting utilities including the Span struct for precise error location tracking with colored output.
 
 3. **Parser** (`src/parser/`): Transforms tokens into an Abstract Syntax Tree (AST). Contains:
    - `ast/`: AST node definitions organized by statement and expression types

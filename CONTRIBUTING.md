@@ -26,11 +26,11 @@ This repo contains:
 - Examples in examples/
 
 High-level pipeline (why_lib):
-1) Lexing → 2) Parsing (AST) → 3) Type checking (inference + validation) → 4) Codegen (LLVM via Inkwell)
+1) Lexing (rust-sitter) → 2) Parsing (AST) → 3) Type checking (inference + validation) → 4) Codegen (LLVM via Inkwell)
 
 Key paths:
 - Grammar: crates/why_lib/src/grammar.rs
-- Lexer: crates/why_lib/src/lexer/
+- Lexer: crates/why_lib/src/lexer/ (error reporting utilities)
 - Parser + AST: crates/why_lib/src/parser/
 - Type checker: crates/why_lib/src/typechecker/
 - Codegen: crates/why_lib/src/codegen/
@@ -87,7 +87,7 @@ LSP server
 
 ## Adding language features
 When adding or changing a language feature:
-1) Grammar: update crates/why_lib/src/grammar.rs
+1) Grammar: update crates/why_lib/src/grammar.rs (rust-sitter handles tokenization automatically)
 2) AST: add/adjust nodes in crates/why_lib/src/parser/ast/**
 3) Type system: update crates/why_lib/src/typechecker/**
 4) Codegen: implement lowering in crates/why_lib/src/codegen/** (Inkwell/LLVM)
