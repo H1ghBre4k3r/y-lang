@@ -3,12 +3,12 @@ struct Foo {
 }
 
 fn b(): i64 {
-    42
+    17
 }
 
 fn main(): void {
-    let a = Foo {
-        b: 1337
+    let mut a = Foo {
+        b: b()
     };
 
     a.b = 42;
