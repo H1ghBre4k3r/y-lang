@@ -5,8 +5,17 @@ fn println(val: str): void {
     printf("\n");
 }
 
+fn test(val: str, ret: i64): i64 {
+    println(val);
+
+    ret
+}
+
 fn main(): i64 {
     println("Hello, world!");
 
-    0
+    let x = "Test";
+    println(x);
+
+    test("Foo", 42)
 }

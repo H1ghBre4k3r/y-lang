@@ -1,7 +1,7 @@
 use inkwell::types::{BasicMetadataTypeEnum, FunctionType};
 
 use crate::{
-    codegen::{CodeGen, CodegenContext},
+    codegen::{convert_metadata_to_basic, CodeGen, CodegenContext},
     parser::ast::{Function, FunctionParameter},
     typechecker::{Type, ValidatedTypeInformation},
 };
@@ -35,6 +35,9 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         let llvm_fn_value = ctx.module.add_function(&id.name, llvm_fn_type, None);
         ctx.store_function(&id.name, llvm_fn_value);
 
+        let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
+        ctx.builder.position_at_end(llvm_fn_bb);
+
         // enter scope for function parameters and local variables
         ctx.enter_scope();
         for (i, param) in parameters.iter().enumerate() {
@@ -44,11 +47,26 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
                 .get_nth_param(i as u32)
                 .expect("There should be this parameter");
 
-            ctx.store_variable(&name.name, llvm_param_value);
-        }
+            // Create alloca for parameter to make it consistent with local variables
+            let param_type = &params[i];
+            let llvm_param_type = ctx.get_llvm_type(param_type);
+            let Some(basic_type) = convert_metadata_to_basic(llvm_param_type) else {
+                // For non-basic types, store parameter directly (fallback)
+                ctx.store_variable(&name.name, llvm_param_value);
+                continue;
+            };
 
-        let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
-        ctx.builder.position_at_end(llvm_fn_bb);
+            let llvm_alloca = ctx
+                .builder
+                .build_alloca(basic_type, &name.name)
+                .expect("build_alloca failed for parameter");
+
+            if let Err(e) = ctx.builder.build_store(llvm_alloca, llvm_param_value) {
+                panic!("Failed to store parameter value: {e}");
+            }
+
+            ctx.store_variable(&name.name, llvm_alloca.into());
+        }
 
         // Generate function body
         let block_result = body.codegen(ctx);
