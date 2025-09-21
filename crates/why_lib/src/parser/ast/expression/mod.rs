@@ -1,6 +1,7 @@
 mod array;
 mod binary;
 mod block;
+mod bool;
 mod character;
 mod function;
 mod id;
@@ -15,6 +16,7 @@ mod struct_initialisation;
 pub use self::array::*;
 pub use self::binary::*;
 pub use self::block::*;
+pub use self::bool::*;
 pub use self::character::*;
 pub use self::function::*;
 pub use self::id::*;
@@ -32,11 +34,11 @@ use crate::lexer::Span;
 
 use super::AstNode;
 
-// TODO: introduce Expression::Bool(_)
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Expression<T> {
     Id(Id<T>),
     Num(Num<T>),
+    Bool(Bool<T>),
     Character(Character<T>),
     AstString(AstString<T>),
     Function(Function<T>),
@@ -59,6 +61,7 @@ where
         match self {
             Expression::Id(Id { name: _, info, .. }) => info.clone(),
             Expression::Num(num) => num.get_info(),
+            Expression::Bool(Bool { info, .. }) => info.clone(),
             Expression::Character(Character { info, .. }) => info.clone(),
             Expression::AstString(AstString { info, .. }) => info.clone(),
             Expression::Function(Function { info, .. }) => info.clone(),
@@ -78,6 +81,7 @@ where
         match self {
             Expression::Id(Id { position, .. }) => position.clone(),
             Expression::Num(num) => num.position(),
+            Expression::Bool(Bool { position, .. }) => position.clone(),
             Expression::Character(Character { position, .. }) => position.clone(),
             Expression::AstString(AstString { position, .. }) => position.clone(),
             Expression::Function(Function { position, .. }) => position.clone(),
@@ -105,6 +109,9 @@ impl FromGrammar<grammar::Expression> for Expression<()> {
                 Expression::Id(Id::transform(identifier, source))
             }
             grammar::Expression::Number(number) => Expression::Num(Num::transform(number, source)),
+            grammar::Expression::Boolean(boolean_literal) => {
+                Expression::Bool(Bool::transform(boolean_literal, source))
+            }
             grammar::Expression::String(string_literal) => {
                 Expression::AstString(AstString::transform(string_literal, source))
             }
