@@ -34,7 +34,6 @@ An experimental, expression-centric programming language implemented in Rust. Y 
     - src/bin/yls.rs — language server (LSP over stdio)
 - crates/
   - why_lib — core implementation (lexer, parser, typechecker, codegen)
-  - lex_derive — procedural macros for lexer generation
 - docs/
   - src — mdBook sources for language/implementation docs
   - book — prebuilt HTML (if present)
