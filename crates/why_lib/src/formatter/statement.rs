@@ -154,6 +154,7 @@ impl Format for Instance<()> {
 
         let total_items = self.functions.len() + self.declarations.len();
         if total_items > 0 {
+            ctx.indent();
             ctx.write_newline()?;
             let mut item_count = 0;
 
@@ -176,6 +177,7 @@ impl Format for Instance<()> {
                 ctx.write_newline()?;
                 item_count += 1;
             }
+            ctx.dedent();
         }
 
         ctx.write("}")

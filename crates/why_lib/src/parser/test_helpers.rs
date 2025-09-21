@@ -11,7 +11,7 @@ pub fn parse_expression(code: &str) -> Result<Expression<()>, String> {
     if let Some(statement) = program.statements.first() {
         let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
         if let TopLevelStatement::Function(function) = top_level {
-            if let Some(Statement::Expression(expr)) = function.statements.first() {
+            if let Some(Statement::Expression(expr)) = function.body.statements.first() {
                 return Ok(expr.clone());
             }
         }
@@ -28,7 +28,7 @@ pub fn parse_statement(code: &str) -> Result<Statement<()>, String> {
     if let Some(statement) = program.statements.first() {
         let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
         if let TopLevelStatement::Function(function) = top_level {
-            if let Some(stmt) = function.statements.first() {
+            if let Some(stmt) = function.body.statements.first() {
                 return Ok(stmt.clone());
             }
         }
@@ -89,7 +89,7 @@ pub fn parse_yielding_expression(code: &str) -> Result<Expression<()>, String> {
     if let Some(statement) = program.statements.first() {
         let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
         if let TopLevelStatement::Function(function) = top_level {
-            if let Some(Statement::YieldingExpression(expr)) = function.statements.first() {
+            if let Some(Statement::YieldingExpression(expr)) = function.body.statements.first() {
                 return Ok(expr.clone());
             }
         }
@@ -194,7 +194,7 @@ pub fn parse_initialization(code: &str) -> Result<crate::parser::ast::Initialisa
     if let Some(statement) = program.statements.first() {
         let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
         if let TopLevelStatement::Function(function) = top_level {
-            if let Some(Statement::Initialization(init)) = function.statements.first() {
+            if let Some(Statement::Initialization(init)) = function.body.statements.first() {
                 return Ok(init.clone());
             }
         }
@@ -211,7 +211,7 @@ pub fn parse_assignment(code: &str) -> Result<crate::parser::ast::Assignment<()>
     if let Some(statement) = program.statements.first() {
         let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
         if let TopLevelStatement::Function(function) = top_level {
-            if let Some(Statement::Assignment(assignment)) = function.statements.first() {
+            if let Some(Statement::Assignment(assignment)) = function.body.statements.first() {
                 return Ok(assignment.clone());
             }
         }
@@ -230,7 +230,7 @@ pub fn parse_block(code: &str) -> Result<crate::parser::ast::Block<()>, String> 
         if let TopLevelStatement::Function(function) = top_level {
             // Return a Block constructed from the function's statements
             return Ok(crate::parser::ast::Block {
-                statements: function.statements,
+                statements: function.body.statements,
                 info: (),
                 position: crate::lexer::Span::default(),
             });
@@ -249,7 +249,7 @@ pub fn parse_bool(code: &str) -> Result<crate::parser::ast::Bool<()>, String> {
         let top_level = TopLevelStatement::transform(statement.clone(), &wrapped);
         if let TopLevelStatement::Function(function) = top_level {
             if let Some(Statement::Expression(Expression::Bool(bool_val))) =
-                function.statements.first()
+                function.body.statements.first()
             {
                 return Ok(bool_val.clone());
             }

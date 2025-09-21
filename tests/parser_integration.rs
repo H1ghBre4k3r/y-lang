@@ -22,9 +22,9 @@ fn test_simple_function() {
             assert_eq!(func.id.name, "main");
             assert_eq!(func.parameters.len(), 0);
             assert!(matches!(func.return_type, TypeName::Literal(ref name, _) if name == "i32"));
-            assert_eq!(func.statements.len(), 1);
+            assert_eq!(func.body.statements.len(), 1);
             assert!(matches!(
-                func.statements[0],
+                func.body.statements[0],
                 Statement::YieldingExpression(Expression::Num(Num::Integer(42, (), _)))
             ));
         }
@@ -48,8 +48,8 @@ fn test_variable_declaration() {
     assert_eq!(statements.len(), 1);
     match &statements[0] {
         TopLevelStatement::Function(func) => {
-            assert_eq!(func.statements.len(), 1);
-            match &func.statements[0] {
+            assert_eq!(func.body.statements.len(), 1);
+            match &func.body.statements[0] {
                 Statement::Initialization(init) => {
                     assert_eq!(init.id.name, "x");
                     assert!(
@@ -115,7 +115,7 @@ fn test_binary_expression() {
         .collect::<Vec<_>>();
 
     match &statements[0] {
-        TopLevelStatement::Function(func) => match &func.statements[0] {
+        TopLevelStatement::Function(func) => match &func.body.statements[0] {
             Statement::YieldingExpression(Expression::Binary(binary)) => {
                 assert!(matches!(binary.operator, BinaryOperator::Add));
                 assert!(matches!(
@@ -150,18 +150,18 @@ fn test_if_expression() {
 
     match &statements[0] {
         TopLevelStatement::Function(func) => {
-            match &func.statements[0] {
+            match &func.body.statements[0] {
                 Statement::Expression(Expression::If(if_expr)) => {
                     // Check condition - should be true
                     // Check then statements - should have one statement (42;)
-                    assert_eq!(if_expr.statements.len(), 1);
+                    assert_eq!(if_expr.then_block.statements.len(), 1);
                     assert!(matches!(
-                        if_expr.statements[0],
+                        if_expr.then_block.statements[0],
                         Statement::Expression(Expression::Num(Num::Integer(42, (), _)))
                     ));
-                    assert_eq!(if_expr.else_statements.len(), 0);
+                    assert_eq!(if_expr.else_block.statements.len(), 0);
                 }
-                _ => panic!("Expected if expression, got {:?}", &func.statements[0]),
+                _ => panic!("Expected if expression, got {:?}", &func.body.statements[0]),
             }
         }
         _ => panic!("Expected function declaration"),
@@ -183,7 +183,7 @@ fn test_array_literal() {
 
     match &statements[0] {
         TopLevelStatement::Function(func) => {
-            match &func.statements[0] {
+            match &func.body.statements[0] {
                 Statement::Expression(Expression::Array(Array::Literal { values, .. })) => {
                     assert_eq!(values.len(), 3);
                     // Check all values are numbers
@@ -215,7 +215,7 @@ fn test_struct_initialization() {
         .collect::<Vec<_>>();
 
     match &statements[0] {
-        TopLevelStatement::Function(func) => match &func.statements[0] {
+        TopLevelStatement::Function(func) => match &func.body.statements[0] {
             Statement::Expression(Expression::StructInitialisation(struct_init)) => {
                 assert_eq!(struct_init.id.name, "Point");
                 assert_eq!(struct_init.fields.len(), 2);
@@ -289,7 +289,7 @@ fn test_while_loop() {
 
     match &statements[0] {
         TopLevelStatement::Function(func) => {
-            match &func.statements[0] {
+            match &func.body.statements[0] {
                 Statement::WhileLoop(while_loop) => {
                     // Should have true as condition and break statement in block
                     assert_eq!(while_loop.block.statements.len(), 1);
@@ -357,6 +357,6 @@ fn test_complex_program() {
     if let TopLevelStatement::Function(func) = &statements[2] {
         assert_eq!(func.id.name, "main");
         assert_eq!(func.parameters.len(), 0);
-        assert!(func.statements.len() > 0); // Should have multiple statements in body
+        assert!(!func.body.statements.is_empty());
     }
 }

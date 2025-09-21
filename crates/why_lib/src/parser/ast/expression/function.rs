@@ -1,7 +1,7 @@
 use crate::{
     grammar::{self, FromGrammar},
     lexer::Span,
-    parser::ast::{AstNode, Statement, TypeName},
+    parser::ast::{AstNode, TypeName},
 };
 
 use super::{Block, Id};
@@ -11,7 +11,7 @@ pub struct Function<T> {
     pub id: Id<T>,
     pub parameters: Vec<FunctionParameter<T>>,
     pub return_type: TypeName,
-    pub statements: Vec<Statement<T>>,
+    pub body: Block<T>,
     pub info: T,
     pub position: Span,
 }
@@ -31,7 +31,7 @@ impl FromGrammar<grammar::FunctionDeklaration> for Function<()> {
                 .map(|param| FunctionParameter::transform(param, source))
                 .collect(),
             return_type: TypeName::transform(value.type_annotation.type_name, source),
-            statements: block.statements,
+            body: block,
             info: (),
             position: Span::new(span, source),
         }
@@ -74,6 +74,7 @@ impl From<FunctionParameter<()>> for AstNode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::ast::Statement;
     use crate::parser::test_helpers::*;
 
     #[test]
@@ -82,7 +83,7 @@ mod tests {
         assert_eq!(result.id.name, "foo");
         assert_eq!(result.parameters.len(), 0);
         assert!(matches!(result.return_type, TypeName::Literal(ref name, _) if name == "i32"));
-        assert_eq!(result.statements.len(), 0);
+        assert_eq!(result.body.statements.len(), 0);
     }
 
     #[test]
@@ -127,8 +128,11 @@ mod tests {
     fn test_function_with_body_statements() {
         let result = parse_function("fn test(): void { let x: i32 = 42; }").unwrap();
         assert_eq!(result.id.name, "test");
-        assert_eq!(result.statements.len(), 1);
-        assert!(matches!(result.statements[0], Statement::Initialization(_)));
+        assert_eq!(result.body.statements.len(), 1);
+        assert!(matches!(
+            result.body.statements[0],
+            Statement::Initialization(_)
+        ));
     }
 
     #[test]
