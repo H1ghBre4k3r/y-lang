@@ -1,174 +1,124 @@
-mod token;
+use colored::Colorize;
 
-pub use token::*;
+#[derive(Default, Debug, Clone, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Span {
+    pub start: (usize, usize),
+    pub end: (usize, usize),
+    pub source: String,
+}
 
-use std::{error::Error, fmt::Display};
+pub fn indices_to_row_col(s: &str, start: usize, end: usize) -> ((usize, usize), (usize, usize)) {
+    let max_index = start.max(end);
+    let mut line_starts = vec![0]; // First line starts at byte 0
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct LexError(String);
-
-pub type LexResult<T> = Result<T, LexError>;
-
-impl Display for LexError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.as_str())
+    // Collect line start positions up to max_index
+    if max_index > 0 {
+        for (i, c) in s.char_indices() {
+            if i > max_index {
+                break; // No need to process beyond max_index
+            }
+            if c == '\n' {
+                line_starts.push(i + 1); // Next line starts after '\n'
+            }
+        }
     }
+
+    // Helper to convert a byte index to (row, col)
+    let get_pos = |pos: usize| {
+        // Find the last line start <= pos
+        let row_index = line_starts.partition_point(|&x| x <= pos) - 1;
+        let col = pos - line_starts[row_index];
+        (row_index, col)
+    };
+
+    (get_pos(start), get_pos(end))
 }
 
-impl Error for LexError {}
+impl Span {
+    pub fn new((start, end): (usize, usize), source: &str) -> Self {
+        let (start, end) = indices_to_row_col(source, start, end);
 
-pub struct Lexer<'a> {
-    tokens: Vec<Token>,
-    lexikon: Lexikon,
-    position: usize,
-    col: usize,
-    line: usize,
-    input: &'a str,
-}
-
-impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Self {
         Self {
-            tokens: vec![],
-            lexikon: Lexikon::new(),
-            position: 0,
-            col: 0,
-            line: 0,
-            input,
+            start,
+            end,
+            source: source.to_string(),
         }
     }
 
-    fn eat_whitespace(&mut self) {
-        while let Some(c) = self.input.as_bytes().get(self.position) {
-            if !c.is_ascii_whitespace() {
-                return;
-            }
+    pub fn to_string(&self, msg: impl ToString) -> String {
+        let Span { start, end, source } = self;
+        let line = start.0;
+        let lines = source.lines().collect::<Vec<_>>();
+        let prev_line = if line > 0 { lines[line - 1] } else { "" };
+        let line_str = if lines.len() > line { lines[line] } else { "" };
 
-            if *c == b'\n' {
-                self.line += 1;
-                self.col = 0;
-            } else {
-                self.col += 1;
-            }
-            self.position += 1;
-        }
+        // margin _before_ left border
+        let left_margin = format!("{}", end.0).len();
+        let left_margin_fill = vec![' '; left_margin].iter().collect::<String>();
+
+        // split right at the start of the error in the first line
+        let (left, right) = line_str.split_at(start.1);
+
+        // some case magic
+        let (left, right) = if start.0 != end.0 {
+            // if the error ranges over more than a single line, we can just mark rest of the line
+            // as an error
+            (left.to_string(), right.to_string().red().to_string())
+        } else {
+            // however, if the lines does not range beyond this line, we need to split at the end
+            // again
+            let (err_str, after_err) = right.split_at(end.1 - start.1);
+
+            // now, just color the error part red
+            (
+                left.to_string(),
+                format!("{err_str}{after_err}", err_str = err_str.to_string().red()),
+            )
+        };
+
+        // and concatentate both together
+        let line_str = format!("{left}{right}");
+
+        // padding between border and squiggles
+        let left_padding_fill = vec![' '; if end.1 > 0 { end.1 - 1 } else { 0 }]
+            .iter()
+            .collect::<String>();
+
+        // the error with the first line
+        let mut error_string = format!(
+            "{left_margin_fill} |\n{left_margin_fill} |{prev_line} \n{line} |{line_str}",
+            line = line + 1
+        );
+
+        // iterate over all lines of the error and make them shine red
+        ((start.0 + 1)..(end.0 + 1)).for_each(|line_number| {
+            error_string = format!(
+                "{error_string}\n{left_margin_fill} |{}",
+                lines[line_number].to_string().red()
+            );
+        });
+
+        // actually add error message at bottom
+        error_string = format!(
+            "{error_string}\n{} |{left_padding_fill}^--- {}\n{left_margin_fill} |",
+            end.0 + 2,
+            msg.to_string()
+        );
+
+        error_string
     }
 
-    pub fn lex(mut self) -> LexResult<Vec<Token>> {
-        while self.position != self.input.len() {
-            self.eat_whitespace();
-            let (len, res) = self
-                .lexikon
-                .find_longest_match(
-                    &self.input[self.position..],
-                    (self.line, self.col),
-                    self.input.to_string(),
-                )
-                .clone();
+    pub fn merge(&self, other: &Span) -> Span {
+        let Span { start, source, .. } = self.clone();
+        let Span { end, .. } = other.clone();
 
-            match res {
-                Some(t) => self.tokens.push(t),
-                None => {
-                    if self.position == self.input.len() {
-                        return Ok(self.tokens);
-                    }
-                    return Err(LexError(format!(
-                        "Failed to lex '{}' at position {}; remaining '{}'",
-                        self.input,
-                        self.position,
-                        &self.input[self.position..]
-                    )));
-                }
-            };
-            self.position += len;
-            self.col += len;
-        }
-
-        Ok(self.tokens)
+        Span { start, end, source }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_lex_alphabetic_id() {
-        let lexer = Lexer::new("letter");
-
-        assert_eq!(
-            Ok(vec![Token::Id {
-                value: "letter".into(),
-                position: Span::default(),
-            }]),
-            lexer.lex()
-        )
-    }
-
-    #[test]
-    fn test_lex_numeric() {
-        let lexer = Lexer::new("1337");
-
-        assert_eq!(
-            Ok(vec![Token::Integer {
-                value: 1337,
-                position: Span::default(),
-            }]),
-            lexer.lex()
-        )
-    }
-
-    #[test]
-    fn test_lex_function() {
-        let lexer = Lexer::new("fn () {}");
-
-        assert_eq!(
-            Ok(vec![
-                Token::FnKeyword {
-                    position: Span::default(),
-                },
-                Token::LParen {
-                    position: Span::default(),
-                },
-                Token::RParen {
-                    position: Span::default(),
-                },
-                Token::LBrace {
-                    position: Span::default(),
-                },
-                Token::RBrace {
-                    position: Span::default(),
-                }
-            ]),
-            lexer.lex()
-        );
-    }
-
-    #[test]
-    fn test_lex_let() {
-        let lexer = Lexer::new("let foo = 42;");
-
-        assert_eq!(
-            Ok(vec![
-                Token::Let {
-                    position: Span::default(),
-                },
-                Token::Id {
-                    value: "foo".into(),
-                    position: Span::default(),
-                },
-                Token::Assign {
-                    position: Span::default(),
-                },
-                Token::Integer {
-                    value: 42,
-                    position: Span::default(),
-                },
-                Token::Semicolon {
-                    position: Span::default(),
-                }
-            ]),
-            lexer.lex()
-        );
+impl PartialEq<Span> for Span {
+    fn eq(&self, _other: &Span) -> bool {
+        // TODO: maybe this should not be the case...
+        true
     }
 }
