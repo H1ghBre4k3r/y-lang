@@ -1,0 +1,9 @@
+fn main(): i64 {
+    let test = true;
+
+    if (test) {
+        10
+    } else {
+        42
+    }
+}
