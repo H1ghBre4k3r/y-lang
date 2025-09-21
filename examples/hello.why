@@ -1,0 +1,8 @@
+declare printf: (str) -> void;
+
+fn main(): i64 {
+    printf("Hello, world!\n");
+
+    let ret = 0;
+    ret
+}

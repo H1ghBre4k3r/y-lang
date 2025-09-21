@@ -4,7 +4,7 @@ pub mod initialisation;
 
 use crate::{
     parser::ast::{Statement, TopLevelStatement},
-    typechecker::ValidatedTypeInformation,
+    typechecker::{Type, ValidatedTypeInformation},
 };
 
 use super::{CodeGen, CodegenContext};
@@ -22,7 +22,22 @@ impl<'ctx> CodeGen<'ctx> for Statement<ValidatedTypeInformation> {
             Statement::Expression(expression) => {
                 expression.codegen(ctx);
             }
-            Statement::YieldingExpression(expression) => todo!(),
+            Statement::YieldingExpression(expression) => {
+                let llvm_return_value = expression.codegen(ctx);
+
+                if expression.get_info().type_id == Type::Void {
+                    if let Err(e) = ctx.builder.build_return(None) {
+                        panic!("{e}");
+                    }
+                } else {
+                    let Some(llvm_return_value) = llvm_return_value else {
+                        unreachable!("YieldingExpression should always produce a value")
+                    };
+                    if let Err(e) = ctx.builder.build_return(Some(&llvm_return_value)) {
+                        panic!("{e}");
+                    }
+                }
+            }
             Statement::Return(expression) => {
                 let Some(llvm_return_value) = expression.codegen(ctx) else {
                     unreachable!()
