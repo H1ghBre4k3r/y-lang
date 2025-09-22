@@ -6,6 +6,29 @@ use crate::{
     typechecker::{Type, ValidatedTypeInformation},
 };
 
+const Y_MAIN: &str = "y_main";
+
+fn generate_main_wrapper(ctx: &CodegenContext) {
+    let llvm_int_type = ctx.get_llvm_type(&Type::Integer).into_int_type();
+    let llvm_fn_type = llvm_int_type.fn_type(&[], false);
+
+    let llvm_fn_value = ctx.module.add_function("main", llvm_fn_type, None);
+    ctx.store_function("main", llvm_fn_value);
+
+    let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
+    ctx.builder.position_at_end(llvm_fn_bb);
+
+    let y_main = ctx.find_function(Y_MAIN);
+    if let Err(e) = ctx.builder.build_call(y_main, &[], "") {
+        unreachable!("Call to main from main wrapper should always succeed. {e}")
+    };
+
+    let zero = llvm_int_type.const_zero();
+    if let Err(e) = ctx.builder.build_return(Some(&zero)) {
+        unreachable!("Return from main wrapper should always succeed. {e}")
+    }
+}
+
 impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
     type ReturnValue = ();
 
@@ -29,11 +52,15 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
             unreachable!()
         };
 
+        // check if we need to wrap the void main function of the why program in an int main function
+        let needs_main_wrapper = **return_value == Type::Void && id.name == "main";
+        let fn_name = if needs_main_wrapper { Y_MAIN } else { &id.name };
+
         let llvm_fn_type = build_llvm_function_type_from_own_types(ctx, return_value, params);
 
         // get function value and store it in the scope (such that it can be referenced later)
-        let llvm_fn_value = ctx.module.add_function(&id.name, llvm_fn_type, None);
-        ctx.store_function(&id.name, llvm_fn_value);
+        let llvm_fn_value = ctx.module.add_function(fn_name, llvm_fn_type, None);
+        ctx.store_function(fn_name, llvm_fn_value);
 
         let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
         ctx.builder.position_at_end(llvm_fn_bb);
@@ -96,6 +123,10 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
         }
 
         ctx.exit_scope();
+
+        if needs_main_wrapper {
+            generate_main_wrapper(ctx);
+        }
     }
 }
 

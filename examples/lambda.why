@@ -1,1 +1,19 @@
-fn main(): void {}
+declare printf: (str) -> void;
+
+fn println(value: str): void {
+    printf(value);
+    printf("\n");
+}
+
+fn main(): void {
+    let foo = false;
+
+    let message = "Hello, world!";
+
+    if (foo) {
+        println(message);
+    } else {
+        let other_message = "Nope";
+        println(other_message);
+    }
+}
