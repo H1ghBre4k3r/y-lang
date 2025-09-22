@@ -354,8 +354,8 @@ jobs:
             os: ubuntu-latest
           - target: aarch64-apple-darwin
             os: macos-14
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
+          # - target: x86_64-pc-windows-msvc
+          #   os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -493,4 +493,3 @@ jobs:
           prerelease: ${{ needs.update-version.outputs.is_prerelease == 'true' }}
           generate_release_notes: false
           token: ${{ secrets.GITHUB_TOKEN }}
-
