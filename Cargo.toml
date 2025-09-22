@@ -11,7 +11,7 @@ repository = "https://github.com/H1ghBre4k3r/y-lang"
 members = ["crates/why_lib"]
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 clap = { version = "4.5.47", features = ["derive"] }
 serde = { version = "1.0.226", features = ["derive"] }
 serde_json = "1.0.143"

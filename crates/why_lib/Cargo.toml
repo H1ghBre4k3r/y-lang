@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/H1ghBre4k3r/y-parser"
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 colored = "3.0.0"
 inkwell = { version = "0.6.0", features = ["llvm18-1"] }
 serde = { version = "1.0.226", features = ["derive"] }
