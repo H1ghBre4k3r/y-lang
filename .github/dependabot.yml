@@ -5,10 +5,6 @@ updates:
     schedule:
       interval: "daily"
   - package-ecosystem: "cargo"
-    directory: "crates/lex_derive"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "cargo"
     directory: "crates/why_lib"
     schedule:
       interval: "daily"
