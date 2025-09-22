@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Expression, Id, Lambda, LambdaParameter},
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{RedefinedConstant, TypeCheckError, TypeMismatch},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -173,16 +173,16 @@ impl TypedConstruct for Lambda<TypeInformation> {
             <Expression<()> as TypeCheckable>::revert(self.expression.as_ref()).check(&mut ctx)?;
 
         // check, if return types match
-        if let Some(expr_type) = expr.get_info().type_id.borrow_mut().as_ref() {
-            if *expr_type != *return_value {
-                return Err(TypeCheckError::TypeMismatch(
-                    TypeMismatch {
-                        expected: expr_type.clone(),
-                        actual: *return_value.clone(),
-                    },
-                    expr.position(),
-                ));
-            }
+        if let Some(expr_type) = expr.get_info().type_id.borrow_mut().as_ref()
+            && *expr_type != *return_value
+        {
+            return Err(TypeCheckError::TypeMismatch(
+                TypeMismatch {
+                    expected: expr_type.clone(),
+                    actual: *return_value.clone(),
+                },
+                expr.position(),
+            ));
         }
 
         // update types of parameters accordingly
@@ -314,7 +314,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Expression, Id, Initialisation, Lambda, LambdaParameter, Num, TypeName},
-        typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation},
+        typechecker::{TypeCheckable, TypeInformation, context::Context, types::Type},
     };
 
     #[test]
@@ -463,16 +463,17 @@ mod tests {
             },
         )?;
 
-        assert!(ctx
-            .scope
-            .update_variable(
-                "foo",
-                Type::Function {
-                    params: vec![Type::FloatingPoint],
-                    return_value: Box::new(Type::Integer),
-                },
-            )
-            .is_err());
+        assert!(
+            ctx.scope
+                .update_variable(
+                    "foo",
+                    Type::Function {
+                        params: vec![Type::FloatingPoint],
+                        return_value: Box::new(Type::Integer),
+                    },
+                )
+                .is_err()
+        );
         Ok(())
     }
 }

@@ -17,8 +17,8 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::Expression,
     typechecker::{
-        context::Context, error::TypeCheckError, types::Type, TypeCheckable, TypeInformation,
-        TypeResult, TypedConstruct,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct, context::Context,
+        error::TypeCheckError, types::Type,
     },
 };
 

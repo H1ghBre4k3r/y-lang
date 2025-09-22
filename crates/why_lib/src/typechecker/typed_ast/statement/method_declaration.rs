@@ -4,8 +4,8 @@ use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInfor
 use crate::{
     parser::ast::{Id, MethodDeclaration, TypeName},
     typechecker::{
-        context::Context, error::RedefinedFunction, types::Type, ShallowCheck, TypeCheckError,
-        TypeCheckable, TypeInformation, TypeResult,
+        ShallowCheck, TypeCheckError, TypeCheckable, TypeInformation, TypeResult, context::Context,
+        error::RedefinedFunction, types::Type,
     },
 };
 
@@ -137,7 +137,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Id, MethodDeclaration, TypeName},
-        typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation},
+        typechecker::{TypeCheckable, TypeInformation, context::Context, types::Type},
     };
 
     #[test]

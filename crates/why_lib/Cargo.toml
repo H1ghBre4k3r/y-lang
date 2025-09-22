@@ -1,11 +1,11 @@
 [package]
 name = "why_lib"
 version = "0.1.1"
-edition = "2021"
+edition = "2024"
 authors = ["Louis Meyer (H1ghBre4k3r) <h1ghbe4k3r@dev.bre4k3r.de>"]
 license = "GPL-3.0"
 readme = "README.md"
-repository = "https://github.com/H1ghBre4k3r/y-parser"
+repository = "https://github.com/H1ghBre4k3r/y-lang"
 
 [dependencies]
 anyhow = "1.0.99"

@@ -7,10 +7,10 @@ use std::{
 
 use codegen::{CodeGen, CodegenContext, ScopeFrame};
 use inkwell::{
+    OptimizationLevel,
     context::Context,
     module::Module as LLVMModule,
     targets::{FileType, InitializationConfig, Target, TargetMachine},
-    OptimizationLevel,
 };
 use parser::ast::TopLevelStatement;
 use sha2::{Digest, Sha256};

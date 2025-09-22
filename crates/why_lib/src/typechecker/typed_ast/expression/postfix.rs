@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Id, Postfix},
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{TypeCheckError, TypeMismatch, UndefinedVariable},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -25,7 +25,7 @@ impl TypeCheckable for Postfix<()> {
             } => {
                 let expr = expr.check(ctx)?;
 
-                let expr_type_id = { expr.get_info().type_id.borrow() }.clone();
+                let expr_type_id = expr.get_info().type_id.borrow().clone();
 
                 let mut checked_args = vec![];
                 for arg in args.into_iter() {
@@ -35,7 +35,9 @@ impl TypeCheckable for Postfix<()> {
                 let arg_types = checked_args
                     .iter()
                     .map(|a| {
-                        { a.get_info().type_id.borrow() }
+                        a.get_info()
+                            .type_id
+                            .borrow()
                             .clone()
                             .unwrap_or(Type::Unknown)
                     })
@@ -111,8 +113,8 @@ impl TypeCheckable for Postfix<()> {
                 let expr = expr.check(ctx)?;
                 let index = index.check(ctx)?;
 
-                let expr_type = { expr.get_info().type_id.borrow() }.clone();
-                let index_type = { index.get_info().type_id.borrow() }.clone();
+                let expr_type = expr.get_info().type_id.borrow().clone();
+                let index_type = index.get_info().type_id.borrow().clone();
 
                 // check, if expr is callable and if index is an integer
                 let type_id = match (expr_type, index_type) {
@@ -165,7 +167,7 @@ impl TypeCheckable for Postfix<()> {
                     ..
                 } = property;
 
-                let expr_type = { expr.get_info().type_id.borrow() }.clone();
+                let expr_type = expr.get_info().type_id.borrow().clone();
 
                 let type_id = match expr_type {
                     Some(type_id) => {
@@ -301,10 +303,10 @@ mod tests {
         lexer::Span,
         parser::ast::{Expression, Id, Num, Postfix},
         typechecker::{
+            TypeCheckable,
             context::Context,
             error::{TypeCheckError, TypeMismatch, UndefinedVariable},
             types::Type,
-            TypeCheckable,
         },
     };
 

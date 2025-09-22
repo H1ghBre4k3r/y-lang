@@ -4,8 +4,8 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::Bool,
     typechecker::{
-        context::Context, error::TypeCheckError, types::Type, TypeCheckable, TypeInformation,
-        TypeResult, TypedConstruct,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct, context::Context,
+        error::TypeCheckError, types::Type,
     },
 };
 

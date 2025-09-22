@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Constant, Id},
     typechecker::{
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{InvalidConstantType, RedefinedConstant, TypeCheckError, TypeMismatch},
         types::Type,
-        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -164,10 +164,10 @@ mod tests {
         lexer::Span,
         parser::ast::{Constant, Expression, Id, Num, TypeName},
         typechecker::{
+            ShallowCheck, TypeCheckable,
             context::Context,
             error::{InvalidConstantType, TypeCheckError},
             types::Type,
-            ShallowCheck, TypeCheckable,
         },
     };
 

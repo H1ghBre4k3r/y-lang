@@ -5,9 +5,9 @@ use crate::typechecker::{Type, TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Assignment, LValue},
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{ImmutableReassign, TypeCheckError, TypeMismatch},
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -151,10 +151,10 @@ mod tests {
             StructInitialisation,
         },
         typechecker::{
+            TypeCheckable, TypeInformation,
             context::Context,
             error::{ImmutableReassign, TypeCheckError, TypeMismatch, UndefinedVariable},
             types::Type,
-            TypeCheckable, TypeInformation,
         },
     };
 

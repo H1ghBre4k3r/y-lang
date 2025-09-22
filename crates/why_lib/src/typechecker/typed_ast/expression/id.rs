@@ -2,9 +2,9 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::Id,
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{TypeCheckError, UndefinedVariable},
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -70,10 +70,10 @@ mod tests {
         lexer::Span,
         parser::ast::{Expression, Id},
         typechecker::{
+            TypeCheckable, TypeInformation,
             context::Context,
             error::{TypeCheckError, UndefinedVariable},
             types::Type,
-            TypeCheckable, TypeInformation,
         },
     };
 

@@ -1,7 +1,7 @@
 use inkwell::values::BasicValueEnum;
 
 use crate::{
-    codegen::{convert_metadata_to_basic, CodeGen},
+    codegen::{CodeGen, convert_metadata_to_basic},
     parser::ast::Id,
     typechecker::ValidatedTypeInformation,
 };
@@ -24,11 +24,9 @@ impl<'ctx> CodeGen<'ctx> for Id<ValidatedTypeInformation> {
                     return variable;
                 };
 
-                let val = ctx
-                    .builder
+                ctx.builder
                     .build_load(llvm_type, pointer_value, "")
-                    .unwrap();
-                val
+                    .unwrap()
             }
             variable => variable,
         }

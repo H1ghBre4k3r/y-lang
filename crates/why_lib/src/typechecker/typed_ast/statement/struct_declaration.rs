@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Id, StructDeclaration, StructFieldDeclaration},
     typechecker::{
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{TypeCheckError, UndefinedType},
         types::Type,
-        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -148,7 +148,7 @@ impl TypeCheckable for StructFieldDeclaration<()> {
                 return Err(TypeCheckError::UndefinedType(
                     UndefinedType { type_name },
                     position,
-                ))
+                ));
             }
         };
 
@@ -218,7 +218,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Id, StructDeclaration, StructFieldDeclaration, TypeName},
-        typechecker::{context::Context, types::Type, ShallowCheck, TypeCheckable},
+        typechecker::{ShallowCheck, TypeCheckable, context::Context, types::Type},
     };
 
     #[test]

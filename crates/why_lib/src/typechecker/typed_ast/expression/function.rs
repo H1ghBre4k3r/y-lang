@@ -4,12 +4,12 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Expression, Function, FunctionParameter, Id},
     typechecker::{
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{
             RedefinedConstant, RedefinedFunction, TypeCheckError, TypeMismatch, UndefinedType,
         },
         types::Type,
-        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -90,7 +90,7 @@ impl TypeCheckable for Function<()> {
             None => {
                 // Try to propagate the expected return type down to the body's yielding expression
                 // This allows type inference to work backwards from the return type
-                if let Err(_) = checked_body.update_type(return_type_id.clone()) {
+                if checked_body.update_type(return_type_id.clone()).is_err() {
                     // Type propagation failed - body cannot produce the expected type
                     return Err(TypeCheckError::TypeMismatch(
                         TypeMismatch {
@@ -356,10 +356,10 @@ mod tests {
             Num, Statement, TypeName,
         },
         typechecker::{
+            ShallowCheck, TypeCheckable, TypeInformation,
             context::Context,
             error::{TypeCheckError, TypeMismatch},
             types::Type,
-            ShallowCheck, TypeCheckable, TypeInformation,
         },
     };
 

@@ -1,5 +1,5 @@
 use crate::{
-    codegen::{convert_metadata_to_basic, CodeGen},
+    codegen::{CodeGen, convert_metadata_to_basic},
     parser::ast::Initialisation,
     typechecker::ValidatedTypeInformation,
 };

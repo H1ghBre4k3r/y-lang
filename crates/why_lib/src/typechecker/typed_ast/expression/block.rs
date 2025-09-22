@@ -4,7 +4,7 @@ use crate::parser::ast::{Expression, Statement};
 use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
 use crate::{
     parser::ast::Block,
-    typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult},
+    typechecker::{TypeCheckable, TypeInformation, TypeResult, context::Context, types::Type},
 };
 
 impl TypeCheckable for Block<()> {
@@ -121,7 +121,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Block, Expression, Num, Statement},
-        typechecker::{context::Context, types::Type, TypeCheckable},
+        typechecker::{TypeCheckable, context::Context, types::Type},
     };
 
     #[test]

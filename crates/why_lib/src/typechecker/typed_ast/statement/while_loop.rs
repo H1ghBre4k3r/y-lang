@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInfor
 use crate::{
     parser::ast::WhileLoop,
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult,
         context::Context,
         error::{TypeCheckError, TypeMismatch},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult,
     },
 };
 
@@ -35,7 +35,7 @@ impl TypeCheckable for WhileLoop<()> {
                         actual: other.clone(),
                     },
                     condition.position(),
-                ))
+                ));
             }
             _ => {}
         };
@@ -97,7 +97,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Block, Expression, Id, Num, Statement, WhileLoop},
-        typechecker::{context::Context, types::Type, TypeCheckable, TypeInformation},
+        typechecker::{TypeCheckable, TypeInformation, context::Context, types::Type},
     };
 
     #[test]
