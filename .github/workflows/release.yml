@@ -86,14 +86,56 @@ jobs:
 
             if [ -n "$PREV_TAG" ]; then
               echo "📊 Generating changelog from $PREV_TAG to v$VERSION"
-              COMMITS=$(git log --pretty=format:"- %s" $PREV_TAG..v$VERSION)
+              COMMIT_RANGE="$PREV_TAG..v$VERSION"
             else
               echo "📊 No previous tag found, generating changelog from beginning"
-              COMMITS=$(git log --pretty=format:"- %s" v$VERSION)
+              COMMIT_RANGE="v$VERSION"
+            fi
+
+            # Generate PR-based changelog for CHANGELOG.md - only include PRs, no individual commits
+            COMMITS=""
+            COMMIT_LIST=$(git rev-list --reverse $COMMIT_RANGE)
+
+            if [ -n "$COMMIT_LIST" ]; then
+              # Get all recent merged PRs to avoid repeated API calls
+              echo "  Fetching recent merged PRs for changelog..."
+              gh pr list --state merged --limit 50 --json number,title,url,mergeCommit > changelog_prs.json 2>/dev/null || echo "[]" > changelog_prs.json
+
+              # Track unique PRs to avoid duplicates
+              declare -A changelog_seen_prs
+
+              # Check each commit to see if it's a PR merge commit
+              for commit in $COMMIT_LIST; do
+                # Try to find PR by matching merge commit SHA
+                pr_match=$(grep "\"oid\":\"$commit\"" changelog_prs.json 2>/dev/null || echo "")
+
+                if [ -n "$pr_match" ]; then
+                  # Extract the PR information
+                  pr_line=$(grep -B2 -A2 "\"oid\":\"$commit\"" changelog_prs.json 2>/dev/null)
+
+                  pr_number=$(echo "$pr_line" | grep -o '"number":[0-9]*' | head -1 | cut -d: -f2)
+                  pr_title=$(echo "$pr_line" | sed -n 's/.*"title":"\([^"]*\)".*/\1/p' | head -1)
+                  pr_url=$(echo "$pr_line" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p' | head -1)
+
+                  # Only add if we have valid PR info and haven't seen this PR before
+                  if [ -n "$pr_number" ] && [ -n "$pr_title" ] && [ -z "${changelog_seen_prs[$pr_number]}" ]; then
+                    echo "  Found PR #$pr_number for changelog: $pr_title"
+                    if [ -z "$COMMITS" ]; then
+                      COMMITS="- [$pr_title]($pr_url) (#$pr_number)"
+                    else
+                      COMMITS="${COMMITS}"$'\n'"- [$pr_title]($pr_url) (#$pr_number)"
+                    fi
+                    changelog_seen_prs[$pr_number]=1
+                  fi
+                fi
+              done
+
+              # Clean up temporary file
+              rm -f changelog_prs.json
             fi
 
             if [ -z "$COMMITS" ]; then
-              echo "⚠️  No commits found for changelog"
+              echo "⚠️  No PRs found for changelog"
               COMMITS="- Release v$VERSION"
             fi
 
