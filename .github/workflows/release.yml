@@ -238,6 +238,16 @@ jobs:
 
             if [ $? -eq 0 ]; then
               echo "✅ Commit created successfully"
+
+              echo "🚀 Pushing version bump commit to remote..."
+              git push origin HEAD:main
+
+              if [ $? -eq 0 ]; then
+                echo "✅ Version bump commit pushed to remote successfully"
+              else
+                echo "❌ Failed to push version bump commit to remote"
+                exit 1
+              fi
             else
               echo "❌ Failed to create commit"
               exit 1
@@ -344,51 +354,9 @@ jobs:
 
           echo "✅ All validations passed - ready for build and release"
 
-  build-and-release:
-    name: Build and Release
-    needs: update-version
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: aarch64-apple-darwin
-            os: macos-14
-          # - target: x86_64-pc-windows-msvc
-          #   os: windows-latest
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: v${{ needs.update-version.outputs.version }}
-
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "18.1"
-          directory: ${{ runner.temp }}/llvm
-
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt update
-          wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
-          sudo apt install ./libtinfo5_6.3-2ubuntu0.1_amd64.deb
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
-
-      - name: Build and upload binaries
-        uses: taiki-e/upload-rust-binary-action@v1
-        with:
-          bin: yc,yfmt,yls
-          target: ${{ matrix.target }}
-          archive: y-lang-v${{ needs.update-version.outputs.version }}-${{ matrix.target }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checksum: sha256
-        env:
-          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
-
   create-release:
     name: Create Release
-    needs: [update-version, build-and-release]
+    needs: update-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -493,3 +461,45 @@ jobs:
           prerelease: ${{ needs.update-version.outputs.is_prerelease == 'true' }}
           generate_release_notes: false
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-release:
+    name: Build and Release
+    needs: [update-version, create-release]
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          # - target: x86_64-pc-windows-msvc
+          #   os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: v${{ needs.update-version.outputs.version }}
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt update
+          wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+          sudo apt install ./libtinfo5_6.3-2ubuntu0.1_amd64.deb
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+
+      - name: Build and upload binaries
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: yc,yfmt,yls
+          target: ${{ matrix.target }}
+          archive: y-lang-v${{ needs.update-version.outputs.version }}-${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checksum: sha256
+        env:
+          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
