@@ -62,19 +62,39 @@ jobs:
           RELEASE_DATE=$(date +%Y-%m-%d)
           IS_PRERELEASE=${{ steps.extract.outputs.is_prerelease }}
 
+          echo "=== Updating CHANGELOG.md for version $VERSION ==="
+
+          # Validate CHANGELOG.md exists and has expected structure
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "❌ CHANGELOG.md not found!"
+            exit 1
+          fi
+
+          if ! grep -q "## \[Unreleased\]" CHANGELOG.md; then
+            echo "❌ CHANGELOG.md missing [Unreleased] section!"
+            exit 1
+          fi
+
           # Check if this version already exists in changelog
           if grep -q "## \[$VERSION\]" CHANGELOG.md; then
-            echo "Version $VERSION already exists in CHANGELOG.md, skipping update"
+            echo "⚠️  Version $VERSION already exists in CHANGELOG.md, skipping update"
           else
+            echo "📝 Generating changelog entry for version $VERSION..."
+
             # Get the previous release tag
             PREV_TAG=$(git tag --sort=-version:refname | grep -v "v$VERSION" | head -n1)
 
             if [ -n "$PREV_TAG" ]; then
-              echo "Generating changelog from $PREV_TAG to v$VERSION"
+              echo "📊 Generating changelog from $PREV_TAG to v$VERSION"
               COMMITS=$(git log --pretty=format:"- %s" $PREV_TAG..v$VERSION)
             else
-              echo "No previous tag found, generating changelog from beginning"
+              echo "📊 No previous tag found, generating changelog from beginning"
               COMMITS=$(git log --pretty=format:"- %s" v$VERSION)
+            fi
+
+            if [ -z "$COMMITS" ]; then
+              echo "⚠️  No commits found for changelog"
+              COMMITS="- Release v$VERSION"
             fi
 
             # Create the new changelog entry
@@ -84,33 +104,45 @@ jobs:
               ENTRY_HEADER="## [$VERSION] - $RELEASE_DATE"
             fi
 
+            echo "📄 Creating changelog entry:"
             echo "$ENTRY_HEADER" > new_entry.md
             echo "" >> new_entry.md
             echo "### Changes" >> new_entry.md
             echo "$COMMITS" >> new_entry.md
             echo "" >> new_entry.md
 
-            # Use Python to update the changelog
+            cat new_entry.md
+
+            # Create backup before modifying
+            cp CHANGELOG.md CHANGELOG.md.backup
+
+            # Use Python to update the changelog with better error handling
             python3 << 'EOF'
           import re
+          import sys
 
-          # Read the current changelog
-          with open('CHANGELOG.md', 'r') as f:
-              content = f.read()
+          try:
+              # Read the current changelog
+              with open('CHANGELOG.md', 'r') as f:
+                  content = f.read()
 
-          # Read the new entry
-          with open('new_entry.md', 'r') as f:
-              new_entry = f.read()
+              # Read the new entry
+              with open('new_entry.md', 'r') as f:
+                  new_entry = f.read()
 
-          # Find the Unreleased section and clear it, then add the new entry
-          unreleased_pattern = r'(## \[Unreleased\]\s*)(.*?)((?=## \[|\Z))'
+              print("🔍 Searching for Unreleased section...")
 
-          def replace_unreleased(match):
-              header = match.group(1)
-              next_section = match.group(3)
+              # Find the Unreleased section and clear it, then add the new entry
+              unreleased_pattern = r'(## \[Unreleased\]\s*)(.*?)((?=## \[|\Z))'
 
-              # Reset unreleased section
-              new_unreleased = """
+              def replace_unreleased(match):
+                  header = match.group(1)
+                  next_section = match.group(3)
+
+                  print("✅ Found Unreleased section, updating...")
+
+                  # Reset unreleased section
+                  new_unreleased = """
           ### Added
 
           ### Changed
@@ -125,34 +157,192 @@ jobs:
 
           """
 
-              return header + new_unreleased + "\n" + new_entry.strip() + "\n\n" + next_section
+                  return header + new_unreleased + "\n" + new_entry.strip() + "\n\n" + next_section
 
-          updated_content = re.sub(unreleased_pattern, replace_unreleased, content, flags=re.DOTALL)
+              updated_content = re.sub(unreleased_pattern, replace_unreleased, content, flags=re.DOTALL)
 
-          # Write the updated changelog
-          with open('CHANGELOG.md', 'w') as f:
-              f.write(updated_content)
+              # Verify the replacement worked
+              if updated_content == content:
+                  print("❌ Failed to update changelog - no changes made")
+                  sys.exit(1)
 
-          print("CHANGELOG.md updated successfully")
+              # Write the updated changelog
+              with open('CHANGELOG.md', 'w') as f:
+                  f.write(updated_content)
+
+              print("✅ CHANGELOG.md updated successfully")
+
+          except Exception as e:
+              print(f"❌ Error updating CHANGELOG.md: {e}")
+              sys.exit(1)
           EOF
 
-            rm -f new_entry.md
-            echo "CHANGELOG.md updated for version $VERSION"
+            # Verify the update was successful
+            if [ $? -eq 0 ]; then
+              if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+                echo "✅ Changelog entry for v$VERSION successfully added"
+                rm -f new_entry.md CHANGELOG.md.backup
+              else
+                echo "❌ Changelog update failed - restoring backup"
+                mv CHANGELOG.md.backup CHANGELOG.md
+                exit 1
+              fi
+            else
+              echo "❌ Python script failed - restoring backup"
+              mv CHANGELOG.md.backup CHANGELOG.md
+              exit 1
+            fi
           fi
+
+          echo "=== CHANGELOG.md update completed ==="
 
       - name: Commit version bump and amend tag
         run: |
           VERSION=${{ steps.extract.outputs.version }}
 
+          echo "=== Committing version changes and changelog updates ==="
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add Cargo.toml crates/why_lib/Cargo.toml CHANGELOG.md
-          git commit -m "chore: bump version to $VERSION and update CHANGELOG"
+          # Verify files exist and have been modified
+          echo "📋 Checking modified files:"
+          git status --porcelain
+
+          # Validate that expected files have been changed
+          for file in Cargo.toml crates/why_lib/Cargo.toml CHANGELOG.md; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Required file $file not found!"
+              exit 1
+            fi
+          done
+
+          # Check if there are actually changes to commit
+          if git diff --quiet HEAD -- Cargo.toml crates/why_lib/Cargo.toml CHANGELOG.md; then
+            echo "⚠️  No changes detected in version/changelog files"
+            echo "This might indicate the version was already updated"
+          else
+            echo "📝 Adding modified files to staging area..."
+            git add Cargo.toml crates/why_lib/Cargo.toml CHANGELOG.md
+
+            echo "💾 Creating commit for version v$VERSION..."
+            git commit -m "chore: bump version to $VERSION and update CHANGELOG
+
+            This commit was automatically generated by the release workflow.
+
+            Changes:
+            - Updated version in Cargo.toml files to $VERSION
+            - Updated CHANGELOG.md with release notes for v$VERSION
+
+            🤖 Generated by GitHub Actions"
+
+            if [ $? -eq 0 ]; then
+              echo "✅ Commit created successfully"
+            else
+              echo "❌ Failed to create commit"
+              exit 1
+            fi
+          fi
+
+          echo "🏷️  Moving tag v$VERSION to point to latest commit..."
 
           # Move the tag to point to the new commit
-          git tag -fa v$VERSION -m "Release v$VERSION"
+          git tag -fa v$VERSION -m "Release v$VERSION
+
+          This release includes:
+          - Version bumped to $VERSION in all Cargo.toml files
+          - Updated CHANGELOG.md with release notes
+          - Cross-platform binaries for Linux, macOS, and Windows
+
+          🤖 Tag updated by GitHub Actions"
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Tag v$VERSION updated successfully"
+          else
+            echo "❌ Failed to update tag"
+            exit 1
+          fi
+
+          echo "🚀 Pushing updated tag to remote..."
           git push origin v$VERSION --force
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Tag v$VERSION pushed to remote successfully"
+          else
+            echo "❌ Failed to push tag to remote"
+            exit 1
+          fi
+
+          echo "=== Version bump and tag update completed ==="
+
+      - name: Validate release preparation
+        run: |
+          VERSION=${{ steps.extract.outputs.version }}
+
+          echo "=== Validating release preparation for v$VERSION ==="
+
+          # Validate version consistency across files
+          echo "🔍 Checking version consistency..."
+
+          ROOT_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          LIB_VERSION=$(grep '^version = ' crates/why_lib/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+
+          echo "Root Cargo.toml version: $ROOT_VERSION"
+          echo "Library Cargo.toml version: $LIB_VERSION"
+          echo "Expected version: $VERSION"
+
+          if [ "$ROOT_VERSION" != "$VERSION" ]; then
+            echo "❌ Root Cargo.toml version mismatch: expected $VERSION, got $ROOT_VERSION"
+            exit 1
+          fi
+
+          if [ "$LIB_VERSION" != "$VERSION" ]; then
+            echo "❌ Library Cargo.toml version mismatch: expected $VERSION, got $LIB_VERSION"
+            exit 1
+          fi
+
+          echo "✅ Version consistency check passed"
+
+          # Validate changelog was updated
+          echo "🔍 Checking changelog update..."
+
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "❌ CHANGELOG.md missing entry for version $VERSION"
+            exit 1
+          fi
+
+          # Check that unreleased section is properly reset
+          if ! grep -A 20 "## \[Unreleased\]" CHANGELOG.md | grep -q "### Added"; then
+            echo "❌ CHANGELOG.md Unreleased section not properly structured"
+            exit 1
+          fi
+
+          echo "✅ Changelog validation passed"
+
+          # Validate git state
+          echo "🔍 Checking git state..."
+
+          # Check that tag points to current commit
+          TAG_COMMIT=$(git rev-list -n 1 v$VERSION)
+          HEAD_COMMIT=$(git rev-parse HEAD)
+
+          if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+            echo "❌ Tag v$VERSION does not point to HEAD commit"
+            echo "Tag commit: $TAG_COMMIT"
+            echo "HEAD commit: $HEAD_COMMIT"
+            exit 1
+          fi
+
+          echo "✅ Git state validation passed"
+
+          # Show final state summary
+          echo "📊 Release preparation summary:"
+          echo "   Version: $VERSION"
+          echo "   Pre-release: ${{ steps.extract.outputs.is_prerelease }}"
+          echo "   Commit: $HEAD_COMMIT"
+          echo "   Tag: v$VERSION"
+
+          echo "✅ All validations passed - ready for build and release"
 
   build-and-release:
     name: Build and Release
@@ -213,47 +403,88 @@ jobs:
         run: |
           VERSION=${{ needs.update-version.outputs.version }}
 
-          # Get the previous tag
-          PREV_TAG=$(git tag --sort=-version:refname | grep -v "v$VERSION" | head -n1)
+          echo "=== Generating release notes for v$VERSION ==="
 
-          if [ -n "$PREV_TAG" ]; then
-            echo "Generating changelog from $PREV_TAG to v$VERSION"
-            CHANGELOG=$(git log --pretty=format:"- %s" $PREV_TAG..v$VERSION)
+          # Extract changelog entry from CHANGELOG.md if it exists
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "📝 Extracting changelog from CHANGELOG.md..."
+
+            # Extract the specific version section from CHANGELOG.md
+            CHANGELOG_SECTION=$(awk "/## \[$VERSION\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md | sed '/^$/d')
+
+            if [ -n "$CHANGELOG_SECTION" ]; then
+              echo "✅ Found changelog entry in CHANGELOG.md"
+              CHANGELOG_SOURCE="CHANGELOG.md"
+            else
+              echo "⚠️  Empty changelog section in CHANGELOG.md, falling back to git log"
+              CHANGELOG_SOURCE="git log"
+            fi
           else
-            echo "No previous tag found, generating changelog from beginning"
-            CHANGELOG=$(git log --pretty=format:"- %s" v$VERSION)
+            echo "⚠️  No changelog entry found in CHANGELOG.md, using git log"
+            CHANGELOG_SOURCE="git log"
           fi
 
-          # Create release notes
+          # Fallback to git log if changelog section is empty or not found
+          if [ "$CHANGELOG_SOURCE" = "git log" ]; then
+            PREV_TAG=$(git tag --sort=-version:refname | grep -v "v$VERSION" | head -n1)
+
+            if [ -n "$PREV_TAG" ]; then
+              echo "📊 Generating changelog from $PREV_TAG to v$VERSION"
+              CHANGELOG_SECTION="### Changes"$'\n'$(git log --pretty=format:"- %s" $PREV_TAG..v$VERSION)
+            else
+              echo "📊 No previous tag found, generating changelog from beginning"
+              CHANGELOG_SECTION="### Changes"$'\n'$(git log --pretty=format:"- %s" v$VERSION)
+            fi
+          fi
+
+          # Create comprehensive release notes
           cat > release_notes.md << EOF
-          ## Changes
+          ## Release Notes
 
-          $CHANGELOG
+          $CHANGELOG_SECTION
 
-          ## Binaries
+          ## 📦 Binary Downloads
 
           Download the appropriate binary for your platform:
 
-          - **Linux x86_64**: \`y-lang-v$VERSION-x86_64-unknown-linux-gnu.tar.gz\`
-          - **macOS x86_64**: \`y-lang-v$VERSION-x86_64-apple-darwin.tar.gz\`
-          - **macOS ARM64**: \`y-lang-v$VERSION-aarch64-apple-darwin.tar.gz\`
-          - **Windows x86_64**: \`y-lang-v$VERSION-x86_64-pc-windows-msvc.zip\`
+          | Platform | Architecture | Download |
+          |----------|--------------|----------|
+          | Linux | x86_64 | \`y-lang-v$VERSION-x86_64-unknown-linux-gnu.tar.gz\` |
+          | macOS | x86_64 (Intel) | \`y-lang-v$VERSION-x86_64-apple-darwin.tar.gz\` |
+          | macOS | ARM64 (Apple Silicon) | \`y-lang-v$VERSION-aarch64-apple-darwin.tar.gz\` |
+          | Windows | x86_64 | \`y-lang-v$VERSION-x86_64-pc-windows-msvc.zip\` |
 
-          Each archive contains the following binaries:
-          - \`yc\` - Y Lang compiler
-          - \`yfmt\` - Y Lang formatter
-          - \`yls\` - Y Lang language server
+          Each archive contains three binaries:
+          - **\`yc\`** - Y Lang compiler for compiling .why source files
+          - **\`yfmt\`** - Y Lang formatter for code formatting and pretty-printing
+          - **\`yls\`** - Y Lang language server for IDE integration
 
-          ## Installation
+          ## 🚀 Installation
 
-          Extract the archive and add the binaries to your PATH, or use:
+          ### Option 1: Download and Extract
+          1. Download the appropriate archive for your platform
+          2. Extract the archive: \`tar -xzf y-lang-v$VERSION-<platform>.tar.gz\` (or unzip for Windows)
+          3. Add the binaries to your PATH
 
+          ### Option 2: Install from Source
           \`\`\`bash
           cargo install --git https://github.com/H1ghBre4k3r/y-lang --tag v$VERSION
           \`\`\`
+
+          ## 📚 Documentation
+
+          - [Project Repository](https://github.com/H1ghBre4k3r/y-lang)
+          - [Changelog](https://github.com/H1ghBre4k3r/y-lang/blob/main/CHANGELOG.md)
+
+          ---
+
+          **Full Changelog**: [v$VERSION](https://github.com/H1ghBre4k3r/y-lang/compare/$PREV_TAG...v$VERSION) ${PREV_TAG:+(compared to $PREV_TAG)}
           EOF
 
-          echo "Release notes generated"
+          echo "📋 Generated release notes:"
+          echo "Source: $CHANGELOG_SOURCE"
+          echo "Content preview:"
+          head -20 release_notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
