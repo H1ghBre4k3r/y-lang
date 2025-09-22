@@ -57,6 +57,8 @@ jobs:
           grep '^version = ' crates/why_lib/Cargo.toml
 
       - name: Update CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=${{ steps.extract.outputs.version }}
           RELEASE_DATE=$(date +%Y-%m-%d)
@@ -94,45 +96,100 @@ jobs:
 
             # Generate PR-based changelog for CHANGELOG.md - only include PRs, no individual commits
             COMMITS=""
-            COMMIT_LIST=$(git rev-list --reverse $COMMIT_RANGE)
 
-            if [ -n "$COMMIT_LIST" ]; then
-              # Get all recent merged PRs to avoid repeated API calls
-              echo "  Fetching recent merged PRs for changelog..."
-              gh pr list --state merged --limit 50 --json number,title,url,mergeCommit > changelog_prs.json 2>/dev/null || echo "[]" > changelog_prs.json
+            # Get the time range for this release
+            if [ -n "$PREV_TAG" ]; then
+              # Get the timestamp of the previous tag
+              CHANGELOG_PREV_TAG_DATE=$(git log -1 --format=%ct $PREV_TAG 2>/dev/null || echo "0")
+              echo "  Previous tag ($PREV_TAG) date for changelog: $(date -d @$CHANGELOG_PREV_TAG_DATE 2>/dev/null || date -r $CHANGELOG_PREV_TAG_DATE 2>/dev/null || echo 'unknown')"
+            else
+              # If no previous tag, use a very old date (1 year ago)
+              CHANGELOG_PREV_TAG_DATE=$(date -d "1 year ago" +%s 2>/dev/null || date -v-1y +%s 2>/dev/null || echo "0")
+              echo "  No previous tag, using 1 year ago as start date for changelog"
+            fi
 
-              # Track unique PRs to avoid duplicates
-              declare -A changelog_seen_prs
+            # Get the timestamp of the current version tag (use tag creation time if it exists, otherwise now)
+            CHANGELOG_CURRENT_DATE=$(git log -1 --format=%ct v$VERSION 2>/dev/null || date +%s)
+            echo "  Current release (v$VERSION) date for changelog: $(date -d @$CHANGELOG_CURRENT_DATE 2>/dev/null || date -r $CHANGELOG_CURRENT_DATE 2>/dev/null || echo 'now')"
 
-              # Check each commit to see if it's a PR merge commit
-              for commit in $COMMIT_LIST; do
-                # Try to find PR by matching merge commit SHA
-                pr_match=$(grep "\"oid\":\"$commit\"" changelog_prs.json 2>/dev/null || echo "")
+            # Convert to ISO format for debugging
+            CHANGELOG_START_ISO=$(date -d @$CHANGELOG_PREV_TAG_DATE -Iseconds 2>/dev/null || date -r $CHANGELOG_PREV_TAG_DATE -Iseconds 2>/dev/null || echo "unknown")
+            CHANGELOG_END_ISO=$(date -d @$CHANGELOG_CURRENT_DATE -Iseconds 2>/dev/null || date -r $CHANGELOG_CURRENT_DATE -Iseconds 2>/dev/null || echo "unknown")
+            echo "  Looking for PRs merged between $CHANGELOG_START_ISO and $CHANGELOG_END_ISO for changelog"
 
-                if [ -n "$pr_match" ]; then
-                  # Extract the PR information
-                  pr_line=$(grep -B2 -A2 "\"oid\":\"$commit\"" changelog_prs.json 2>/dev/null)
+            # Fetch PRs merged in a reasonable time range (more than needed to be safe)
+            echo "  Fetching recent merged PRs for changelog..."
+            gh pr list --state merged --limit 200 --json number,title,url,mergedAt > changelog_prs_all.json 2>/dev/null || echo "[]" > changelog_prs_all.json
 
-                  pr_number=$(echo "$pr_line" | grep -o '"number":[0-9]*' | head -1 | cut -d: -f2)
-                  pr_title=$(echo "$pr_line" | sed -n 's/.*"title":"\([^"]*\)".*/\1/p' | head -1)
-                  pr_url=$(echo "$pr_line" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p' | head -1)
+            # Check if we got any PRs
+            CHANGELOG_PR_COUNT=$(cat changelog_prs_all.json | grep -o '"number":' | wc -l || echo "0")
+            echo "  Fetched $CHANGELOG_PR_COUNT total PRs for changelog"
 
-                  # Only add if we have valid PR info and haven't seen this PR before
-                  if [ -n "$pr_number" ] && [ -n "$pr_title" ] && [ -z "${changelog_seen_prs[$pr_number]}" ]; then
-                    echo "  Found PR #$pr_number for changelog: $pr_title"
-                    if [ -z "$COMMITS" ]; then
-                      COMMITS="- [$pr_title]($pr_url) (#$pr_number)"
+            # Track unique PRs to avoid duplicates
+            declare -A changelog_seen_prs
+
+            # Use jq if available, otherwise fall back to manual parsing
+            if command -v jq >/dev/null 2>&1; then
+              echo "  Using jq for JSON parsing (changelog)"
+              # Use jq to properly parse JSON and filter by date
+              while IFS= read -r pr_data; do
+                if [ -n "$pr_data" ] && [ "$pr_data" != "null" ]; then
+                  pr_number=$(echo "$pr_data" | jq -r '.number // empty')
+                  pr_title=$(echo "$pr_data" | jq -r '.title // empty')
+                  pr_url=$(echo "$pr_data" | jq -r '.url // empty')
+                  pr_merged_at=$(echo "$pr_data" | jq -r '.mergedAt // empty')
+
+                  if [ -n "$pr_number" ] && [ -n "$pr_title" ] && [ -n "$pr_merged_at" ] && [ -z "${changelog_seen_prs[$pr_number]}" ]; then
+                    # Convert PR merge time to timestamp
+                    pr_timestamp=$(date -d "$pr_merged_at" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$pr_merged_at" +%s 2>/dev/null || echo "0")
+
+                    # Check if PR was merged in our time range (with some tolerance)
+                    if [ "$pr_timestamp" -gt "$CHANGELOG_PREV_TAG_DATE" ] && [ "$pr_timestamp" -le "$CHANGELOG_CURRENT_DATE" ]; then
+                      echo "  ✓ Found PR #$pr_number for changelog: $pr_title (merged: $pr_merged_at)"
+                      if [ -z "$COMMITS" ]; then
+                        COMMITS="- $pr_title ([#$pr_number]($pr_url))"
+                      else
+                        COMMITS="${COMMITS}"$'\n'"- $pr_title ([#$pr_number]($pr_url))"
+                      fi
+                      changelog_seen_prs[$pr_number]=1
                     else
-                      COMMITS="${COMMITS}"$'\n'"- [$pr_title]($pr_url) (#$pr_number)"
+                      echo "  ✗ Skipping PR #$pr_number for changelog: outside time range (merged: $pr_merged_at, timestamp: $pr_timestamp)"
                     fi
-                    changelog_seen_prs[$pr_number]=1
                   fi
                 fi
-              done
+              done < <(jq -c '.[]?' changelog_prs_all.json 2>/dev/null || echo "")
+            else
+              echo "  Using manual JSON parsing for changelog (jq not available)"
+              # Fallback: simplified approach without strict validation
+              # Just get PRs from the time range and include them all
+              CHANGELOG_COMMIT_RANGE_COMMITS=$(git rev-list $COMMIT_RANGE 2>/dev/null | wc -l || echo "0")
+              echo "  Found $CHANGELOG_COMMIT_RANGE_COMMITS commits in range $COMMIT_RANGE for changelog"
 
-              # Clean up temporary file
-              rm -f changelog_prs.json
+              # If we have recent commits, be more liberal and include recent PRs
+              if [ "$CHANGELOG_COMMIT_RANGE_COMMITS" -gt "0" ]; then
+                # Get recent PRs (last 20) and include them
+                cat changelog_prs_all.json | head -20 | while IFS= read -r line; do
+                  if [[ "$line" == *'"number":'* ]]; then
+                    pr_number=$(echo "$line" | sed -n 's/.*"number":\([0-9]*\).*/\1/p')
+                    pr_title=$(echo "$line" | sed -n 's/.*"title":"\([^"]*\)".*/\1/p')
+                    pr_url=$(echo "$line" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p')
+
+                    if [ -n "$pr_number" ] && [ -n "$pr_title" ] && [ -z "${changelog_seen_prs[$pr_number]}" ]; then
+                      echo "  ✓ Including recent PR #$pr_number for changelog: $pr_title"
+                      if [ -z "$COMMITS" ]; then
+                        COMMITS="- $pr_title ([#$pr_number]($pr_url))"
+                      else
+                        COMMITS="${COMMITS}"$'\n'"- $pr_title ([#$pr_number]($pr_url))"
+                      fi
+                      changelog_seen_prs[$pr_number]=1
+                    fi
+                  fi
+                done
+              fi
             fi
+
+            # Clean up temporary file
+            rm -f changelog_prs_all.json
 
             if [ -z "$COMMITS" ]; then
               echo "⚠️  No PRs found for changelog"
@@ -408,6 +465,8 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=${{ needs.update-version.outputs.version }}
 
@@ -449,42 +508,91 @@ jobs:
             # Generate PR-based changelog - only include PRs, no individual commits
             CHANGELOG_SECTION="### Changes"
 
-            # Get commits in the release range
-            COMMIT_LIST=$(git rev-list --reverse $COMMIT_RANGE)
+            # Get the time range for this release
+            if [ -n "$PREV_TAG" ]; then
+              # Get the timestamp of the previous tag
+              PREV_TAG_DATE=$(git log -1 --format=%ct $PREV_TAG 2>/dev/null || echo "0")
+              echo "  Previous tag ($PREV_TAG) date: $(date -d @$PREV_TAG_DATE 2>/dev/null || date -r $PREV_TAG_DATE 2>/dev/null || echo 'unknown')"
+            else
+              # If no previous tag, use a very old date (1 year ago)
+              PREV_TAG_DATE=$(date -d "1 year ago" +%s 2>/dev/null || date -v-1y +%s 2>/dev/null || echo "0")
+              echo "  No previous tag, using 1 year ago as start date"
+            fi
 
-            if [ -n "$COMMIT_LIST" ]; then
-              # Get all recent merged PRs to avoid repeated API calls
-              echo "  Fetching recent merged PRs..."
-              gh pr list --state merged --limit 50 --json number,title,url,mergeCommit > prs.json 2>/dev/null || echo "[]" > prs.json
+            # Get the timestamp of the current version tag (use tag creation time if it exists, otherwise now)
+            CURRENT_DATE=$(git log -1 --format=%ct v$VERSION 2>/dev/null || date +%s)
+            echo "  Current release (v$VERSION) date: $(date -d @$CURRENT_DATE 2>/dev/null || date -r $CURRENT_DATE 2>/dev/null || echo 'now')"
 
-              # Track unique PRs to avoid duplicates
-              declare -A seen_prs
+            # Convert to ISO format for debugging
+            START_ISO=$(date -d @$PREV_TAG_DATE -Iseconds 2>/dev/null || date -r $PREV_TAG_DATE -Iseconds 2>/dev/null || echo "unknown")
+            END_ISO=$(date -d @$CURRENT_DATE -Iseconds 2>/dev/null || date -r $CURRENT_DATE -Iseconds 2>/dev/null || echo "unknown")
+            echo "  Looking for PRs merged between $START_ISO and $END_ISO"
 
-              # Check each commit to see if it's a PR merge commit
-              for commit in $COMMIT_LIST; do
-                # Try to find PR by matching merge commit SHA
-                pr_match=$(grep "\"oid\":\"$commit\"" prs.json 2>/dev/null || echo "")
+            # Fetch PRs merged in a reasonable time range (more than needed to be safe)
+            echo "  Fetching recent merged PRs..."
+            gh pr list --state merged --limit 200 --json number,title,url,mergedAt > prs_all.json 2>/dev/null || echo "[]" > prs_all.json
 
-                if [ -n "$pr_match" ]; then
-                  # Extract the PR information
-                  pr_line=$(grep -B2 -A2 "\"oid\":\"$commit\"" prs.json 2>/dev/null)
+            # Check if we got any PRs
+            PR_COUNT=$(cat prs_all.json | grep -o '"number":' | wc -l || echo "0")
+            echo "  Fetched $PR_COUNT total PRs"
 
-                  pr_number=$(echo "$pr_line" | grep -o '"number":[0-9]*' | head -1 | cut -d: -f2)
-                  pr_title=$(echo "$pr_line" | sed -n 's/.*"title":"\([^"]*\)".*/\1/p' | head -1)
-                  pr_url=$(echo "$pr_line" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p' | head -1)
+            # Track unique PRs to avoid duplicates
+            declare -A seen_prs
 
-                  # Only add if we have valid PR info and haven't seen this PR before
-                  if [ -n "$pr_number" ] && [ -n "$pr_title" ] && [ -z "${seen_prs[$pr_number]}" ]; then
-                    echo "  Found PR #$pr_number: $pr_title"
-                    CHANGELOG_SECTION="${CHANGELOG_SECTION}"$'\n'"- [$pr_title]($pr_url) (#$pr_number)"
-                    seen_prs[$pr_number]=1
+            # Use jq if available, otherwise fall back to manual parsing
+            if command -v jq >/dev/null 2>&1; then
+              echo "  Using jq for JSON parsing"
+              # Use jq to properly parse JSON and filter by date
+              while IFS= read -r pr_data; do
+                if [ -n "$pr_data" ] && [ "$pr_data" != "null" ]; then
+                  pr_number=$(echo "$pr_data" | jq -r '.number // empty')
+                  pr_title=$(echo "$pr_data" | jq -r '.title // empty')
+                  pr_url=$(echo "$pr_data" | jq -r '.url // empty')
+                  pr_merged_at=$(echo "$pr_data" | jq -r '.mergedAt // empty')
+
+                  if [ -n "$pr_number" ] && [ -n "$pr_title" ] && [ -n "$pr_merged_at" ] && [ -z "${seen_prs[$pr_number]}" ]; then
+                    # Convert PR merge time to timestamp
+                    pr_timestamp=$(date -d "$pr_merged_at" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$pr_merged_at" +%s 2>/dev/null || echo "0")
+
+                    # Check if PR was merged in our time range (with some tolerance)
+                    if [ "$pr_timestamp" -gt "$PREV_TAG_DATE" ] && [ "$pr_timestamp" -le "$CURRENT_DATE" ]; then
+                      echo "  ✓ Found PR #$pr_number: $pr_title (merged: $pr_merged_at)"
+                      CHANGELOG_SECTION="${CHANGELOG_SECTION}"$'\n'"- $pr_title ([#$pr_number]($pr_url))"
+                      seen_prs[$pr_number]=1
+                    else
+                      echo "  ✗ Skipping PR #$pr_number: outside time range (merged: $pr_merged_at, timestamp: $pr_timestamp)"
+                    fi
                   fi
                 fi
-              done
+              done < <(jq -c '.[]?' prs_all.json 2>/dev/null || echo "")
+            else
+              echo "  Using manual JSON parsing (jq not available)"
+              # Fallback: simplified approach without strict validation
+              # Just get PRs from the time range and include them all
+              COMMIT_RANGE_COMMITS=$(git rev-list $COMMIT_RANGE 2>/dev/null | wc -l || echo "0")
+              echo "  Found $COMMIT_RANGE_COMMITS commits in range $COMMIT_RANGE"
 
-              # Clean up temporary file
-              rm -f prs.json
+              # If we have recent commits, be more liberal and include recent PRs
+              if [ "$COMMIT_RANGE_COMMITS" -gt "0" ]; then
+                # Get recent PRs (last 20) and include them
+                cat prs_all.json | head -20 | while IFS= read -r line; do
+                  if [[ "$line" == *'"number":'* ]]; then
+                    pr_number=$(echo "$line" | sed -n 's/.*"number":\([0-9]*\).*/\1/p')
+                    pr_title=$(echo "$line" | sed -n 's/.*"title":"\([^"]*\)".*/\1/p')
+                    pr_url=$(echo "$line" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p')
+
+                    if [ -n "$pr_number" ] && [ -n "$pr_title" ] && [ -z "${seen_prs[$pr_number]}" ]; then
+                      echo "  ✓ Including recent PR #$pr_number: $pr_title"
+                      CHANGELOG_SECTION="${CHANGELOG_SECTION}"$'\n'"- $pr_title ([#$pr_number]($pr_url))"
+                      seen_prs[$pr_number]=1
+                    fi
+                  fi
+                done
+              fi
             fi
+
+            # Clean up temporary file
+            rm -f prs_all.json
 
             # If no PRs were found, add a fallback
             if [ "$CHANGELOG_SECTION" = "### Changes" ]; then
@@ -505,9 +613,7 @@ jobs:
           | Platform | Architecture | Download |
           |----------|--------------|----------|
           | Linux | x86_64 | \`y-lang-v$VERSION-x86_64-unknown-linux-gnu.tar.gz\` |
-          | macOS | x86_64 (Intel) | \`y-lang-v$VERSION-x86_64-apple-darwin.tar.gz\` |
           | macOS | ARM64 (Apple Silicon) | \`y-lang-v$VERSION-aarch64-apple-darwin.tar.gz\` |
-          | Windows | x86_64 | \`y-lang-v$VERSION-x86_64-pc-windows-msvc.zip\` |
 
           Each archive contains three binaries:
           - **\`yc\`** - Y Lang compiler for compiling .why source files
@@ -518,7 +624,7 @@ jobs:
 
           ### Option 1: Download and Extract
           1. Download the appropriate archive for your platform
-          2. Extract the archive: \`tar -xzf y-lang-v$VERSION-<platform>.tar.gz\` (or unzip for Windows)
+          2. Extract the archive: \`tar -xzf y-lang-v$VERSION-<platform>.tar.gz\`
           3. Add the binaries to your PATH
 
           ### Option 2: Install from Source
