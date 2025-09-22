@@ -456,7 +456,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.update-version.outputs.version }}
-          name: Y Lang v${{ needs.update-version.outputs.version }}
+          name: v${{ needs.update-version.outputs.version }}
           body_path: release_notes.md
           prerelease: ${{ needs.update-version.outputs.is_prerelease == 'true' }}
           generate_release_notes: false
