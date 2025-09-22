@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::parser::ast::Expression;
 
-use super::{error::TypeCheckError, types::Type, TypeInformation, TypedConstruct};
+use super::{TypeInformation, TypedConstruct, error::TypeCheckError, types::Type};
 
 #[derive(Clone)]
 struct StoredVariable {
@@ -294,10 +294,10 @@ impl Scope {
         );
         let method_name = method_name.to_string();
 
-        if let Type::Struct(_, props) = &type_id {
-            if props.iter().any(|(name, _)| *name == method_name) {
-                return Err(MethodAddError { name: method_name });
-            }
+        if let Type::Struct(_, props) = &type_id
+            && props.iter().any(|(name, _)| *name == method_name)
+        {
+            return Err(MethodAddError { name: method_name });
         };
 
         let mut current_methods = {
@@ -328,14 +328,13 @@ impl Scope {
     ) -> Option<Type> {
         let property_name = property.to_string();
 
-        if let Type::Struct(_, props) = &type_id {
-            if let Some(prop) = props
+        if let Type::Struct(_, props) = &type_id
+            && let Some(prop) = props
                 .iter()
                 .find(|(name, _)| *name == property_name)
                 .map(|(_, prop)| prop.clone())
-            {
-                return Some(prop);
-            }
+        {
+            return Some(prop);
         }
 
         self.methods
@@ -353,7 +352,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Expression, Id},
-        typechecker::{context::Context, types::Type, TypeInformation},
+        typechecker::{TypeInformation, context::Context, types::Type},
     };
 
     use super::Scope;

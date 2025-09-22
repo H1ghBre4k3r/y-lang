@@ -35,13 +35,12 @@ pub struct ValidatedTypeInformation {
 impl TypeInformation {
     fn validate(self, position: &Span) -> Result<ValidatedTypeInformation, TypeValidationError> {
         let TypeInformation { type_id, context } = self;
-        let verified_type_information = if let Some(type_id) = type_id.borrow().clone() {
+
+        if let Some(type_id) = type_id.borrow().clone() {
             Ok(ValidatedTypeInformation { type_id, context })
         } else {
             Err(TypeValidationError(position.clone()))
-        };
-
-        verified_type_information
+        }
     }
 }
 

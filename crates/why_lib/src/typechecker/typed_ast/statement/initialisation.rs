@@ -4,13 +4,13 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Id, Initialisation},
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{
             MissingInitialisationType, RedefinedConstant, TypeCheckError, TypeMismatch,
             UndefinedType,
         },
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -168,10 +168,10 @@ mod tests {
         lexer::Span,
         parser::ast::{Expression, Id, Initialisation, Lambda, Num, TypeName},
         typechecker::{
+            TypeCheckable, TypeInformation,
             context::Context,
             error::{TypeCheckError, TypeMismatch},
             types::Type,
-            TypeCheckable, TypeInformation,
         },
     };
 

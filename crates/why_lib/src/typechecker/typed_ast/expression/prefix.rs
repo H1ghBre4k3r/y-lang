@@ -2,10 +2,10 @@ use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInfor
 use crate::{
     parser::ast::Prefix,
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult,
         context::Context,
         error::{TypeCheckError, TypeMismatch},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult,
     },
 };
 
@@ -23,16 +23,16 @@ impl TypeCheckable for Prefix<()> {
                 let type_id = type_id_ref.borrow().clone();
 
                 // check if we actually have a boolean type
-                if let Some(type_id) = type_id {
-                    if type_id != Type::Boolean {
-                        return Err(TypeCheckError::TypeMismatch(
-                            TypeMismatch {
-                                expected: Type::Boolean,
-                                actual: type_id,
-                            },
-                            expr.position(),
-                        ));
-                    }
+                if let Some(type_id) = type_id
+                    && type_id != Type::Boolean
+                {
+                    return Err(TypeCheckError::TypeMismatch(
+                        TypeMismatch {
+                            expected: Type::Boolean,
+                            actual: type_id,
+                        },
+                        expr.position(),
+                    ));
                 }
 
                 Ok(Prefix::Negation {
@@ -49,16 +49,17 @@ impl TypeCheckable for Prefix<()> {
                 let type_id = type_id_ref.borrow().clone();
 
                 // check if we actually have a numeric type
-                if let Some(type_id) = type_id {
-                    if type_id != Type::Integer && type_id != Type::FloatingPoint {
-                        return Err(TypeCheckError::TypeMismatch(
-                            TypeMismatch {
-                                expected: Type::Integer,
-                                actual: type_id,
-                            },
-                            expr.position(),
-                        ));
-                    }
+                if let Some(type_id) = type_id
+                    && type_id != Type::Integer
+                    && type_id != Type::FloatingPoint
+                {
+                    return Err(TypeCheckError::TypeMismatch(
+                        TypeMismatch {
+                            expected: Type::Integer,
+                            actual: type_id,
+                        },
+                        expr.position(),
+                    ));
                 }
 
                 Ok(Prefix::Minus {
@@ -110,10 +111,10 @@ mod tests {
         lexer::Span,
         parser::ast::{BinaryExpression, BinaryOperator, Expression, Num, Prefix},
         typechecker::{
+            TypeCheckable,
             context::Context,
             error::{TypeCheckError, TypeMismatch},
             types::Type,
-            TypeCheckable,
         },
     };
 

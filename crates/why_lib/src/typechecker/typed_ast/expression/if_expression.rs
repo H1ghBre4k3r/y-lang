@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInfor
 use crate::{
     parser::ast::If,
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult,
         context::Context,
         error::{TypeCheckError, TypeMismatch},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult,
     },
 };
 
@@ -42,7 +42,7 @@ impl TypeCheckable for If<()> {
                         actual: other.clone(),
                     },
                     condition.position(),
-                ))
+                ));
             }
             // Condition has unknown type - allow it through (may be resolved later)
             _ => {}
@@ -60,31 +60,28 @@ impl TypeCheckable for If<()> {
         // - Both branches yield same type: if-expression has that type
         // - Branches yield different types: type error
         // - One or both branches yield no value: if-expression yields no value (void)
-        let type_id = match (
+        let (first_type, last_type) = (
             checked_then_block.info.type_id.borrow().clone(),
             checked_else_block.info.type_id.borrow().clone(),
-        ) {
-            (first_type, last_type) => {
-                match (first_type, last_type) {
-                    // Both branches yield concrete types - they must match
-                    (Some(first_type), Some(last_type)) => {
-                        if first_type != last_type {
-                            // Type mismatch between branches - report error at else block
-                            return Err(TypeCheckError::TypeMismatch(
-                                TypeMismatch {
-                                    expected: first_type,
-                                    actual: last_type,
-                                },
-                                checked_else_block.position,
-                            ));
-                        }
-                        // Both branches have the same type - if-expression yields that type
-                        Rc::new(RefCell::new(Some(first_type)))
-                    }
-                    // At least one branch yields no value - if-expression yields no value
-                    _ => Rc::new(RefCell::new(None)),
+        );
+        let type_id = match (first_type, last_type) {
+            // Both branches yield concrete types - they must match
+            (Some(first_type), Some(last_type)) => {
+                if first_type != last_type {
+                    // Type mismatch between branches - report error at else block
+                    return Err(TypeCheckError::TypeMismatch(
+                        TypeMismatch {
+                            expected: first_type,
+                            actual: last_type,
+                        },
+                        checked_else_block.position,
+                    ));
                 }
-            } // Fallback case for missing type information - treat as void
+                // Both branches have the same type - if-expression yields that type
+                Rc::new(RefCell::new(Some(first_type)))
+            }
+            // At least one branch yields no value - if-expression yields no value
+            _ => Rc::new(RefCell::new(None)),
         };
 
         Ok(If {
@@ -147,10 +144,10 @@ mod tests {
         lexer::Span,
         parser::ast::{Block, Expression, Id, If, Statement},
         typechecker::{
+            TypeCheckable, TypeInformation,
             context::Context,
             error::{TypeCheckError, TypeMismatch},
             types::Type,
-            TypeCheckable, TypeInformation,
         },
     };
 

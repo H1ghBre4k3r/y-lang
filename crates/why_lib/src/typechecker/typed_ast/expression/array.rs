@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInfor
 use crate::{
     parser::ast::Array,
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult,
         context::Context,
         error::{TypeCheckError, TypeMismatch},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult,
     },
 };
 
@@ -31,17 +31,17 @@ impl TypeCheckable for Array<()> {
                 if let Some(type_id) = &type_id {
                     let type_id = { type_id.borrow() }.clone();
                     for value in checked_values.iter() {
-                        let value_type = { value.get_info().type_id.borrow() }.clone();
-                        if let (Some(type_id), Some(value_type)) = (&type_id, value_type) {
-                            if *type_id != value_type {
-                                return Err(TypeCheckError::TypeMismatch(
-                                    TypeMismatch {
-                                        expected: type_id.clone(),
-                                        actual: value_type,
-                                    },
-                                    value.position(),
-                                ));
-                            }
+                        let value_type = value.get_info().type_id.borrow().clone();
+                        if let (Some(type_id), Some(value_type)) = (&type_id, value_type)
+                            && *type_id != value_type
+                        {
+                            return Err(TypeCheckError::TypeMismatch(
+                                TypeMismatch {
+                                    expected: type_id.clone(),
+                                    actual: value_type,
+                                },
+                                value.position(),
+                            ));
                         }
                     }
                 }
@@ -79,7 +79,7 @@ impl TypeCheckable for Array<()> {
                 // FIXME: This currently allows for FloatingPoint lengths
                 let length = length.check(ctx)?;
 
-                let type_id = { initial_value.get_info().type_id.borrow() }.clone();
+                let type_id = initial_value.get_info().type_id.borrow().clone();
 
                 Ok(Array::Default {
                     initial_value: Box::new(initial_value),
@@ -164,16 +164,16 @@ impl TypedConstruct for Array<TypeInformation> {
             Array::Default { info, .. } => info.type_id.borrow().clone(),
         };
 
-        if let Some(inner_type) = inner_type {
-            if inner_type != type_id {
-                return Err(TypeCheckError::TypeMismatch(
-                    TypeMismatch {
-                        expected: type_id,
-                        actual: inner_type,
-                    },
-                    self.position(),
-                ));
-            }
+        if let Some(inner_type) = inner_type
+            && inner_type != type_id
+        {
+            return Err(TypeCheckError::TypeMismatch(
+                TypeMismatch {
+                    expected: type_id,
+                    actual: inner_type,
+                },
+                self.position(),
+            ));
         }
 
         match self {
@@ -195,10 +195,10 @@ mod tests {
         lexer::Span,
         parser::ast::{Array, Expression, Num},
         typechecker::{
+            TypeCheckable,
             context::Context,
             error::{TypeCheckError, TypeMismatch},
             types::Type,
-            TypeCheckable,
         },
     };
 

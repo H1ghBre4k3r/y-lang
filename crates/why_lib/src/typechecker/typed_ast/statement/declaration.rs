@@ -2,10 +2,10 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::{Declaration, Id},
     typechecker::{
+        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{RedefinedConstant, TypeCheckError, UndefinedType},
         types::Type,
-        ShallowCheck, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 use std::{cell::RefCell, rc::Rc};
@@ -131,7 +131,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::{Declaration, Id, TypeName},
-        typechecker::{context::Context, types::Type, ShallowCheck, TypeCheckable},
+        typechecker::{ShallowCheck, TypeCheckable, context::Context, types::Type},
     };
 
     #[test]

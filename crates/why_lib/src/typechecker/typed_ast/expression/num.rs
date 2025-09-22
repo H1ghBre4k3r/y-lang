@@ -4,7 +4,7 @@ use crate::typechecker::{TypeValidationError, ValidatedTypeInformation};
 use crate::{
     parser::ast::Num,
     typechecker::{
-        context::Context, types::Type, TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct, context::Context, types::Type,
     },
 };
 
@@ -62,7 +62,7 @@ mod tests {
     use crate::{
         lexer::Span,
         parser::ast::Num,
-        typechecker::{context::Context, types::Type, TypeCheckable},
+        typechecker::{TypeCheckable, context::Context, types::Type},
     };
 
     #[test]

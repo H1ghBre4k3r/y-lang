@@ -4,10 +4,10 @@ use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInfor
 use crate::{
     parser::ast::Instance,
     typechecker::{
+        ShallowCheck, TypeCheckError, TypeCheckable, TypeInformation, TypeResult,
         context::Context,
         error::{RedefinedConstant, RedefinedMethod},
         types::Type,
-        ShallowCheck, TypeCheckError, TypeCheckable, TypeInformation, TypeResult,
     },
 };
 
@@ -176,8 +176,8 @@ mod tests {
             TypeName,
         },
         typechecker::{
-            context::Context, error::UndefinedType, types::Type, TypeCheckError, TypeCheckable,
-            TypeInformation,
+            TypeCheckError, TypeCheckable, TypeInformation, context::Context, error::UndefinedType,
+            types::Type,
         },
     };
 

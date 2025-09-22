@@ -5,10 +5,10 @@ use crate::{
     lexer::Span,
     parser::ast::{Id, StructFieldInitialisation, StructInitialisation, TypeName},
     typechecker::{
+        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
         context::Context,
         error::{TypeCheckError, TypeMismatch, UndefinedType, UndefinedVariable},
         types::Type,
-        TypeCheckable, TypeInformation, TypeResult, TypedConstruct,
     },
 };
 
@@ -254,7 +254,7 @@ mod tests {
             Expression, Id, Num, StructDeclaration, StructFieldDeclaration,
             StructFieldInitialisation, StructInitialisation, TypeName,
         },
-        typechecker::{context::Context, types::Type, ShallowCheck, TypeCheckable},
+        typechecker::{ShallowCheck, TypeCheckable, context::Context, types::Type},
     };
 
     #[test]

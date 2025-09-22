@@ -1,7 +1,7 @@
 use inkwell::types::{BasicMetadataTypeEnum, FunctionType};
 
 use crate::{
-    codegen::{convert_metadata_to_basic, CodeGen, CodegenContext},
+    codegen::{CodeGen, CodegenContext, convert_metadata_to_basic},
     parser::ast::{Function, FunctionParameter},
     typechecker::{Type, ValidatedTypeInformation},
 };
@@ -87,7 +87,9 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
                     } else {
                         // If no value was produced, this is a function that should have
                         // an explicit return statement. This is likely a type checker issue.
-                        panic!("Non-void function reached end without explicit return or yielding expression");
+                        panic!(
+                            "Non-void function reached end without explicit return or yielding expression"
+                        );
                     }
                 }
             }

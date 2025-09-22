@@ -5,8 +5,8 @@ use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInfor
 use crate::{
     parser::ast::{BinaryExpression, BinaryOperator},
     typechecker::{
-        context::Context, error::TypeCheckError, types::Type, TypeCheckable, TypeInformation,
-        TypeResult,
+        TypeCheckable, TypeInformation, TypeResult, context::Context, error::TypeCheckError,
+        types::Type,
     },
 };
 
@@ -27,8 +27,8 @@ impl TypeCheckable for BinaryExpression<()> {
         let left = left.check(ctx)?;
         let right = right.check(ctx)?;
 
-        let left_type = { left.get_info().type_id.borrow() }.clone();
-        let right_type = { right.get_info().type_id.borrow() }.clone();
+        let left_type = left.get_info().type_id.borrow().clone();
+        let right_type = right.get_info().type_id.borrow().clone();
 
         let compount_type = if let (Some(left_type), Some(right_type)) = (left_type, right_type) {
             if !left_type.does_eq(&right_type) {
@@ -134,10 +134,10 @@ mod tests {
         lexer::Span,
         parser::ast::{BinaryExpression, BinaryOperator, Expression, Num},
         typechecker::{
+            TypeCheckable,
             context::Context,
             error::{TypeCheckError, UnsupportedBinaryOperation},
             types::Type,
-            TypeCheckable,
         },
     };
 
