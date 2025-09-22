@@ -1,0 +1,266 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  update-version:
+    name: Update Version and Amend Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      is_prerelease: ${{ steps.extract.outputs.is_prerelease }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: extract
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if this is a pre-release (ends with -RC)
+          if [[ "$VERSION" == *-RC* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Extracted version: $VERSION"
+          echo "Is pre-release: $([[ "$VERSION" == *-RC* ]] && echo "true" || echo "false")"
+
+      - name: Update version in Cargo.toml files
+        run: |
+          VERSION=${{ steps.extract.outputs.version }}
+
+          # Update root Cargo.toml
+          sed -i 's/^version = ".*"/version = "'$VERSION'"/' Cargo.toml
+
+          # Update workspace member
+          sed -i 's/^version = ".*"/version = "'$VERSION'"/' crates/why_lib/Cargo.toml
+
+          echo "Updated versions to $VERSION"
+          echo "Root Cargo.toml version:"
+          grep '^version = ' Cargo.toml
+          echo "why_lib Cargo.toml version:"
+          grep '^version = ' crates/why_lib/Cargo.toml
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION=${{ steps.extract.outputs.version }}
+          RELEASE_DATE=$(date +%Y-%m-%d)
+          IS_PRERELEASE=${{ steps.extract.outputs.is_prerelease }}
+
+          # Check if this version already exists in changelog
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "Version $VERSION already exists in CHANGELOG.md, skipping update"
+          else
+            # Get the previous release tag
+            PREV_TAG=$(git tag --sort=-version:refname | grep -v "v$VERSION" | head -n1)
+
+            if [ -n "$PREV_TAG" ]; then
+              echo "Generating changelog from $PREV_TAG to v$VERSION"
+              COMMITS=$(git log --pretty=format:"- %s" $PREV_TAG..v$VERSION)
+            else
+              echo "No previous tag found, generating changelog from beginning"
+              COMMITS=$(git log --pretty=format:"- %s" v$VERSION)
+            fi
+
+            # Create the new changelog entry
+            if [ "$IS_PRERELEASE" = "true" ]; then
+              ENTRY_HEADER="## [$VERSION] - $RELEASE_DATE (Pre-release)"
+            else
+              ENTRY_HEADER="## [$VERSION] - $RELEASE_DATE"
+            fi
+
+            echo "$ENTRY_HEADER" > new_entry.md
+            echo "" >> new_entry.md
+            echo "### Changes" >> new_entry.md
+            echo "$COMMITS" >> new_entry.md
+            echo "" >> new_entry.md
+
+            # Use Python to update the changelog
+            python3 << 'EOF'
+          import re
+
+          # Read the current changelog
+          with open('CHANGELOG.md', 'r') as f:
+              content = f.read()
+
+          # Read the new entry
+          with open('new_entry.md', 'r') as f:
+              new_entry = f.read()
+
+          # Find the Unreleased section and clear it, then add the new entry
+          unreleased_pattern = r'(## \[Unreleased\]\s*)(.*?)((?=## \[|\Z))'
+
+          def replace_unreleased(match):
+              header = match.group(1)
+              next_section = match.group(3)
+
+              # Reset unreleased section
+              new_unreleased = """
+          ### Added
+
+          ### Changed
+
+          ### Deprecated
+
+          ### Removed
+
+          ### Fixed
+
+          ### Security
+
+          """
+
+              return header + new_unreleased + "\n" + new_entry.strip() + "\n\n" + next_section
+
+          updated_content = re.sub(unreleased_pattern, replace_unreleased, content, flags=re.DOTALL)
+
+          # Write the updated changelog
+          with open('CHANGELOG.md', 'w') as f:
+              f.write(updated_content)
+
+          print("CHANGELOG.md updated successfully")
+          EOF
+
+            rm -f new_entry.md
+            echo "CHANGELOG.md updated for version $VERSION"
+          fi
+
+      - name: Commit version bump and amend tag
+        run: |
+          VERSION=${{ steps.extract.outputs.version }}
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add Cargo.toml crates/why_lib/Cargo.toml CHANGELOG.md
+          git commit -m "chore: bump version to $VERSION and update CHANGELOG"
+
+          # Move the tag to point to the new commit
+          git tag -fa v$VERSION -m "Release v$VERSION"
+          git push origin v$VERSION --force
+
+  build-and-release:
+    name: Build and Release
+    needs: update-version
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-13
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: v${{ needs.update-version.outputs.version }}
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt update
+          wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+          sudo apt install ./libtinfo5_6.3-2ubuntu0.1_amd64.deb
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+
+      - name: Build and upload binaries
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: yc,yfmt,yls
+          target: ${{ matrix.target }}
+          archive: y-lang-v${{ needs.update-version.outputs.version }}-${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checksum: sha256
+        env:
+          LLVM_SYS_181_PREFIX: ${{ env.LLVM_PATH }}
+
+  create-release:
+    name: Create Release
+    needs: [update-version, build-and-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: v${{ needs.update-version.outputs.version }}
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION=${{ needs.update-version.outputs.version }}
+
+          # Get the previous tag
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "v$VERSION" | head -n1)
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "Generating changelog from $PREV_TAG to v$VERSION"
+            CHANGELOG=$(git log --pretty=format:"- %s" $PREV_TAG..v$VERSION)
+          else
+            echo "No previous tag found, generating changelog from beginning"
+            CHANGELOG=$(git log --pretty=format:"- %s" v$VERSION)
+          fi
+
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## Changes
+
+          $CHANGELOG
+
+          ## Binaries
+
+          Download the appropriate binary for your platform:
+
+          - **Linux x86_64**: \`y-lang-v$VERSION-x86_64-unknown-linux-gnu.tar.gz\`
+          - **macOS x86_64**: \`y-lang-v$VERSION-x86_64-apple-darwin.tar.gz\`
+          - **macOS ARM64**: \`y-lang-v$VERSION-aarch64-apple-darwin.tar.gz\`
+          - **Windows x86_64**: \`y-lang-v$VERSION-x86_64-pc-windows-msvc.zip\`
+
+          Each archive contains the following binaries:
+          - \`yc\` - Y Lang compiler
+          - \`yfmt\` - Y Lang formatter
+          - \`yls\` - Y Lang language server
+
+          ## Installation
+
+          Extract the archive and add the binaries to your PATH, or use:
+
+          \`\`\`bash
+          cargo install --git https://github.com/H1ghBre4k3r/y-lang --tag v$VERSION
+          \`\`\`
+          EOF
+
+          echo "Release notes generated"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.update-version.outputs.version }}
+          name: Y Lang v${{ needs.update-version.outputs.version }}
+          body_path: release_notes.md
+          prerelease: ${{ needs.update-version.outputs.is_prerelease == 'true' }}
+          generate_release_notes: false
+          token: ${{ secrets.GITHUB_TOKEN }}

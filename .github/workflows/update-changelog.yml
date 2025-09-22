@@ -1,0 +1,195 @@
+name: Update Changelog
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    name: Update CHANGELOG.md
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract release information
+        id: release_info
+        run: |
+          # Get release information from the event
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          RELEASE_DATE=$(date +%Y-%m-%d)
+          IS_PRERELEASE="${{ github.event.release.prerelease }}"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+
+          echo "Processing release: $VERSION (prerelease: $IS_PRERELEASE)"
+
+      - name: Generate changelog entry from commits
+        id: changelog_entry
+        run: |
+          VERSION="${{ steps.release_info.outputs.version }}"
+          RELEASE_DATE="${{ steps.release_info.outputs.release_date }}"
+          IS_PRERELEASE="${{ steps.release_info.outputs.is_prerelease }}"
+
+          # Get the previous release tag
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "v$VERSION" | head -n1)
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "Generating changelog from $PREV_TAG to v$VERSION"
+            COMMITS=$(git log --pretty=format:"- %s" $PREV_TAG..v$VERSION)
+          else
+            echo "No previous tag found, generating changelog from beginning"
+            COMMITS=$(git log --pretty=format:"- %s" v$VERSION)
+          fi
+
+          # Organize commits by type
+          ADDED=""
+          CHANGED=""
+          FIXED=""
+          SECURITY=""
+          OTHER=""
+
+          while IFS= read -r commit; do
+            if [[ $commit == *"feat"* ]] || [[ $commit == *"add"* ]]; then
+              ADDED="$ADDED$commit"$'\n'
+            elif [[ $commit == *"fix"* ]] || [[ $commit == *"bug"* ]]; then
+              FIXED="$FIXED$commit"$'\n'
+            elif [[ $commit == *"security"* ]] || [[ $commit == *"vuln"* ]]; then
+              SECURITY="$SECURITY$commit"$'\n'
+            elif [[ $commit == *"change"* ]] || [[ $commit == *"update"* ]] || [[ $commit == *"refactor"* ]]; then
+              CHANGED="$CHANGED$commit"$'\n'
+            else
+              OTHER="$OTHER$commit"$'\n'
+            fi
+          done <<< "$COMMITS"
+
+          # Create the new changelog entry
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            ENTRY_HEADER="## [$VERSION] - $RELEASE_DATE (Pre-release)"
+          else
+            ENTRY_HEADER="## [$VERSION] - $RELEASE_DATE"
+          fi
+
+          echo "$ENTRY_HEADER" > new_entry.md
+          echo "" >> new_entry.md
+
+          if [ -n "$ADDED" ]; then
+            echo "### Added" >> new_entry.md
+            echo "$ADDED" >> new_entry.md
+          fi
+
+          if [ -n "$CHANGED" ]; then
+            echo "### Changed" >> new_entry.md
+            echo "$CHANGED" >> new_entry.md
+          fi
+
+          if [ -n "$FIXED" ]; then
+            echo "### Fixed" >> new_entry.md
+            echo "$FIXED" >> new_entry.md
+          fi
+
+          if [ -n "$SECURITY" ]; then
+            echo "### Security" >> new_entry.md
+            echo "$SECURITY" >> new_entry.md
+          fi
+
+          if [ -n "$OTHER" ]; then
+            echo "### Other" >> new_entry.md
+            echo "$OTHER" >> new_entry.md
+          fi
+
+          echo "Generated changelog entry:"
+          cat new_entry.md
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.release_info.outputs.version }}"
+
+          # Check if this version already exists in changelog
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "Version $VERSION already exists in CHANGELOG.md, skipping update"
+            exit 0
+          fi
+
+          # Create backup
+          cp CHANGELOG.md CHANGELOG.md.bak
+
+          # Use Python for more reliable text processing
+          python3 << 'EOF'
+          import re
+
+          # Read the current changelog
+          with open('CHANGELOG.md', 'r') as f:
+              content = f.read()
+
+          # Read the new entry
+          with open('new_entry.md', 'r') as f:
+              new_entry = f.read()
+
+          # Find the Unreleased section and clear it
+          unreleased_pattern = r'(## \[Unreleased\]\s*)(.*?)((?=## \[|\Z))'
+
+          def replace_unreleased(match):
+              header = match.group(1)
+              next_section = match.group(3)
+
+              # Reset unreleased section
+              new_unreleased = """
+          ### Added
+
+          ### Changed
+
+          ### Deprecated
+
+          ### Removed
+
+          ### Fixed
+
+          ### Security
+
+          """
+
+              return header + new_unreleased + "\n" + new_entry.strip() + "\n\n" + next_section
+
+          updated_content = re.sub(unreleased_pattern, replace_unreleased, content, flags=re.DOTALL)
+
+          # Write the updated changelog
+          with open('CHANGELOG.md', 'w') as f:
+              f.write(updated_content)
+
+          print("CHANGELOG.md updated successfully")
+          EOF
+
+          echo "--- Updated CHANGELOG.md preview ---"
+          head -40 CHANGELOG.md
+
+      - name: Commit changelog update
+        run: |
+          VERSION="${{ steps.release_info.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes to commit
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changes to CHANGELOG.md"
+            exit 0
+          fi
+
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for v$VERSION"
+          git push origin main
+
+          echo "CHANGELOG.md updated and committed to main branch"
+
+      - name: Clean up
+        run: |
+          rm -f new_entry.md CHANGELOG.md.bak
