@@ -10,10 +10,16 @@ fn main(): void {
 
     let message = "Hello, world!";
 
+    let f = println;
+
     if (foo) {
-        println(message);
+        f(message);
     } else {
         let other_message = "Nope";
         println(other_message);
     }
+
+    let g = f;
+
+    g("The End");
 }

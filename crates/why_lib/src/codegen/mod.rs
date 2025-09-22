@@ -49,7 +49,7 @@ impl<'ctx> CodegenContext<'ctx> {
         self.scopes.borrow_mut().pop();
     }
 
-    pub fn find_variable(&self, name: impl ToString) -> BasicValueEnum<'ctx> {
+    pub fn try_find_variable(&self, name: impl ToString) -> Option<BasicValueEnum<'ctx>> {
         let name = name.to_string();
         let scopes = self.scopes.borrow();
 
@@ -58,7 +58,10 @@ impl<'ctx> CodegenContext<'ctx> {
             .rev()
             .find(|scope| scope.borrow().variables.contains_key(&name))
             .and_then(|scope| scope.borrow().variables.get(&name).cloned())
-            .unwrap()
+    }
+
+    pub fn find_variable(&self, name: impl ToString) -> BasicValueEnum<'ctx> {
+        self.try_find_variable(name).unwrap()
     }
 
     pub fn store_variable(&self, name: impl ToString, value: BasicValueEnum<'ctx>) {
@@ -71,7 +74,7 @@ impl<'ctx> CodegenContext<'ctx> {
         });
     }
 
-    pub fn find_function(&self, name: impl ToString) -> FunctionValue<'ctx> {
+    pub fn try_find_function(&self, name: impl ToString) -> Option<FunctionValue<'ctx>> {
         let name = name.to_string();
         let scopes = self.scopes.borrow();
 
@@ -80,7 +83,10 @@ impl<'ctx> CodegenContext<'ctx> {
             .rev()
             .find(|scope| scope.borrow().functions.contains_key(&name))
             .and_then(|scope| scope.borrow().functions.get(&name).cloned())
-            .unwrap()
+    }
+
+    pub fn find_function(&self, name: impl ToString) -> FunctionValue<'ctx> {
+        self.try_find_function(name).unwrap()
     }
 
     pub fn store_function(&self, name: impl ToString, value: FunctionValue<'ctx>) {
@@ -150,8 +156,7 @@ fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             let struct_type = ctx.context.struct_type(&llvm_fields, false);
             struct_type.into()
         }
-        // TODO: this should definetly return a pointer instead of metadata_type
-        Type::Function { .. } => ctx.context.metadata_type().into(),
+        Type::Function { .. } => ctx.context.ptr_type(Default::default()).into(),
     }
 }
 
