@@ -5,6 +5,13 @@ fn println(value: str): void {
     printf("\n");
 }
 
+fn get_lambda(): (i64) -> i64 {
+    \(x) => {
+        println("From returned");
+        x
+    }
+}
+
 fn main(): i64 {
     let foo = false;
 
@@ -25,8 +32,12 @@ fn main(): i64 {
 
     let h: (i64) -> i64 = \(x) => {
         println("From Lambda");
-        x
+        x + x
     };
 
-    h(42)
+    let res = h(21);
+
+    let l = get_lambda();
+
+    l(res)
 }

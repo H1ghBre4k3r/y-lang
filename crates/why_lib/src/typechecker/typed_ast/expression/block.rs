@@ -1,7 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::parser::ast::{Expression, Statement};
-use crate::typechecker::{TypeValidationError, TypedConstruct, ValidatedTypeInformation};
+use crate::typechecker::error::TypeMismatch;
+use crate::typechecker::{
+    TypeCheckError, TypeValidationError, TypedConstruct, ValidatedTypeInformation,
+};
 use crate::{
     parser::ast::Block,
     typechecker::{TypeCheckable, TypeInformation, TypeResult, context::Context, types::Type},
@@ -91,6 +94,30 @@ impl TypeCheckable for Block<()> {
 
 impl TypedConstruct for Block<TypeInformation> {
     type Validated = Block<ValidatedTypeInformation>;
+
+    fn update_type(&mut self, type_id: Type) -> TypeResult<()> {
+        if let Some(our_type) = self.info.type_id.borrow().clone() {
+            if our_type == type_id {
+                return Ok(());
+            }
+            return Err(TypeCheckError::TypeMismatch(
+                TypeMismatch {
+                    expected: our_type,
+                    actual: type_id,
+                },
+                self.position.clone(),
+            ));
+        }
+        let Some(last) = self.statements.last_mut() else {
+            unreachable!("If we got here we should have a last statement")
+        };
+
+        last.update_type(type_id)?;
+
+        self.info.type_id = last.get_info().type_id;
+
+        Ok(())
+    }
 
     fn validate(self) -> Result<Self::Validated, TypeValidationError> {
         let Block {
