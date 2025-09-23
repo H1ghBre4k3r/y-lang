@@ -36,11 +36,25 @@ impl TypeCheckable for Lambda<()> {
 
         ctx.scope.exit_scope();
 
+        // try to infer the type of the lambda
+        let type_id = match (
+            checked_parameters.len(),
+            checked_expression.get_info().type_id.borrow().clone(),
+        ) {
+            // in the special case where we have no parameters and a distinct return type of the
+            // lambda, we can actually infer the type of the entire lambda
+            (0, Some(type_id)) => Some(Type::Function {
+                params: vec![],
+                return_value: Box::new(type_id),
+            }),
+            _ => None,
+        };
+
         Ok(Lambda {
             parameters: checked_parameters,
             expression: Box::new(checked_expression),
             info: TypeInformation {
-                type_id: Rc::new(RefCell::new(None)),
+                type_id: Rc::new(RefCell::new(type_id)),
                 context,
             },
             position,
@@ -405,7 +419,10 @@ mod tests {
                     Span::default()
                 ))),
                 info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(None)),
+                    type_id: Rc::new(RefCell::new(Some(Type::Function {
+                        params: vec![],
+                        return_value: Box::new(Type::Integer)
+                    }))),
                     context: Context::default(),
                 },
                 position: Span::default(),
