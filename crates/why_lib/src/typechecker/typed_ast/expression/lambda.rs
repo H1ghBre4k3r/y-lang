@@ -43,9 +43,10 @@ impl TypeCheckable for Lambda<()> {
         ) {
             // in the special case where we have no parameters and a distinct return type of the
             // lambda, we can actually infer the type of the entire lambda
-            (0, Some(type_id)) => Some(Type::Function {
+            (0, Some(type_id)) => Some(Type::Lambda {
                 params: vec![],
                 return_value: Box::new(type_id),
+                captures: vec![],
             }),
             _ => None,
         };
@@ -54,6 +55,7 @@ impl TypeCheckable for Lambda<()> {
             parameters: checked_parameters,
             expression: Box::new(checked_expression),
             info: TypeInformation {
+                // TODO: this should actually be a lambda...
                 type_id: Rc::new(RefCell::new(type_id)),
                 context,
             },
@@ -109,9 +111,10 @@ impl TypedConstruct for Lambda<TypeInformation> {
 
             // Check if current type can be refined by the new type
             // This allows lambdas with Unknown parameter types to be updated
-            if let Type::Function {
+            if let Type::Lambda {
                 params: current_params,
                 return_value: current_return,
+                ..
             } = current_type
             {
                 // If current lambda has Unknown parameter types, allow refinement
@@ -122,6 +125,9 @@ impl TypedConstruct for Lambda<TypeInformation> {
                     // Allow the update to proceed - fall through to the update logic below
                 } else {
                     // Types are concrete and don't match - this is an error
+                    // TODO: update error such that it reflects the correct state
+                    // this is not a type mismatch, but rather an already properly typed lambda
+                    // In the future, we can think about allowing this to generalize the lambda even more
                     return Err(TypeCheckError::TypeMismatch(
                         TypeMismatch {
                             expected: current_type.clone(),
@@ -134,8 +140,12 @@ impl TypedConstruct for Lambda<TypeInformation> {
                 // Current type is not a function - this is an error
                 return Err(TypeCheckError::TypeMismatch(
                     TypeMismatch {
-                        expected: current_type.clone(),
-                        actual: type_id,
+                        expected: Type::Lambda {
+                            params: vec![],
+                            return_value: Box::new(Type::Unknown),
+                            captures: vec![],
+                        },
+                        actual: current_type.clone(),
                     },
                     self.position.clone(),
                 ));
@@ -207,7 +217,17 @@ impl TypedConstruct for Lambda<TypeInformation> {
         // update our expression as well
         self.expression = Box::new(expr);
 
-        self.info.type_id = Rc::new(RefCell::new(Some(type_id)));
+        // TODO: type_id will probably be Type::Function...
+        // We will have to convert it...
+        // self.info.type_id = Rc::new(RefCell::new(Some(Type::Function {
+        //     params,
+        //     return_value,
+        // })));
+        self.info.type_id = Rc::new(RefCell::new(Some(Type::Lambda {
+            params,
+            return_value,
+            captures: vec![],
+        })));
 
         Ok(())
     }
@@ -419,9 +439,10 @@ mod tests {
                     Span::default()
                 ))),
                 info: TypeInformation {
-                    type_id: Rc::new(RefCell::new(Some(Type::Function {
+                    type_id: Rc::new(RefCell::new(Some(Type::Lambda {
                         params: vec![],
-                        return_value: Box::new(Type::Integer)
+                        return_value: Box::new(Type::Integer),
+                        captures: vec![]
                     }))),
                     context: Context::default(),
                 },

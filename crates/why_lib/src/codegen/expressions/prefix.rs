@@ -57,6 +57,11 @@ impl<'ctx> CodeGen<'ctx> for Prefix<ValidatedTypeInformation> {
                         params,
                         return_value,
                     } => todo!(),
+                    Type::Lambda {
+                        params,
+                        return_value,
+                        captures,
+                    } => todo!(),
                 }
             }
         }

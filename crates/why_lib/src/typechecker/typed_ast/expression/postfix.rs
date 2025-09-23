@@ -53,6 +53,11 @@ impl TypeCheckable for Postfix<()> {
                         expr_type_id @ Type::Function {
                             params,
                             return_value,
+                        }
+                        | expr_type_id @ Type::Lambda {
+                            params,
+                            return_value,
+                            ..
                         },
                     ) => {
                         // param length did not match

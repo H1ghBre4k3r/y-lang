@@ -12,6 +12,10 @@ fn get_lambda(): (i64) -> i64 {
     }
 }
 
+fn will_error(x: i64): (i64) -> i64 {
+    \(y) => x + y   
+}
+
 fn main(): i64 {
     let foo = false;
 
@@ -30,14 +34,20 @@ fn main(): i64 {
 
     g("The End");
 
+    let y = 10;
+
     let h: (i64) -> i64 = \(x) => {
         println("From Lambda");
-        x + x
+        x + y
     };
 
     let res = h(21);
 
     let l = get_lambda();
 
-    l(res)
+    let bar = l(res);
+
+    let err = will_error(1);
+
+    err(bar)
 }

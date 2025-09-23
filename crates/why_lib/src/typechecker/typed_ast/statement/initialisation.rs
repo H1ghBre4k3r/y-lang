@@ -333,9 +333,10 @@ mod tests {
                 id: Id {
                     name: "foo".into(),
                     info: TypeInformation {
-                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                        type_id: Rc::new(RefCell::new(Some(Type::Lambda {
                             params: vec![],
-                            return_value: Box::new(Type::Integer)
+                            return_value: Box::new(Type::Integer),
+                            captures: vec![]
                         }))),
                         context: Context::default(),
                     },
@@ -354,9 +355,10 @@ mod tests {
                         Span::default()
                     ))),
                     info: TypeInformation {
-                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                        type_id: Rc::new(RefCell::new(Some(Type::Lambda {
                             params: vec![],
-                            return_value: Box::new(Type::Integer)
+                            return_value: Box::new(Type::Integer),
+                            captures: vec![]
                         }))),
                         context: Context::default(),
                     },
