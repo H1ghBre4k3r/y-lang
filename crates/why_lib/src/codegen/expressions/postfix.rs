@@ -39,6 +39,7 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
             return_value,
         } = expr.get_info().type_id
         else {
+            // TODO: handle lambda correctly
             unreachable!()
         };
 

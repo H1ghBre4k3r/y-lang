@@ -51,6 +51,8 @@ pub fn convert_our_type_to_llvm_basic_metadata_type<'ctx>(
             struct_type.into()
         }
         Type::Function { .. } => ctx.context.ptr_type(Default::default()).into(),
+        // TODO: does this work?
+        Type::Lambda { .. } => ctx.context.ptr_type(Default::default()).into(),
     }
 }
 

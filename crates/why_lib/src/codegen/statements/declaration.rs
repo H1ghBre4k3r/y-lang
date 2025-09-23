@@ -33,6 +33,9 @@ impl<'ctx> CodeGen<'ctx> for Declaration<ValidatedTypeInformation> {
                 let llvm_fn_value = ctx.module.add_function(&name.name, llvm_fn_type, None);
                 ctx.store_function(&name.name, llvm_fn_value);
             }
+            Type::Lambda { .. } => {
+                unreachable!("Declaration can not be of type lambda: {self:?}")
+            }
         }
     }
 }

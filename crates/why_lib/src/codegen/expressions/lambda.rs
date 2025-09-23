@@ -16,9 +16,11 @@ impl<'ctx> CodeGen<'ctx> for Lambda<ValidatedTypeInformation> {
             info:
                 ValidatedTypeInformation {
                     type_id:
-                        Type::Function {
+                        Type::Lambda {
                             params,
                             return_value,
+                            // TODO: actually capture them
+                            captures,
                         },
                     context,
                 },
