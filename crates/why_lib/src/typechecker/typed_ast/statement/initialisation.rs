@@ -163,7 +163,6 @@ impl TypedConstruct for Initialisation<TypeInformation> {
 mod tests {
     use std::{cell::RefCell, error::Error, rc::Rc};
 
-    use crate::typechecker::error::MissingInitialisationType;
     use crate::{
         lexer::Span,
         parser::ast::{Expression, Id, Initialisation, Lambda, Num, TypeName},
@@ -305,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn test_error_on_missing_type() -> Result<(), Box<dyn Error>> {
+    fn test_simple_inference_for_lambda() -> Result<(), Box<dyn Error>> {
         let mut ctx = Context::default();
 
         let init = Initialisation {
@@ -330,10 +329,45 @@ mod tests {
 
         assert_eq!(
             res,
-            Err(TypeCheckError::MissingInitialisationType(
-                MissingInitialisationType,
-                Span::default()
-            ))
+            Ok(Initialisation {
+                id: Id {
+                    name: "foo".into(),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                            params: vec![],
+                            return_value: Box::new(Type::Integer)
+                        }))),
+                        context: Context::default(),
+                    },
+                    position: Span::default(),
+                },
+                mutable: false,
+                type_name: None,
+                value: Expression::Lambda(Lambda {
+                    parameters: vec![],
+                    expression: Box::new(Expression::Num(Num::Integer(
+                        42,
+                        TypeInformation {
+                            type_id: Rc::new(RefCell::new(Some(Type::Integer))),
+                            context: Context::default(),
+                        },
+                        Span::default()
+                    ))),
+                    info: TypeInformation {
+                        type_id: Rc::new(RefCell::new(Some(Type::Function {
+                            params: vec![],
+                            return_value: Box::new(Type::Integer)
+                        }))),
+                        context: Context::default(),
+                    },
+                    position: Span::default(),
+                }),
+                info: TypeInformation {
+                    type_id: Rc::new(RefCell::new(Some(Type::Void))),
+                    context: Context::default()
+                },
+                position: Span::default(),
+            })
         );
 
         Ok(())
