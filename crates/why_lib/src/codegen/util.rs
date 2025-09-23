@@ -89,7 +89,11 @@ pub fn build_llvm_function_type_from_own_types<'ctx>(
         Type::Function {
             params,
             return_value,
-        } => todo!(),
+        } => {
+            let llvm_ptr_type = ctx.context.ptr_type(Default::default());
+
+            llvm_ptr_type.fn_type(&llvm_param_types, false)
+        }
         return_type => {
             let llvm_return_type = ctx.get_llvm_type(return_type);
 
