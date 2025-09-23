@@ -8,7 +8,12 @@ use inkwell::{
     values::{BasicValueEnum, FunctionValue},
 };
 
-use crate::{codegen::convert_our_type_to_llvm_basic_metadata_type, typechecker::Type};
+use crate::{
+    codegen::{
+        build_llvm_function_type_from_own_types, convert_our_type_to_llvm_basic_metadata_type,
+    },
+    typechecker::Type,
+};
 
 pub struct CodegenContext<'ctx> {
     pub context: &'ctx Context,
@@ -16,6 +21,7 @@ pub struct CodegenContext<'ctx> {
     pub builder: Builder<'ctx>,
     pub types: RefCell<HashMap<Type, BasicMetadataTypeEnum<'ctx>>>,
     pub scopes: RefCell<Vec<ScopeFrame<'ctx>>>,
+    pub lambdas: RefCell<HashMap<String, FunctionValue<'ctx>>>,
 }
 
 pub type ScopeFrame<'ctx> = RefCell<Scope<'ctx>>;
@@ -97,5 +103,23 @@ impl<'ctx> CodegenContext<'ctx> {
             scope_frame.functions.insert(name.clone(), value);
             scope_frame.variables.insert(name, fn_pointer.into());
         });
+    }
+
+    pub fn create_lambda(&self, return_type: &Type, param_types: &[Type]) -> FunctionValue<'ctx> {
+        let llvm_lambda_type =
+            build_llvm_function_type_from_own_types(self, return_type, param_types);
+
+        let mut lambdas = self.lambdas.borrow_mut();
+
+        let lambda_count = lambdas.len();
+        let lambda_name = format!("lambda_{lambda_count}");
+
+        let llvm_lambda_value = self
+            .module
+            .add_function(&lambda_name, llvm_lambda_type, None);
+
+        lambdas.insert(lambda_name, llvm_lambda_value);
+
+        llvm_lambda_value
     }
 }

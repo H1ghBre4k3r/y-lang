@@ -1,9 +1,7 @@
 use inkwell::values::{BasicMetadataValueEnum, BasicValueEnum};
 
 use crate::{
-    codegen::{
-        CodeGen, CodegenContext, statements::function::build_llvm_function_type_from_own_types,
-    },
+    codegen::{CodeGen, CodegenContext, build_llvm_function_type_from_own_types},
     parser::ast::{Expression, Postfix},
     typechecker::{Type, ValidatedTypeInformation},
 };

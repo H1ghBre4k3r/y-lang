@@ -1,42 +1,18 @@
+use inkwell::values::PointerValue;
+
 use crate::{
-    codegen::{
-        CodeGen, CodegenContext, build_llvm_function_type_from_own_types, convert_metadata_to_basic,
-    },
-    parser::ast::{Function, FunctionParameter},
+    codegen::{CodeGen, convert_metadata_to_basic},
+    parser::ast::{Lambda, LambdaParameter},
     typechecker::{Type, ValidatedTypeInformation},
 };
 
-const Y_MAIN: &str = "y_main";
+impl<'ctx> CodeGen<'ctx> for Lambda<ValidatedTypeInformation> {
+    type ReturnValue = PointerValue<'ctx>;
 
-fn generate_main_wrapper(ctx: &CodegenContext) {
-    let llvm_int_type = ctx.get_llvm_type(&Type::Integer).into_int_type();
-    let llvm_fn_type = llvm_int_type.fn_type(&[], false);
-
-    let llvm_fn_value = ctx.module.add_function("main", llvm_fn_type, None);
-    ctx.store_function("main", llvm_fn_value);
-
-    let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
-    ctx.builder.position_at_end(llvm_fn_bb);
-
-    let y_main = ctx.find_function(Y_MAIN);
-    if let Err(e) = ctx.builder.build_call(y_main, &[], "") {
-        unreachable!("Call to main from main wrapper should always succeed. {e}")
-    };
-
-    let zero = llvm_int_type.const_zero();
-    if let Err(e) = ctx.builder.build_return(Some(&zero)) {
-        unreachable!("Return from main wrapper should always succeed. {e}")
-    }
-}
-
-impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
-    type ReturnValue = ();
-
-    fn codegen(&self, ctx: &CodegenContext<'ctx>) {
-        let Function {
-            id,
+    fn codegen(&self, ctx: &crate::codegen::CodegenContext<'ctx>) -> Self::ReturnValue {
+        let Lambda {
             parameters,
-            body,
+            expression,
             info:
                 ValidatedTypeInformation {
                     type_id:
@@ -44,33 +20,27 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
                             params,
                             return_value,
                         },
-                    ..
+                    context,
                 },
-            ..
+            position,
         } = self
         else {
-            unreachable!()
+            unreachable!("Lambda should have function type during code generation: {self:#?}")
         };
 
-        // check if we need to wrap the void main function of the why program in an int main function
-        let needs_main_wrapper = **return_value == Type::Void && id.name == "main";
-        let fn_name = if needs_main_wrapper { Y_MAIN } else { &id.name };
+        // Store current builder position
+        let current_bb = ctx.builder.get_insert_block();
 
-        let llvm_fn_type = build_llvm_function_type_from_own_types(ctx, return_value, params);
+        let llvm_lambda_value = ctx.create_lambda(return_value, params);
 
-        // get function value and store it in the scope (such that it can be referenced later)
-        let llvm_fn_value = ctx.module.add_function(fn_name, llvm_fn_type, None);
-        ctx.store_function(fn_name, llvm_fn_value);
+        let llvm_lambda_bb = ctx.context.append_basic_block(llvm_lambda_value, "entry");
+        ctx.builder.position_at_end(llvm_lambda_bb);
 
-        let llvm_fn_bb = ctx.context.append_basic_block(llvm_fn_value, "entry");
-        ctx.builder.position_at_end(llvm_fn_bb);
-
-        // enter scope for function parameters and local variables
         ctx.enter_scope();
         for (i, param) in parameters.iter().enumerate() {
-            let FunctionParameter { name, .. } = param;
+            let LambdaParameter { name, .. } = param;
 
-            let llvm_param_value = llvm_fn_value
+            let llvm_param_value = llvm_lambda_value
                 .get_nth_param(i as u32)
                 .expect("There should be this parameter");
 
@@ -95,12 +65,12 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
             ctx.store_variable(&name.name, llvm_alloca.into());
         }
 
-        // Generate function body
-        let block_result = body.codegen(ctx);
+        // Generate lambda body
+        let lambda_result = expression.codegen(ctx);
 
         // Only add return instruction if the basic block isn't already terminated
-        let current_bb = ctx.builder.get_insert_block().unwrap();
-        if current_bb.get_terminator().is_none() {
+        let lambda_bb = ctx.builder.get_insert_block().unwrap();
+        if lambda_bb.get_terminator().is_none() {
             // No terminator means we need to add a return instruction
             match return_value.as_ref() {
                 Type::Void => {
@@ -109,7 +79,7 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
                 }
                 _ => {
                     // Non-void functions should return the block result
-                    if let Some(return_value) = block_result {
+                    if let Some(return_value) = lambda_result {
                         ctx.builder.build_return(Some(&return_value)).unwrap();
                     } else {
                         // If no value was produced, this is a function that should have
@@ -124,8 +94,11 @@ impl<'ctx> CodeGen<'ctx> for Function<ValidatedTypeInformation> {
 
         ctx.exit_scope();
 
-        if needs_main_wrapper {
-            generate_main_wrapper(ctx);
+        // Restore builder position
+        if let Some(bb) = current_bb {
+            ctx.builder.position_at_end(bb);
         }
+
+        llvm_lambda_value.as_global_value().as_pointer_value()
     }
 }
