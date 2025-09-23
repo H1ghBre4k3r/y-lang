@@ -1,10 +1,8 @@
 use crate::{
-    codegen::{CodeGen, CodegenContext},
+    codegen::{CodeGen, CodegenContext, build_llvm_function_type_from_own_types},
     parser::ast::Declaration,
     typechecker::{Type, ValidatedTypeInformation},
 };
-
-use super::function::build_llvm_function_type_from_own_types;
 
 impl<'ctx> CodeGen<'ctx> for Declaration<ValidatedTypeInformation> {
     type ReturnValue = ();

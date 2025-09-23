@@ -1,4 +1,4 @@
-use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
+use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum, FunctionType};
 
 use crate::{codegen::CodegenContext, typechecker::Type};
 
@@ -63,5 +63,59 @@ pub fn convert_metadata_to_basic(ty: BasicMetadataTypeEnum) -> Option<BasicTypeE
         BasicMetadataTypeEnum::StructType(t) => Some(BasicTypeEnum::StructType(t)),
         BasicMetadataTypeEnum::VectorType(t) => Some(BasicTypeEnum::VectorType(t)),
         _ => None, // For metadata-only types that aren't BasicType-compatible
+    }
+}
+
+pub fn build_llvm_function_type_from_own_types<'ctx>(
+    ctx: &CodegenContext<'ctx>,
+    return_type: &Type,
+    param_types: &[Type],
+) -> FunctionType<'ctx> {
+    let llvm_param_types = param_types
+        .iter()
+        .map(|param_type| ctx.get_llvm_type(param_type))
+        .collect::<Vec<_>>();
+
+    match return_type {
+        Type::Boolean => todo!(),
+        Type::Character => todo!(),
+        Type::String => todo!(),
+        Type::Void => {
+            let llvm_void_type = ctx.context.void_type();
+
+            llvm_void_type.fn_type(&llvm_param_types, false)
+        }
+        Type::Unknown => todo!(),
+        Type::Function {
+            params,
+            return_value,
+        } => todo!(),
+        return_type => {
+            let llvm_return_type = ctx.get_llvm_type(return_type);
+
+            build_llvm_function_type_from_llvm_types(&llvm_return_type, &llvm_param_types)
+        }
+    }
+}
+
+pub fn build_llvm_function_type_from_llvm_types<'ctx>(
+    llvm_type: &BasicMetadataTypeEnum<'ctx>,
+    llvm_params: &[BasicMetadataTypeEnum<'ctx>],
+) -> FunctionType<'ctx> {
+    match llvm_type {
+        BasicMetadataTypeEnum::ArrayType(array_type) => array_type.fn_type(llvm_params, false),
+        BasicMetadataTypeEnum::FloatType(float_type) => float_type.fn_type(llvm_params, false),
+        BasicMetadataTypeEnum::IntType(int_type) => int_type.fn_type(llvm_params, false),
+        BasicMetadataTypeEnum::PointerType(pointer_type) => {
+            pointer_type.fn_type(llvm_params, false)
+        }
+        BasicMetadataTypeEnum::StructType(struct_type) => struct_type.fn_type(llvm_params, false),
+        BasicMetadataTypeEnum::VectorType(vector_type) => vector_type.fn_type(llvm_params, false),
+        BasicMetadataTypeEnum::ScalableVectorType(scalable_vector_type) => {
+            scalable_vector_type.fn_type(llvm_params, false)
+        }
+        BasicMetadataTypeEnum::MetadataType(metadata_type) => {
+            metadata_type.fn_type(llvm_params, false)
+        }
     }
 }

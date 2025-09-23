@@ -138,6 +138,7 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             builder,
             types: RefCell::new(HashMap::default()),
             scopes: RefCell::new(vec![ScopeFrame::default()]),
+            lambdas: RefCell::new(HashMap::default()),
         };
 
         // TODO: this _must_ include insertion of functions types, etc.
@@ -147,12 +148,12 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             statement.codegen(&codegen_context);
         }
 
-        self.emit_assembly_file(&codegen_context.module)?;
-
         codegen_context
             .module
             .print_to_file(self.file_path())
             .expect("Error while writing to file");
+
+        self.emit_assembly_file(&codegen_context.module)?;
 
         Ok(())
     }
