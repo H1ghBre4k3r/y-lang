@@ -34,23 +34,9 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
         expr: &Expression<ValidatedTypeInformation>,
         args: &[Expression<ValidatedTypeInformation>],
     ) -> Option<BasicValueEnum<'ctx>> {
-        let Type::Function {
-            params,
-            return_value,
-        } = expr.get_info().type_id
-        else {
-            // TODO: handle lambda correctly
-            unreachable!()
-        };
-
-        let llvm_function_type =
-            build_llvm_function_type_from_own_types(ctx, &return_value, &params);
+        let type_id = expr.get_info().type_id;
         let Some(expr) = expr.codegen(ctx) else {
             unreachable!()
-        };
-
-        let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr else {
-            unreachable!("The Expression in a Call-Postfix should always return a pointer");
         };
 
         let args = args
@@ -62,6 +48,56 @@ impl<'ctx> Postfix<ValidatedTypeInformation> {
                 arg.into()
             })
             .collect::<Vec<BasicMetadataValueEnum<'ctx>>>();
+
+        match type_id {
+            Type::Function {
+                params,
+                return_value,
+            } => Self::codegen_function_call(ctx, expr, args, params, *return_value),
+            Type::Lambda {
+                params,
+                return_value,
+                captures,
+            } => Self::codegen_lambda_call(ctx, expr, args, params, *return_value, captures),
+            other => unreachable!("postfix calls are not allowed for: {other:#?}"),
+        }
+    }
+
+    fn codegen_function_call(
+        ctx: &CodegenContext<'ctx>,
+        expr: BasicValueEnum<'ctx>,
+        args: Vec<BasicMetadataValueEnum<'ctx>>,
+        params: Vec<Type>,
+        return_type: Type,
+    ) -> Option<BasicValueEnum<'ctx>> {
+        let llvm_function_type =
+            build_llvm_function_type_from_own_types(ctx, &return_type, &params);
+
+        let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr else {
+            unreachable!("The Expression in a Call-Postfix should always return a pointer");
+        };
+
+        ctx.builder
+            .build_indirect_call(llvm_function_type, llvm_fn_pointer, &args, "")
+            .unwrap()
+            .try_as_basic_value()
+            .left()
+    }
+
+    fn codegen_lambda_call(
+        ctx: &CodegenContext<'ctx>,
+        expr: BasicValueEnum<'ctx>,
+        args: Vec<BasicMetadataValueEnum<'ctx>>,
+        params: Vec<Type>,
+        return_type: Type,
+        captures: Vec<String>,
+    ) -> Option<BasicValueEnum<'ctx>> {
+        let llvm_function_type =
+            build_llvm_function_type_from_own_types(ctx, &return_type, &params);
+
+        let BasicValueEnum::PointerValue(llvm_fn_pointer) = expr else {
+            unreachable!("The Expression in a Call-Postfix should always return a pointer");
+        };
 
         ctx.builder
             .build_indirect_call(llvm_function_type, llvm_fn_pointer, &args, "")
