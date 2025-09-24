@@ -153,7 +153,7 @@ impl Module<Vec<TopLevelStatement<ValidatedTypeInformation>>> {
             .print_to_file(self.file_path())
             .expect("Error while writing to file");
 
-        self.emit_assembly_file(&codegen_context.module)?;
+        // self.emit_assembly_file(&codegen_context.module)?;
 
         Ok(())
     }
