@@ -208,6 +208,7 @@ impl LanguageServer for Backend {
                     TextDocumentSyncKind::FULL,
                 )),
                 document_formatting_provider: Some(OneOf::Left(true)),
+                definition_provider: Some(OneOf::Left(true)),
                 // diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
                 //     DiagnosticOptions {
                 //         identifier: Some("ylsp".into()),
@@ -409,6 +410,7 @@ async fn main() {
     let (service, socket) = LspService::new(|client| Backend {
         client,
         documents: Arc::new(RwLock::new(HashMap::new())),
+        symbol_indices: Arc::new(RwLock::new(HashMap::new())),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }
