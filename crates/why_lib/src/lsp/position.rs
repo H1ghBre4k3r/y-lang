@@ -68,8 +68,14 @@ impl PositionUtils {
     /// Convert a Span to an LSP Range
     pub fn span_to_range(&self, span: &Span) -> Range {
         Range {
-            start: self.offset_to_position(span.start_offset()),
-            end: self.offset_to_position(span.end_offset()),
+            start: Position {
+                line: span.start.0 as u32,
+                character: span.start.1 as u32,
+            },
+            end: Position {
+                line: span.end.0 as u32,
+                character: span.end.1 as u32,
+            },
         }
     }
 
@@ -140,22 +146,6 @@ impl PositionUtils {
     }
 }
 
-/// Convert span line/column to byte offsets for PositionUtils
-impl Span {
-    /// Get the starting byte offset of this span
-    pub fn start_offset(&self) -> usize {
-        // This is a simplified implementation
-        // In a real implementation, you'd need to maintain a mapping
-        // from line/column to byte offsets, or store byte offsets in Span
-        // For now, we'll use a heuristic based on line/column
-        self.start.0 * 80 + self.start.1 // Assume 80 chars per line average
-    }
-
-    /// Get the ending byte offset of this span
-    pub fn end_offset(&self) -> usize {
-        self.end.0 * 80 + self.end.1 // Assume 80 chars per line average
-    }
-}
 
 #[cfg(test)]
 mod tests {

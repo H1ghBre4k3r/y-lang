@@ -49,21 +49,20 @@ mod tests {
     use super::*;
     use crate::grammar;
     use crate::parser::parse_program;
-    use tower_lsp_server::lsp_types::Url;
 
     #[test]
     fn test_symbol_collection_basic() {
         let input = "
-            fn main() -> i64 {
+            fn main(): i64 {
                 let x = 42;
-                x
+                return x;
             }
         ";
 
         let program = grammar::parse(input).expect("Failed to parse");
         let parsed = parse_program(program, input);
         let typechecker = TypeChecker::new(parsed);
-        let uri: Uri = Url::parse("file:///test.why").unwrap();
+        let uri: Uri = "file:///test.why".parse().unwrap();
 
         let result = typechecker.check_with_symbols(input, uri);
         assert!(result.is_ok());
@@ -82,20 +81,20 @@ mod tests {
     fn test_symbol_collection_struct() {
         let input = "
             struct Point {
-                x: i64,
-                y: i64,
+                x: i64;
+                y: i64;
             }
 
-            fn main() -> i64 {
+            fn main(): i64 {
                 let p = Point { x: 1, y: 2 };
-                p.x
+                return p.x;
             }
         ";
 
         let program = grammar::parse(input).expect("Failed to parse");
         let parsed = parse_program(program, input);
         let typechecker = TypeChecker::new(parsed);
-        let uri: Uri = Url::parse("file:///test.why").unwrap();
+        let uri: Uri = "file:///test.why".parse().unwrap();
 
         let result = typechecker.check_with_symbols(input, uri);
         assert!(result.is_ok());

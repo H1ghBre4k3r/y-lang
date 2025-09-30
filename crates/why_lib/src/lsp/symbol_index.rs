@@ -71,15 +71,8 @@ impl SymbolIndex {
         // Index by name
         self.by_name.entry(name).or_insert_with(Vec::new).push(symbol_id);
 
-        // Index by position for every character in the selection range
-        for line in range.start.line..=range.end.line {
-            let start_char = if line == range.start.line { range.start.character } else { 0 };
-            let end_char = if line == range.end.line { range.end.character } else { u32::MAX };
-
-            for char in start_char..end_char {
-                self.by_position.insert((uri.clone(), line, char), symbol_id);
-            }
-        }
+        // Index by the start position only (more efficient than mapping every character)
+        self.by_position.insert((uri.clone(), range.start.line, range.start.character), symbol_id);
     }
 
     /// Add a reference to a symbol
@@ -200,12 +193,11 @@ pub mod span_utils {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tower_lsp_server::lsp_types::Url;
 
     #[test]
     fn test_symbol_index_basic_operations() {
         let index = SymbolIndex::new();
-        let uri: Uri = Url::parse("file:///test.why").unwrap();
+        let uri: Uri = "file:///test.why".parse().unwrap();
 
         let symbol_id = index.next_symbol_id();
         let definition = Definition {
