@@ -93,8 +93,14 @@ impl SymbolIndex {
 
     /// Find symbol at a specific position
     pub fn symbol_at_position(&self, uri: &Uri, position: &Position) -> Option<SymbolId> {
-        self.by_position.get(&(uri.clone(), position.line, position.character))
-            .map(|id| *id)
+        // Check if position falls within any symbol's range
+        for entry in self.definitions.iter() {
+            let definition = entry.value();
+            if definition.uri == *uri && position_in_range(position, &definition.range) {
+                return Some(*entry.key());
+            }
+        }
+        None
     }
 
     /// Find symbols by name (supports partial matching)
@@ -188,6 +194,29 @@ pub mod span_utils {
             None => SymbolKind::VARIABLE, // Default fallback
         }
     }
+}
+
+/// Check if a position falls within a range
+fn position_in_range(position: &Position, range: &Range) -> bool {
+    let pos_line = position.line;
+    let pos_char = position.character;
+    let start_line = range.start.line;
+    let start_char = range.start.character;
+    let end_line = range.end.line;
+    let end_char = range.end.character;
+
+    // Position is before the range
+    if pos_line < start_line || (pos_line == start_line && pos_char < start_char) {
+        return false;
+    }
+
+    // Position is after the range
+    if pos_line > end_line || (pos_line == end_line && pos_char >= end_char) {
+        return false;
+    }
+
+    // Position is within the range
+    true
 }
 
 #[cfg(test)]

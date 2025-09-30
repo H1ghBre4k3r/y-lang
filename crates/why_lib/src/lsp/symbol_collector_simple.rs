@@ -69,6 +69,9 @@ impl SimpleSymbolCollector {
         for param in &func.parameters {
             self.collect_from_function_parameter(param);
         }
+
+        // Collect symbols from function body
+        self.collect_from_block(&func.body);
     }
 
     fn collect_from_function_parameter(&self, param: &FunctionParameter<TypeInformation>) {
@@ -158,6 +161,41 @@ impl SimpleSymbolCollector {
             kind: SymbolKind::VARIABLE,
             range,
             selection_range: self.position_utils.span_to_range(&decl.name.position),
+            type_info: Some(format!("variable")),
+            parent: None,
+            uri: self.uri.clone(),
+        };
+
+        self.symbol_index.add_definition(definition);
+    }
+
+    fn collect_from_block(&self, block: &Block<TypeInformation>) {
+        for statement in &block.statements {
+            self.collect_from_statement(statement);
+        }
+    }
+
+    fn collect_from_statement(&self, statement: &Statement<TypeInformation>) {
+        match statement {
+            Statement::Function(func) => self.collect_from_function(func),
+            Statement::Initialization(init) => self.collect_from_initialization(init),
+            Statement::Constant(constant) => self.collect_from_constant(constant),
+            Statement::Declaration(decl) => self.collect_from_declaration(decl),
+            Statement::StructDeclaration(struct_decl) => self.collect_from_struct(struct_decl),
+            _ => {}, // Handle other statement types later if needed
+        }
+    }
+
+    fn collect_from_initialization(&self, init: &Initialisation<TypeInformation>) {
+        let symbol_id = self.symbol_index.next_symbol_id();
+        let range = self.position_utils.span_to_range(&init.position);
+
+        let definition = Definition {
+            symbol_id,
+            name: init.id.name.clone(),
+            kind: SymbolKind::VARIABLE,
+            range,
+            selection_range: self.position_utils.span_to_range(&init.id.position),
             type_info: Some(format!("variable")),
             parent: None,
             uri: self.uri.clone(),
