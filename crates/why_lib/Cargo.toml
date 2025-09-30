@@ -11,7 +11,7 @@ repository = "https://github.com/H1ghBre4k3r/y-lang"
 anyhow = "1.0.100"
 colored = "3.0.0"
 inkwell = { version = "0.6.0", features = ["llvm18-1"] }
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 sha2 = "0.10.9"
 unescape = "0.1.0"
 rust-sitter = "0.4.5"
