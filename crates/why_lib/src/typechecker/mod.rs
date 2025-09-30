@@ -1,4 +1,4 @@
-mod context;
+pub mod context;
 mod error;
 mod scope;
 mod typed_ast;
@@ -10,13 +10,13 @@ use error::{InvalidMainSignature, MissingMainFunction};
 use std::fmt::{Display, Formatter};
 use std::{cell::RefCell, error::Error, fmt::Debug, rc::Rc};
 
-use self::context::Context;
-pub use self::{error::TypeCheckError, types::Type};
+use self::context::Context as InternalContext;
+pub use self::{context::Context, error::TypeCheckError, types::Type};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeInformation {
     pub type_id: Rc<RefCell<Option<Type>>>,
-    pub context: Context,
+    pub context: InternalContext,
 }
 
 impl TypeInformation {
@@ -29,7 +29,7 @@ impl TypeInformation {
 pub struct ValidatedTypeInformation {
     pub type_id: Type,
     #[serde(skip)]
-    pub context: Context,
+    pub context: InternalContext,
 }
 
 impl TypeInformation {
@@ -71,14 +71,14 @@ pub type TypeResult<T> = Result<T, TypeCheckError>;
 
 #[derive(Debug, Clone, Default)]
 pub struct TypeChecker {
-    context: Context,
+    pub context: InternalContext,
     statements: Vec<TopLevelStatement<()>>,
 }
 
 trait TypeCheckable {
     type Typed;
 
-    fn check(self, ctx: &mut Context) -> TypeResult<Self::Typed>;
+    fn check(self, ctx: &mut InternalContext) -> TypeResult<Self::Typed>;
 
     fn revert(this: &Self::Typed) -> Self;
 }

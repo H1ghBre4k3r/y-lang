@@ -10,9 +10,12 @@ repository = "https://github.com/H1ghBre4k3r/y-lang"
 [dependencies]
 anyhow = "1.0.100"
 colored = "3.0.0"
+dashmap = "5.5"
 inkwell = { version = "0.6.0", features = ["llvm18-1"] }
+ropey = "1.6"
 serde = { version = "1.0.226", features = ["derive"] }
 sha2 = "0.10.9"
+tower-lsp-server = "0.22.1"
 unescape = "0.1.0"
 rust-sitter = "0.4.5"
 

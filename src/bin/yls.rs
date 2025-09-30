@@ -10,8 +10,9 @@ use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use tracing::error;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
 use why_lib::lexer::Span;
+use why_lib::lsp::{SimpleSymbolCollector, SymbolIndex, TypeCheckerSymbolExt};
 use why_lib::parser::parse_program;
-use why_lib::typechecker::{self};
+use why_lib::typechecker::{self, TypeChecker};
 use why_lib::{formatter, grammar};
 use y_lang::util::convert_parse_error;
 
@@ -19,6 +20,7 @@ use y_lang::util::convert_parse_error;
 struct Backend {
     client: Client,
     documents: Arc<RwLock<HashMap<Uri, String>>>,
+    symbol_indices: Arc<RwLock<HashMap<Uri, Arc<SymbolIndex>>>>,
 }
 
 impl Backend {
@@ -41,11 +43,15 @@ impl Backend {
             }
         };
 
+        // Perform analysis and collect symbols
+        let diagnostics = self.get_diagnostics_for_code(&content);
+        self.collect_symbols(&uri, &content).await;
+
         self.client
             .send_notification::<PublishDiagnostics>(PublishDiagnosticsParams {
                 uri: uri.clone(),
                 version: None,
-                diagnostics: self.get_diagnostics_for_code(&content),
+                diagnostics,
             })
             .await;
     }
@@ -150,6 +156,47 @@ impl Backend {
         };
 
         Position::new(actual_line_count, last_line_length)
+    }
+
+    /// Collect symbols from the given document content
+    async fn collect_symbols(&self, uri: &Uri, content: &str) {
+        // Parse and type check the document (do all non-Send work first)
+        let symbol_index = {
+            let program = match grammar::parse(content) {
+                Ok(program) => program,
+                Err(_) => return, // Skip symbol collection if parsing fails
+            };
+
+            let parsed = parse_program(program, content);
+            let typechecker = TypeChecker::new(parsed);
+
+            // Use the symbol extension to collect symbols during type checking
+            match typechecker.check_with_symbols(content, uri.clone()) {
+                Ok((_, symbol_index)) => Some(symbol_index),
+                Err(_) => None,
+            }
+        };
+
+        // Only do async work after all non-Send work is complete
+        if let Some(symbol_index) = symbol_index {
+            let mut indices = self.symbol_indices.write().await;
+            indices.insert(uri.clone(), symbol_index);
+        }
+    }
+
+    /// Handle go-to-definition requests
+    async fn goto_definition(&self, uri: &Uri, position: &Position) -> Option<Location> {
+        let symbol_indices = self.symbol_indices.read().await;
+        let symbol_index = symbol_indices.get(uri)?;
+
+        // Find symbol at the given position
+        let symbol_id = symbol_index.symbol_at_position(uri, position)?;
+        let definition = symbol_index.get_definition(&symbol_id)?;
+
+        Some(Location {
+            uri: definition.uri.clone(),
+            range: definition.range,
+        })
     }
 }
 
@@ -325,6 +372,16 @@ impl LanguageServer for Backend {
                 error!("Failed to format code: {}", e);
                 Ok(None)
             }
+        }
+    }
+
+    async fn goto_definition(&self, params: GotoDefinitionParams) -> Result<Option<GotoDefinitionResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+
+        match self.goto_definition(&uri, &position).await {
+            Some(location) => Ok(Some(GotoDefinitionResponse::Scalar(location))),
+            None => Ok(None),
         }
     }
 }
